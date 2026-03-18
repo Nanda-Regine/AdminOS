@@ -47,7 +47,7 @@ export async function POST(request: Request, { params }: AgentRouteParams) {
     body.contactIdentifier
   )
 
-  const systemPrompt = agent.buildPrompt('')
+  const systemPrompt = agent.buildPrompt()
   const response = await callClaudeAgent(systemPrompt, enrichedContext, 600)
 
   await writeAuditLog({

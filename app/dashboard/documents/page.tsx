@@ -7,7 +7,6 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Document, Goal } from '@/types/database'
-import { getAllowedExtensions } from '@/lib/files/parser'
 
 const categoryVariant: Record<string, 'blue' | 'green' | 'purple' | 'yellow' | 'gray'> = {
   strategy: 'blue', invoice: 'green', hr: 'purple', report: 'yellow', contract: 'gray',
@@ -21,7 +20,13 @@ const fileTypeIcon: Record<string, string> = {
   mp3: '🎵', m4a: '🎵', wav: '🎵', mp4: '🎬', mov: '🎬',
 }
 
-const ACCEPTED = getAllowedExtensions().map((e) => `.${e}`).join(',')
+// Accepted file types (mirrors lib/files/parser.ts — update both if adding new types)
+const ACCEPTED = [
+  '.pdf', '.docx', '.doc', '.xlsx', '.xls', '.csv', '.pptx', '.txt', '.md', '.rtf',
+  '.jpg', '.jpeg', '.png', '.webp', '.gif', '.heic',
+  '.json', '.xml',
+  '.mp3', '.m4a', '.wav', '.ogg', '.mp4', '.mov', '.avi',
+].join(',')
 
 export default function DocumentsPage() {
   const supabase = createClient()

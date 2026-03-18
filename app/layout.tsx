@@ -49,20 +49,13 @@ export const metadata: Metadata = {
     title: `${APP_NAME} — The OS That Runs Your Business`,
     description: APP_DESCRIPTION,
     locale: 'en_ZA',
-    images: [
-      {
-        url: `${APP_URL}/og-image.png`,
-        width: 1200,
-        height: 630,
-        alt: 'AdminOS — AI Business Operating System for Africa',
-      },
-    ],
+    // OG image auto-served from app/opengraph-image.tsx (Next.js convention)
   },
   twitter: {
     card: 'summary_large_image',
     title: `${APP_NAME} — The OS That Runs Your Business`,
     description: APP_DESCRIPTION,
-    images: [`${APP_URL}/og-image.png`],
+    // Twitter image auto-served from app/twitter-image.tsx (Next.js convention)
     creator: '@CreativelyNanda',
   },
   robots: {

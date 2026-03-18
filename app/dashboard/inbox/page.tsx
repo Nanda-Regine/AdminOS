@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Conversation, Message } from '@/types/database'
-import { AGENT_DEFINITIONS, AgentType } from '@/lib/ai/agents'
+import { AGENT_DEFINITIONS, AgentType } from '@/lib/ai/agents.config'
 
 export default function InboxPage() {
   const supabase = createClient()
