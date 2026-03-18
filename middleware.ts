@@ -1,8 +1,37 @@
-import { NextResponse, type NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
+import { NextResponse, type NextRequest } from 'next/server'
+
+// Routes that don't require authentication
+const PUBLIC_PATHS = [
+  '/',
+  '/login',
+  '/signup',
+  '/robots.txt',
+  '/sitemap.xml',
+  '/manifest.json',
+]
+
+const PUBLIC_PREFIXES = [
+  '/api/webhook/',    // 360dialog + email inbound (verified by HMAC)
+  '/api/onboarding/', // tenant creation during signup
+  '/api/auth/',       // sign in/out
+  '/_next/',
+  '/icons/',
+  '/public/',
+]
 
 export async function middleware(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({ request })
+  const { pathname } = request.nextUrl
+
+  // Allow static assets and public routes without auth check
+  if (
+    PUBLIC_PATHS.includes(pathname) ||
+    PUBLIC_PREFIXES.some((p) => pathname.startsWith(p))
+  ) {
+    return addSecurityHeaders(NextResponse.next())
+  }
+
+  let response = NextResponse.next({ request })
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -13,42 +42,81 @@ export async function middleware(request: NextRequest) {
           return request.cookies.getAll()
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-          supabaseResponse = NextResponse.next({ request })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          )
+          cookiesToSet.forEach(({ name, value, options }) => {
+            request.cookies.set(name, value)
+            response.cookies.set(name, value, options)
+          })
         },
       },
     }
   )
 
-  // Refresh session
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
-  const path = request.nextUrl.pathname
-
-  // Protect /dashboard routes
-  if (path.startsWith('/dashboard') && !user) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/login'
-    return NextResponse.redirect(url)
+  // Redirect unauthenticated users
+  if (!user) {
+    if (pathname.startsWith('/dashboard')) {
+      const loginUrl = new URL('/login', request.url)
+      loginUrl.searchParams.set('redirect', pathname)
+      return NextResponse.redirect(loginUrl)
+    }
+    if (pathname.startsWith('/api/')) {
+      return new NextResponse(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { 'Content-Type': 'application/json' } }
+      )
+    }
+    return addSecurityHeaders(response)
   }
 
-  // Redirect authenticated users away from auth pages
-  if ((path === '/login' || path === '/signup') && user) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/dashboard'
-    return NextResponse.redirect(url)
+  // Inject tenant context into headers for downstream API routes
+  const tenantId = user.user_metadata?.tenant_id as string | undefined
+  const role = user.user_metadata?.role as string | undefined
+
+  if (tenantId) {
+    response.headers.set('x-tenant-id', tenantId)
+  }
+  if (role) {
+    response.headers.set('x-user-role', role)
+  }
+  response.headers.set('x-user-id', user.id)
+
+  // Block suspended tenants from dashboard and API
+  const isSuspended = user.user_metadata?.suspended === true
+  if (isSuspended) {
+    if (pathname.startsWith('/dashboard')) {
+      return NextResponse.redirect(new URL('/login?error=suspended', request.url))
+    }
+    if (pathname.startsWith('/api/')) {
+      return new NextResponse(
+        JSON.stringify({ error: 'Account suspended' }),
+        { status: 403, headers: { 'Content-Type': 'application/json' } }
+      )
+    }
   }
 
-  return supabaseResponse
+  // Restrict super-admin routes to admin role only
+  if (pathname.startsWith('/api/admin/') && role !== 'super_admin') {
+    return new NextResponse(
+      JSON.stringify({ error: 'Forbidden' }),
+      { status: 403, headers: { 'Content-Type': 'application/json' } }
+    )
+  }
+
+  return addSecurityHeaders(response)
+}
+
+function addSecurityHeaders(response: NextResponse): NextResponse {
+  response.headers.set('X-Content-Type-Options', 'nosniff')
+  response.headers.set('X-Frame-Options', 'DENY')
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
+  return response
 }
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|icons|manifest.json|api/webhook|api/cron).*)',
+    '/((?!_next/static|_next/image|favicon.ico).*)',
   ],
 }
