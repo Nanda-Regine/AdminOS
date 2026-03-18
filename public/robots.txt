@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard/
+Disallow: /api/
+Disallow: /_next/
+
+# Allow indexing of the marketing site only
+Allow: /login
+Allow: /signup
+
+Sitemap: https://adminos.co.za/sitemap.xml
