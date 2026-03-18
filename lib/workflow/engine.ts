@@ -23,9 +23,18 @@ interface WorkflowResult {
 
 type WorkflowStep = (ctx: WorkflowContext, result: WorkflowResult) => Promise<void>
 
+// Wrap any step in a timeout so a single slow step can't stall the whole flow
+function withTimeout<T>(promise: Promise<T>, ms: number, stepName: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error(`Step timeout: ${stepName} exceeded ${ms}ms`)), ms)
+    ),
+  ])
+}
+
 const steps = {
   async loadTenantContext(ctx: WorkflowContext): Promise<void> {
-    // Tenant is already loaded — refresh system prompt if stale (> 24h)
     if (!ctx.tenant.system_prompt_cache || !ctx.tenant.prompt_cached_at) return
     const cachedAt = new Date(ctx.tenant.prompt_cached_at)
     const ageHours = (Date.now() - cachedAt.getTime()) / 1000 / 3600
@@ -67,8 +76,9 @@ const steps = {
     result.response = aiResult.text
     ;(ctx as Record<string, unknown>).tokens = aiResult.tokens
     ;(ctx as Record<string, unknown>).fromCache = aiResult.fromCache
+    ;(ctx as Record<string, unknown>).cacheReadTokens = aiResult.cacheReadTokens
 
-    // Cache if it looks like a FAQ (short question, high confidence)
+    // Cache FAQ-like responses: short question, concise answer
     if (ctx.text.length < 150 && aiResult.text.length < 300) {
       await setFAQCache(ctx.tenant.id, ctx.text, aiResult.text)
     }
@@ -89,36 +99,33 @@ const steps = {
         intent: result.intent,
         fromCache: (ctx as Record<string, unknown>).fromCache,
         tokens: (ctx as Record<string, unknown>).tokens,
+        cacheReadTokens: (ctx as Record<string, unknown>).cacheReadTokens,
         escalated: result.escalated,
       },
     })
   },
 
   async updateDashboard(ctx: WorkflowContext, result: WorkflowResult): Promise<void> {
-    // Store message in DB and push realtime update
     if (!ctx.from || !ctx.text) return
 
-    // Upsert conversation
+    // Find or create open conversation for this contact
     let conversationId: string
-    const existingConv = await supabaseAdmin
+    const { data: existingConv } = await supabaseAdmin
       .from('conversations')
       .select('id')
       .eq('tenant_id', ctx.tenant.id)
       .eq('contact_identifier', ctx.from)
       .eq('status', 'open')
-      .single()
+      .maybeSingle()
 
-    if (existingConv.data) {
-      conversationId = existingConv.data.id
+    if (existingConv) {
+      conversationId = existingConv.id
       await supabaseAdmin
         .from('conversations')
-        .update({
-          updated_at: new Date().toISOString(),
-          intent: result.intent,
-        })
+        .update({ updated_at: new Date().toISOString(), intent: result.intent })
         .eq('id', conversationId)
     } else {
-      const newConv = await supabaseAdmin
+      const { data: newConv } = await supabaseAdmin
         .from('conversations')
         .insert({
           tenant_id: ctx.tenant.id,
@@ -130,10 +137,10 @@ const steps = {
         })
         .select('id')
         .single()
-      conversationId = newConv.data?.id
+      conversationId = newConv!.id
     }
 
-    // Store user message
+    // Store both sides of the exchange in one batch insert
     await supabaseAdmin.from('messages').insert([
       {
         tenant_id: ctx.tenant.id,
@@ -150,7 +157,7 @@ const steps = {
         role: 'assistant',
         content: result.response || '',
         channel: 'whatsapp',
-        tokens_used: (ctx as Record<string, unknown>).tokens as number || null,
+        tokens_used: (ctx as Record<string, unknown>).tokens as number | null,
         from_cache: (ctx as Record<string, unknown>).fromCache as boolean || false,
       },
     ])
@@ -177,6 +184,16 @@ async function getConversationHistory(tenantId: string, from: string): Promise<M
   return (data || []).reverse()
 }
 
+const STEP_TIMEOUTS: Record<string, number> = {
+  loadTenantContext: 5000,
+  classifyIntent:    8000,
+  checkFAQCache:     2000,
+  generateResponse: 20000, // Claude call — longest allowed
+  sendWhatsApp:      5000,
+  logToAudit:        3000,
+  updateDashboard:   5000,
+}
+
 class AdminWorkflowEngine {
   private flows: Record<string, WorkflowStep[]> = {
     'whatsapp.inbound': [
@@ -197,16 +214,24 @@ class AdminWorkflowEngine {
     const result: WorkflowResult = {}
 
     for (const step of flow) {
+      const stepName = step.name
+      const timeoutMs = STEP_TIMEOUTS[stepName] || 10000
+
       try {
-        await step(ctx, result)
+        await withTimeout(step(ctx, result), timeoutMs, stepName)
       } catch (err) {
-        console.error(`[WorkflowEngine] Step failed in ${flowName}:`, err)
-        // On AI failure, escalate to human
+        console.error(`[WorkflowEngine] Step "${stepName}" failed in ${flowName}:`, err)
+        // If AI generation failed and we have no response yet, escalate to human
         if (!result.response) {
           result.escalated = true
-          result.response = "I'm unable to help right now. A team member will assist you shortly."
+          result.response =
+            "I'm unable to help right now. A team member will be in touch shortly."
         }
-        break
+        // Log the failure but don't stop the remaining safe steps (audit + dashboard)
+        if (stepName === 'generateResponse' || stepName === 'classifyIntent') {
+          await steps.logToAudit(ctx, { ...result, error: String(err) }).catch(() => {})
+          break
+        }
       }
     }
 
