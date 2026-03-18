@@ -114,6 +114,17 @@ export async function classifyIntent(
   return result.trim().toLowerCase()
 }
 
+export async function classifySentiment(text: string): Promise<string> {
+  const result = await callClaudeAgent(
+    'Classify the sentiment of this message into ONE of: positive, neutral, negative, urgent. Reply with ONLY the label.',
+    text,
+    20
+  )
+  const sentiment = result.trim().toLowerCase()
+  const valid = ['positive', 'neutral', 'negative', 'urgent']
+  return valid.includes(sentiment) ? sentiment : 'neutral'
+}
+
 export async function classifyDocument(extractedText: string): Promise<{
   category: 'strategy' | 'invoice' | 'hr' | 'report' | 'contract'
   confidence: number

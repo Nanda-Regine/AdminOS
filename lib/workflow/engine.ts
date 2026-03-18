@@ -1,5 +1,5 @@
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import { callClaudeWithCache, classifyIntent } from '@/lib/ai/callClaude'
+import { callClaudeWithCache, classifyIntent, classifySentiment } from '@/lib/ai/callClaude'
 import { checkFAQCache, setFAQCache } from '@/lib/cache/faqCache'
 import { sendWhatsApp } from '@/lib/whatsapp/send'
 import { writeAuditLog } from '@/lib/security/audit'
@@ -51,7 +51,13 @@ const steps = {
 
   async classifyIntent(ctx: WorkflowContext, result: WorkflowResult): Promise<void> {
     if (!ctx.text) return
-    result.intent = await classifyIntent(ctx.text, ctx.tenant.system_prompt_cache || '')
+    // Run intent + sentiment classification in parallel (same cost, half the time)
+    const [intent, sentiment] = await Promise.all([
+      classifyIntent(ctx.text, ctx.tenant.system_prompt_cache || ''),
+      classifySentiment(ctx.text),
+    ])
+    result.intent = intent
+    ;(ctx as Record<string, unknown>).sentiment = sentiment
   },
 
   async checkFAQCache(ctx: WorkflowContext, result: WorkflowResult): Promise<void> {
@@ -118,11 +124,17 @@ const steps = {
       .eq('status', 'open')
       .maybeSingle()
 
+    const sentiment = (ctx as Record<string, unknown>).sentiment as string | undefined
+
     if (existingConv) {
       conversationId = existingConv.id
       await supabaseAdmin
         .from('conversations')
-        .update({ updated_at: new Date().toISOString(), intent: result.intent })
+        .update({
+          updated_at: new Date().toISOString(),
+          intent: result.intent,
+          sentiment: sentiment || undefined,
+        })
         .eq('id', conversationId)
     } else {
       const { data: newConv } = await supabaseAdmin
@@ -134,6 +146,7 @@ const steps = {
           contact_type: 'unknown',
           status: 'open',
           intent: result.intent,
+          sentiment: sentiment || null,
         })
         .select('id')
         .single()
@@ -175,10 +188,22 @@ async function getTenantByWhatsAppNumber(wabaId: string): Promise<Tenant | null>
 }
 
 async function getConversationHistory(tenantId: string, from: string): Promise<Message[]> {
+  // Find the open conversation for this specific contact first
+  const { data: conv } = await supabaseAdmin
+    .from('conversations')
+    .select('id')
+    .eq('tenant_id', tenantId)
+    .eq('contact_identifier', from)
+    .eq('status', 'open')
+    .maybeSingle()
+
+  if (!conv) return []
+
   const { data } = await supabaseAdmin
     .from('messages')
     .select('*')
     .eq('tenant_id', tenantId)
+    .eq('conversation_id', conv.id)
     .order('created_at', { ascending: false })
     .limit(10)
   return (data || []).reverse()

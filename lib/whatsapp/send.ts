@@ -26,15 +26,48 @@ export async function sendWhatsApp({ to, message, apiKey }: SendWhatsAppParams):
   }
 }
 
-export function verifyWebhookSignature(request: Request, rawBody: string): boolean {
-  // 360dialog uses HMAC-SHA256 signature verification
+export async function verifyWebhookSignature(
+  request: Request,
+  rawBody: string
+): Promise<boolean> {
   const signature = request.headers.get('x-hub-signature-256') || ''
   if (!signature) return false
 
-  // In production, compute HMAC-SHA256 of rawBody with DIALOG360_WEBHOOK_SECRET
-  // and compare to signature. Using crypto.subtle in edge runtime.
-  // Placeholder: always verify in prod
-  return signature.length > 0
+  const secret = process.env.DIALOG360_WEBHOOK_SECRET
+  if (!secret) {
+    console.error('[WhatsApp] DIALOG360_WEBHOOK_SECRET not set — rejecting all webhooks')
+    return false
+  }
+
+  try {
+    const encoder = new TextEncoder()
+    const keyData = encoder.encode(secret)
+    const messageData = encoder.encode(rawBody)
+
+    const cryptoKey = await crypto.subtle.importKey(
+      'raw',
+      keyData,
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign']
+    )
+
+    const signatureBuffer = await crypto.subtle.sign('HMAC', cryptoKey, messageData)
+    const computed = 'sha256=' + Array.from(new Uint8Array(signatureBuffer))
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('')
+
+    // Constant-time comparison to prevent timing attacks
+    if (computed.length !== signature.length) return false
+    let mismatch = 0
+    for (let i = 0; i < computed.length; i++) {
+      mismatch |= computed.charCodeAt(i) ^ signature.charCodeAt(i)
+    }
+    return mismatch === 0
+  } catch (err) {
+    console.error('[WhatsApp] Signature verification error:', err)
+    return false
+  }
 }
 
 export function parseWhatsAppPayload(body: Record<string, unknown>): {

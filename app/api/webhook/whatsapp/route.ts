@@ -14,8 +14,8 @@ export async function POST(request: Request) {
     return new NextResponse('Bad Request', { status: 400 })
   }
 
-  // 1. Verify 360dialog signature
-  if (!verifyWebhookSignature(request, rawBody)) {
+  // 1. Verify 360dialog signature (HMAC-SHA256)
+  if (!await verifyWebhookSignature(request, rawBody)) {
     return new NextResponse('Unauthorized', { status: 401 })
   }
 
