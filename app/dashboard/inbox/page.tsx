@@ -22,6 +22,7 @@ export default function InboxPage() {
   const [replyText, setReplyText] = useState('')
   const [sending, setSending] = useState(false)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
+  const [newConvIds, setNewConvIds] = useState<Set<string>>(new Set())
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const scrollToBottom = () =>
@@ -78,6 +79,34 @@ export default function InboxPage() {
       )
     )
   }, [search, conversations])
+
+  // Realtime: new + updated conversations appear in list automatically
+  useEffect(() => {
+    if (!tenantId) return
+    const channel = supabase
+      .channel(`conversations:${tenantId}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'conversations', filter: `tenant_id=eq.${tenantId}` },
+        (payload) => {
+          const conv = payload.new as Conversation
+          setConversations((prev) => [conv, ...prev])
+          setNewConvIds((prev) => new Set([...prev, conv.id]))
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'conversations', filter: `tenant_id=eq.${tenantId}` },
+        (payload) => {
+          const conv = payload.new as Conversation
+          setConversations((prev) =>
+            prev.map((c) => c.id === conv.id ? conv : c)
+          )
+        }
+      )
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [tenantId, supabase])
 
   // Realtime subscription for new messages
   useEffect(() => {
@@ -199,15 +228,24 @@ export default function InboxPage() {
             {filtered.map((conv) => (
               <button
                 key={conv.id}
-                onClick={() => { setSelected(conv); setAgentResponse('') }}
+                onClick={() => {
+                  setSelected(conv)
+                  setAgentResponse('')
+                  setNewConvIds((prev) => { const next = new Set(prev); next.delete(conv.id); return next })
+                }}
                 className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors ${
                   selected?.id === conv.id ? 'bg-emerald-50 border-l-2 border-l-emerald-500' : ''
                 }`}
               >
                 <div className="flex items-center justify-between mb-0.5">
-                  <p className="text-sm font-medium text-gray-900 truncate">
-                    {conv.contact_name || conv.contact_identifier || 'Unknown'}
-                  </p>
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    {newConvIds.has(conv.id) && (
+                      <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" title="New conversation" />
+                    )}
+                    <p className="text-sm font-medium text-gray-900 truncate">
+                      {conv.contact_name || conv.contact_identifier || 'Unknown'}
+                    </p>
+                  </div>
                   <Badge variant={statusColor[conv.status] || 'gray'} className="ml-2 shrink-0">
                     {conv.status.replace('_', ' ')}
                   </Badge>

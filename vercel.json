@@ -11,6 +11,10 @@
     {
       "path": "/api/cron/debt-recovery",
       "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/cron/escalate-conversations",
+      "schedule": "0 */6 * * *"
     }
   ],
   "headers": [

@@ -1,4 +1,42 @@
 import type { NextConfig } from 'next'
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const withPWA = require('next-pwa')({
+  dest:        'public',
+  disable:     process.env.NODE_ENV === 'development',
+  register:    true,
+  skipWaiting: true,
+  runtimeCaching: [
+    {
+      // Supabase API — network first, short cache for fresh data
+      urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
+      handler:    'NetworkFirst',
+      options: {
+        cacheName:  'supabase-api',
+        expiration: { maxEntries: 50, maxAgeSeconds: 300 },
+        networkTimeoutSeconds: 5,
+      },
+    },
+    {
+      // Next.js static assets — cache forever (content-hashed)
+      urlPattern: /\/_next\/static\/.*/i,
+      handler:    'CacheFirst',
+      options: {
+        cacheName:  'next-static',
+        expiration: { maxEntries: 300, maxAgeSeconds: 31_536_000 },
+      },
+    },
+    {
+      // Dashboard pages — network first, fall back to cache during load shedding
+      urlPattern: /^https:\/\/adminos\.co\.za\/dashboard.*/i,
+      handler:    'NetworkFirst',
+      options: {
+        cacheName:  'dashboard-pages',
+        expiration: { maxEntries: 20, maxAgeSeconds: 3_600 },
+        networkTimeoutSeconds: 10,
+      },
+    },
+  ],
+})
 
 const securityHeaders = [
   {
@@ -82,4 +120,4 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ['@anthropic-ai/sdk'],
 }
 
-export default nextConfig
+export default withPWA(nextConfig)

@@ -567,5 +567,220 @@ PWA
 
 ---
 
+---
+
+## v2 Strategy — Closing Every Loop
+
+*Drafted after the initial build was feature-complete. The insight driving v2:*
+
+> AdminOS v1 captures information. AdminOS v2 **acts on information** — automatically, continuously, in the right language, even during load shedding.
+
+The fundamental problem v2 solves is **broken follow-through**. African SMEs don't fail for lack of tools. They fail because no tool closes the loop from trigger to outcome automatically. v2 is built around five closed loops that handle the most painful daily admin failures.
+
+---
+
+### The 5 Closed Loops
+
+**Loop 1 — The Money Loop**
+```
+Invoice uploaded → debtor created → WhatsApp reminder scheduled →
+payment promised → follow-up sent → payment confirmed → loop closed
+```
+
+**Loop 2 — The People Loop**
+```
+Monday 8am → wellness check-in WhatsApp sent to all staff →
+score reply received → recorded in DB → declining trend detected →
+manager notified → support message sent to staff → loop closed
+```
+
+**Loop 3 — The Conversation Loop**
+```
+WhatsApp received → AI responds → 48h passes unresolved →
+auto-escalation to owner → owner resolves → audit logged → loop closed
+```
+
+**Loop 4 — The Document Intelligence Loop**
+```
+Contract uploaded → AI extracts parties, dates, obligations →
+key dates added to calendar → expiry reminder created →
+compliance alert 30 days before renewal → loop closed
+```
+
+**Loop 5 — The Insight Loop**
+```
+Daily brief generated → owner reads trend → uploads relevant docs →
+AI adjusts next brief based on new context → key insights stored →
+future briefs build on business history → loop closed
+```
+
+---
+
+### v2 Build Plan
+
+#### Phase 1 — Fix Broken Loops
+| Feature | Status | File |
+|---|---|---|
+| Wellness score recording in workflow | ✅ Built | `lib/workflow/engine.ts` |
+| Low wellness score follow-up message | ✅ Built | `lib/workflow/engine.ts` |
+| Plan quota enforcement (pre-AI gate) | ✅ Built | `lib/workflow/engine.ts` |
+| Multi-language detection (Zulu/Xhosa/Afrikaans) | ✅ Built | `lib/workflow/engine.ts` |
+| Language-aware Claude responses | ✅ Built | `lib/workflow/engine.ts` |
+| Real-time new conversation subscription | ✅ Built | `app/dashboard/inbox/page.tsx` |
+| New conversation indicator (green dot) | ✅ Built | `app/dashboard/inbox/page.tsx` |
+| Global error boundary | ✅ Built | `app/error.tsx` |
+| Dashboard error boundary | ✅ Built | `app/dashboard/error.tsx` |
+| Auto-escalation cron (every 6 hours) | ✅ Built | `app/api/cron/escalate-conversations/route.ts` |
+| PWA service worker (offline / load shedding) | ✅ Built | `next.config.ts` |
+
+#### Phase 2 — Core Daily-Use Features (Planned)
+| Feature | Purpose |
+|---|---|
+| Contacts / CRM page | Unified record per contact: balance, history, documents, quick actions |
+| Debt recovery automation | Invoice upload → auto-schedule WhatsApp reminder ladder (day 0/3/7/14/30) |
+| Real analytics dashboard | Live charts: volume by intent, debt aging, wellness trend, response time |
+| Staff wellness heatmap | Team wellness grid by staff × week, auto-flag declining members |
+
+#### Phase 3 — Document Intelligence (Planned)
+| Feature | Purpose |
+|---|---|
+| Contract → Calendar | Extract key dates from contracts, auto-create calendar reminders |
+| Invoice → Debtor | Uploaded invoices auto-create debtor records and start reminder sequences |
+| Document expiry alerts | Compliance documents get expiry reminders 30 days before renewal |
+| HR doc → Staff record | HR documents linked to matching staff profiles |
+
+#### Phase 4 — Differentiators (Planned)
+| Feature | Purpose |
+|---|---|
+| Load shedding widget | EskomSePush API integration — show next outage in dashboard |
+| WhatsApp sequence builder | Configure drip sequences: debt reminders, onboarding, wellness |
+| AI advisor memory | Store insights per tenant, advisor gets smarter over time |
+| POPI compliance center | Data register, right of erasure, consent log, incident log |
+
+#### Phase 5 — Scale Infrastructure (Planned)
+| Feature | Purpose |
+|---|---|
+| PayFast billing | Subscription management, trial enforcement, usage metering |
+| Referral system | Unique links, reward tracking, 1-month-free incentive |
+| Tenant onboarding automation | Welcome WhatsApp, demo conversation, Day 3 + Day 14 check-ins |
+
+---
+
+### New Database Tables (v2)
+
+```sql
+-- Debt recovery
+CREATE TABLE debtors (
+  id                  uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id           uuid REFERENCES tenants NOT NULL,
+  contact_identifier  text NOT NULL,
+  contact_name        text,
+  amount_owed         numeric(12,2) NOT NULL DEFAULT 0,
+  amount_paid         numeric(12,2) NOT NULL DEFAULT 0,
+  invoice_reference   text,
+  due_date            date,
+  status              text DEFAULT 'outstanding',
+  last_reminder_sent_at timestamptz,
+  created_at          timestamptz DEFAULT now()
+);
+
+-- WhatsApp automation sequences
+CREATE TABLE whatsapp_sequences (
+  id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id    uuid REFERENCES tenants NOT NULL,
+  name         text NOT NULL,
+  trigger_type text NOT NULL,
+  steps        jsonb NOT NULL DEFAULT '[]',
+  is_active    boolean DEFAULT true,
+  created_at   timestamptz DEFAULT now()
+);
+
+CREATE TABLE sequence_enrollments (
+  id                 uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id          uuid REFERENCES tenants NOT NULL,
+  sequence_id        uuid REFERENCES whatsapp_sequences NOT NULL,
+  contact_identifier text NOT NULL,
+  current_step       int DEFAULT 0,
+  next_step_at       timestamptz NOT NULL,
+  status             text DEFAULT 'active',
+  created_at         timestamptz DEFAULT now()
+);
+
+-- Calendar events from documents, sequences, or manual entry
+CREATE TABLE calendar_events (
+  id                    uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id             uuid REFERENCES tenants NOT NULL,
+  title                 text NOT NULL,
+  event_date            date NOT NULL,
+  event_time            time,
+  contact_identifier    text,
+  source                text,
+  source_id             uuid,
+  send_whatsapp_reminder boolean DEFAULT false,
+  created_at            timestamptz DEFAULT now()
+);
+
+-- AI advisor memory — stored insights that persist across sessions
+CREATE TABLE business_insights (
+  id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id    uuid REFERENCES tenants NOT NULL,
+  insight      text NOT NULL,
+  category     text,
+  extracted_at timestamptz DEFAULT now()
+);
+
+-- Subscription and billing
+CREATE TABLE subscriptions (
+  id                    uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id             uuid REFERENCES tenants NOT NULL UNIQUE,
+  plan                  text DEFAULT 'trial',
+  status                text DEFAULT 'active',
+  trial_ends_at         timestamptz DEFAULT now() + interval '14 days',
+  current_period_end    timestamptz,
+  payfast_subscription_id text,
+  created_at            timestamptz DEFAULT now()
+);
+```
+
+---
+
+## Workflow Engine Architecture (v2)
+
+The `whatsapp.inbound` flow now has 9 steps, each with a per-step timeout:
+
+```
+WhatsApp message received
+        │
+        ▼
+loadTenantContext    (5s)  — refresh prompt cache if > 24h old
+        │
+        ▼
+classifyIntent      (8s)  — intent + sentiment + language detection (parallel)
+        │
+        ▼
+checkFAQCache       (2s)  — Redis lookup: answer instantly if cached
+        │
+        ▼
+checkPlanLimits     (3s)  — Redis counter: block AI if over monthly quota
+        │
+        ▼
+generateResponse   (20s)  — Claude API with cached system prompt + language instruction
+        │
+        ▼
+sendWhatsApp        (5s)  — 360dialog delivery
+        │
+        ▼
+logToAudit          (3s)  — append-only audit trail
+        │
+        ▼
+updateDashboard     (5s)  — upsert conversation + batch insert messages
+        │
+        ▼
+recordWellness      (6s)  — if intent=wellness_checkin: extract score → update staff DB
+                            if score ≤ 2: auto-send warm support message
+```
+
+---
+
 *Built by Nandawula Regine · Mirembe Muse (Pty) Ltd · adminos.co.za*
 *"Build it bulletproof. Build it beautiful. Build it for Africa."*
