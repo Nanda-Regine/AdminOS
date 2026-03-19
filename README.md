@@ -1,6 +1,122 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AdminOS
+
+> The OS that runs your business while you focus on what matters.
+
+AI-powered hybrid business operating system for South African SMEs, NGOs, schools, clinics, and government departments.
+
+---
+
+## Stack
+
+| Layer | Tech |
+|---|---|
+| Frontend | Next.js 14 (App Router) + TypeScript + Tailwind CSS |
+| Database | Supabase (Postgres + RLS + Realtime + Storage) |
+| Auth | Supabase Auth (JWT, multi-tenant, RLS) |
+| AI | Claude API (claude-sonnet-4-6) with prompt caching |
+| Cache | Upstash Redis (sessions, FAQ cache, deduplication) |
+| WhatsApp | 360dialog |
+| Email | Resend |
+| Payments | PayFast (SA) |
+| Invoicing | Xero API |
+| Hosting | Vercel (edge functions, cron, CDN) |
+
+---
 
 ## Getting Started
+
+### 1. Install dependencies
+
+```bash
+cd adminos
+npm install
+```
+
+### 2. Configure environment
+
+Fill in `.env.local` with your credentials:
+
+- `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY` + `SUPABASE_SERVICE_ROLE_KEY`
+- `ANTHROPIC_API_KEY`
+- `UPSTASH_REDIS_URL` + `UPSTASH_REDIS_TOKEN`
+- `DIALOG360_API_KEY` + `DIALOG360_WEBHOOK_SECRET`
+- `RESEND_API_KEY`
+- `CRON_SECRET` — random string to secure cron endpoints
+- All others in `.env.local`
+
+### 3. Set up database
+
+Run `supabase/schema.sql` in your Supabase SQL editor.
+
+### 4. Run locally
+
+```bash
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000)
+
+---
+
+## Project Structure
+
+```
+app/
+  page.tsx                      Landing page
+  (auth)/login + signup/        Auth pages
+  dashboard/                    Protected dashboard
+    page.tsx                    Overview + stats
+    inbox/                      Live conversation inbox + AI agents
+    staff/                      Staff directory, leave, wellness
+    invoices/                   Debt register + recovery
+    documents/                  File intelligence + goal tracker
+    calendar/                   Leave calendar
+    analytics/                  Business intelligence
+    settings/                   Bot training, integrations
+      onboarding/               15-minute setup wizard
+  api/
+    webhook/whatsapp/           360dialog inbound webhook
+    webhook/email/              Email inbound
+    workflow/trigger/           n8n callback endpoint
+    workflow/file-received/     File intelligence pipeline
+    agents/[agentType]/         Dashboard AI agents (5 types)
+    cron/                       Vercel scheduled jobs
+    admin/tenants/              Super admin panel
+
+lib/
+  ai/callClaude.ts              Claude API with prompt caching
+  ai/agents.ts                  5 specialist AI agents
+  workflow/engine.ts            Core WorkflowEngine
+  workflows/debtRecovery.ts     Escalating invoice recovery
+  workflows/wellness.ts         Staff wellness check-ins
+  cache/faqCache.ts             Redis FAQ cache
+  security/rateLimit.ts         Per-tenant rate limiting
+  security/audit.ts             Immutable audit logging
+
+supabase/schema.sql             Full database schema + RLS policies
+```
+
+---
+
+## Cron Jobs
+
+| Endpoint | Schedule (UTC) | Purpose |
+|---|---|---|
+| `/api/cron/debt-recovery` | 07:00 daily | Chase overdue invoices |
+| `/api/cron/wellness` | 06:00 Mon-Fri | Staff wellness check-ins |
+| `/api/cron/daily-brief` | 05:00 Mon-Fri | Manager AI brief |
+
+---
+
+## Creator
+
+**Nandawula Regine** · CreativelyNanda.co.za · Mirembe Muse (Pty) Ltd
+
+*Built for Africa.*
+
+---
+
+## Original Next.js docs
 
 First, run the development server:
 

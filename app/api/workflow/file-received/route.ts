@@ -41,7 +41,7 @@ export async function POST(request: Request) {
 
   switch (classification.category) {
     case 'strategy': {
-      const goals = await extractGoalsFromDoc(extractedText, tenantId)
+      const goals = await extractGoalsFromDoc(extractedText)
       extractedGoals = goals
 
       // Upsert goals
