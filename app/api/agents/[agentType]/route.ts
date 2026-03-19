@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { callClaudeAgent } from '@/lib/ai/callClaude'
-import { AGENT_DEFINITIONS, AgentType, buildAgentContext } from '@/lib/ai/agents'
+import { AGENT_DEFINITIONS, AgentType, buildAgentContext, storeAdvisorInsights } from '@/lib/ai/agents'
 import { checkRateLimit } from '@/lib/security/rateLimit'
 import { writeAuditLog, getClientIp } from '@/lib/security/audit'
 import { z } from 'zod'
@@ -49,6 +49,11 @@ export async function POST(request: Request, { params }: AgentRouteParams) {
 
   const systemPrompt = agent.buildPrompt()
   const response = await callClaudeAgent(systemPrompt, enrichedContext, 600)
+
+  // For advisor agent: store extracted insights for future sessions (non-blocking)
+  if (agentType === 'advisor' && response) {
+    storeAdvisorInsights(tenantId, response).catch(() => {})
+  }
 
   await writeAuditLog({
     tenantId,

@@ -85,21 +85,24 @@ async function buildAdvisorContext(
 ): Promise<string> {
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString()
 
-  const [convResult, invoiceResult, staffResult, goalResult, leaveResult] = await Promise.all([
+  const [convResult, invoiceResult, staffResult, goalResult, leaveResult, insightsResult] = await Promise.all([
     supabaseAdmin.from('conversations').select('status, sentiment, intent').eq('tenant_id', tenantId).gte('created_at', sevenDaysAgo),
     supabaseAdmin.from('invoices').select('amount, days_overdue, status').eq('tenant_id', tenantId).in('status', ['unpaid', 'partial']),
     supabaseAdmin.from('staff').select('wellness_scores, after_hours_flag').eq('tenant_id', tenantId),
     supabaseAdmin.from('goals').select('title, target_metric, current_value, target_value, progress_pct, status').eq('tenant_id', tenantId).eq('status', 'active').limit(5),
     supabaseAdmin.from('leave_requests').select('status', { count: 'exact' }).eq('tenant_id', tenantId).eq('status', 'approved').gte('end_date', new Date().toISOString().split('T')[0]),
+    // Load stored business insights (AI memory) — last 10
+    supabaseAdmin.from('business_insights').select('insight, category, extracted_at').eq('tenant_id', tenantId).order('extracted_at', { ascending: false }).limit(10),
   ])
 
-  const convs = convResult.data || []
+  const convs    = convResult.data    || []
   const invoices = invoiceResult.data || []
-  const staff = staffResult.data || []
-  const goals = goalResult.data || []
+  const staff    = staffResult.data   || []
+  const goals    = goalResult.data    || []
+  const insights = insightsResult.data || []
 
-  const totalDebt = invoices.reduce((s, i) => s + Number(i.amount), 0)
-  const urgentCount = convs.filter((c) => c.sentiment === 'urgent').length
+  const totalDebt    = invoices.reduce((s, i) => s + Number(i.amount), 0)
+  const urgentCount  = convs.filter((c) => c.sentiment === 'urgent').length
   const negativeCount = convs.filter((c) => c.sentiment === 'negative').length
 
   const recent = Date.now() - 7 * 24 * 3600 * 1000
@@ -115,6 +118,10 @@ async function buildAdvisorContext(
     ? goals.map((g) => `• ${g.title}: ${g.progress_pct?.toFixed(0) ?? 0}% of ${g.target_value} ${g.target_metric}`).join('\n')
     : 'No active goals set'
 
+  const memoryText = insights.length
+    ? insights.map((i) => `• [${i.category || 'general'}] ${i.insight}`).join('\n')
+    : 'No stored insights yet — this is the first advisor session.'
+
   return `CURRENT CONVERSATION:
 ${conversationMessages}
 
@@ -126,5 +133,52 @@ BUSINESS SNAPSHOT (last 7 days):
 - After-hours staff: ${staff.filter((s) => s.after_hours_flag).length}
 
 ACTIVE GOALS:
-${goalsText}`
+${goalsText}
+
+BUSINESS MEMORY (insights from previous advisor sessions):
+${memoryText}
+
+Instructions: Use the business memory to provide continuity. Reference past patterns when relevant. After advising, the system will extract new insights from your response to update the memory.`
+}
+
+// Extract and store up to 3 insights from an advisor response
+export async function storeAdvisorInsights(
+  tenantId: string,
+  advisorResponse: string
+): Promise<void> {
+  // Simple heuristic: look for sentences with business-relevant signals
+  const sentences = advisorResponse
+    .split(/[.!?]+/)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 30 && s.length < 300)
+
+  const patterns = [
+    { regex: /revenue|income|sales|profit|cash flow/i, category: 'revenue'    },
+    { regex: /staff|team|wellness|burnout|morale/i,    category: 'staff'      },
+    { regex: /invoice|debt|overdue|collect/i,          category: 'operations' },
+    { regex: /trend|pattern|consistent|usually/i,      category: 'market'     },
+  ]
+
+  const insights: { tenantId: string; insight: string; category: string }[] = []
+
+  for (const sentence of sentences.slice(0, 8)) {
+    if (insights.length >= 3) break
+    for (const { regex, category } of patterns) {
+      if (regex.test(sentence)) {
+        insights.push({ tenantId, insight: sentence, category })
+        break
+      }
+    }
+  }
+
+  if (insights.length === 0) return
+
+  await supabaseAdmin.from('business_insights').insert(
+    insights.map((i) => ({
+      tenant_id:    i.tenantId,
+      insight:      i.insight,
+      category:     i.category,
+      extracted_at: new Date().toISOString(),
+    }))
+  ).catch((err) => console.error('[AdvisorMemory] Insert failed:', err))
 }

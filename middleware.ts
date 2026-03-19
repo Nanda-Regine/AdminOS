@@ -105,6 +105,35 @@ export async function middleware(request: NextRequest) {
     )
   }
 
+  // Trial enforcement — allow billing + compliance routes even if trial expired
+  const BILLING_EXEMPT = [
+    '/dashboard/settings/billing',
+    '/dashboard/settings/referrals',
+    '/api/billing/',
+    '/api/compliance/',
+    '/api/auth/',
+  ]
+  const isExempt = BILLING_EXEMPT.some((p) => pathname.startsWith(p))
+
+  if (!isExempt && (pathname.startsWith('/dashboard') || pathname.startsWith('/api/'))) {
+    const trialExpiredAt = user.user_metadata?.trial_expired_at as string | undefined
+    const plan           = user.user_metadata?.plan as string | undefined
+
+    // If trial_expired_at is set and in the past, and no paid plan, block
+    if (trialExpiredAt && plan === 'trial') {
+      const expired = new Date(trialExpiredAt) < new Date()
+      if (expired) {
+        if (pathname.startsWith('/dashboard')) {
+          return NextResponse.redirect(new URL('/dashboard/settings/billing?trial_expired=true', request.url))
+        }
+        return new NextResponse(
+          JSON.stringify({ error: 'Trial expired. Please subscribe to continue.' }),
+          { status: 402, headers: { 'Content-Type': 'application/json' } }
+        )
+      }
+    }
+  }
+
   return addSecurityHeaders(response)
 }
 
