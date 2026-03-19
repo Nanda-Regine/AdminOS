@@ -142,23 +142,30 @@ export default async function SettingsPage() {
           </div>
         </Card>
 
-        {/* Compliance + Legal */}
+        {/* Account links */}
         <Card>
-          <h3 className="font-semibold text-gray-900 mb-4">Compliance & Privacy</h3>
+          <h3 className="font-semibold text-gray-900 mb-4">Account & Compliance</h3>
           <div className="space-y-2">
-            <Link
-              href="/dashboard/settings/compliance"
-              className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <span className="text-xl">🛡️</span>
-                <div>
-                  <p className="text-sm font-medium text-gray-900">POPI Compliance Centre</p>
-                  <p className="text-xs text-gray-400">Data register, rights management, deletion requests</p>
+            {[
+              { href: '/dashboard/settings/billing',    icon: '💳', label: 'Billing & Plans',         desc: 'Manage your subscription, view usage, upgrade plan' },
+              { href: '/dashboard/settings/referrals',  icon: '🎁', label: 'Referral Program',        desc: 'Earn a free month for every business you refer' },
+              { href: '/dashboard/settings/compliance', icon: '🛡️', label: 'POPI Compliance Centre', desc: 'Data register, rights management, deletion requests' },
+            ].map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-xl">{item.icon}</span>
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">{item.label}</p>
+                    <p className="text-xs text-gray-400">{item.desc}</p>
+                  </div>
                 </div>
-              </div>
-              <span className="text-gray-400 text-sm">→</span>
-            </Link>
+                <span className="text-gray-400 text-sm">→</span>
+              </Link>
+            ))}
           </div>
         </Card>
       </div>
