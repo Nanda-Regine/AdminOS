@@ -5,7 +5,9 @@ import { writeAuditLog } from '@/lib/security/audit'
 import { Resend } from 'resend'
 import { Invoice } from '@/types/database'
 
-const resend = new Resend(process.env.RESEND_API_KEY!)
+function getResend() {
+  return new Resend(process.env.RESEND_API_KEY!)
+}
 
 const ESCALATION_TIERS: Record<number, {
   days: number
@@ -34,9 +36,22 @@ async function getOverdueInvoices(tenantId: string): Promise<Invoice[]> {
     .select('*')
     .eq('tenant_id', tenantId)
     .in('status', ['unpaid', 'partial'])
-    .gt('days_overdue', 0)
-    .order('days_overdue', { ascending: false })
-  return data || []
+    .not('due_date', 'is', null)
+    .order('due_date', { ascending: true })
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  // Compute days_overdue dynamically from due_date so stale DB values don't block recovery
+  const overdue = (data || [])
+    .map((inv) => {
+      const dueDate    = new Date(inv.due_date + 'T00:00:00')
+      const daysOverdue = Math.max(0, Math.floor((today.getTime() - dueDate.getTime()) / 86_400_000))
+      return { ...inv, days_overdue: daysOverdue }
+    })
+    .filter((inv) => inv.days_overdue > 0)
+
+  return overdue
 }
 
 async function sendViaChannel(
@@ -48,7 +63,7 @@ async function sendViaChannel(
   if (channel === 'whatsapp' && invoice.contact_phone) {
     await sendWhatsApp({ to: invoice.contact_phone, message })
   } else if (channel === 'email' && invoice.contact_email) {
-    await resend.emails.send({
+    await getResend().emails.send({
       from: `${tenantName} <no-reply@adminos.co.za>`,
       to: invoice.contact_email,
       subject: `Payment reminder — R${invoice.amount} overdue`,

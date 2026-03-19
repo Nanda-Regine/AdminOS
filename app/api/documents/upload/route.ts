@@ -204,15 +204,22 @@ async function processDocument(
           const jsonMatch = invoiceRaw.match(/\{[\s\S]*\}/)
           if (jsonMatch) {
             const inv = JSON.parse(jsonMatch[0])
+            const dueDate   = inv.due_date ? String(inv.due_date) : null
+            const daysOverdue = dueDate
+              ? Math.max(0, Math.floor((Date.now() - new Date(dueDate).getTime()) / 86_400_000))
+              : 0
             // Whitelist only safe fields
             const safeInvoice = {
-              tenant_id: tenantId,
-              contact_name: String(inv.contact_name || 'Unknown'),
-              contact_email: inv.contact_email ? String(inv.contact_email) : null,
-              contact_phone: inv.contact_phone ? String(inv.contact_phone) : null,
-              amount: Math.abs(Number(inv.amount) || 0),
-              due_date: inv.due_date || null,
-              status: 'unpaid' as const,
+              tenant_id:      tenantId,
+              contact_name:   String(inv.contact_name || 'Unknown'),
+              contact_email:  inv.contact_email  ? String(inv.contact_email)  : null,
+              contact_phone:  inv.contact_phone  ? String(inv.contact_phone)  : null,
+              amount:         Math.abs(Number(inv.amount) || 0),
+              amount_paid:    0,
+              due_date:       dueDate,
+              days_overdue:   daysOverdue,
+              status:         'unpaid' as const,
+              escalation_level: 0,
             }
             if (safeInvoice.contact_name !== 'Unknown' && safeInvoice.amount > 0) {
               await supabaseAdmin.from('invoices').insert(safeInvoice)
@@ -248,11 +255,36 @@ async function processDocument(
       }
 
       case 'contract': {
-        aiSummary = await callClaudeAgent(
-          'Summarise the key terms of this contract in 3 bullet points: parties involved, main obligations, key dates or amounts.',
+        // Extract structured contract data — parties, dates, obligations
+        const contractRaw = await callClaudeAgent(
+          'Extract contract data as strict JSON with ONLY these fields: {"parties":["string"],"start_date":"YYYY-MM-DD or null","end_date":"YYYY-MM-DD or null","renewal_date":"YYYY-MM-DD or null","payment_amount":number or null,"key_obligations":["string"]}. No other fields.',
           extractedText.slice(0, 4000),
-          300
+          400
         )
+        try {
+          const jsonMatch = contractRaw.match(/\{[\s\S]*\}/)
+          if (jsonMatch) {
+            const contractData = JSON.parse(jsonMatch[0])
+            extractedGoals = contractData // store structured data in the JSONB field
+
+            // If there's a renewal date, note it prominently in the summary
+            if (contractData.renewal_date) {
+              const renewalDate = new Date(contractData.renewal_date)
+              const daysUntilRenewal = Math.floor((renewalDate.getTime() - Date.now()) / 86_400_000)
+              const urgencyNote = daysUntilRenewal < 30 ? ` ⚠️ RENEWAL IN ${daysUntilRenewal} DAYS` : ` (renewal in ${daysUntilRenewal} days)`
+              aiSummary = `Contract between ${(contractData.parties || []).join(' and ')}. Renewal: ${contractData.renewal_date}${urgencyNote}. Key obligations: ${(contractData.key_obligations || []).slice(0, 2).join('; ')}.`
+            }
+          }
+        } catch {
+          console.error('[Upload] Contract parse failed for doc:', docId)
+        }
+        if (!aiSummary) {
+          aiSummary = await callClaudeAgent(
+            'Summarise the key terms of this contract in 3 bullet points: parties involved, main obligations, key dates or amounts.',
+            extractedText.slice(0, 4000),
+            300
+          )
+        }
         break
       }
     }
