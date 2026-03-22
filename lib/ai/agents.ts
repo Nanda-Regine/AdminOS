@@ -173,12 +173,13 @@ export async function storeAdvisorInsights(
 
   if (insights.length === 0) return
 
-  await supabaseAdmin.from('business_insights').insert(
+  const { error } = await supabaseAdmin.from('business_insights').insert(
     insights.map((i) => ({
       tenant_id:    i.tenantId,
       insight:      i.insight,
       category:     i.category,
       extracted_at: new Date().toISOString(),
     }))
-  ).catch((err) => console.error('[AdvisorMemory] Insert failed:', err))
+  )
+  if (error) console.error('[AdvisorMemory] Insert failed:', error)
 }
