@@ -3,6 +3,7 @@ import { workflowEngine, getTenantByWhatsAppNumber, getConversationHistory } fro
 import { parseWhatsAppPayload, verifyWebhookSignature } from '@/lib/whatsapp/send'
 import { checkDuplicate } from '@/lib/cache/faqCache'
 import { checkRateLimit } from '@/lib/security/rateLimit'
+import { sanitizeForAI } from '@/lib/security/sanitize'
 
 export async function POST(request: Request) {
   const rawBody = await request.text()
@@ -19,8 +20,9 @@ export async function POST(request: Request) {
     return new NextResponse('Unauthorized', { status: 401 })
   }
 
-  // 2. Extract message
-  const { from, text, mediaUrl, messageId, wabaId } = parseWhatsAppPayload(body)
+  // 2. Extract message and sanitize user-controlled text before any AI processing
+  const { from, text: rawText, mediaUrl, messageId, wabaId } = parseWhatsAppPayload(body)
+  const text = sanitizeForAI(rawText ?? '')
 
   if (!from || !messageId) {
     return new NextResponse('OK', { status: 200 })
