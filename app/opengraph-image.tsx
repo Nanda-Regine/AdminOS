@@ -1,7 +1,7 @@
 import { ImageResponse } from 'next/og'
 
 export const runtime = 'edge'
-export const alt = 'AdminOS — The OS That Runs Your Business'
+export const alt = 'AdminOS — One AI system that runs your business. WhatsApp. Invoicing. Staff. Clients.'
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 
@@ -56,32 +56,60 @@ export default function Image() {
         <p
           style={{
             color: '#6ee7b7',
-            fontSize: '32px',
+            fontSize: '30px',
             fontWeight: 500,
             textAlign: 'center',
-            margin: '0 0 48px 0',
+            margin: '0 0 16px 0',
           }}
         >
-          The OS that runs your business while you sleep
+          One AI system that runs your business.
+        </p>
+        <p
+          style={{
+            color: '#9ca3af',
+            fontSize: '22px',
+            fontWeight: 400,
+            textAlign: 'center',
+            margin: '0 0 44px 0',
+          }}
+        >
+          WhatsApp · Debt Recovery · Staff Wellness · Daily AI Brief
         </p>
 
-        {/* Feature pills */}
-        <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', justifyContent: 'center' }}>
+        {/* ROI pill */}
+        <div
+          style={{
+            background: 'rgba(217, 119, 6, 0.15)',
+            border: '1px solid rgba(217, 119, 6, 0.4)',
+            borderRadius: '999px',
+            padding: '12px 32px',
+            color: '#fbbf24',
+            fontSize: '22px',
+            fontWeight: 600,
+            marginBottom: '36px',
+          }}
+        >
+          Replaces R11,200/mo in tools · Costs R4,500/mo
+        </div>
+
+        {/* Agent pills */}
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center' }}>
           {[
-            '💬 WhatsApp AI',
-            '💰 Debt Recovery',
-            '👥 Staff Wellness',
-            '📊 Daily AI Brief',
+            '📥 Alex — Inbox',
+            '💰 Chase — Debt',
+            '🌿 Care — Wellness',
+            '📄 Doc — Documents',
+            '📊 Insight — Analytics',
           ].map((feature) => (
             <div
               key={feature}
               style={{
-                background: 'rgba(5, 150, 105, 0.2)',
-                border: '1px solid rgba(5, 150, 105, 0.5)',
+                background: 'rgba(5, 150, 105, 0.15)',
+                border: '1px solid rgba(5, 150, 105, 0.4)',
                 borderRadius: '999px',
-                padding: '10px 24px',
+                padding: '8px 20px',
                 color: '#a7f3d0',
-                fontSize: '22px',
+                fontSize: '18px',
               }}
             >
               {feature}
@@ -90,16 +118,27 @@ export default function Image() {
         </div>
 
         {/* Footer */}
-        <p
+        <div
           style={{
             position: 'absolute',
-            bottom: '40px',
-            color: '#4b5563',
-            fontSize: '20px',
+            bottom: '36px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '16px',
           }}
         >
-          adminos.co.za · Built for Africa
-        </p>
+          <p style={{ color: '#4b5563', fontSize: '18px', margin: 0 }}>
+            adminos.co.za
+          </p>
+          <span style={{ color: '#1f2937', fontSize: '18px' }}>·</span>
+          <p style={{ color: '#4b5563', fontSize: '18px', margin: 0 }}>
+            🇿🇦 Built for Africa
+          </p>
+          <span style={{ color: '#1f2937', fontSize: '18px' }}>·</span>
+          <p style={{ color: '#4b5563', fontSize: '18px', margin: 0 }}>
+            POPIA Compliant
+          </p>
+        </div>
       </div>
     ),
     { ...size }
