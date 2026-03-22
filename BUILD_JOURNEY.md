@@ -782,5 +782,99 @@ recordWellness      (6s)  — if intent=wellness_checkin: extract score → upda
 
 ---
 
+---
+
+## Phase 6 — B2B Sales Readiness (March 2026)
+
+*The product was feature-complete. This phase made it sales-ready.*
+
+### What was built in this phase
+
+#### Landing Page → Enterprise Grade
+The original landing page was minimal and developer-focused. This phase rebuilt it as a proper B2B SaaS landing page:
+- **ROI comparison table** — shows exactly which tools AdminOS replaces (R11,200/mo → R4,500/mo)
+- **Named AI agents** — Alex, Chase, Care, Doc, Insight — each with a role, description, and measurable metric
+- **Kustom Krafts case study** — real client story, real numbers (40% admin reduction, 14/18 invoices settled)
+- **FAQ with native accordion** — 8 B2B-specific objections answered with `<details>` elements (no JS)
+- **Updated pricing** — aligned to B2B SaaS pricing (R2,500 / R4,500 / R8,500 / R14,999)
+- **Demo booking CTA** — cal.com integration in hero and footer
+- **Sticky nav** — with anchor links to Agents, Pricing, FAQ, Contact
+- **Industries badge rail** — 8 industries with hover effects
+
+#### Legal Infrastructure
+Three legal pages built from scratch, enterprise-quality:
+- **Privacy Policy** (`/privacy`) — full POPIA compliance documentation: data retention table, third-party processor inventory, all 6 POPIA rights as cards
+- **Terms of Service** (`/terms`) — subscription terms, AI disclaimer, SLA tiers, acceptable use, South African governing law
+- **Contact page** (`/contact`) — 4 contact cards (demo, sales, support, legal) with cal.com booking
+
+#### Security Layer
+- **`lib/security/sanitize.ts`** — prompt injection protection for all inbound WhatsApp messages
+  - `sanitizeForAI()`: 16 regex patterns, 2000-char hard limit
+  - `sanitizeSystemPromptValue()`: cleans admin-provided config before system prompt injection
+  - `validateTenantId()`: UUID format validation before DB use
+- **Middleware updated**: /privacy, /terms, /contact added to public paths
+
+#### SEO & Analytics
+- **Vercel Analytics + Speed Insights** added to root layout
+- **CookieConsent** component: localStorage-backed, POPIA-aware (strictly necessary vs accept-all)
+- **Sitemap** updated with /contact, /privacy, /terms (4 public pages total)
+- **robots.txt** updated to allow legal and contact pages for indexing
+
+#### README
+Complete rewrite of README.md:
+- AI architecture diagram (full request flow from WhatsApp to response)
+- Model routing table (Sonnet vs Haiku per agent type)
+- Tech stack table (14 rows)
+- Cron job schedule table
+- POPIA compliance checklist
+- Project structure tree
+- Roadmap with 7 planned features
+
+### Key technical decisions in this phase
+
+**Why native `<details>` for FAQ:**
+FAQ accordion built with HTML `<details>/<summary>` — zero JavaScript, works without hydration, accessible by default. The `+` rotates to `×` via CSS `group-open:rotate-45`.
+
+**Why cal.com for demo booking:**
+Free, open-source alternative to Calendly. No vendor lock-in. Self-hostable if needed. The `/nanda/adminos-demo` path is the standard format.
+
+**Why `sanitizeForAI()` at ingestion not at prompt:**
+Sanitizing at the ingestion point (webhook handler) rather than just before the Claude call means all data stored in DB is already clean. This prevents injection via replay attacks on stored messages.
+
+**Pricing strategy:**
+Moved from R799/R2,499/R7,999 (consumer-friendly) to R2,500/R4,500/R8,500 (B2B SaaS). The ROI story (R11,200 → R4,500) only works at this price point — at R799 it's a commodity, at R4,500 it's a strategic investment that pays for itself month one.
+
+### Content gold for marketing
+
+**LinkedIn post angles:**
+1. "I built AdminOS to replace a R11,200/month toolstack for South African SMEs. Here's what I replaced:"
+2. "The reason I named our AI agents (Alex, Chase, Care, Doc, Insight) — and why it changes how business owners think about automation"
+3. "What Kustom Krafts (Johannesburg carpentry) taught me about building B2B software for Africa"
+4. "Building load-shedding resilient SaaS in 2026: the technical decisions that matter"
+5. "POPIA vs GDPR — why South African compliance is harder than you think, and how we solved it"
+
+**Twitter/X thread starters:**
+1. "Building AI SaaS for Africa is different. Thread on the 5 things that change everything 🧵"
+2. "Prompt injection is real and your WhatsApp bot is vulnerable. Here's exactly how we protect AdminOS 🔒"
+3. "We route between Claude Sonnet and Haiku based on task type. The cost difference is 40%. Here's the decision matrix:"
+
+**TikTok script outlines:**
+1. "Watch me demo what happens when a client sends a WhatsApp message to a business running AdminOS vs one that isn't" [split screen, 60s]
+2. "POV: It's 3am, load shedding just ended, and AdminOS is auto-sending debt recovery messages to 47 clients. Here's what that looks like" [screen recording, 45s]
+
+---
+
+## What's next (post-B2B launch)
+
+- [ ] Google Search Console verification token added to layout.tsx
+- [ ] OG image tested at opengraph.xyz
+- [ ] Kustom Krafts case study as standalone `/case-studies/kustom-krafts` page
+- [ ] Voice note processing (Whisper API — very SA behaviour)
+- [ ] Sage integration (higher priority than QuickBooks for SA market)
+- [ ] WhatsApp sequence builder UI
+- [ ] Multi-tenant admin dashboard for White Label clients
+
+---
+
 *Built by Nandawula Regine · Mirembe Muse (Pty) Ltd · adminos.co.za*
 *"Build it bulletproof. Build it beautiful. Build it for Africa."*
