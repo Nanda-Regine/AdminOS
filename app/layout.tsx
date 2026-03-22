@@ -1,5 +1,8 @@
 import type { Metadata, Viewport } from 'next'
 import { Geist } from 'next/font/google'
+import { Analytics } from '@vercel/analytics/react'
+import { SpeedInsights } from '@vercel/speed-insights/next'
+import { CookieConsent } from '@/components/CookieConsent'
 import './globals.css'
 
 const geistSans = Geist({
@@ -82,8 +85,8 @@ export const metadata: Metadata = {
     title: APP_NAME,
   },
   verification: {
-    // Add Google Search Console verification token here when available
-    // google: 'your-google-verification-token',
+    // Replace with your Google Search Console verification token:
+    // google: 'REPLACE_WITH_GSC_TOKEN',
   },
 }
 
@@ -114,7 +117,12 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
-      <body className={`${geistSans.variable} antialiased`}>{children}</body>
+      <body className={`${geistSans.variable} antialiased`}>
+        {children}
+        <CookieConsent />
+        <Analytics />
+        <SpeedInsights />
+      </body>
     </html>
   )
 }
