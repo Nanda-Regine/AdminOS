@@ -48,7 +48,12 @@ export async function POST(request: Request) {
 
   // Update user metadata with tenant_id
   await supabaseAdmin.auth.admin.updateUserById(userId, {
-    user_metadata: { tenant_id: tenant.id, role: 'admin' },
+    user_metadata: {
+      tenant_id: tenant.id,
+      role: 'admin',
+      onboarding_completed: false,
+      onboarding_step: 0,
+    },
   })
 
   // Write audit log

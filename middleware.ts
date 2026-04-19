@@ -108,13 +108,25 @@ export async function middleware(request: NextRequest) {
     )
   }
 
-  // Trial enforcement — allow billing + compliance routes even if trial expired
+  // Redirect new users to onboarding before they can access the dashboard
+  const onboardingCompleted = user.user_metadata?.onboarding_completed
+  if (
+    onboardingCompleted === false &&
+    pathname.startsWith('/dashboard') &&
+    !pathname.startsWith('/dashboard/onboarding')
+  ) {
+    return NextResponse.redirect(new URL('/dashboard/onboarding', request.url))
+  }
+
+  // Trial enforcement — allow billing + compliance + onboarding routes even if trial expired
   const BILLING_EXEMPT = [
     '/dashboard/settings/billing',
     '/dashboard/settings/referrals',
+    '/dashboard/onboarding',
     '/api/billing/',
     '/api/compliance/',
     '/api/auth/',
+    '/api/onboarding/',
   ]
   const isExempt = BILLING_EXEMPT.some((p) => pathname.startsWith(p))
 
