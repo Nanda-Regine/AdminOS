@@ -2,11 +2,11 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createHash } from 'crypto'
 
-// PayFast plan amounts in ZAR cents
+// PayFast plan amounts in ZAR (B2B SaaS pricing)
 const PLAN_AMOUNTS: Record<string, { amount: string; name: string }> = {
-  starter:     { amount: '799.00',   name: 'AdminOS Starter'     },
-  business:    { amount: '2499.00',  name: 'AdminOS Business'    },
-  enterprise:  { amount: '7999.00',  name: 'AdminOS Enterprise'  },
+  starter:     { amount: '2500.00',  name: 'AdminOS Starter'     },
+  growth:      { amount: '4500.00',  name: 'AdminOS Growth'      },
+  enterprise:  { amount: '8500.00',  name: 'AdminOS Enterprise'  },
   white_label: { amount: '14999.00', name: 'AdminOS White Label' },
 }
 

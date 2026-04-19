@@ -9,29 +9,32 @@ const PLANS = [
   {
     id:           'starter',
     name:         'Starter',
-    price:        799,
+    price:        2500,
+    staffRange:   '1–10 staff',
     conversations: '500 / month',
     users:        '3 users',
     whatsapp:     '1 number',
-    storage:      '1 GB',
+    storage:      '5 GB',
     highlight:    false,
     badge:        null,
   },
   {
-    id:           'business',
-    name:         'Business',
-    price:        2499,
+    id:           'growth',
+    name:         'Growth',
+    price:        4500,
+    staffRange:   '11–50 staff',
     conversations: '5,000 / month',
     users:        '10 users',
     whatsapp:     '3 numbers',
-    storage:      '10 GB',
+    storage:      '25 GB',
     highlight:    true,
     badge:        'Most popular',
   },
   {
     id:           'enterprise',
     name:         'Enterprise',
-    price:        7999,
+    price:        8500,
+    staffRange:   '50+ staff',
     conversations: 'Unlimited',
     users:        'Unlimited',
     whatsapp:     'Unlimited',
@@ -43,6 +46,7 @@ const PLANS = [
     id:           'white_label',
     name:         'White Label',
     price:        14999,
+    staffRange:   'Resellers',
     conversations: 'Unlimited',
     users:        'Unlimited',
     whatsapp:     'Unlimited',
@@ -130,12 +134,12 @@ export default async function BillingPage() {
                   </div>
 
                   <ul className="space-y-1.5 text-sm text-gray-600 mb-5 flex-1">
-                    <li>💬 {plan.conversations}</li>
-                    <li>👥 {plan.users}</li>
+                    <li>👥 {plan.staffRange}</li>
+                    <li>💬 {plan.conversations} AI convos</li>
                     <li>📱 {plan.whatsapp} WhatsApp</li>
                     <li>📁 {plan.storage} storage</li>
-                    <li>🤖 All AI agents</li>
-                    <li>🛡️ POPI compliant</li>
+                    <li>🤖 All 6 AI agents</li>
+                    <li>🛡️ POPIA compliant</li>
                   </ul>
 
                   {isCurrent ? (

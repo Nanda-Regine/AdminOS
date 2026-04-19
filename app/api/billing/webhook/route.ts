@@ -68,14 +68,27 @@ export async function POST(request: Request) {
   }
 
   if (paymentStatus === 'COMPLETE') {
-    // Activate subscription
     const periodEnd = new Date()
     periodEnd.setMonth(periodEnd.getMonth() + 1)
 
-    await supabaseAdmin
-      .from('tenants')
-      .update({ plan, active: true })
-      .eq('id', tenantId)
+    await Promise.all([
+      supabaseAdmin
+        .from('tenants')
+        .update({ plan, active: true })
+        .eq('id', tenantId),
+      supabaseAdmin
+        .from('subscriptions')
+        .upsert({
+          tenant_id:          tenantId,
+          plan,
+          status:             'active',
+          payfast_token:      params.token || null,
+          amount:             Number(params.amount_gross || 0),
+          current_period_end: periodEnd.toISOString(),
+          updated_at:         new Date().toISOString(),
+        }, { onConflict: 'tenant_id' })
+        .catch(() => {}), // table may not exist yet — non-fatal
+    ])
 
     await writeAuditLog({
       tenantId,

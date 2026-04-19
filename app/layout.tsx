@@ -92,8 +92,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#059669' },
-    { media: '(prefers-color-scheme: dark)', color: '#059669' },
+    { media: '(prefers-color-scheme: light)', color: '#0A0F2C' },
+    { media: '(prefers-color-scheme: dark)', color: '#0A0F2C' },
   ],
   width: 'device-width',
   initialScale: 1,
@@ -122,6 +122,7 @@ export default function RootLayout({
         <CookieConsent />
         <Analytics />
         <SpeedInsights />
+        <script dangerouslySetInnerHTML={{ __html: `if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js')}` }} />
       </body>
     </html>
   )
