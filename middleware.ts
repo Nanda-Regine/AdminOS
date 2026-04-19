@@ -15,7 +15,7 @@ const PUBLIC_PATHS = [
 ]
 
 const PUBLIC_PREFIXES = [
-  '/api/webhook/',    // 360dialog + email inbound (verified by HMAC)
+  '/api/webhook/',    // Meta WhatsApp + email inbound (verified by HMAC)
   '/api/onboarding/', // tenant creation during signup
   '/api/auth/',       // sign in/out
   '/_next/',
