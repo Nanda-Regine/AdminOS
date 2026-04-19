@@ -1,16 +1,16 @@
 {
   "crons": [
     {
-      "path": "/api/cron/daily-brief",
+      "path": "/api/cron/fan-out-brief",
       "schedule": "0 5 * * 1-5"
     },
     {
-      "path": "/api/cron/wellness",
+      "path": "/api/cron/fan-out-wellness",
       "schedule": "0 6 * * 1-5"
     },
     {
-      "path": "/api/cron/debt-recovery",
-      "schedule": "0 7 * * *"
+      "path": "/api/cron/process-queue",
+      "schedule": "* * * * *"
     },
     {
       "path": "/api/cron/escalate-conversations",
