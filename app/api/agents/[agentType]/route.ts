@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { callClaudeAgent } from '@/lib/ai/callClaude'
-import { AGENT_DEFINITIONS, AgentType, buildAgentContext, storeAdvisorInsights } from '@/lib/ai/agents'
+import { orchestrator, AGENT_CONFIGS } from '@/lib/ai/orchestrator'
 import { checkRateLimit } from '@/lib/security/rateLimit'
-import { writeAuditLog, getClientIp } from '@/lib/security/audit'
+import { getClientIp } from '@/lib/security/audit'
+import type { AgentName } from '@/lib/ai/types'
 import { z } from 'zod'
 
 interface AgentRouteParams {
@@ -11,8 +11,11 @@ interface AgentRouteParams {
 }
 
 const bodySchema = z.object({
-  context: z.string().min(1).max(10_000),
+  userMessage: z.string().min(1).max(10_000),
   contactIdentifier: z.string().optional(),
+  conversationId: z.string().optional(),
+  documentId: z.string().optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 })
 
 export async function POST(request: Request, { params }: AgentRouteParams) {
@@ -28,10 +31,9 @@ export async function POST(request: Request, { params }: AgentRouteParams) {
   const { success } = await checkRateLimit('agents', tenantId)
   if (!success) return new NextResponse('Too Many Requests', { status: 429 })
 
-  const agent = AGENT_DEFINITIONS[agentType as AgentType]
-  if (!agent) return new NextResponse('Unknown agent type', { status: 400 })
+  const agentName = agentType as AgentName
+  if (!AGENT_CONFIGS[agentName]) return new NextResponse('Unknown agent', { status: 400 })
 
-  // Validate request body
   let body: z.infer<typeof bodySchema>
   try {
     body = bodySchema.parse(await request.json())
@@ -39,29 +41,37 @@ export async function POST(request: Request, { params }: AgentRouteParams) {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
   }
 
-  // Build enriched context (lookup + advisor pull real DB data)
-  const enrichedContext = await buildAgentContext(
-    agentType as AgentType,
-    tenantId,
-    body.context,
-    body.contactIdentifier
-  )
+  const config = AGENT_CONFIGS[agentName]
 
-  const systemPrompt = agent.buildPrompt()
-  const response = await callClaudeAgent(systemPrompt, enrichedContext, 600)
+  if (config.streaming) {
+    const stream = await orchestrator.stream({
+      agentName,
+      userMessage: body.userMessage,
+      tenantId,
+      conversationId: body.conversationId,
+      contactIdentifier: body.contactIdentifier,
+      documentId: body.documentId,
+      metadata: { ...body.metadata, callerIp: getClientIp(request) },
+    })
 
-  // For advisor agent: store extracted insights for future sessions (non-blocking)
-  if (agentType === 'advisor' && response) {
-    storeAdvisorInsights(tenantId, response).catch(() => {})
+    return new Response(stream, {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      },
+    })
   }
 
-  await writeAuditLog({
+  const result = await orchestrator.run({
+    agentName,
+    userMessage: body.userMessage,
     tenantId,
-    actor: user.id,
-    action: `agent.${agentType}.called`,
-    ipAddress: getClientIp(request),
-    metadata: { contextLength: body.context.length },
+    conversationId: body.conversationId,
+    contactIdentifier: body.contactIdentifier,
+    documentId: body.documentId,
+    metadata: { ...body.metadata, callerIp: getClientIp(request) },
   })
 
-  return NextResponse.json({ response })
+  return NextResponse.json(result)
 }
