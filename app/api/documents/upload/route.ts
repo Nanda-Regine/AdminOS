@@ -5,11 +5,23 @@ import { parseFile, detectFileType, isImageType, isMediaType, getAllowedExtensio
 import { classifyDocument, extractGoalsFromDoc, callClaudeAgent } from '@/lib/ai/callClaude'
 import { writeAuditLog, getClientIp } from '@/lib/security/audit'
 import { checkRateLimit } from '@/lib/security/rateLimit'
+import { inngest } from '@/inngest/client'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60 // file parsing can be slow for large docs
 
-const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50 MB
+const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10 MB
+
+const ALLOWED_MIME_TYPES = new Set([
+  'application/pdf',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'text/csv',
+  'text/plain',
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+])
 
 export async function POST(request: Request) {
   const supabase = await createClient()
@@ -34,9 +46,16 @@ export async function POST(request: Request) {
   const file = formData.get('file') as File | null
   if (!file) return NextResponse.json({ error: 'No file provided' }, { status: 400 })
 
+  const isReference = formData.get('is_reference') === 'true'
+
   // Size check
   if (file.size > MAX_FILE_SIZE) {
-    return NextResponse.json({ error: 'File too large. Maximum size is 50MB.' }, { status: 413 })
+    return NextResponse.json({ error: 'File too large. Maximum size is 10MB.' }, { status: 413 })
+  }
+
+  // MIME type allowlist
+  if (!ALLOWED_MIME_TYPES.has(file.type)) {
+    return NextResponse.json({ error: 'File type not allowed.' }, { status: 415 })
   }
 
   // File type detection
@@ -70,9 +89,13 @@ export async function POST(request: Request) {
     .insert({
       tenant_id: tenantId,
       original_filename: file.name,
+      file_name: file.name,
       file_type: fileType,
       storage_url: storagePath,
+      storage_path: storagePath,
+      is_reference: isReference,
       processing_status: 'processing',
+      status: 'processing',
       uploaded_by: user.id,
     })
     .select('id')
@@ -82,7 +105,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Failed to create document record' }, { status: 500 })
   }
 
-  // ── 3. Parse the file (async — don't block the response for large files) ──────
+  // ── 3. Fire Inngest doc intelligence pipeline ─────────────────────────────────
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  inngest.send({ name: 'adminos/document.uploaded' as any, data: { document_id: docRecord.id, tenant_id: tenantId, file_type: fileType, is_reference: isReference } }).catch(() => {})
+
+  // ── 4. Parse the file (async — don't block the response for large files) ──────
   // For files under 5MB, process synchronously for instant feedback.
   // For larger files, return immediately and process in background.
   const processSynchronously = file.size < 5 * 1024 * 1024
