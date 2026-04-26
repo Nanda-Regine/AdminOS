@@ -18,6 +18,7 @@ const PUBLIC_PREFIXES = [
   '/api/webhook/',    // Meta WhatsApp + email inbound (verified by HMAC)
   '/api/onboarding/', // tenant creation during signup
   '/api/auth/',       // sign in/out
+  '/api/health',      // system status — unauthenticated
   '/_next/',
   '/icons/',
   '/public/',
