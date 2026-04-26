@@ -4,6 +4,7 @@
 
 [![Next.js](https://img.shields.io/badge/Next.js_16-black?style=for-the-badge&logo=next.js)](https://nextjs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS_4-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
 [![Anthropic Claude](https://img.shields.io/badge/Claude_claude--sonnet--4--6-D97706?style=for-the-badge)](https://anthropic.com)
 [![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)](https://supabase.com)
 [![Vercel](https://img.shields.io/badge/Vercel-000000?style=for-the-badge&logo=vercel)](https://vercel.com)
@@ -27,13 +28,14 @@ AdminOS replaces your entire toolstack with one AI-native platform. Five special
 
 ## The 5 AI Agents
 
-| Agent | Role | What it does |
-|-------|------|-------------|
-| 📥 **Alex** | Inbox Agent | Handles WhatsApp client conversations, FAQs, bookings, escalations |
-| 💰 **Chase** | Debt Recovery Agent | Automated invoice follow-up with escalating professional messaging |
-| 🌿 **Care** | Wellness Agent | Daily staff check-ins via WhatsApp, burnout signal detection |
-| 📄 **Doc** | Document Intelligence | Classifies, summarises, and extracts data from PDF/Word/Excel uploads |
-| 📊 **Insight** | Analytics Agent | Daily 05:00 AI business brief with revenue trends, cash flow, debt aging |
+| Agent | Role | Model | What it does |
+|-------|------|-------|-------------|
+| 📥 **Alex** | Inbox Agent | Sonnet | Handles WhatsApp client conversations, FAQs, bookings, escalations |
+| 💰 **Chase** | Debt Recovery Agent | Haiku | Automated invoice follow-up with escalating professional messaging |
+| 🌿 **Care** | Wellness Agent | Sonnet | Daily staff check-ins via WhatsApp, burnout signal detection |
+| 📄 **Doc** | Document Intelligence | Haiku | Classifies, summarises, and extracts data from PDF/Word/Excel uploads |
+| 📊 **Insight** | Analytics Agent | Haiku | Daily 05:00 AI business brief with revenue trends, cash flow, debt aging |
+| ✉️ **Pen** | Email Composer | Sonnet | Drafts professional outbound emails in the tenant's brand voice |
 
 ---
 
@@ -49,7 +51,7 @@ AdminOS replaces your entire toolstack with one AI-native platform. Five special
 - **Prompt caching** — 80% reduction in Claude API costs via `cache_control: ephemeral`
 - **Multi-model routing** — Sonnet for nuanced agents (inbox, wellness), Haiku for structured tasks (debt templates, extraction)
 - **Multilingual** — detects and responds in the customer's language automatically
-- **Prompt injection protection** — sanitizeForAI() strips 16 injection patterns on all inbound WhatsApp messages
+- **Prompt injection protection** — sanitizeForAI() strips 17 injection patterns on all inbound WhatsApp messages
 
 ### Business Intelligence
 - **Real-time analytics** — 14-day revenue chart, intent classification, debt aging
@@ -62,11 +64,11 @@ AdminOS replaces your entire toolstack with one AI-native platform. Five special
 - **Row-Level Security** — every table partitioned by `tenant_id`, enforced at DB level
 - **Security headers** — HSTS, CSP, X-Frame-Options, Referrer-Policy on all responses
 - **Rate limiting** — per-tenant sliding windows via Upstash Redis (5 limiter types)
-- **Webhook verification** — HMAC signature validation on PayFast and 360dialog webhooks
+- **Webhook verification** — HMAC-SHA256 x-hub-signature-256 validation on Meta WhatsApp and PayFast webhooks
 - **2FA enforcement** — Enterprise tier admin dashboard
 
 ### Integrations
-- 📱 **WhatsApp** via 360dialog Business API
+- 📱 **WhatsApp** via Meta Business API v19.0
 - 💳 **Payments** via PayFast (ZAR billing, monthly subscription)
 - 📧 **Email** via Resend
 - 📊 **Accounting** via Xero API
@@ -82,7 +84,7 @@ AdminOS replaces your entire toolstack with one AI-native platform. Five special
 | **AI** | Anthropic Claude claude-sonnet-4-6 (Sonnet + Haiku), prompt caching, streaming |
 | **Database** | Supabase PostgreSQL, Supabase Auth, Row-Level Security |
 | **Caching / Rate Limiting** | Upstash Redis (sliding window, analytics) |
-| **WhatsApp** | 360dialog Business API, inbound webhook, HMAC verification |
+| **WhatsApp** | Meta Business API v19.0, inbound webhook, HMAC-SHA256 verification |
 | **Email** | Resend API |
 | **Accounting** | Xero OAuth 2.0 API |
 | **Payments** | PayFast subscription + ITN webhook |
@@ -100,9 +102,9 @@ AdminOS replaces your entire toolstack with one AI-native platform. Five special
 ```
 Inbound WhatsApp message
         ↓
-[360dialog webhook] → [HMAC verification]
+[Meta Webhook] → [HMAC-SHA256 x-hub-signature-256 verification]
         ↓
-[sanitizeForAI()] ← strips 16 injection patterns, 2000-char limit
+[sanitizeForAI()] ← strips 17 injection patterns, 2000-char limit
         ↓
 [Supabase: load conversation history + tenant config]
         ↓
@@ -113,7 +115,7 @@ Inbound WhatsApp message
   └─ messages: conversation history
   └─ model: claude-sonnet-4-6 (inbox/wellness) | claude-haiku-4-5-20251001 (debt/docs/analytics)
         ↓
-[Response saved to DB] → [360dialog: send reply]
+[Response saved to DB] → [Meta API v19.0: send reply]
         ↓
 [Audit log entry] → [Rate limit check update]
 ```
@@ -134,14 +136,65 @@ const MODEL = {
 
 ---
 
+## Real-Time Features
+
+AdminOS uses **Supabase Realtime** for live dashboard updates without polling:
+
+| Component | Table subscription | What updates |
+|-----------|-------------------|--------------|
+| `LiveActivityFeed` | `messages` INSERT | New WhatsApp messages appear instantly |
+| `RealtimeNotificationBar` | `conversations` UPDATE | Escalation alerts, status changes |
+| `AgentStatusBar` | `workflow_runs` INSERT/UPDATE | Agent active/idle state per tenant |
+| Inbox unread count | `conversations` UPDATE | Badge count on sidebar nav item |
+
+**How it works:**
+
+```typescript
+// Supabase Realtime subscription (tenant-scoped)
+supabase
+  .channel(`tenant:${tenantId}`)
+  .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages',
+      filter: `tenant_id=eq.${tenantId}` }, handleNewMessage)
+  .subscribe()
+```
+
+RLS policies are enforced on the Realtime channel — a tenant can only subscribe to their own rows.
+
+---
+
+## Offline & PWA
+
+AdminOS is a **Progressive Web App** — installable on Android and iOS home screens, with offline resilience for South Africa's load-shedding reality.
+
+**Service worker cache strategy (next-pwa):**
+
+| Route type | Strategy | Behaviour during outage |
+|------------|----------|------------------------|
+| Dashboard pages | NetworkFirst (5s timeout) | Shows last-cached version |
+| Static assets (`/_next/static`) | CacheFirst | Served from cache instantly |
+| API routes (`/api/*`) | NetworkOnly | Fails gracefully with offline toast |
+| Fonts & icons | StaleWhileRevalidate | Instant load, background refresh |
+
+**Manifest (`/public/manifest.json`):**
+- Theme colour: `#0A0F2C` (AdminOS navy)
+- 3 quick-launch shortcuts: Inbox, Contacts, Analytics
+- Installable on Android Chrome, iOS Safari, and desktop
+
+**Load-shedding widget:** EskomSePush API integration at `/dashboard` shows next scheduled outage time, so business owners can plan AI-dependent tasks around power availability.
+
+---
+
 ## Cron Jobs
 
-| Schedule | Route | Purpose |
-|----------|-------|---------|
-| `0 5 * * 1-5` | `/api/cron/daily-brief` | Generate AI business brief for all active tenants |
-| `0 */6 * * *` | `/api/cron/debt-recovery` | Trigger debt recovery workflow on overdue invoices |
-| `*/15 * * * *` | `/api/cron/escalate-conversations` | Escalate unresolved WhatsApp conversations |
-| `0 9 * * 1,3` | `/api/cron/wellness` | Trigger staff wellness check-in messages |
+| Schedule (UTC) | SAST | Route | Purpose |
+|----------------|------|-------|---------|
+| `0 3 * * 1-5` | 05:00 | `/api/cron/daily-brief` | Generate AI business brief per tenant |
+| `0 */6 * * *` | every 6h | `/api/cron/debt-recovery` | Debt recovery on overdue invoices |
+| `0 7 * * 1,3` | 09:00 Mon/Wed | `/api/cron/wellness` | Staff wellness check-in messages |
+| `0 5 * * 1-5` | 07:00 | `/api/cron/fan-out-brief` | Fan-out brief generation across Inngest workers |
+| `0 6 * * 1-5` | 08:00 | `/api/cron/fan-out-wellness` | Fan-out wellness check-ins across workers |
+| `* * * * *` | every min | `/api/cron/process-queue` | Drain workflow_queue table → Inngest events |
+| `*/15 * * * *` | every 15 min | `/api/cron/escalate-conversations` | Escalate unresolved WhatsApp conversations |
 
 ---
 
@@ -184,16 +237,26 @@ npm install
 
 # Environment variables
 cp .env.local.example .env.local
-# Fill in: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY,
-#          SUPABASE_SERVICE_ROLE_KEY, ANTHROPIC_API_KEY,
-#          UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN,
-#          DIALOG360_API_KEY, RESEND_API_KEY, PAYFAST_MERCHANT_KEY
+# Fill in all required keys — see .env.local.example for full list
+# Required: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY,
+#           SUPABASE_SERVICE_ROLE_KEY, ANTHROPIC_API_KEY,
+#           UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN,
+#           META_WHATSAPP_ACCESS_TOKEN, META_PHONE_NUMBER_ID, META_WEBHOOK_SECRET,
+#           RESEND_API_KEY, INNGEST_EVENT_KEY, INNGEST_SIGNING_KEY
 
-# Supabase migrations
+# Apply database migrations
 npx supabase db push
 
-# Dev server
+# Seed required tables (run once in Supabase SQL editor)
+# See supabase/seed.sql — creates business_insights, subscriptions tables
+# and inserts default plan limits for starter/growth/enterprise/white_label
+
+# Start Next.js dev server
 npm run dev
+
+# In a separate terminal: start Inngest dev server (required for background jobs)
+npx inngest-cli@latest dev
+# Open http://localhost:8288 to inspect Inngest events and function runs
 ```
 
 ---
@@ -252,7 +315,7 @@ adminos/
 │   ├── security/audit.ts           # Immutable audit logging
 │   ├── workflows/debtRecovery.ts   # Debt recovery workflow
 │   ├── workflows/wellness.ts       # Wellness check-in workflow
-│   └── whatsapp/send.ts            # 360dialog send utility
+│   └── whatsapp/send.ts            # Meta Business API v19.0 send utility
 ├── components/
 │   ├── CookieConsent.tsx           # POPIA-aware cookie banner
 │   └── dashboard/Sidebar|TopBar
