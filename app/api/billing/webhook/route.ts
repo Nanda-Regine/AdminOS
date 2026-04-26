@@ -87,7 +87,7 @@ export async function POST(request: Request) {
           current_period_end: periodEnd.toISOString(),
           updated_at:         new Date().toISOString(),
         }, { onConflict: 'tenant_id' })
-        .catch(() => {}), // table may not exist yet — non-fatal
+        .then(() => {}, () => {}), // table may not exist yet — non-fatal
     ])
 
     await writeAuditLog({
