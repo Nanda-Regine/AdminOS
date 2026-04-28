@@ -4,9 +4,8 @@ import { sendWhatsApp } from '@/lib/whatsapp/send'
 import { writeAuditLog } from '@/lib/security/audit'
 
 export const escalateConversationsCron = inngest.createFunction(
-  { id: 'escalate-conversations-cron', retries: 1, concurrency: { limit: 5 } },
-  { cron: '*/15 * * * *' },
-  async ({ step }) => {
+  { id: 'escalate-conversations-cron', retries: 1, concurrency: { limit: 5 }, triggers: [{ cron: '*/15 * * * *' }] },
+  async ({ step }: { step: any }) => {
     const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString()
 
     const staleConvs = await step.run('fetch-stale-conversations', async () => {
