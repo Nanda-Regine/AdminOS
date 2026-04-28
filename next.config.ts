@@ -101,7 +101,7 @@ const nextConfig: NextConfig = {
 
   // Optimise imports from heavy packages to reduce bundle size
   experimental: {
-    optimizePackageImports: ['@anthropic-ai/sdk', '@supabase/supabase-js', '@upstash/redis'],
+    optimizePackageImports: ['@supabase/supabase-js', '@upstash/redis'],
   },
 
   images: {

@@ -170,15 +170,33 @@ The story of building AdminOS from scratch to production-ready B2B SaaS, phase b
 
 ---
 
+## Phase 13 — Finalisation & Ship-Readiness (Session 4)
+
+**Goal:** Close every remaining gap before real SMEs go live. No duct tape.
+
+- **Landing page full rebuild** (`app/page.tsx`): dark navy `#0A0F2C`, 15 CSS keyframe animations, animated WhatsApp chat mockup in hero (staggered message reveals), gradient orbs, shimmer text, grid background, POPIA badge in footer, Kustom Krafts case study removed
+- **WhatsApp template registry expanded** (`lib/whatsapp/templates.ts`): 12 → 40+ templates across Appointments, Invoices, Quotes, Onboarding, Documents, Service Delivery, Customer Engagement, Owner Alerts — plus full `TEMPLATE_BODIES` record for Meta Business Suite submission
+- **Env var validation** (`lib/config/validate.ts`): startup check for all 13 required vars; throws in production if any are missing; blocks `PAYFAST_SANDBOX=true` in production
+- **`.env.local` cleanup**: renamed `ANTHROPIC_KEY` → `ANTHROPIC_API_KEY`, removed Firebase JS code pasted as env vars, fixed malformed Sentry/VAPID entries, added proper Meta WhatsApp vars (`META_WHATSAPP_ACCESS_TOKEN`, `META_PHONE_NUMBER_ID`, `META_WEBHOOK_SECRET`), removed stale DIALOG360 vars
+- **RLS audit migration** (`supabase/migrations/20260426_rls_audit.sql`): explicit SELECT/INSERT/UPDATE/DELETE policies on all 19 interactive tables; fixed `workflow_queue` and `subscriptions` (previously SELECT-only); standardised all policies to `current_tenant_id()` helper (was inconsistent between `auth.jwt() -> 'user_metadata'` and `auth.jwt() ->> 'tenant_id'`); `audit_log` remains INSERT+SELECT only (append-only, POPIA)
+- **Next.js 16 migration**: `middleware.ts` → `proxy.ts` (new Next.js 16 convention, `export async function proxy`); `@anthropic-ai/sdk` removed from `optimizePackageImports` (conflicts with `serverExternalPackages`); build script updated to `next build --webpack` (required by `next-pwa`)
+- **Google OAuth**: auth callback, login, and signup already correctly implemented (verified — no changes needed)
+- **PayFast recurring**: verified correct — `subscription_type: '1'`, `frequency: '3'` (monthly), `cycles: '0'` (indefinite)
+
+**Key decision:** `proxy.ts` replaces `middleware.ts` in Next.js 16 — same logic, new file name and export convention. The full tenant isolation, trial enforcement, suspension checks, and security headers are preserved.
+
+---
+
 ## Stats
 
-- **Phases completed:** 12/12
-- **Sessions:** 3
+- **Phases completed:** 13/13
+- **Sessions:** 4
 - **API routes:** 30+
 - **Dashboard pages:** 12+
 - **AI agents:** 5 named agents + orchestrator
+- **WhatsApp templates:** 40+ (with Meta-ready body text)
 - **Cron jobs:** 4 automated workflows
-- **Lines of code:** ~8,000+
+- **Lines of code:** ~9,000+
 
 ---
 
