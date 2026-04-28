@@ -6,6 +6,8 @@ import { wellnessFanOut } from '@/inngest/functions/wellnessFanOut'
 import { dailyBriefEngine } from '@/inngest/functions/dailyBrief'
 import { onboardingSequence } from '@/inngest/functions/onboardingSequence'
 import { trialNudgeSequence } from '@/inngest/functions/trialNudge'
+import { processQueueCron } from '@/inngest/functions/processQueue'
+import { escalateConversationsCron } from '@/inngest/functions/escalateConversations'
 
 export const { GET, POST, PUT } = serve({
   client: inngest,
@@ -16,5 +18,7 @@ export const { GET, POST, PUT } = serve({
     dailyBriefEngine,
     onboardingSequence,
     trialNudgeSequence,
+    processQueueCron,
+    escalateConversationsCron,
   ],
 })
