@@ -1,8 +1,5 @@
 import type { Metadata, Viewport } from 'next'
 import { Geist } from 'next/font/google'
-import { validateEnv } from '@/lib/config/validate'
-
-validateEnv()
 import { Analytics } from '@vercel/analytics/react'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import { CookieConsent } from '@/components/CookieConsent'

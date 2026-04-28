@@ -4,119 +4,28 @@ import type { Metadata } from 'next'
 export const metadata: Metadata = {
   title: 'AdminOS — The AI System That Runs Your Business',
   description:
-    'AdminOS replaces your WhatsApp chaos, invoice chasing, HR tools, and business analyst with 5 AI agents running 24/7. Built for South African SMEs. R2,500/month.',
+    'AdminOS gives South African businesses 6 AI agents: WhatsApp automation, debt recovery, staff wellness, document intelligence, daily briefs, and content creation. R2,500/month.',
   alternates: { canonical: 'https://adminos.co.za' },
 }
 
-// ─── Data ───────────────────────────────────────────────────────────────────
+// ─── Data ────────────────────────────────────────────────────────────────────
 
 const replacements = [
-  { tool: 'WhatsApp Business Manager', cost: 'R1,200', agent: 'AI Inbox Agent (Alex)' },
-  { tool: 'Debt collection service', cost: 'R2,500', agent: 'Debt Recovery Agent (Chase)' },
-  { tool: 'HR check-in software', cost: 'R800', agent: 'Wellness Agent (Care)' },
-  { tool: 'Xero accountant time', cost: 'R1,500', agent: 'Xero Integration' },
-  { tool: 'Business analyst / reports', cost: 'R4,000', agent: 'Analytics Agent (Insight)' },
-  { tool: 'Document processing (manual)', cost: 'R1,200', agent: 'Document Intelligence (Doc)' },
-]
-
-const agents = [
-  {
-    name: 'Alex',
-    role: 'Inbox Agent',
-    color: '#25D366',
-    bgColor: 'rgba(37,211,102,0.08)',
-    borderColor: 'rgba(37,211,102,0.25)',
-    description:
-      'Handles all WhatsApp conversations with clients around the clock. Answers FAQs, books appointments, escalates complex queries — in your customer\'s language.',
-    metric: '80% of client messages handled without you',
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="#25D366" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-      </svg>
-    ),
-  },
-  {
-    name: 'Chase',
-    role: 'Debt Recovery Agent',
-    color: '#F59E0B',
-    bgColor: 'rgba(245,158,11,0.08)',
-    borderColor: 'rgba(245,158,11,0.25)',
-    description:
-      'Follows up on overdue invoices with escalating, professional messages. From friendly reminder to letter of demand — automated, never awkward, never forgotten.',
-    metric: '60% faster average invoice settlement',
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-        <circle cx="12" cy="12" r="10" stroke="#F59E0B" strokeWidth="2"/>
-        <path d="M12 6v6l4 2" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round"/>
-      </svg>
-    ),
-  },
-  {
-    name: 'Care',
-    role: 'Wellness Agent',
-    color: '#14B8A6',
-    bgColor: 'rgba(20,184,166,0.08)',
-    borderColor: 'rgba(20,184,166,0.25)',
-    description:
-      'Regular AI-driven staff check-ins via WhatsApp. Identifies burnout signals early. Keeps your team feeling seen and supported between your 1:1s.',
-    metric: 'Burnout caught before it costs you',
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" stroke="#14B8A6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-      </svg>
-    ),
-  },
-  {
-    name: 'Doc',
-    role: 'Document Intelligence',
-    color: '#8B5CF6',
-    bgColor: 'rgba(139,92,246,0.08)',
-    borderColor: 'rgba(139,92,246,0.25)',
-    description:
-      'Upload contracts, quotes, invoices, reports. AI classifies, extracts key data, flags expiry dates, and auto-creates debtors from invoice data.',
-    metric: '90% faster document processing',
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="#8B5CF6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-        <polyline points="14 2 14 8 20 8" stroke="#8B5CF6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-        <line x1="16" y1="13" x2="8" y2="13" stroke="#8B5CF6" strokeWidth="2" strokeLinecap="round"/>
-        <line x1="16" y1="17" x2="8" y2="17" stroke="#8B5CF6" strokeWidth="2" strokeLinecap="round"/>
-        <polyline points="10 9 9 9 8 9" stroke="#8B5CF6" strokeWidth="2" strokeLinecap="round"/>
-      </svg>
-    ),
-  },
-  {
-    name: 'Insight',
-    role: 'Analytics Agent',
-    color: '#38BDF8',
-    bgColor: 'rgba(56,189,248,0.08)',
-    borderColor: 'rgba(56,189,248,0.25)',
-    description:
-      'Daily 05:00 AI business brief delivered every weekday. Revenue trends, debt aging, staff pulse, and growth opportunities — before your team starts.',
-    metric: 'You see problems before they happen',
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-        <line x1="18" y1="20" x2="18" y2="10" stroke="#38BDF8" strokeWidth="2" strokeLinecap="round"/>
-        <line x1="12" y1="20" x2="12" y2="4" stroke="#38BDF8" strokeWidth="2" strokeLinecap="round"/>
-        <line x1="6" y1="20" x2="6" y2="14" stroke="#38BDF8" strokeWidth="2" strokeLinecap="round"/>
-      </svg>
-    ),
-  },
+  { tool: 'WhatsApp Business Manager', cost: 'R1,200', agent: 'Alex · Inbox Agent' },
+  { tool: 'Debt collection service',    cost: 'R2,500', agent: 'Chase · Debt Recovery' },
+  { tool: 'HR check-in software',       cost: 'R800',   agent: 'Care · Wellness Agent' },
+  { tool: 'Xero accountant time',       cost: 'R1,500', agent: 'Xero Integration' },
+  { tool: 'Business analyst / reports', cost: 'R4,000', agent: 'Insight · Analytics' },
+  { tool: 'Document processing',        cost: 'R1,200', agent: 'Doc · Document AI' },
+  { tool: 'Copywriter / social media',  cost: 'R3,500', agent: 'Pen · Content Agent' },
 ]
 
 const pricingPlans = [
   {
     name: 'Starter',
     price: 'R2,500',
-    subtitle: '1–10 staff',
-    features: [
-      '1 WhatsApp number',
-      '500 AI conversations/month',
-      'Inbox + Debt Recovery agents',
-      'Basic analytics dashboard',
-      'POPIA compliance centre',
-      'Email support',
-    ],
+    sub: '1–10 staff',
+    features: ['1 WhatsApp number', '500 AI conversations/month', 'Inbox + Debt Recovery agents', 'Basic analytics dashboard', 'POPIA compliance centre', 'Email support'],
     highlight: false,
     cta: 'Start free trial',
     href: '/signup',
@@ -124,17 +33,9 @@ const pricingPlans = [
   {
     name: 'Growth',
     price: 'R4,500',
-    subtitle: '11–50 staff',
+    sub: '11–50 staff',
     badge: 'MOST POPULAR',
-    features: [
-      '3 WhatsApp numbers',
-      '5,000 AI conversations/month',
-      'All 5 AI agents',
-      'Xero integration',
-      'Advanced analytics + daily brief',
-      'Document intelligence',
-      'Priority support',
-    ],
+    features: ['3 WhatsApp numbers', '5,000 AI conversations/month', 'All 6 AI agents', 'Xero integration', 'Advanced analytics + daily brief', 'Document intelligence', 'Priority support'],
     highlight: true,
     cta: 'Start free trial',
     href: '/signup',
@@ -142,16 +43,8 @@ const pricingPlans = [
   {
     name: 'Enterprise',
     price: 'R8,500',
-    subtitle: '50+ staff',
-    features: [
-      'Unlimited AI conversations',
-      'Custom agent configuration',
-      'Dedicated onboarding manager',
-      'SLA guarantee',
-      'Multi-location support',
-      '2FA enforcement',
-      'Custom integrations',
-    ],
+    sub: '50+ staff',
+    features: ['Unlimited AI conversations', 'Custom agent configuration', 'Dedicated onboarding manager', 'SLA guarantee', 'Multi-location support', '2FA enforcement', 'Custom integrations'],
     highlight: false,
     cta: 'Book a demo',
     href: 'https://cal.com/nanda/adminos-demo',
@@ -159,14 +52,8 @@ const pricingPlans = [
   {
     name: 'White Label',
     price: 'R14,999',
-    subtitle: 'Accountants & resellers',
-    features: [
-      'Rebrand & resell as your own',
-      'Manage 50+ SME clients',
-      'Revenue share model',
-      'Full whitelabel dashboard',
-      'Partner onboarding support',
-    ],
+    sub: 'Accountants & resellers',
+    features: ['Rebrand & resell as your own', 'Manage 50+ SME clients', 'Revenue share model', 'Full whitelabel dashboard', 'Partner onboarding support'],
     highlight: false,
     cta: 'Contact us',
     href: '/contact',
@@ -174,60 +61,25 @@ const pricingPlans = [
 ]
 
 const faqs = [
-  {
-    q: 'We already use WhatsApp Business. Why do we need AdminOS?',
-    a: "WhatsApp Business is a messaging tool. AdminOS adds 5 AI agents that respond, recover debt, check in on staff, process documents, and brief you every morning — automatically. It uses WhatsApp as the channel, not the tool.",
-  },
-  {
-    q: "We're not a tech company. Is this hard to set up?",
-    a: "Our 15-minute onboarding wizard walks you through everything. No coding. No IT support needed. Most businesses are live within the same day.",
-  },
-  {
-    q: 'What happens to our data?',
-    a: "Your data stays yours. We comply with POPIA (South Africa's Protection of Personal Information Act). You can export everything at any time. We use bank-grade encryption and row-level security on all business communications.",
-  },
-  {
-    q: 'Does it integrate with our existing accounting software?',
-    a: 'AdminOS integrates natively with Xero. Sage and QuickBooks integrations are on the roadmap.',
-  },
-  {
-    q: 'Is there a lock-in contract?',
-    a: 'No lock-in contracts. Monthly billing, cancel anytime. Enterprise clients can negotiate annual contracts at a 15% discount.',
-  },
-  {
-    q: 'What if we need something custom?',
-    a: 'Enterprise tier clients get custom agent configuration. We also offer bespoke builds — email hello@mirembemuse.co.za.',
-  },
-  {
-    q: 'What kind of businesses use AdminOS?',
-    a: 'Law firms, medical practices, NGOs, schools, logistics companies, retail stores, property companies — any South African SME with clients, staff, and invoices.',
-  },
-  {
-    q: 'How does load-shedding affect AdminOS?',
-    a: "AdminOS is a PWA with offline capability. Queued actions retry automatically when connectivity returns. Your WhatsApp bot stays live on Meta's infrastructure even during outages.",
-  },
-]
-
-const industries = [
-  '⚖️ Legal Firms',
-  '🏥 Clinics',
-  '🏫 Schools',
-  '🏢 NGOs',
-  '🛍️ Retail',
-  '🏗️ Property',
-  '🚚 Logistics',
-  '🔧 Trades',
-  '🏦 Financial Services',
-  '🎓 Training Providers',
-  '💊 Pharmacies',
-  '🏠 Estate Agents',
+  { q: "We already use WhatsApp Business. Why do we need AdminOS?", a: "WhatsApp Business is a messaging tool. AdminOS adds 6 AI agents that respond, recover debt, check in on staff, process documents, brief you every morning, and generate content — automatically. It uses WhatsApp as the channel, not the tool." },
+  { q: "We're not a tech company. Is this hard to set up?", a: "Our 15-minute onboarding wizard walks you through everything. No coding. No IT support needed. Most businesses are live within the same day." },
+  { q: "What happens to our data?", a: "Your data stays yours. We comply with POPIA. You can export everything at any time. We use bank-grade encryption and row-level security on all business communications." },
+  { q: "Does it integrate with our existing accounting software?", a: "AdminOS integrates natively with Xero. Sage and QuickBooks integrations are on the roadmap." },
+  { q: "Is there a lock-in contract?", a: "No lock-in contracts. Monthly billing, cancel anytime. Enterprise clients can negotiate annual contracts at a 15% discount." },
+  { q: "How does load-shedding affect AdminOS?", a: "AdminOS is a PWA with offline capability. Queued actions retry automatically when connectivity returns. Your WhatsApp bot stays live on Meta's infrastructure even during outages." },
 ]
 
 const stats = [
-  { value: '< 3s', label: 'WhatsApp response time' },
-  { value: 'R11,200', label: 'Avg monthly toolstack replaced' },
-  { value: '15 min', label: 'Time to go live' },
-  { value: '11', label: 'SA languages supported' },
+  { value: '< 3s',    label: 'WhatsApp response time' },
+  { value: 'R14,700', label: 'Avg monthly toolstack replaced' },
+  { value: '15 min',  label: 'Time to go live' },
+  { value: '11',      label: 'SA languages supported' },
+]
+
+const industries = [
+  '⚖️ Legal Firms', '🏥 Clinics', '🏫 Schools', '🏢 NGOs',
+  '🛍️ Retail', '🏗️ Property', '🚚 Logistics', '🔧 Trades',
+  '🏦 Financial Services', '🎓 Training Providers', '💊 Pharmacies', '🏠 Estate Agents',
 ]
 
 const jsonLd = {
@@ -237,12 +89,12 @@ const jsonLd = {
   applicationCategory: 'BusinessApplication',
   operatingSystem: 'Web, Android, iOS',
   url: 'https://adminos.co.za',
-  description: 'AI-powered business operating system for South African SMEs. 5 AI agents: WhatsApp automation, debt recovery, staff wellness, document intelligence, and daily AI business briefs.',
+  description: 'AI-powered business operating system for South African SMEs. 6 AI agents: WhatsApp automation, debt recovery, staff wellness, document intelligence, daily business briefs, content creation.',
   author: { '@type': 'Organization', name: 'Mirembe Muse (Pty) Ltd', url: 'https://adminos.co.za' },
   offers: { '@type': 'AggregateOffer', priceCurrency: 'ZAR', lowPrice: '2500', highPrice: '14999', offerCount: '4' },
 }
 
-// ─── Component ──────────────────────────────────────────────────────────────
+// ─── Component ───────────────────────────────────────────────────────────────
 
 export default function HomePage() {
   return (
@@ -250,306 +102,409 @@ export default function HomePage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
       <style>{`
-        :root { --navy: #0A0F2C; --green: #25D366; --rose: #C4566A; }
-
-        @keyframes fadeInUp {
-          from { opacity: 0; transform: translateY(28px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to   { opacity: 1; }
-        }
-        @keyframes slideInRight {
-          from { opacity: 0; transform: translateX(48px); }
-          to   { opacity: 1; transform: translateX(0); }
-        }
-        @keyframes float {
-          0%, 100% { transform: translateY(0px) rotate(0deg); }
-          50%       { transform: translateY(-14px) rotate(1deg); }
-        }
-        @keyframes orb1 {
-          0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.5; }
-          33%       { transform: translate(40px, -30px) scale(1.15); opacity: 0.7; }
-          66%       { transform: translate(-25px, 25px) scale(0.9); opacity: 0.4; }
-        }
-        @keyframes orb2 {
-          0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.4; }
-          33%       { transform: translate(-35px, 25px) scale(1.1); opacity: 0.6; }
-          66%       { transform: translate(30px, -20px) scale(0.85); opacity: 0.35; }
-        }
-        @keyframes msgAppear {
-          from { opacity: 0; transform: translateY(10px) scale(0.96); }
-          to   { opacity: 1; transform: translateY(0) scale(1); }
-        }
-        @keyframes typingDot {
-          0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
-          30%            { transform: translateY(-5px); opacity: 1; }
-        }
-        @keyframes shimmerText {
-          0%   { background-position: -200% center; }
-          100% { background-position: 200% center; }
-        }
-        @keyframes borderPulse {
-          0%, 100% { border-color: rgba(37,211,102,0.3); }
-          50%       { border-color: rgba(37,211,102,0.7); }
-        }
-        @keyframes countUp {
-          from { opacity: 0; transform: scale(0.8); }
-          to   { opacity: 1; transform: scale(1); }
-        }
-        @keyframes gridFade {
-          from { opacity: 0; }
-          to   { opacity: 0.04; }
+        /* ── Palette ── */
+        :root {
+          --black: #050B1A;
+          --navy:  #0A0F2C;
+          --navy2: #0D1535;
+          --orange: #F97316;
+          --orange-dim: rgba(249,115,22,0.15);
+          --orange-border: rgba(249,115,22,0.25);
+          --teal: #06B6D4;
+          --teal-dim: rgba(6,182,212,0.12);
+          --teal-border: rgba(6,182,212,0.25);
+          --white: #FFFFFF;
+          --dim: rgba(255,255,255,0.5);
+          --dimmer: rgba(255,255,255,0.28);
+          --dimmest: rgba(255,255,255,0.1);
         }
 
-        .animate-fadeInUp  { animation: fadeInUp  0.7s cubic-bezier(.22,1,.36,1) both; }
-        .animate-slideInRight { animation: slideInRight 0.8s cubic-bezier(.22,1,.36,1) both; }
-        .animate-float     { animation: float 6s ease-in-out infinite; }
-        .animate-orb1      { animation: orb1 12s ease-in-out infinite; }
-        .animate-orb2      { animation: orb2 15s ease-in-out infinite; }
-        .animate-fadeIn    { animation: fadeIn 0.6s ease both; }
-        .animate-borderPulse { animation: borderPulse 2.5s ease-in-out infinite; }
-        .animate-countUp   { animation: countUp 0.6s cubic-bezier(.22,1,.36,1) both; }
-        .animate-gridFade  { animation: gridFade 1.2s ease both; }
+        /* ── Keyframes ── */
+        @keyframes fadeUp   { from { opacity:0; transform:translateY(32px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes fadeIn   { from { opacity:0; } to { opacity:1; } }
+        @keyframes slideRight { from { opacity:0; transform:translateX(56px); } to { opacity:1; transform:translateX(0); } }
+        @keyframes float    { 0%,100% { transform:translateY(0) rotate(0deg); } 50% { transform:translateY(-12px) rotate(.8deg); } }
+        @keyframes orb1     { 0%,100%{transform:translate(0,0) scale(1)} 40%{transform:translate(30px,-24px) scale(1.12)} 70%{transform:translate(-18px,18px) scale(.9)} }
+        @keyframes orb2     { 0%,100%{transform:translate(0,0)} 35%{transform:translate(-28px,20px)} 65%{transform:translate(22px,-15px)} }
+        @keyframes pulse    { 0%,100%{opacity:.5;transform:scale(1)} 50%{opacity:1;transform:scale(1.2)} }
+        @keyframes scanLine { 0%{top:0;opacity:1} 100%{top:100%;opacity:0} }
+        @keyframes barGrow  { from{height:0;opacity:0} to{opacity:1} }
+        @keyframes msgIn    { from{opacity:0;transform:translateY(10px) scale(.96)} to{opacity:1;transform:translateY(0) scale(1)} }
+        @keyframes typingDot { 0%,60%,100%{transform:translateY(0);opacity:.4} 30%{transform:translateY(-5px);opacity:1} }
+        @keyframes blink    { 0%,100%{opacity:1} 50%{opacity:0} }
+        @keyframes fillBar  { from{width:0} to{width:72%} }
+        @keyframes countIn  { from{opacity:0;transform:scale(.8)} to{opacity:1;transform:scale(1)} }
+        @keyframes shimmer  { 0%{background-position:-200% center} 100%{background-position:200% center} }
+        @keyframes lineFade { from{opacity:0;transform:translateX(-6px)} to{opacity:1;transform:translateX(0)} }
+        @keyframes heartbeat { 0%,100%{transform:scale(1)} 15%{transform:scale(1.25)} 30%{transform:scale(1)} 45%{transform:scale(1.15)} 60%{transform:scale(1)} }
 
-        .msg-1  { animation: msgAppear 0.5s cubic-bezier(.22,1,.36,1) 0.8s both; }
-        .msg-2  { animation: msgAppear 0.5s cubic-bezier(.22,1,.36,1) 2.0s both; }
-        .msg-3  { animation: msgAppear 0.5s cubic-bezier(.22,1,.36,1) 3.4s both; }
-        .msg-4  { animation: msgAppear 0.5s cubic-bezier(.22,1,.36,1) 4.6s both; }
-        .typing { animation: msgAppear 0.4s cubic-bezier(.22,1,.36,1) 1.5s both; }
-        .typing-hidden { animation: fadeIn 0s 3.2s both; display: none; }
-
-        .dot-1 { animation: typingDot 1.2s ease-in-out 1.6s infinite; }
-        .dot-2 { animation: typingDot 1.2s ease-in-out 1.8s infinite; }
-        .dot-3 { animation: typingDot 1.2s ease-in-out 2.0s infinite; }
+        /* ── Utility ── */
+        .fu  { animation: fadeUp   .7s cubic-bezier(.22,1,.36,1) both; }
+        .fi  { animation: fadeIn   .6s ease both; }
+        .sr  { animation: slideRight .8s cubic-bezier(.22,1,.36,1) both; }
+        .fl  { animation: float    6s ease-in-out infinite; }
+        .o1  { animation: orb1     13s ease-in-out infinite; }
+        .o2  { animation: orb2     16s ease-in-out infinite; }
+        .ci  { animation: countIn  .6s cubic-bezier(.22,1,.36,1) both; }
 
         .shimmer-text {
-          background: linear-gradient(90deg, #fff 0%, #25D366 40%, #fff 60%, #fff 100%);
+          background: linear-gradient(90deg,#fff 0%,var(--orange) 40%,var(--teal) 60%,#fff 100%);
           background-size: 200% auto;
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           background-clip: text;
-          animation: shimmerText 4s linear infinite;
+          animation: shimmer 5s linear infinite;
         }
 
-        .card-hover {
-          transition: transform 0.25s cubic-bezier(.22,1,.36,1), border-color 0.25s ease, box-shadow 0.25s ease;
-        }
-        .card-hover:hover {
-          transform: translateY(-4px);
-          border-color: rgba(37,211,102,0.35) !important;
-          box-shadow: 0 12px 40px rgba(37,211,102,0.08);
-        }
-
-        .grid-bg {
-          background-image:
-            linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
-          background-size: 60px 60px;
-        }
-
+        /* ── Nav ── */
         .glass-nav {
-          background: rgba(10,15,44,0.85);
+          background: rgba(5,11,26,.88);
           backdrop-filter: blur(20px);
           -webkit-backdrop-filter: blur(20px);
-          border-bottom: 1px solid rgba(255,255,255,0.06);
+          border-bottom: 1px solid rgba(255,255,255,.06);
         }
 
-        .pricing-card-highlight {
-          background: linear-gradient(135deg, #1a5c3a 0%, #0d3d26 100%);
-          border-color: rgba(37,211,102,0.5);
-          box-shadow: 0 0 60px rgba(37,211,102,0.12), 0 20px 60px rgba(0,0,0,0.3);
+        /* ── Cards ── */
+        .card {
+          transition: transform .25s cubic-bezier(.22,1,.36,1), border-color .25s, box-shadow .25s;
+        }
+        .card:hover {
+          transform: translateY(-5px);
+          border-color: var(--orange-border) !important;
+          box-shadow: 0 16px 48px rgba(249,115,22,.1);
         }
 
-        .cta-primary {
-          background: linear-gradient(135deg, #25D366 0%, #1da851 100%);
-          box-shadow: 0 4px 24px rgba(37,211,102,0.35);
-          transition: all 0.2s cubic-bezier(.22,1,.36,1);
+        /* ── Buttons ── */
+        .btn-orange {
+          background: var(--orange);
+          box-shadow: 0 4px 24px rgba(249,115,22,.35);
+          transition: all .2s cubic-bezier(.22,1,.36,1);
         }
-        .cta-primary:hover {
+        .btn-orange:hover {
+          background: #fb923c;
           transform: translateY(-2px);
-          box-shadow: 0 8px 36px rgba(37,211,102,0.5);
-          background: linear-gradient(135deg, #30e070 0%, #25D366 100%);
+          box-shadow: 0 8px 36px rgba(249,115,22,.5);
+        }
+        .btn-ghost {
+          border: 1px solid rgba(255,255,255,.18);
+          background: rgba(255,255,255,.04);
+          transition: all .2s ease;
+        }
+        .btn-ghost:hover {
+          background: rgba(255,255,255,.08);
+          border-color: rgba(255,255,255,.3);
+        }
+        .btn-demo {
+          background: linear-gradient(135deg, var(--teal) 0%, #0891b2 100%);
+          box-shadow: 0 4px 24px rgba(6,182,212,.3);
+          transition: all .2s cubic-bezier(.22,1,.36,1);
+        }
+        .btn-demo:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 36px rgba(6,182,212,.45);
         }
 
-        .cta-secondary {
-          border: 1px solid rgba(255,255,255,0.18);
-          background: rgba(255,255,255,0.04);
-          transition: all 0.2s ease;
+        /* ── Grid bg ── */
+        .grid-bg {
+          background-image:
+            linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+          background-size: 64px 64px;
         }
-        .cta-secondary:hover {
-          background: rgba(255,255,255,0.08);
-          border-color: rgba(255,255,255,0.3);
+
+        /* ── Hero layout ── */
+        .hero-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 64px;
+          align-items: center;
+        }
+
+        /* ── Agent grid ── */
+        .agents-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 20px;
+        }
+
+        /* ── Pricing grid ── */
+        .pricing-grid {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 20px;
+        }
+
+        /* ── Stats grid ── */
+        .stats-grid {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 32px;
+          text-align: center;
+        }
+
+        /* ── Steps grid ── */
+        .steps-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 32px;
+        }
+
+        /* ── Africa features ── */
+        .africa-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 20px;
+        }
+
+        /* ── Footer grid ── */
+        .footer-grid {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 32px;
+        }
+
+        /* ── Diagonal divider ── */
+        .diagonal-top { clip-path: polygon(0 5%, 100% 0, 100% 100%, 0 100%); margin-top: -40px; padding-top: 80px; }
+        .diagonal-btm { clip-path: polygon(0 0, 100% 0, 100% 95%, 0 100%); padding-bottom: 80px; }
+
+        /* ── Mockup containers ── */
+        .mockup-shell {
+          background: #0d1535;
+          border-radius: 14px;
+          border: 1px solid rgba(255,255,255,.08);
+          overflow: hidden;
+          font-size: 12px;
+          user-select: none;
+        }
+        .mockup-titlebar {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 8px 12px;
+          border-bottom: 1px solid rgba(255,255,255,.06);
+        }
+        .mockup-dot { width: 7px; height: 7px; border-radius: 50%; }
+
+        /* ─ Chat mockup ─ */
+        .chat-area { padding: 12px; display: flex; flex-direction: column; gap: 7px; min-height: 140px; }
+        .chat-row-in  { display:flex; justify-content:flex-start; }
+        .chat-row-out { display:flex; justify-content:flex-end; }
+        .chat-bubble-in  { background:#1e2a3a; border-radius:10px 10px 10px 3px; padding:7px 10px; max-width:78%; line-height:1.45; color:rgba(255,255,255,.8); }
+        .chat-bubble-out { background:var(--orange); border-radius:10px 10px 3px 10px; padding:7px 10px; max-width:78%; line-height:1.45; }
+        .cm1 { animation: msgIn .5s cubic-bezier(.22,1,.36,1) .8s both; }
+        .cm2 { animation: msgIn .5s cubic-bezier(.22,1,.36,1) 2.1s both; }
+        .cm3 { animation: msgIn .5s cubic-bezier(.22,1,.36,1) 3.3s both; }
+        .typing-row { display:flex; justify-content:flex-end; animation: msgIn .4s .5s both; }
+        .typing-bubble { background:rgba(249,115,22,.25); border-radius:10px 10px 3px 10px; padding:8px 12px; display:flex; gap:4px; align-items:center; }
+        .td1 { animation: typingDot 1.2s 1.6s ease-in-out infinite; }
+        .td2 { animation: typingDot 1.2s 1.8s ease-in-out infinite; }
+        .td3 { animation: typingDot 1.2s 2.0s ease-in-out infinite; }
+
+        /* ─ Invoice mockup ─ */
+        .inv-body { padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+        .inv-row { display:flex; justify-content:space-between; align-items:center; }
+        .inv-amount { font-size:22px; font-weight:900; color:var(--orange); }
+        .inv-overdue { font-size:10px; background:rgba(239,68,68,.15); border:1px solid rgba(239,68,68,.3); color:#f87171; padding:3px 8px; border-radius:100px; }
+        .inv-bar-track { height:6px; background:rgba(255,255,255,.08); border-radius:100px; overflow:hidden; }
+        .inv-bar-fill  { height:100%; background:linear-gradient(90deg,var(--orange),#fb923c); border-radius:100px; animation: fillBar 2s 1.5s cubic-bezier(.22,1,.36,1) both; }
+        .inv-status { font-size:11px; color:var(--orange); font-weight:600; animation: fadeIn .5s 3.5s both; opacity:0; }
+
+        /* ─ Wellness mockup ─ */
+        .well-body { padding: 12px; display: flex; flex-direction: column; gap: 6px; }
+        .well-row { display:flex; align-items:center; justify-content:space-between; padding:6px 8px; background:rgba(255,255,255,.03); border-radius:8px; }
+        .well-name { color:rgba(255,255,255,.7); font-size:12px; }
+        .well-badge { font-size:10px; padding:2px 8px; border-radius:100px; font-weight:600; }
+        .badge-ok  { background:rgba(6,182,212,.15); color:var(--teal); border:1px solid rgba(6,182,212,.25); }
+        .badge-warn { background:rgba(249,115,22,.15); color:var(--orange); border:1px solid rgba(249,115,22,.25); }
+        .badge-good { background:rgba(34,197,94,.12); color:#4ade80; border:1px solid rgba(34,197,94,.25); }
+        .pulse-icon { animation: heartbeat 2.5s ease-in-out infinite; display:inline-block; }
+        .well-alert { font-size:10px; color:var(--teal); margin-top:4px; padding:5px 8px; background:var(--teal-dim); border-radius:8px; border:1px solid var(--teal-border); animation: fadeIn .5s 2s both; opacity:0; }
+
+        /* ─ Document mockup ─ */
+        .doc-body { padding: 12px; position: relative; }
+        .doc-preview { background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.07); border-radius:8px; padding:8px 10px; position:relative; overflow:hidden; margin-bottom:8px; }
+        .doc-filename { font-size:11px; color:rgba(255,255,255,.5); margin-bottom:6px; }
+        .doc-scanline { position:absolute; left:0; right:0; height:2px; background:linear-gradient(90deg,transparent,var(--teal),transparent); animation: scanLine 2s 1s ease-in-out infinite; }
+        .doc-line { height:4px; background:rgba(255,255,255,.1); border-radius:2px; margin-bottom:5px; }
+        .doc-line.w80 { width:80%; } .doc-line.w60 { width:60%; } .doc-line.w90 { width:90%; } .doc-line.w50 { width:50%; }
+        .doc-extracted { display:flex; flex-direction:column; gap:5px; }
+        .doc-field { display:flex; align-items:center; gap:6px; font-size:11px; color:rgba(255,255,255,.6); }
+        .doc-field-icon { color:var(--teal); font-weight:700; }
+        .doc-ef1 { animation: lineFade .4s 1.8s both; opacity:0; }
+        .doc-ef2 { animation: lineFade .4s 2.4s both; opacity:0; }
+        .doc-ef3 { animation: lineFade .4s 3.0s both; opacity:0; }
+
+        /* ─ Chart mockup ─ */
+        .chart-body { padding: 12px; }
+        .chart-title { font-size:11px; color:var(--teal); font-weight:700; margin-bottom:10px; }
+        .chart-bars { display:flex; align-items:flex-end; gap:6px; height:72px; margin-bottom:8px; }
+        .chart-bar { flex:1; border-radius:4px 4px 0 0; }
+        .cb1 { background:rgba(6,182,212,.35); animation: barGrow .5s 1.0s cubic-bezier(.22,1,.36,1) both; height:48px; }
+        .cb2 { background:rgba(6,182,212,.45); animation: barGrow .5s 1.2s cubic-bezier(.22,1,.36,1) both; height:62px; }
+        .cb3 { background:var(--teal); animation: barGrow .5s 1.4s cubic-bezier(.22,1,.36,1) both; height:70px; }
+        .cb4 { background:rgba(6,182,212,.45); animation: barGrow .5s 1.6s cubic-bezier(.22,1,.36,1) both; height:56px; }
+        .cb5 { background:rgba(6,182,212,.55); animation: barGrow .5s 1.8s cubic-bezier(.22,1,.36,1) both; height:66px; }
+        .chart-stat { font-size:11px; color:rgba(255,255,255,.5); }
+        .chart-stat strong { color:#4ade80; }
+
+        /* ─ Pen/Writing mockup ─ */
+        .pen-body { padding: 12px; }
+        .pen-type { font-size:10px; color:var(--orange); font-weight:700; text-transform:uppercase; letter-spacing:.07em; margin-bottom:8px; }
+        .pen-lines { display:flex; flex-direction:column; gap:5px; }
+        .pen-line { height:4px; border-radius:2px; background:rgba(255,255,255,.15); }
+        .pl1 { width:88%; animation: lineFade .4s 1.0s both; opacity:0; }
+        .pl2 { width:72%; animation: lineFade .4s 1.6s both; opacity:0; }
+        .pl3 { width:82%; animation: lineFade .4s 2.2s both; opacity:0; }
+        .pl4 { width:60%; animation: lineFade .4s 2.8s both; opacity:0; }
+        .pen-cursor { display:inline-block; width:2px; height:14px; background:var(--orange); margin-left:2px; animation: blink 1s 3s step-end infinite; opacity:0; animation-fill-mode:both; }
+        .pen-action { font-size:11px; color:var(--orange); font-weight:600; margin-top:8px; animation: fadeIn .5s 3.5s both; opacity:0; }
+
+        /* ── Responsive ── */
+        @media (max-width: 900px) {
+          .hero-grid { grid-template-columns: 1fr; gap: 40px; }
+          .agents-grid { grid-template-columns: repeat(2, 1fr); }
+          .pricing-grid { grid-template-columns: repeat(2, 1fr); }
+          .stats-grid  { grid-template-columns: repeat(2, 1fr); gap: 24px; }
+          .steps-grid  { grid-template-columns: 1fr; gap: 24px; }
+          .africa-grid { grid-template-columns: 1fr; }
+          .footer-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        @media (max-width: 560px) {
+          .agents-grid  { grid-template-columns: 1fr; }
+          .pricing-grid { grid-template-columns: 1fr; }
+          .stats-grid   { grid-template-columns: repeat(2, 1fr); }
+          .footer-grid  { grid-template-columns: 1fr; }
+          .hero-demo-hide { display: none !important; }
         }
 
         @media (prefers-reduced-motion: reduce) {
-          *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
+          *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
         }
       `}</style>
 
-      <div style={{ background: '#0A0F2C', minHeight: '100vh', color: 'white' }}>
+      <div style={{ background: 'var(--black)', minHeight: '100vh', color: '#fff' }}>
 
-        {/* ─── Navigation ─────────────────────────────────────────────── */}
+        {/* ── Nav ─────────────────────────────────────────────────────── */}
         <header className="sticky top-0 z-50 glass-nav">
           <nav className="max-w-7xl mx-auto flex items-center justify-between px-6 py-4">
-            <div className="flex items-center gap-3">
-              <div style={{ background: 'linear-gradient(135deg, #25D366, #1da851)', width: 32, height: 32, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 14, letterSpacing: '-0.5px' }}>
-                AO
-              </div>
-              <span style={{ fontWeight: 700, fontSize: 18, letterSpacing: '-0.5px' }}>AdminOS</span>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ width: 34, height: 34, borderRadius: 10, background: 'var(--orange)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: 13, letterSpacing: '-.5px', color: '#fff' }}>AO</div>
+              <span style={{ fontWeight: 800, fontSize: 18, letterSpacing: '-.5px' }}>AdminOS</span>
             </div>
 
-            <div className="hidden md:flex items-center gap-8 text-sm" style={{ color: 'rgba(255,255,255,0.55)' }}>
-              <a href="#agents" className="hover:text-white transition-colors">Agents</a>
+            <div className="hidden md:flex items-center gap-8 text-sm" style={{ color: 'var(--dimmer)' }}>
+              <a href="#agents"  className="hover:text-white transition-colors">Agents</a>
               <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
-              <a href="#faq" className="hover:text-white transition-colors">FAQ</a>
+              <a href="#faq"     className="hover:text-white transition-colors">FAQ</a>
               <Link href="/contact" className="hover:text-white transition-colors">Contact</Link>
             </div>
 
-            <div className="flex items-center gap-3">
-              <Link href="/login" className="text-sm hidden sm:block transition-colors" style={{ color: 'rgba(255,255,255,0.5)' }}>
-                Sign in
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Link href="/login" className="text-sm hidden sm:block transition-colors" style={{ color: 'var(--dimmer)' }}>Sign in</Link>
+              <Link href="/demo" className="btn-demo text-sm px-4 py-2 rounded-lg font-bold text-white hidden sm:inline-flex items-center gap-1.5" style={{ textDecoration: 'none' }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><polygon points="5,3 19,12 5,21" fill="white"/></svg>
+                Try demo
               </Link>
-              <Link href="https://cal.com/nanda/adminos-demo" target="_blank" rel="noopener noreferrer"
-                className="text-sm px-4 py-2 rounded-lg font-semibold hidden sm:block cta-secondary text-white">
-                Book demo
-              </Link>
-              <Link href="/signup" className="text-sm px-4 py-2 rounded-lg font-bold text-white cta-primary">
-                Free trial
-              </Link>
+              <Link href="/signup" className="btn-orange text-sm px-4 py-2 rounded-lg font-bold text-white" style={{ textDecoration: 'none' }}>Free trial</Link>
             </div>
           </nav>
         </header>
 
         <main>
-          {/* ─── Hero ─────────────────────────────────────────────────── */}
-          <section className="relative overflow-hidden" style={{ padding: '100px 24px 80px' }}>
-            {/* Animated background orbs */}
+
+          {/* ── Hero ────────────────────────────────────────────────────── */}
+          <section className="relative overflow-hidden" style={{ padding: '96px 24px 80px' }}>
+
+            {/* BG orbs */}
             <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden' }}>
-              <div className="animate-orb1" style={{
-                position: 'absolute', top: '-10%', left: '-5%',
-                width: 700, height: 700, borderRadius: '50%',
-                background: 'radial-gradient(circle, rgba(37,211,102,0.12) 0%, transparent 70%)',
-                filter: 'blur(40px)',
-              }} />
-              <div className="animate-orb2" style={{
-                position: 'absolute', bottom: '-20%', right: '-10%',
-                width: 600, height: 600, borderRadius: '50%',
-                background: 'radial-gradient(circle, rgba(196,86,106,0.1) 0%, transparent 70%)',
-                filter: 'blur(50px)',
-              }} />
-              <div className="animate-orb1 grid-bg animate-gridFade" style={{
-                position: 'absolute', inset: 0,
-                animationDelay: '0.5s',
-              }} />
+              <div className="o1" style={{ position: 'absolute', top: '-15%', left: '-8%', width: 700, height: 700, borderRadius: '50%', background: 'radial-gradient(circle, rgba(249,115,22,.1) 0%, transparent 65%)', filter: 'blur(50px)' }} />
+              <div className="o2" style={{ position: 'absolute', bottom: '-20%', right: '-10%', width: 600, height: 600, borderRadius: '50%', background: 'radial-gradient(circle, rgba(6,182,212,.1) 0%, transparent 65%)', filter: 'blur(60px)' }} />
+              <div className="grid-bg fi" style={{ position: 'absolute', inset: 0, opacity: .6, animationDelay: '.4s' }} />
             </div>
 
-            <div className="max-w-7xl mx-auto relative" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 64, alignItems: 'center' }}>
-              {/* Left — Copy */}
+            <div className="max-w-7xl mx-auto relative hero-grid">
+
+              {/* Left — copy */}
               <div>
-                <div className="animate-fadeInUp" style={{ animationDelay: '0.1s', display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(37,211,102,0.1)', border: '1px solid rgba(37,211,102,0.25)', borderRadius: 100, padding: '6px 16px', fontSize: 13, color: '#25D366', marginBottom: 28 }}>
-                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#25D366', display: 'inline-block', animation: 'typingDot 2s ease-in-out infinite' }} />
+                <div className="fu" style={{ animationDelay: '.1s', display: 'inline-flex', alignItems: 'center', gap: 8, background: 'var(--orange-dim)', border: '1px solid var(--orange-border)', borderRadius: 100, padding: '6px 16px', fontSize: 13, color: 'var(--orange)', marginBottom: 28 }}>
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--orange)', display: 'inline-block', animation: 'pulse 2s ease-in-out infinite' }} />
                   Built for South African Business · POPIA Compliant
                 </div>
 
-                <h1 className="animate-fadeInUp" style={{ animationDelay: '0.2s', fontSize: 'clamp(40px, 5vw, 68px)', fontWeight: 900, lineHeight: 1.04, letterSpacing: '-2px', marginBottom: 20 }}>
-                  Your business
-                  <br />
+                <h1 className="fu" style={{ animationDelay: '.2s', fontSize: 'clamp(42px, 5.5vw, 72px)', fontWeight: 900, lineHeight: 1.02, letterSpacing: '-2.5px', marginBottom: 22 }}>
+                  Your business<br />
                   <span className="shimmer-text">runs itself.</span>
                 </h1>
 
-                <p className="animate-fadeInUp" style={{ animationDelay: '0.3s', fontSize: 18, lineHeight: 1.65, color: 'rgba(255,255,255,0.55)', marginBottom: 12, maxWidth: 480 }}>
-                  5 AI agents handle WhatsApp, debt recovery, staff wellness, documents, and daily insights — 24/7, in your language, from R2,500/month.
+                <p className="fu" style={{ animationDelay: '.3s', fontSize: 18, lineHeight: 1.65, color: 'var(--dim)', marginBottom: 10, maxWidth: 490 }}>
+                  6 AI agents handle WhatsApp, debt recovery, staff wellness, documents, daily insights, and content — 24/7, in your language, from R2,500/month.
                 </p>
 
-                <p className="animate-fadeInUp" style={{ animationDelay: '0.35s', fontSize: 14, color: 'rgba(245,158,11,0.9)', fontWeight: 600, marginBottom: 32 }}>
-                  Average client saves <strong style={{ color: '#F59E0B' }}>R8,400/month</strong> in replaced software subscriptions.
+                <p className="fu" style={{ animationDelay: '.35s', fontSize: 14, color: 'var(--orange)', fontWeight: 700, marginBottom: 32 }}>
+                  Average client saves <strong>R14,700/month</strong> in replaced tools.
                 </p>
 
-                <div className="animate-fadeInUp" style={{ animationDelay: '0.45s', display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 20 }}>
-                  <Link href="/signup" className="cta-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '14px 28px', borderRadius: 14, fontWeight: 800, fontSize: 16, color: 'white', textDecoration: 'none' }}>
+                <div className="fu" style={{ animationDelay: '.45s', display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
+                  <Link href="/signup" className="btn-orange" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '14px 28px', borderRadius: 14, fontWeight: 800, fontSize: 16, color: 'white', textDecoration: 'none' }}>
                     Start 14-day free trial
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                   </Link>
-                  <Link href="https://cal.com/nanda/adminos-demo" target="_blank" rel="noopener noreferrer" className="cta-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '14px 28px', borderRadius: 14, fontWeight: 600, fontSize: 16, color: 'rgba(255,255,255,0.8)', textDecoration: 'none' }}>
-                    Book a demo
+                  <Link href="/demo" className="btn-demo" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '14px 28px', borderRadius: 14, fontWeight: 700, fontSize: 16, color: 'white', textDecoration: 'none' }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><polygon points="5,3 19,12 5,21" fill="white"/></svg>
+                    Try interactive demo
                   </Link>
                 </div>
 
-                <p className="animate-fadeInUp" style={{ animationDelay: '0.5s', fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>
+                <p className="fu" style={{ animationDelay: '.5s', fontSize: 13, color: 'var(--dimmest)' }}>
                   No credit card · Live in 15 minutes · Cancel anytime
                 </p>
               </div>
 
-              {/* Right — WhatsApp Mockup */}
-              <div className="animate-slideInRight hidden md:flex" style={{ animationDelay: '0.4s', justifyContent: 'center' }}>
-                <div className="animate-float" style={{ animationDelay: '1s' }}>
-                  {/* Phone frame */}
-                  <div style={{
-                    width: 320, background: '#111827', borderRadius: 32,
-                    border: '2px solid rgba(255,255,255,0.08)',
-                    boxShadow: '0 40px 100px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04)',
-                    overflow: 'hidden',
-                  }}>
-                    {/* Status bar */}
-                    <div style={{ background: '#075E54', padding: '10px 16px 12px', display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg, #25D366, #1da851)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 13 }}>
-                        A
-                      </div>
+              {/* Right — animated chat phone */}
+              <div className="sr hero-demo-hide" style={{ animationDelay: '.4s', display: 'flex', justifyContent: 'center' }}>
+                <div className="fl" style={{ animationDelay: '1s' }}>
+                  <div style={{ width: 310, background: '#111827', borderRadius: 32, border: '2px solid rgba(255,255,255,.08)', boxShadow: '0 40px 100px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.04)', overflow: 'hidden' }}>
+
+                    {/* Header */}
+                    <div style={{ background: '#0A0F2C', padding: '10px 14px 12px', display: 'flex', alignItems: 'center', gap: 10, borderBottom: '1px solid rgba(249,115,22,.15)' }}>
+                      <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--orange)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: 13 }}>A</div>
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: 700, fontSize: 14, letterSpacing: '-0.2px' }}>Alex · AdminOS</div>
-                        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                          <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#25D366', display: 'inline-block' }} />
-                          Online
+                        <div style={{ fontWeight: 700, fontSize: 14, letterSpacing: '-.2px' }}>Alex · AdminOS</div>
+                        <div style={{ fontSize: 11, color: 'rgba(255,255,255,.5)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--teal)', display: 'inline-block' }} />Online
                         </div>
                       </div>
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="1" fill="rgba(255,255,255,0.6)"/><circle cx="19" cy="12" r="1" fill="rgba(255,255,255,0.6)"/><circle cx="5" cy="12" r="1" fill="rgba(255,255,255,0.6)"/></svg>
                     </div>
 
-                    {/* Chat area */}
-                    <div style={{ background: '#0d1117', padding: '16px 12px 20px', minHeight: 380, display: 'flex', flexDirection: 'column', gap: 10 }}>
-                      {/* Client message */}
-                      <div className="msg-1" style={{ display: 'flex', justifyContent: 'flex-start' }}>
-                        <div style={{ background: '#1f2937', padding: '8px 12px', borderRadius: '12px 12px 12px 4px', maxWidth: '80%', fontSize: 13, lineHeight: 1.5, color: 'rgba(255,255,255,0.85)' }}>
-                          Hey, Thabo still hasn&apos;t paid his invoice from March 😤
-                          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 4, textAlign: 'right' }}>09:14</div>
+                    {/* Chat */}
+                    <div className="chat-area" style={{ background: '#0d1117' }}>
+
+                      <div className="chat-row-in cm1">
+                        <div className="chat-bubble-in">Hey, Thabo still hasn&apos;t paid his invoice 😤
+                          <div style={{ fontSize: 10, color: 'rgba(255,255,255,.3)', marginTop: 3, textAlign: 'right' }}>09:14</div>
                         </div>
                       </div>
 
-                      {/* Typing indicator */}
-                      <div className="typing" style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                        <div style={{ background: '#075E54', padding: '10px 14px', borderRadius: '12px 12px 4px 12px', display: 'flex', gap: 4, alignItems: 'center' }}>
-                          <span className="dot-1" style={{ width: 6, height: 6, borderRadius: '50%', background: 'rgba(255,255,255,0.8)', display: 'inline-block' }} />
-                          <span className="dot-2" style={{ width: 6, height: 6, borderRadius: '50%', background: 'rgba(255,255,255,0.8)', display: 'inline-block' }} />
-                          <span className="dot-3" style={{ width: 6, height: 6, borderRadius: '50%', background: 'rgba(255,255,255,0.8)', display: 'inline-block' }} />
+                      <div className="typing-row">
+                        <div className="typing-bubble">
+                          <span className="td1" style={{ width: 5, height: 5, borderRadius: '50%', background: 'rgba(255,255,255,.7)', display: 'inline-block' }} />
+                          <span className="td2" style={{ width: 5, height: 5, borderRadius: '50%', background: 'rgba(255,255,255,.7)', display: 'inline-block' }} />
+                          <span className="td3" style={{ width: 5, height: 5, borderRadius: '50%', background: 'rgba(255,255,255,.7)', display: 'inline-block' }} />
                         </div>
                       </div>
 
-                      {/* Alex response */}
-                      <div className="msg-2" style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                        <div style={{ background: '#075E54', padding: '8px 12px', borderRadius: '12px 12px 4px 12px', maxWidth: '80%', fontSize: 13, lineHeight: 1.5 }}>
-                          On it. Sending Thabo a professional reminder now. I&apos;ll escalate in 3 days if no response. 📋
-                          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', marginTop: 4, textAlign: 'right', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 3 }}>
-                            09:14
-                            <svg width="12" height="8" viewBox="0 0 16 10" fill="none"><path d="M1 5l3 3 5-5M6 5l3 3 5-5" stroke="#25D366" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                          </div>
+                      <div className="chat-row-out cm2">
+                        <div className="chat-bubble-out">On it — Chase agent activated. Escalation if no response in 3 days. 📋
+                          <div style={{ fontSize: 10, color: 'rgba(255,255,255,.65)', marginTop: 3, textAlign: 'right' }}>09:14 ✓✓</div>
                         </div>
                       </div>
 
-                      {/* System notice */}
-                      <div className="msg-3" style={{ textAlign: 'center' }}>
-                        <span style={{ background: 'rgba(37,211,102,0.1)', border: '1px solid rgba(37,211,102,0.2)', borderRadius: 100, padding: '4px 12px', fontSize: 11, color: '#25D366' }}>
-                          ✓ Chase agent activated · Invoice R8,400
+                      <div className="cm3" style={{ textAlign: 'center' }}>
+                        <span style={{ background: 'var(--orange-dim)', border: '1px solid var(--orange-border)', borderRadius: 100, padding: '4px 12px', fontSize: 10, color: 'var(--orange)' }}>
+                          ✓ Invoice R8,400 · Chase escalation queued
                         </span>
-                      </div>
-
-                      {/* Client reply */}
-                      <div className="msg-4" style={{ display: 'flex', justifyContent: 'flex-start' }}>
-                        <div style={{ background: '#1f2937', padding: '8px 12px', borderRadius: '12px 12px 12px 4px', maxWidth: '80%', fontSize: 13, lineHeight: 1.5, color: 'rgba(255,255,255,0.85)' }}>
-                          Amazing 🙌 Also book a quote for Sipho at 2pm Friday?
-                          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 4, textAlign: 'right' }}>09:16</div>
-                        </div>
                       </div>
                     </div>
                   </div>
@@ -558,176 +513,375 @@ export default function HomePage() {
             </div>
           </section>
 
-          {/* ─── Stats bar ────────────────────────────────────────────── */}
-          <section style={{ borderTop: '1px solid rgba(255,255,255,0.06)', borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)', padding: '48px 24px' }}>
-            <div className="max-w-4xl mx-auto">
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 32, textAlign: 'center' }}>
-                {stats.map((stat, i) => (
-                  <div key={stat.label} className="animate-countUp" style={{ animationDelay: `${i * 0.1}s` }}>
-                    <div style={{ fontSize: 'clamp(28px, 4vw, 42px)', fontWeight: 900, color: '#25D366', letterSpacing: '-1px', lineHeight: 1 }}>
-                      {stat.value}
-                    </div>
-                    <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', marginTop: 8, lineHeight: 1.3 }}>{stat.label}</div>
-                  </div>
-                ))}
+          {/* ── Demo CTA banner ─────────────────────────────────────────── */}
+          <div style={{ background: 'linear-gradient(135deg, rgba(6,182,212,.08) 0%, rgba(249,115,22,.06) 100%)', borderTop: '1px solid rgba(6,182,212,.15)', borderBottom: '1px solid rgba(6,182,212,.15)', padding: '24px', textAlign: 'center' }}>
+            <div className="max-w-4xl mx-auto" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 20, flexWrap: 'wrap' }}>
+              <div>
+                <p style={{ fontWeight: 700, fontSize: 16, letterSpacing: '-.3px' }}>See AdminOS in action — no account needed</p>
+                <p style={{ fontSize: 13, color: 'var(--dim)', marginTop: 2 }}>Explore all 6 agents with a fake SA business. Scripted real-world scenarios.</p>
               </div>
+              <Link href="/demo" className="btn-demo" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '12px 28px', borderRadius: 12, fontWeight: 800, fontSize: 15, color: 'white', textDecoration: 'none', flexShrink: 0 }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><polygon points="5,3 19,12 5,21" fill="white"/></svg>
+                Open Interactive Demo
+              </Link>
+            </div>
+          </div>
+
+          {/* ── Stats ───────────────────────────────────────────────────── */}
+          <section style={{ borderBottom: '1px solid rgba(255,255,255,.05)', background: 'rgba(255,255,255,.015)', padding: '56px 24px' }}>
+            <div className="max-w-4xl mx-auto stats-grid">
+              {stats.map((s, i) => (
+                <div key={s.label} className="ci" style={{ animationDelay: `${i * .1}s` }}>
+                  <div style={{ fontSize: 'clamp(28px, 4vw, 44px)', fontWeight: 900, color: i % 2 === 0 ? 'var(--orange)' : 'var(--teal)', letterSpacing: '-1.5px', lineHeight: 1 }}>{s.value}</div>
+                  <div style={{ fontSize: 13, color: 'var(--dimmer)', marginTop: 8, lineHeight: 1.3 }}>{s.label}</div>
+                </div>
+              ))}
             </div>
           </section>
 
-          {/* ─── ROI table ────────────────────────────────────────────── */}
+          {/* ── ROI table ───────────────────────────────────────────────── */}
           <section className="max-w-5xl mx-auto px-6 py-24">
             <div style={{ textAlign: 'center', marginBottom: 48 }}>
-              <p style={{ color: '#25D366', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>Return on investment</p>
-              <h2 style={{ fontSize: 'clamp(28px, 4vw, 44px)', fontWeight: 800, letterSpacing: '-1px', marginBottom: 16 }}>Replace R11,200/month<br />with one platform</h2>
-              <p style={{ color: 'rgba(255,255,255,0.5)', maxWidth: 480, margin: '0 auto', lineHeight: 1.6 }}>
-                AdminOS Growth at <strong style={{ color: 'white' }}>R4,500/month</strong> replaces over <strong style={{ color: '#F59E0B' }}>R11,200/month</strong> in tools, services, and admin time.
+              <p style={{ color: 'var(--orange)', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 12 }}>Return on investment</p>
+              <h2 style={{ fontSize: 'clamp(28px, 4vw, 46px)', fontWeight: 800, letterSpacing: '-1.5px', marginBottom: 16 }}>Replace R14,700/month<br />with one platform</h2>
+              <p style={{ color: 'var(--dim)', maxWidth: 480, margin: '0 auto', lineHeight: 1.6 }}>
+                AdminOS Growth at <strong style={{ color: '#fff' }}>R4,500/month</strong> replaces over <strong style={{ color: 'var(--orange)' }}>R14,700/month</strong> in tools, services, and admin time.
               </p>
             </div>
 
-            <div style={{ borderRadius: 20, border: '1px solid rgba(255,255,255,0.08)', overflow: 'hidden' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', background: 'rgba(255,255,255,0.04)', padding: '12px 24px' }}>
+            <div style={{ borderRadius: 20, border: '1px solid rgba(255,255,255,.07)', overflow: 'hidden' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', background: 'rgba(255,255,255,.03)', padding: '12px 24px' }}>
                 {['What you pay for now', 'Monthly cost', 'Replaced by'].map((h, i) => (
-                  <span key={h} style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700, textAlign: i === 1 ? 'center' : i === 2 ? 'right' : 'left' }}>{h}</span>
+                  <span key={h} style={{ fontSize: 11, color: 'var(--dimmest)', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 700, textAlign: i === 1 ? 'center' : i === 2 ? 'right' : 'left' }}>{h}</span>
                 ))}
               </div>
-              {replacements.map((row, i) => (
-                <div key={row.tool} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', padding: '16px 24px', alignItems: 'center', borderTop: '1px solid rgba(255,255,255,0.04)', transition: 'background 0.2s' }}>
-                  <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)' }}>{row.tool}</span>
-                  <span style={{ textAlign: 'center', fontSize: 14, fontWeight: 700, color: '#F87171', textDecoration: 'line-through' }}>{row.cost}</span>
-                  <span style={{ textAlign: 'right', fontSize: 14, color: '#25D366' }}>{row.agent}</span>
+              {replacements.map((r) => (
+                <div key={r.tool} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', padding: '15px 24px', alignItems: 'center', borderTop: '1px solid rgba(255,255,255,.04)' }}>
+                  <span style={{ fontSize: 13, color: 'rgba(255,255,255,.65)' }}>{r.tool}</span>
+                  <span style={{ textAlign: 'center', fontSize: 13, fontWeight: 700, color: '#f87171', textDecoration: 'line-through' }}>{r.cost}</span>
+                  <span style={{ textAlign: 'right', fontSize: 13, color: 'var(--teal)' }}>{r.agent}</span>
                 </div>
               ))}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', padding: '16px 24px', alignItems: 'center', background: 'rgba(37,211,102,0.06)', borderTop: '1px solid rgba(37,211,102,0.15)' }}>
-                <span style={{ fontWeight: 800, color: 'white' }}>Total saved</span>
-                <span style={{ textAlign: 'center', fontWeight: 800, color: '#F87171', textDecoration: 'line-through' }}>R11,200/mo</span>
-                <span style={{ textAlign: 'right', fontWeight: 800, color: '#25D366' }}>AdminOS Growth: R4,500/mo</span>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', padding: '16px 24px', alignItems: 'center', background: 'rgba(249,115,22,.06)', borderTop: '1px solid rgba(249,115,22,.15)' }}>
+                <span style={{ fontWeight: 800 }}>Total saved</span>
+                <span style={{ textAlign: 'center', fontWeight: 800, color: '#f87171', textDecoration: 'line-through' }}>R14,700/mo</span>
+                <span style={{ textAlign: 'right', fontWeight: 800, color: 'var(--orange)' }}>AdminOS Growth: R4,500/mo</span>
               </div>
             </div>
-            <p style={{ textAlign: 'center', fontSize: 13, color: 'rgba(255,255,255,0.25)', marginTop: 16 }}>ROI from month one. No setup cost on Growth and Enterprise tiers.</p>
+            <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--dimmest)', marginTop: 16 }}>ROI from month one. No setup cost on Growth and Enterprise tiers.</p>
           </section>
 
-          {/* ─── 5 AI Agents ──────────────────────────────────────────── */}
-          <section id="agents" style={{ background: 'rgba(255,255,255,0.015)', borderTop: '1px solid rgba(255,255,255,0.05)', borderBottom: '1px solid rgba(255,255,255,0.05)', padding: '96px 24px' }}>
+          {/* ── 6 Agents ────────────────────────────────────────────────── */}
+          <section id="agents" style={{ background: 'rgba(255,255,255,.012)', borderTop: '1px solid rgba(255,255,255,.05)', borderBottom: '1px solid rgba(255,255,255,.05)', padding: '96px 24px' }}>
             <div className="max-w-7xl mx-auto">
-              <div style={{ textAlign: 'center', marginBottom: 56 }}>
-                <p style={{ color: '#25D366', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>Your AI team</p>
-                <h2 style={{ fontSize: 'clamp(28px, 4vw, 48px)', fontWeight: 800, letterSpacing: '-1.5px', marginBottom: 16 }}>5 agents. Always on.</h2>
-                <p style={{ color: 'rgba(255,255,255,0.45)', maxWidth: 420, margin: '0 auto', lineHeight: 1.6, fontSize: 16 }}>
+
+              <div style={{ textAlign: 'center', marginBottom: 60 }}>
+                <p style={{ color: 'var(--teal)', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 12 }}>Your AI team</p>
+                <h2 style={{ fontSize: 'clamp(28px, 4vw, 52px)', fontWeight: 900, letterSpacing: '-2px', marginBottom: 16 }}>6 agents. Always on.</h2>
+                <p style={{ color: 'var(--dim)', maxWidth: 420, margin: '0 auto', lineHeight: 1.65, fontSize: 16 }}>
                   Each agent has a name, a job, and a target. Together they run your operations without being asked.
                 </p>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20 }}>
-                {agents.map((agent, i) => (
-                  <article
-                    key={agent.name}
-                    className="animate-fadeInUp card-hover"
-                    style={{
-                      animationDelay: `${i * 0.08}s`,
-                      background: agent.bgColor,
-                      border: `1px solid ${agent.borderColor}`,
-                      borderRadius: 20,
-                      padding: 24,
-                      cursor: 'default',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-                      <div style={{ width: 44, height: 44, borderRadius: 12, background: `${agent.bgColor}`, border: `1px solid ${agent.borderColor}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        {agent.icon}
-                      </div>
-                      <div>
-                        <div style={{ fontWeight: 800, fontSize: 18, letterSpacing: '-0.5px' }}>{agent.name}</div>
-                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 1 }}>{agent.role}</div>
-                      </div>
-                    </div>
-                    <p style={{ fontSize: 14, lineHeight: 1.65, color: 'rgba(255,255,255,0.55)', marginBottom: 16 }}>{agent.description}</p>
-                    <div style={{ background: 'rgba(0,0,0,0.2)', border: `1px solid ${agent.borderColor}`, borderRadius: 10, padding: '8px 12px' }}>
-                      <p style={{ fontSize: 12, color: agent.color, fontWeight: 600 }}>📈 {agent.metric}</p>
-                    </div>
-                  </article>
-                ))}
+              <div className="agents-grid">
 
-                {/* 6th card — Africa-first */}
-                <article className="animate-fadeInUp card-hover" style={{
-                  animationDelay: `${agents.length * 0.08}s`,
-                  background: 'linear-gradient(135deg, rgba(196,86,106,0.08) 0%, rgba(10,15,44,0.5) 100%)',
-                  border: '1px solid rgba(196,86,106,0.2)',
-                  borderRadius: 20,
-                  padding: 24,
-                }}>
-                  <div style={{ fontSize: 32, marginBottom: 12 }}>⚡</div>
-                  <h3 style={{ fontWeight: 800, fontSize: 18, marginBottom: 8 }}>Built for Africa</h3>
-                  <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)', lineHeight: 1.65, marginBottom: 16 }}>
-                    Load-shedding resilient PWA. 11 SA languages. POPIA compliant. Claude AI with prompt caching for sub-second responses.
-                  </p>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                    {['PWA Offline', '11 Languages', 'POPIA', 'Claude AI', 'Sub-second'].map((tag) => (
-                      <span key={tag} style={{ fontSize: 11, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 100, padding: '3px 10px', color: 'rgba(255,255,255,0.5)' }}>{tag}</span>
-                    ))}
+                {/* ─ Alex ─ */}
+                <article className="fu card" style={{ animationDelay: '0s', background: 'rgba(249,115,22,.06)', border: '1px solid rgba(249,115,22,.18)', borderRadius: 20, padding: 24 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                    <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--orange-dim)', border: '1px solid var(--orange-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>💬</div>
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: 17 }}>Alex</div>
+                      <div style={{ fontSize: 11, color: 'var(--dim)' }}>Inbox Agent</div>
+                    </div>
+                  </div>
+                  <p style={{ fontSize: 13, color: 'var(--dim)', lineHeight: 1.65, marginBottom: 14 }}>Handles all WhatsApp conversations 24/7 — FAQs, bookings, quotes, escalations. In your customer&apos;s language.</p>
+                  {/* Mini mockup */}
+                  <div className="mockup-shell">
+                    <div className="mockup-titlebar" style={{ background: '#0d1535' }}>
+                      <div className="mockup-dot" style={{ background: '#ef4444' }} />
+                      <div className="mockup-dot" style={{ background: '#f59e0b' }} />
+                      <div className="mockup-dot" style={{ background: '#22c55e' }} />
+                      <span style={{ fontSize: 10, color: 'rgba(255,255,255,.3)', marginLeft: 4 }}>alex · whatsapp</span>
+                    </div>
+                    <div className="chat-area" style={{ minHeight: 110, padding: '10px' }}>
+                      <div className="chat-row-in cm1">
+                        <div className="chat-bubble-in" style={{ fontSize: 11 }}>Can I get a quote for cleaning?</div>
+                      </div>
+                      <div className="typing-row">
+                        <div className="typing-bubble">
+                          <span className="td1" style={{ width: 4, height: 4, borderRadius: '50%', background: 'rgba(255,255,255,.7)', display: 'inline-block' }} />
+                          <span className="td2" style={{ width: 4, height: 4, borderRadius: '50%', background: 'rgba(255,255,255,.7)', display: 'inline-block' }} />
+                          <span className="td3" style={{ width: 4, height: 4, borderRadius: '50%', background: 'rgba(255,255,255,.7)', display: 'inline-block' }} />
+                        </div>
+                      </div>
+                      <div className="chat-row-out cm2">
+                        <div className="chat-bubble-out" style={{ fontSize: 11 }}>Sure! Quote QT-1047 sent ✓</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ marginTop: 12, background: 'rgba(0,0,0,.2)', border: '1px solid rgba(249,115,22,.15)', borderRadius: 8, padding: '7px 10px', fontSize: 11, color: 'var(--orange)', fontWeight: 600 }}>
+                    📈 80% of messages handled without you
                   </div>
                 </article>
+
+                {/* ─ Chase ─ */}
+                <article className="fu card" style={{ animationDelay: '.08s', background: 'rgba(6,182,212,.06)', border: '1px solid rgba(6,182,212,.18)', borderRadius: 20, padding: 24 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                    <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--teal-dim)', border: '1px solid var(--teal-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>💰</div>
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: 17 }}>Chase</div>
+                      <div style={{ fontSize: 11, color: 'var(--dim)' }}>Debt Recovery Agent</div>
+                    </div>
+                  </div>
+                  <p style={{ fontSize: 13, color: 'var(--dim)', lineHeight: 1.65, marginBottom: 14 }}>Follows up on overdue invoices with escalating, professional messages — friendly reminder to letter of demand.</p>
+                  {/* Invoice mockup */}
+                  <div className="mockup-shell">
+                    <div className="mockup-titlebar" style={{ background: '#0d1535' }}>
+                      <div className="mockup-dot" style={{ background: '#ef4444' }} />
+                      <div className="mockup-dot" style={{ background: '#f59e0b' }} />
+                      <div className="mockup-dot" style={{ background: '#22c55e' }} />
+                      <span style={{ fontSize: 10, color: 'rgba(255,255,255,.3)', marginLeft: 4 }}>chase · invoices</span>
+                    </div>
+                    <div className="inv-body">
+                      <div className="inv-row">
+                        <span style={{ fontSize: 11, color: 'rgba(255,255,255,.4)' }}>INV-0142</span>
+                        <span className="inv-overdue">45 days overdue</span>
+                      </div>
+                      <div className="inv-amount">R8,400</div>
+                      <div className="inv-row">
+                        <span style={{ fontSize: 10, color: 'rgba(255,255,255,.35)' }}>Recovery progress</span>
+                        <span style={{ fontSize: 10, color: 'var(--teal)' }}>72%</span>
+                      </div>
+                      <div className="inv-bar-track">
+                        <div className="inv-bar-fill" />
+                      </div>
+                      <p className="inv-status">✓ Reminder sent · Escalation scheduled</p>
+                    </div>
+                  </div>
+                  <div style={{ marginTop: 12, background: 'rgba(0,0,0,.2)', border: '1px solid rgba(6,182,212,.15)', borderRadius: 8, padding: '7px 10px', fontSize: 11, color: 'var(--teal)', fontWeight: 600 }}>
+                    📈 60% faster average invoice settlement
+                  </div>
+                </article>
+
+                {/* ─ Care ─ */}
+                <article className="fu card" style={{ animationDelay: '.16s', background: 'rgba(6,182,212,.05)', border: '1px solid rgba(6,182,212,.15)', borderRadius: 20, padding: 24 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                    <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--teal-dim)', border: '1px solid var(--teal-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>
+                      <span className="pulse-icon">❤️</span>
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: 17 }}>Care</div>
+                      <div style={{ fontSize: 11, color: 'var(--dim)' }}>Wellness Agent</div>
+                    </div>
+                  </div>
+                  <p style={{ fontSize: 13, color: 'var(--dim)', lineHeight: 1.65, marginBottom: 14 }}>Regular AI-driven staff check-ins via WhatsApp. Identifies burnout signals early and keeps your team supported.</p>
+                  {/* Wellness mockup */}
+                  <div className="mockup-shell">
+                    <div className="mockup-titlebar" style={{ background: '#0d1535' }}>
+                      <div className="mockup-dot" style={{ background: '#ef4444' }} />
+                      <div className="mockup-dot" style={{ background: '#f59e0b' }} />
+                      <div className="mockup-dot" style={{ background: '#22c55e' }} />
+                      <span style={{ fontSize: 10, color: 'rgba(255,255,255,.3)', marginLeft: 4 }}>care · pulse</span>
+                    </div>
+                    <div className="well-body">
+                      <div className="well-row">
+                        <span className="well-name">Sipho M.</span>
+                        <span className="well-badge badge-ok">Happy</span>
+                      </div>
+                      <div className="well-row">
+                        <span className="well-name">Thabo D.</span>
+                        <span className="well-badge badge-warn">Stressed</span>
+                      </div>
+                      <div className="well-row">
+                        <span className="well-name">Zanele K.</span>
+                        <span className="well-badge badge-good">Motivated</span>
+                      </div>
+                      <p className="well-alert">↗ Care checking in with Thabo now</p>
+                    </div>
+                  </div>
+                  <div style={{ marginTop: 12, background: 'rgba(0,0,0,.2)', border: '1px solid rgba(6,182,212,.15)', borderRadius: 8, padding: '7px 10px', fontSize: 11, color: 'var(--teal)', fontWeight: 600 }}>
+                    📈 Burnout caught before it costs you
+                  </div>
+                </article>
+
+                {/* ─ Doc ─ */}
+                <article className="fu card" style={{ animationDelay: '.24s', background: 'rgba(139,92,246,.06)', border: '1px solid rgba(139,92,246,.18)', borderRadius: 20, padding: 24 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                    <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(139,92,246,.1)', border: '1px solid rgba(139,92,246,.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>📄</div>
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: 17 }}>Doc</div>
+                      <div style={{ fontSize: 11, color: 'var(--dim)' }}>Document Intelligence</div>
+                    </div>
+                  </div>
+                  <p style={{ fontSize: 13, color: 'var(--dim)', lineHeight: 1.65, marginBottom: 14 }}>Upload contracts, quotes, invoices. AI classifies, extracts key data, flags expiry dates, and auto-creates debtors.</p>
+                  {/* Document scan mockup */}
+                  <div className="mockup-shell">
+                    <div className="mockup-titlebar" style={{ background: '#0d1535' }}>
+                      <div className="mockup-dot" style={{ background: '#ef4444' }} />
+                      <div className="mockup-dot" style={{ background: '#f59e0b' }} />
+                      <div className="mockup-dot" style={{ background: '#22c55e' }} />
+                      <span style={{ fontSize: 10, color: 'rgba(255,255,255,.3)', marginLeft: 4 }}>doc · scanning</span>
+                    </div>
+                    <div className="doc-body">
+                      <div className="doc-preview">
+                        <div className="doc-filename">Contract_TL_2024.pdf</div>
+                        <div className="doc-scanline" />
+                        <div className="doc-line w90" />
+                        <div className="doc-line w60" />
+                        <div className="doc-line w80" />
+                        <div className="doc-line w50" />
+                      </div>
+                      <div className="doc-extracted">
+                        <div className="doc-field doc-ef1">
+                          <span className="doc-field-icon">✓</span> Client: Dlamini Attorneys
+                        </div>
+                        <div className="doc-field doc-ef2">
+                          <span className="doc-field-icon">✓</span> Value: R124,000
+                        </div>
+                        <div className="doc-field doc-ef3">
+                          <span style={{ color: 'var(--orange)', fontWeight: 700 }}>⚠</span> Expiry: 14 days
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ marginTop: 12, background: 'rgba(0,0,0,.2)', border: '1px solid rgba(139,92,246,.15)', borderRadius: 8, padding: '7px 10px', fontSize: 11, color: '#a78bfa', fontWeight: 600 }}>
+                    📈 90% faster document processing
+                  </div>
+                </article>
+
+                {/* ─ Insight ─ */}
+                <article className="fu card" style={{ animationDelay: '.32s', background: 'rgba(6,182,212,.05)', border: '1px solid rgba(6,182,212,.15)', borderRadius: 20, padding: 24 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                    <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--teal-dim)', border: '1px solid var(--teal-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>📊</div>
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: 17 }}>Insight</div>
+                      <div style={{ fontSize: 11, color: 'var(--dim)' }}>Analytics Agent</div>
+                    </div>
+                  </div>
+                  <p style={{ fontSize: 13, color: 'var(--dim)', lineHeight: 1.65, marginBottom: 14 }}>Daily 05:00 AI brief. Revenue trends, debt aging, staff pulse, growth opportunities — before your team starts.</p>
+                  {/* Chart mockup */}
+                  <div className="mockup-shell">
+                    <div className="mockup-titlebar" style={{ background: '#0d1535' }}>
+                      <div className="mockup-dot" style={{ background: '#ef4444' }} />
+                      <div className="mockup-dot" style={{ background: '#f59e0b' }} />
+                      <div className="mockup-dot" style={{ background: '#22c55e' }} />
+                      <span style={{ fontSize: 10, color: 'rgba(255,255,255,.3)', marginLeft: 4 }}>insight · daily brief</span>
+                    </div>
+                    <div className="chart-body">
+                      <div className="chart-title">📋 Morning Brief · 05:00 AM</div>
+                      <div className="chart-bars">
+                        <div className="chart-bar cb1" />
+                        <div className="chart-bar cb2" />
+                        <div className="chart-bar cb3" />
+                        <div className="chart-bar cb4" />
+                        <div className="chart-bar cb5" />
+                      </div>
+                      <div className="chart-stat">Revenue <strong>+23%</strong> this month · 4 invoices overdue</div>
+                    </div>
+                  </div>
+                  <div style={{ marginTop: 12, background: 'rgba(0,0,0,.2)', border: '1px solid rgba(6,182,212,.15)', borderRadius: 8, padding: '7px 10px', fontSize: 11, color: 'var(--teal)', fontWeight: 600 }}>
+                    📈 You see problems before they happen
+                  </div>
+                </article>
+
+                {/* ─ Pen ─ */}
+                <article className="fu card" style={{ animationDelay: '.4s', background: 'rgba(249,115,22,.06)', border: '1px solid rgba(249,115,22,.18)', borderRadius: 20, padding: 24 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                    <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--orange-dim)', border: '1px solid var(--orange-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>✍️</div>
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: 17 }}>Pen</div>
+                      <div style={{ fontSize: 11, color: 'var(--dim)' }}>Content Agent</div>
+                    </div>
+                  </div>
+                  <p style={{ fontSize: 13, color: 'var(--dim)', lineHeight: 1.65, marginBottom: 14 }}>Drafts proposals, LinkedIn posts, newsletters, and WhatsApp broadcasts in your brand voice — on demand.</p>
+                  {/* Writing mockup */}
+                  <div className="mockup-shell">
+                    <div className="mockup-titlebar" style={{ background: '#0d1535' }}>
+                      <div className="mockup-dot" style={{ background: '#ef4444' }} />
+                      <div className="mockup-dot" style={{ background: '#f59e0b' }} />
+                      <div className="mockup-dot" style={{ background: '#22c55e' }} />
+                      <span style={{ fontSize: 10, color: 'rgba(255,255,255,.3)', marginLeft: 4 }}>pen · drafting</span>
+                    </div>
+                    <div className="pen-body">
+                      <div className="pen-type">LinkedIn Post</div>
+                      <div className="pen-lines">
+                        <div className="pen-line pl1" />
+                        <div className="pen-line pl2" />
+                        <div className="pen-line pl3" />
+                        <div className="pen-line pl4" />
+                        <div style={{ height: 14, display: 'flex', alignItems: 'center' }}>
+                          <div className="pen-line" style={{ width: '40%', animation: 'lineFade .4s 3.4s both', opacity: 0 }} />
+                          <span className="pen-cursor" />
+                        </div>
+                      </div>
+                      <p className="pen-action">✓ Draft ready · 1 LinkedIn + 1 WhatsApp blast</p>
+                    </div>
+                  </div>
+                  <div style={{ marginTop: 12, background: 'rgba(0,0,0,.2)', border: '1px solid rgba(249,115,22,.15)', borderRadius: 8, padding: '7px 10px', fontSize: 11, color: 'var(--orange)', fontWeight: 600 }}>
+                    📈 Hours of writing done in seconds
+                  </div>
+                </article>
+
+              </div>
+
+              <div style={{ marginTop: 40, textAlign: 'center' }}>
+                <Link href="/demo" className="btn-demo" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '14px 32px', borderRadius: 14, fontWeight: 800, fontSize: 15, color: 'white', textDecoration: 'none' }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><polygon points="5,3 19,12 5,21" fill="white"/></svg>
+                  Try all 6 agents in the interactive demo
+                </Link>
               </div>
             </div>
           </section>
 
-          {/* ─── How it works ─────────────────────────────────────────── */}
+          {/* ── How it works ────────────────────────────────────────────── */}
           <section className="max-w-4xl mx-auto px-6 py-24 text-center">
-            <p style={{ color: '#25D366', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>Getting started</p>
-            <h2 style={{ fontSize: 'clamp(26px, 3vw, 40px)', fontWeight: 800, letterSpacing: '-1px', marginBottom: 56 }}>Live in 15 minutes</h2>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 32 }}>
+            <p style={{ color: 'var(--orange)', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 12 }}>Getting started</p>
+            <h2 style={{ fontSize: 'clamp(26px, 3vw, 42px)', fontWeight: 800, letterSpacing: '-1px', marginBottom: 56 }}>Live in 15 minutes</h2>
+            <div className="steps-grid">
               {[
-                { step: '01', title: 'Connect your WhatsApp', desc: 'Link your business number via Meta Business API. Takes 3 minutes. No new number needed.' },
-                { step: '02', title: 'Configure your agents', desc: 'Tell AdminOS about your business, products, pricing, and tone. The AI handles the rest.' },
-                { step: '03', title: 'Watch it work', desc: 'Your AI agents respond to clients, chase invoices, and check in on staff while you focus on growth.' },
+                { step: '01', title: 'Connect your WhatsApp', desc: 'Link your business number via Meta Business API. 3 minutes. No new number needed.' },
+                { step: '02', title: 'Configure your agents', desc: 'Tell AdminOS about your business, products, pricing, and tone. AI handles the rest.' },
+                { step: '03', title: 'Watch it work', desc: 'Agents respond to clients, chase invoices, and check in on staff while you focus on growth.' },
               ].map((item, i) => (
-                <div key={item.step} className="animate-fadeInUp" style={{ animationDelay: `${i * 0.1}s` }}>
-                  <div style={{ fontSize: 64, fontWeight: 900, color: 'rgba(255,255,255,0.04)', lineHeight: 1, marginBottom: 8 }}>{item.step}</div>
-                  <h3 style={{ fontWeight: 700, color: 'white', marginBottom: 8 }}>{item.title}</h3>
-                  <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.4)', lineHeight: 1.65 }}>{item.desc}</p>
+                <div key={item.step} className="fu" style={{ animationDelay: `${i * .1}s` }}>
+                  <div style={{ fontSize: 72, fontWeight: 900, color: 'rgba(255,255,255,.04)', lineHeight: 1, marginBottom: 4 }}>{item.step}</div>
+                  <h3 style={{ fontWeight: 700, color: '#fff', marginBottom: 8, fontSize: 16 }}>{item.title}</h3>
+                  <p style={{ fontSize: 14, color: 'var(--dim)', lineHeight: 1.65 }}>{item.desc}</p>
                 </div>
               ))}
             </div>
           </section>
 
-          {/* ─── Africa-First ─────────────────────────────────────────── */}
-          <section style={{ background: 'rgba(37,211,102,0.03)', borderTop: '1px solid rgba(37,211,102,0.08)', borderBottom: '1px solid rgba(37,211,102,0.08)', padding: '80px 24px' }}>
+          {/* ── Africa-first ────────────────────────────────────────────── */}
+          <section className="diagonal-top diagonal-btm" style={{ background: 'rgba(6,182,212,.04)', borderTop: '1px solid rgba(6,182,212,.08)', borderBottom: '1px solid rgba(6,182,212,.08)', padding: '96px 24px' }}>
             <div className="max-w-5xl mx-auto">
               <div style={{ textAlign: 'center', marginBottom: 48 }}>
-                <h2 style={{ fontSize: 'clamp(24px, 3vw, 36px)', fontWeight: 800, letterSpacing: '-0.5px', marginBottom: 12 }}>Designed for African realities</h2>
-                <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 16 }}>International SaaS tools are built for Silicon Valley problems. AdminOS is built for yours.</p>
+                <h2 style={{ fontSize: 'clamp(24px, 3vw, 38px)', fontWeight: 800, letterSpacing: '-.5px', marginBottom: 12 }}>Designed for African realities</h2>
+                <p style={{ color: 'var(--dim)', fontSize: 16 }}>International SaaS tools are built for Silicon Valley. AdminOS is built for yours.</p>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
+              <div className="africa-grid">
                 {[
-                  { icon: '🔋', title: 'Load-shedding resilient', desc: "PWA with offline capability. Queued actions retry when power returns. Your WhatsApp bot stays live on Meta's infrastructure during outages." },
+                  { icon: '🔋', title: 'Load-shedding resilient', desc: "PWA with offline capability. Queued actions retry when power returns. WhatsApp bot stays live on Meta's infrastructure during outages." },
                   { icon: '🗣️', title: '11 SA languages', desc: "English, Zulu, Xhosa, Afrikaans, Setswana, Sesotho, and more. AI detects your customer's language and responds in kind — automatically." },
-                  { icon: '🔒', title: 'POPIA compliant', desc: "Built with South Africa's Protection of Personal Information Act. Right-to-erasure API, immutable audit trail, RLS enforcement, full compliance centre." },
+                  { icon: '🔒', title: 'POPIA compliant', desc: "Built to South Africa's Protection of Personal Information Act. Right-to-erasure, immutable audit trail, RLS enforcement, full compliance centre." },
                 ].map((item) => (
-                  <div key={item.title} className="card-hover" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 20, padding: 24 }}>
+                  <div key={item.title} className="card" style={{ background: 'rgba(255,255,255,.02)', border: '1px solid rgba(255,255,255,.07)', borderRadius: 20, padding: 24 }}>
                     <div style={{ fontSize: 32, marginBottom: 12 }}>{item.icon}</div>
-                    <h3 style={{ fontWeight: 700, color: '#25D366', marginBottom: 8 }}>{item.title}</h3>
-                    <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.45)', lineHeight: 1.65 }}>{item.desc}</p>
+                    <h3 style={{ fontWeight: 700, color: 'var(--teal)', marginBottom: 8 }}>{item.title}</h3>
+                    <p style={{ fontSize: 14, color: 'var(--dim)', lineHeight: 1.65 }}>{item.desc}</p>
                   </div>
                 ))}
               </div>
             </div>
           </section>
 
-          {/* ─── Industries ───────────────────────────────────────────── */}
-          <section style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', padding: '64px 24px' }}>
+          {/* ── Industries ──────────────────────────────────────────────── */}
+          <section style={{ borderBottom: '1px solid rgba(255,255,255,.05)', padding: '64px 24px' }}>
             <div className="max-w-5xl mx-auto text-center">
-              <h2 style={{ fontSize: 22, fontWeight: 700, color: 'rgba(255,255,255,0.5)', marginBottom: 32 }}>Trusted across South African industries</h2>
+              <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--dimmer)', marginBottom: 28 }}>Trusted across South African industries</h2>
               <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 10 }}>
                 {industries.map((ind, i) => (
-                  <div key={ind} className="animate-fadeIn card-hover" style={{
-                    animationDelay: `${i * 0.05}s`,
-                    background: 'rgba(255,255,255,0.03)',
-                    border: '1px solid rgba(255,255,255,0.07)',
-                    borderRadius: 100,
-                    padding: '10px 20px',
-                    fontSize: 14,
-                    color: 'rgba(255,255,255,0.6)',
-                    cursor: 'default',
-                  }}>
+                  <div key={ind} className="fi card" style={{ animationDelay: `${i * .04}s`, background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.07)', borderRadius: 100, padding: '10px 20px', fontSize: 14, color: 'rgba(255,255,255,.55)', cursor: 'default' }}>
                     {ind}
                   </div>
                 ))}
@@ -735,49 +889,49 @@ export default function HomePage() {
             </div>
           </section>
 
-          {/* ─── Pricing ──────────────────────────────────────────────── */}
+          {/* ── Pricing ─────────────────────────────────────────────────── */}
           <section id="pricing" className="max-w-7xl mx-auto px-6 py-24">
             <div style={{ textAlign: 'center', marginBottom: 56 }}>
-              <p style={{ color: '#25D366', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>Pricing</p>
-              <h2 style={{ fontSize: 'clamp(28px, 4vw, 48px)', fontWeight: 800, letterSpacing: '-1.5px', marginBottom: 12 }}>Simple, transparent pricing</h2>
-              <p style={{ color: 'rgba(255,255,255,0.4)' }}>All prices in South African Rand. No hidden fees. Cancel anytime.</p>
+              <p style={{ color: 'var(--orange)', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 12 }}>Pricing</p>
+              <h2 style={{ fontSize: 'clamp(28px, 4vw, 50px)', fontWeight: 900, letterSpacing: '-2px', marginBottom: 12 }}>Simple, transparent pricing</h2>
+              <p style={{ color: 'var(--dim)' }}>All prices in South African Rand. No hidden fees. Cancel anytime.</p>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 20 }}>
+            <div className="pricing-grid">
               {pricingPlans.map((plan, i) => (
                 <div
                   key={plan.name}
-                  className={`animate-fadeInUp ${plan.highlight ? '' : 'card-hover'}`}
+                  className={`fu ${!plan.highlight ? 'card' : ''}`}
                   style={{
-                    animationDelay: `${i * 0.08}s`,
+                    animationDelay: `${i * .08}s`,
                     position: 'relative',
                     borderRadius: 20,
                     padding: 24,
                     display: 'flex',
                     flexDirection: 'column',
                     ...(plan.highlight
-                      ? { background: 'linear-gradient(135deg, #1a5c3a 0%, #0d3d26 100%)', border: '1px solid rgba(37,211,102,0.5)', boxShadow: '0 0 60px rgba(37,211,102,0.12), 0 20px 60px rgba(0,0,0,0.3)' }
-                      : { background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)' }
+                      ? { background: 'linear-gradient(135deg, rgba(249,115,22,.2) 0%, rgba(249,115,22,.08) 100%)', border: '1px solid rgba(249,115,22,.45)', boxShadow: '0 0 60px rgba(249,115,22,.12), 0 20px 60px rgba(0,0,0,.3)' }
+                      : { background: 'rgba(255,255,255,.025)', border: '1px solid rgba(255,255,255,.07)' }
                     ),
                   }}
                 >
                   {plan.badge && (
-                    <div style={{ position: 'absolute', top: -12, left: '50%', transform: 'translateX(-50%)', background: '#F59E0B', color: '#0A0F2C', fontSize: 10, fontWeight: 800, padding: '4px 12px', borderRadius: 100, whiteSpace: 'nowrap' }}>
+                    <div style={{ position: 'absolute', top: -12, left: '50%', transform: 'translateX(-50%)', background: 'var(--orange)', color: 'white', fontSize: 10, fontWeight: 800, padding: '4px 14px', borderRadius: 100, whiteSpace: 'nowrap' }}>
                       {plan.badge}
                     </div>
                   )}
                   <div style={{ marginBottom: 20 }}>
-                    <h3 style={{ fontWeight: 800, fontSize: 18, letterSpacing: '-0.3px' }}>{plan.name}</h3>
-                    <p style={{ fontSize: 12, color: plan.highlight ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.35)', marginTop: 2 }}>{plan.subtitle}</p>
+                    <h3 style={{ fontWeight: 800, fontSize: 18 }}>{plan.name}</h3>
+                    <p style={{ fontSize: 12, color: 'var(--dimmer)', marginTop: 2 }}>{plan.sub}</p>
                     <div style={{ fontSize: 40, fontWeight: 900, letterSpacing: '-2px', marginTop: 16, lineHeight: 1 }}>
                       {plan.price}
-                      <span style={{ fontSize: 15, fontWeight: 400, color: plan.highlight ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.3)' }}>/mo</span>
+                      <span style={{ fontSize: 15, fontWeight: 400, color: 'var(--dimmer)' }}>/mo</span>
                     </div>
                   </div>
-                  <ul style={{ flex: 1, marginBottom: 24, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <ul style={{ flex: 1, marginBottom: 24, display: 'flex', flexDirection: 'column', gap: 9 }}>
                     {plan.features.map((f) => (
-                      <li key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 13, color: plan.highlight ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.5)' }}>
-                        <span style={{ color: '#25D366', flexShrink: 0, marginTop: 1, fontWeight: 700 }}>✓</span>
+                      <li key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 13, color: plan.highlight ? 'rgba(255,255,255,.8)' : 'var(--dim)' }}>
+                        <span style={{ color: plan.highlight ? 'var(--orange)' : 'var(--teal)', flexShrink: 0, fontWeight: 700 }}>✓</span>
                         {f}
                       </li>
                     ))}
@@ -786,17 +940,11 @@ export default function HomePage() {
                     href={plan.href}
                     {...(plan.href.startsWith('http') ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
                     style={{
-                      display: 'block',
-                      textAlign: 'center',
-                      padding: '12px 16px',
-                      borderRadius: 12,
-                      fontWeight: 700,
-                      fontSize: 14,
-                      textDecoration: 'none',
-                      transition: 'all 0.2s ease',
+                      display: 'block', textAlign: 'center', padding: '12px 16px', borderRadius: 12,
+                      fontWeight: 700, fontSize: 14, textDecoration: 'none',
                       ...(plan.highlight
-                        ? { background: 'white', color: '#0d3d26' }
-                        : { border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.7)' }
+                        ? { background: 'var(--orange)', color: 'white' }
+                        : { border: '1px solid rgba(255,255,255,.15)', color: 'rgba(255,255,255,.65)' }
                       ),
                     }}
                   >
@@ -805,30 +953,27 @@ export default function HomePage() {
                 </div>
               ))}
             </div>
-            <p style={{ textAlign: 'center', fontSize: 13, color: 'rgba(255,255,255,0.25)', marginTop: 24 }}>
+            <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--dimmest)', marginTop: 24 }}>
               Annual billing available at 15% discount. Onboarding support R5,000–R15,000 (optional).
             </p>
           </section>
 
-          {/* ─── FAQ ──────────────────────────────────────────────────── */}
-          <section id="faq" style={{ background: 'rgba(255,255,255,0.015)', borderTop: '1px solid rgba(255,255,255,0.05)', borderBottom: '1px solid rgba(255,255,255,0.05)', padding: '96px 24px' }}>
+          {/* ── FAQ ─────────────────────────────────────────────────────── */}
+          <section id="faq" style={{ background: 'rgba(255,255,255,.012)', borderTop: '1px solid rgba(255,255,255,.05)', borderBottom: '1px solid rgba(255,255,255,.05)', padding: '96px 24px' }}>
             <div className="max-w-3xl mx-auto">
               <div style={{ textAlign: 'center', marginBottom: 48 }}>
-                <p style={{ color: '#25D366', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>FAQ</p>
-                <h2 style={{ fontSize: 'clamp(26px, 3vw, 40px)', fontWeight: 800, letterSpacing: '-1px' }}>Common questions</h2>
+                <p style={{ color: 'var(--teal)', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 12 }}>FAQ</p>
+                <h2 style={{ fontSize: 'clamp(26px, 3vw, 42px)', fontWeight: 800, letterSpacing: '-1px' }}>Common questions</h2>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {faqs.map((faq) => (
-                  <details
-                    key={faq.q}
-                    style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, overflow: 'hidden' }}
-                  >
+                  <details key={faq.q} style={{ background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.07)', borderRadius: 16, overflow: 'hidden' }}>
                     <summary style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px', cursor: 'pointer', listStyle: 'none', userSelect: 'none', fontWeight: 600, fontSize: 15 }}>
                       {faq.q}
-                      <span style={{ color: 'rgba(255,255,255,0.3)', flexShrink: 0, marginLeft: 16, fontSize: 20, lineHeight: 1 }}>+</span>
+                      <span style={{ color: 'var(--dimmer)', flexShrink: 0, marginLeft: 16, fontSize: 20, lineHeight: 1 }}>+</span>
                     </summary>
                     <div style={{ padding: '0 20px 18px' }}>
-                      <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)', lineHeight: 1.7 }}>{faq.a}</p>
+                      <p style={{ fontSize: 14, color: 'var(--dim)', lineHeight: 1.7 }}>{faq.a}</p>
                     </div>
                   </details>
                 ))}
@@ -836,64 +981,58 @@ export default function HomePage() {
             </div>
           </section>
 
-          {/* ─── Final CTA ────────────────────────────────────────────── */}
+          {/* ── Final CTA ───────────────────────────────────────────────── */}
           <section className="max-w-4xl mx-auto px-6 py-24 text-center">
-            <div style={{
-              borderRadius: 28,
-              border: '1px solid rgba(37,211,102,0.2)',
-              padding: '72px 48px',
-              background: 'linear-gradient(135deg, rgba(37,211,102,0.07) 0%, rgba(10,15,44,0.5) 60%)',
-              position: 'relative',
-              overflow: 'hidden',
-            }}>
-              {/* Glow */}
-              <div style={{ position: 'absolute', top: '-50%', left: '50%', transform: 'translateX(-50%)', width: 500, height: 300, borderRadius: '50%', background: 'radial-gradient(circle, rgba(37,211,102,0.1) 0%, transparent 70%)', pointerEvents: 'none' }} />
-
-              <h2 style={{ fontSize: 'clamp(28px, 4vw, 48px)', fontWeight: 900, letterSpacing: '-1.5px', marginBottom: 16, position: 'relative' }}>
-                Your business OS is ready.
-              </h2>
-              <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 18, marginBottom: 36, lineHeight: 1.6, position: 'relative' }}>
-                Join South African businesses already saving time and money with AdminOS.<br />Start free — no credit card, no commitment.
+            <div style={{ borderRadius: 28, border: '1px solid rgba(249,115,22,.2)', padding: '72px 48px', background: 'linear-gradient(135deg, rgba(249,115,22,.07) 0%, rgba(6,182,212,.05) 60%)', position: 'relative', overflow: 'hidden' }}>
+              <div style={{ position: 'absolute', top: '-50%', left: '50%', transform: 'translateX(-50%)', width: 500, height: 300, borderRadius: '50%', background: 'radial-gradient(circle, rgba(249,115,22,.1) 0%, transparent 70%)', pointerEvents: 'none' }} />
+              <h2 style={{ fontSize: 'clamp(28px, 4vw, 50px)', fontWeight: 900, letterSpacing: '-2px', marginBottom: 16, position: 'relative' }}>Your business OS is ready.</h2>
+              <p style={{ color: 'var(--dim)', fontSize: 18, marginBottom: 36, lineHeight: 1.6, position: 'relative' }}>
+                Join South African businesses saving time and money with AdminOS.<br />Try the demo first — no account, no commitment.
               </p>
               <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap', position: 'relative' }}>
-                <Link href="/signup" className="cta-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '16px 32px', borderRadius: 14, fontWeight: 800, fontSize: 17, color: 'white', textDecoration: 'none' }}>
+                <Link href="/demo" className="btn-demo" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '16px 32px', borderRadius: 14, fontWeight: 800, fontSize: 17, color: 'white', textDecoration: 'none' }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><polygon points="5,3 19,12 5,21" fill="white"/></svg>
+                  Try interactive demo
+                </Link>
+                <Link href="/signup" className="btn-orange" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '16px 32px', borderRadius: 14, fontWeight: 800, fontSize: 17, color: 'white', textDecoration: 'none' }}>
                   Start 14-day free trial →
                 </Link>
-                <Link href="https://cal.com/nanda/adminos-demo" target="_blank" rel="noopener noreferrer" className="cta-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '16px 32px', borderRadius: 14, fontWeight: 600, fontSize: 17, color: 'rgba(255,255,255,0.75)', textDecoration: 'none' }}>
-                  Book a 20-min demo
-                </Link>
               </div>
-              <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.2)', marginTop: 20, position: 'relative' }}>14-day free trial · Live in 15 minutes · POPIA compliant</p>
+              <p style={{ fontSize: 13, color: 'var(--dimmest)', marginTop: 20, position: 'relative' }}>14-day free trial · Live in 15 minutes · POPIA compliant</p>
             </div>
           </section>
+
         </main>
 
-        {/* ─── Footer ───────────────────────────────────────────────── */}
-        <footer style={{ borderTop: '1px solid rgba(255,255,255,0.05)', padding: '48px 24px 32px' }}>
+        {/* ── Footer ──────────────────────────────────────────────────── */}
+        <footer style={{ borderTop: '1px solid rgba(255,255,255,.05)', padding: '48px 24px 32px' }}>
           <div className="max-w-7xl mx-auto">
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 32, marginBottom: 40 }}>
+            <div className="footer-grid" style={{ marginBottom: 40 }}>
+
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                  <div style={{ width: 28, height: 28, borderRadius: 8, background: 'linear-gradient(135deg, #25D366, #1da851)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 11 }}>AO</div>
+                  <div style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--orange)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: 11 }}>AO</div>
                   <span style={{ fontWeight: 700 }}>AdminOS</span>
                 </div>
-                <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', lineHeight: 1.6 }}>
+                <p style={{ fontSize: 12, color: 'var(--dimmest)', lineHeight: 1.6 }}>
                   AI-powered business OS for South African SMEs. Built by Mirembe Muse (Pty) Ltd.
                 </p>
               </div>
 
               <nav aria-label="Product">
-                <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700, marginBottom: 12 }}>Product</p>
-                <ul style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 14, color: 'rgba(255,255,255,0.4)' }}>
-                  {[['#agents', 'AI Agents'], ['#pricing', 'Pricing'], ['#faq', 'FAQ'], ['https://cal.com/nanda/adminos-demo', 'Book a demo']].map(([href, label]) => (
-                    <li key={label}><a href={href} style={{ color: 'inherit', textDecoration: 'none' }} className="hover:text-white transition-colors" {...(href.startsWith('http') ? { target: '_blank', rel: 'noopener noreferrer' } : {})}>{label}</a></li>
+                <p style={{ fontSize: 11, color: 'var(--dimmest)', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 700, marginBottom: 12 }}>Product</p>
+                <ul style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 14, color: 'var(--dimmer)' }}>
+                  {[['#agents', 'AI Agents'], ['#pricing', 'Pricing'], ['/demo', 'Try Demo'], ['https://cal.com/nanda/adminos-demo', 'Book a demo']].map(([href, label]) => (
+                    <li key={label}>
+                      <a href={href} style={{ color: 'inherit', textDecoration: 'none' }} className="hover:text-white transition-colors" {...(href.startsWith('http') ? { target: '_blank', rel: 'noopener noreferrer' } : {})}>{label}</a>
+                    </li>
                   ))}
                 </ul>
               </nav>
 
               <nav aria-label="Account">
-                <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700, marginBottom: 12 }}>Account</p>
-                <ul style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 14, color: 'rgba(255,255,255,0.4)' }}>
+                <p style={{ fontSize: 11, color: 'var(--dimmest)', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 700, marginBottom: 12 }}>Account</p>
+                <ul style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 14, color: 'var(--dimmer)' }}>
                   {[['signup', 'Start free trial'], ['login', 'Sign in'], ['contact', 'Contact']].map(([href, label]) => (
                     <li key={label}><Link href={`/${href}`} style={{ color: 'inherit', textDecoration: 'none' }} className="hover:text-white transition-colors">{label}</Link></li>
                   ))}
@@ -901,8 +1040,8 @@ export default function HomePage() {
               </nav>
 
               <nav aria-label="Legal">
-                <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700, marginBottom: 12 }}>Legal</p>
-                <ul style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 14, color: 'rgba(255,255,255,0.4)' }}>
+                <p style={{ fontSize: 11, color: 'var(--dimmest)', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 700, marginBottom: 12 }}>Legal</p>
+                <ul style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 14, color: 'var(--dimmer)' }}>
                   {[['privacy', 'Privacy Policy'], ['terms', 'Terms of Service'], ['privacy#popia', 'POPIA Compliance']].map(([href, label]) => (
                     <li key={label}><Link href={`/${href}`} style={{ color: 'inherit', textDecoration: 'none' }} className="hover:text-white transition-colors">{label}</Link></li>
                   ))}
@@ -910,20 +1049,15 @@ export default function HomePage() {
               </nav>
             </div>
 
-            <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: 20 }}>
-              {/* POPIA badge */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'rgba(255,255,255,0.3)', marginBottom: 12 }}>
-                <div style={{ width: 16, height: 16, borderRadius: '50%', background: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: 8, fontWeight: 800, flexShrink: 0 }}>✓</div>
-                <span>POPIA Compliant · Reg. No. 2026-005658 · Information Officer: N. Kabali-Kagwa</span>
-                <span>·</span>
+            <div style={{ borderTop: '1px solid rgba(255,255,255,.05)', paddingTop: 20 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--dimmest)', marginBottom: 12 }}>
+                <div style={{ width: 14, height: 14, borderRadius: '50%', background: 'var(--teal)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: 8, fontWeight: 800, flexShrink: 0 }}>✓</div>
+                <span>POPIA Compliant · Reg. No. 2026-005658 · Information Officer: N. Kabali-Kagwa ·</span>
                 <Link href="/privacy" style={{ color: 'inherit', textDecoration: 'none' }} className="hover:text-white transition-colors">Privacy Policy</Link>
               </div>
-
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-                <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)' }}>
-                  © {new Date().getFullYear()} Mirembe Muse (Pty) Ltd · All rights reserved
-                </p>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 16, fontSize: 12, color: 'rgba(255,255,255,0.2)' }}>
+                <p style={{ fontSize: 12, color: 'var(--dimmest)' }}>© {new Date().getFullYear()} Mirembe Muse (Pty) Ltd · All rights reserved</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16, fontSize: 12, color: 'var(--dimmest)' }}>
                   <span>Powered by Claude AI</span>
                   <span>·</span>
                   <span>Built for Africa</span>
@@ -934,6 +1068,7 @@ export default function HomePage() {
             </div>
           </div>
         </footer>
+
       </div>
     </>
   )
