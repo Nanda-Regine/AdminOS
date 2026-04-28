@@ -88,8 +88,7 @@ export const metadata: Metadata = {
     title: APP_NAME,
   },
   verification: {
-    // Replace with your Google Search Console verification token:
-    // google: 'REPLACE_WITH_GSC_TOKEN',
+    google: 'JogHfuzsF3lFeAqN31WUTsUCxQH6gGsD8syARKx-T4I',
   },
 }
 
