@@ -99,17 +99,56 @@ async function handleStatusUpdates(
   statuses: Array<{ id: string; status: string; timestamp: string; recipient_id: string }>
 ): Promise<void> {
   for (const s of statuses) {
-    const updateData: Record<string, unknown> = { delivery_status: s.status }
-    if (s.status === 'delivered') {
-      updateData.delivered_at = new Date(parseInt(s.timestamp) * 1000).toISOString()
-    }
-    if (s.status === 'read') {
-      updateData.read_at = new Date(parseInt(s.timestamp) * 1000).toISOString()
-    }
+    const ts = new Date(parseInt(s.timestamp) * 1000).toISOString()
+
+    // Update conversation messages table
+    const msgUpdate: Record<string, unknown> = { delivery_status: s.status }
+    if (s.status === 'delivered') msgUpdate.delivered_at = ts
+    if (s.status === 'read')      msgUpdate.read_at      = ts
     await supabaseAdmin
       .from('messages')
-      .update(updateData)
+      .update(msgUpdate)
       .eq('whatsapp_message_id', s.id)
       .eq('direction', 'outbound')
+      .then(() => {}, () => {})
+
+    // Update broadcast_recipients for Reach campaigns
+    if (s.status === 'delivered' || s.status === 'read' || s.status === 'failed') {
+      const recipientUpdate: Record<string, unknown> = { status: s.status }
+      if (s.status === 'delivered') recipientUpdate.delivered_at = ts
+      if (s.status === 'read')      recipientUpdate.read_at      = ts
+      if (s.status === 'failed')    recipientUpdate.failed_at    = ts
+
+      const { data: recipient } = await supabaseAdmin
+        .from('broadcast_recipients')
+        .update(recipientUpdate)
+        .eq('message_id', s.id)
+        .select('campaign_id')
+        .maybeSingle()
+
+      // Refresh campaign aggregate counters
+      if (recipient?.campaign_id) {
+        void refreshCampaignCounts(recipient.campaign_id)
+      }
+    }
   }
+}
+
+async function refreshCampaignCounts(campaignId: string): Promise<void> {
+  const { data } = await supabaseAdmin
+    .from('broadcast_recipients')
+    .select('status')
+    .eq('campaign_id', campaignId)
+
+  if (!data) return
+
+  const delivered = data.filter(r => r.status === 'delivered' || r.status === 'read').length
+  const read      = data.filter(r => r.status === 'read').length
+  const failed    = data.filter(r => r.status === 'failed').length
+
+  await supabaseAdmin
+    .from('broadcast_campaigns')
+    .update({ delivered_count: delivered, read_count: read, failed_count: failed })
+    .eq('id', campaignId)
+    .then(() => {}, () => {})
 }
