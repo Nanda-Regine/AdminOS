@@ -18,8 +18,9 @@ export default function MobileNav() {
         aria-label="Open menu"
         className="md:hidden"
         style={{
-          background: 'none', border: 'none', cursor: 'pointer',
-          color: 'rgba(255,255,255,.65)', padding: '6px', marginLeft: 4,
+          background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)',
+          borderRadius: 8, cursor: 'pointer',
+          color: 'rgba(255,255,255,.85)', padding: '7px 8px', marginLeft: 4,
           display: 'flex', alignItems: 'center',
         }}
       >
