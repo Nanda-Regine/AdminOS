@@ -187,29 +187,134 @@ The story of building AdminOS from scratch to production-ready B2B SaaS, phase b
 
 ---
 
+## Phase 14 — Unified Contacts CRM Upgrade (Session 5)
+
+**Goal:** Upgrade the CRM to support merging, richer data, and lifecycle tracking.
+
+- `supabase/master_schema.sql`: `contacts` table extended with `wa_id`, `source`, `external_id`, `lifetime_value` columns; UNIQUE INDEX on `(tenant_id, phone)`
+- `app/api/contacts/merge/route.ts`: POST endpoint to merge duplicate contacts — aggregates `balance_owed`, `total_invoiced`, `total_paid`, `lifetime_value`, merges tags (unique set), reassigns `conversations.contact_id` and `call_logs.contact_id` to the keeper, hard-deletes absorbed contacts, writes audit log
+- `app/dashboard/contacts/[id]/page.tsx`: Contact detail drawer showing conversation history, invoice history, call logs
+
+---
+
+## Phase 15 — PayFast Billing Hardening (Session 5)
+
+**Goal:** Production-grade billing with addon gating and real-time usage metering.
+
+- `lib/billing/usage.ts`: Redis-backed monthly conversation counter (`usage:{tenantId}:conversations:{YYYY-MM}`) — `incrementUsage`, `getUsage`, `getPlanLimit`, `isOverLimit`; key auto-expires after 35 days
+- `lib/billing/gates.ts`: `requireAddon(addon)` throws `BillingError` if subscription row missing the addon flag; `hasAddon`, `hasPlan`, `requirePlan`, `billingErrorResponse` helpers
+- `app/api/billing/payfast-itn/route.ts`: Production-grade PayFast ITN handler
+  - DNS-based IP allowlist (`www.payfast.co.za` and mirrors) — bypassed in non-production
+  - HMAC-MD5 signature verification with passphrase
+  - `COMPLETE` events: addon purchases set `addon_{key}=true` in `subscriptions`; plan purchases update `tenants.plan` + upsert `subscriptions` with period end
+  - `CANCELLED` events: marks subscription as `cancelled`
+  - All events logged to `billing_events` table + audit log
+- `app/api/webhook/whatsapp/route.ts`: Monthly usage gate added — tenants over their plan limit receive a friendly over-limit WhatsApp message; counter incremented per conversation
+
+**Key decision:** Redis for usage counters (not Postgres) — INCR is atomic and lock-free. Postgres would require a SELECT + UPDATE or advisory locks under concurrent WhatsApp traffic.
+
+---
+
+## Phase 16 — Ring (Voice AI Receptionist) (Session 5)
+
+**Goal:** Twilio-powered AI receptionist with call logging and auto WhatsApp follow-up.
+
+- `app/api/ring/calls/route.ts`: GET endpoint for Ring dashboard — paginates `call_logs` by tenant, returns 30-day stats (total, missed, answered, avg duration); requires `addon_ring` billing gate
+- `app/api/voice/status/route.ts`: Twilio call status callback — updates `call_logs` on completion; on `completed` status automatically sends a WhatsApp summary message to the caller using the call's AI-generated summary or transcript excerpt
+- `supabase/master_schema.sql`: `call_logs` table — `twilio_call_sid` UNIQUE, direction, from/to number, status, duration, recording URL, transcript, sentiment, summary, `whatsapp_sent` flag; RLS + realtime publication
+- `app/dashboard/ring/page.tsx`: Ring dashboard with call log table and stats cards; billing gate overlay for non-subscribers
+
+---
+
+## Phase 17 — Reach (WhatsApp Broadcast Campaigns) (Session 5)
+
+**Goal:** Bulk WhatsApp broadcasting with audience filtering and delivery tracking.
+
+- `app/api/reach/send/route.ts`: POST endpoint to execute a campaign broadcast
+  - Requires `addon_reach` billing gate
+  - Fetches contacts filtered by `audience_filter.tags` (tag overlap query)
+  - Per-contact 24h Redis rate limit (`reach:ratelimit:{tenantId}:{phone}` — TTL 86400s) to prevent spam
+  - Sends via Meta WhatsApp Cloud API; bulk-inserts results to `campaign_sends`
+  - Updates `broadcast_campaigns.status`, `sent_count`, `failed_count` on completion
+  - Marks campaign `sending` immediately to prevent double-sends; `maxDuration: 300` for large audiences
+- `supabase/master_schema.sql`: `broadcast_campaigns` + `campaign_sends` tables with RLS, realtime, indexes
+
+**Key decision:** No Inngest in this codebase — send runs synchronously with `maxDuration: 300`. For audiences >10k contacts a queue-based approach would be needed, but this covers all SA SME use cases.
+
+---
+
+## Phase 18 — Free API Integrations + FX Rates (Session 5)
+
+**Goal:** Enrich the morning intelligence brief with live South African data.
+
+- `lib/integrations/fx-rates.ts` (existing): ZAR-base exchange rates via open.er-api.com (free tier, no key)
+- `lib/ai/callClaude.ts`: `generateDailyBrief` extended with optional `fxRates: { usdZar, eurZar, gbpZar }` — Claude now includes exchange rate context for import-dependent businesses in the brief
+- `app/api/cron/daily-brief/route.ts`: fetches FX rates once per run (shared across all tenants), computes ZAR-denominated rates by inverting the ZAR-base response, passes to `generateDailyBrief`
+- Existing integrations already in place: Open-Meteo weather (`lib/integrations/weather.ts`), EskomSePush load-shedding (`lib/integrations/loadshedding.ts`), WhatsApp sequence builder (`app/api/sequences/`)
+
+---
+
+## Phase 19 — Client Self-Service Portal (Session 5)
+
+**Goal:** Give clients a branded, tokenised portal to view their invoices and conversations — no login required.
+
+- `supabase/master_schema.sql`: `portal_sessions` table — `token` UNIQUE, `expires_at DEFAULT now()+7days`, `revoked_at` nullable; partial index on `token WHERE revoked_at IS NULL`
+- `app/api/portal/generate/route.ts`: POST — requires `addon_client_portal` gate; revokes any existing active token for the contact before issuing a new one; generates `randomBytes(32).toString('hex')` token with 7-day expiry; returns shareable URL
+- `app/portal/[token]/page.tsx`: Public server-rendered page — verifies token (not revoked, not expired), displays outstanding invoices with ZAR amounts + overdue badges, recent conversations with status badges; dark glassmorphism design matching dashboard
+- `app/portal/not-found.tsx`: Friendly expired/revoked link page
+- `middleware.ts`: `/portal/` prefix added to `PUBLIC_PREFIXES` (no Supabase auth required); `/api/billing/payfast-itn` also added as public
+- `app/api/portal/generate/route.ts`: Redis rate limit (`api` limiter) on `portal:generate:{tenantId}` to prevent token flooding
+
+---
+
+## Phase 20 — Operator Admin Dashboard (Session 5)
+
+**Goal:** Internal super-admin view for monitoring all tenants without touching the database directly.
+
+- `app/operator/page.tsx`: Lists all tenants — plan, active status, add-ons (Ring/Reach/Portal), join date; `X-Operator-Secret` header required (checked server-side via `headers()`); returns `notFound()` if secret missing or wrong
+- `app/operator/[tenantId]/page.tsx`: Tenant detail — staff count, open conversations, overdue debt, monthly usage (from Redis), add-on status for all 5 add-ons, full tenant metadata display
+- `middleware.ts`: `/operator` added to `PUBLIC_PREFIXES` — Supabase auth is bypassed, the operator secret header is the auth mechanism
+
+**Key decision:** Header-based auth (`X-Operator-Secret`) rather than a separate auth system. The operator dashboard is an internal tool accessed via curl or a private Vercel URL — adding full OAuth would be over-engineering.
+
+---
+
+## Phase 21 — Fortification Sprint (Session 5)
+
+**Goal:** Close security, observability, and operational gaps before real traffic.
+
+- `vercel.json`: Two missing cron entries added — `sequences` (hourly, `0 * * * *`) and `escalate-conversations` (weekdays 09:00, `0 9 * * 1-5`)
+- `middleware.ts`: PayFast ITN and portal paths correctly exempted from Supabase auth middleware
+- Error boundaries: `app/dashboard/error.tsx` already existed — confirmed covering all dashboard sub-routes
+- TypeScript: `tsc --noEmit` passes clean across all new files
+
+---
+
 ## Stats
 
-- **Phases completed:** 13/13
-- **Sessions:** 4
-- **API routes:** 30+
-- **Dashboard pages:** 12+
+- **Phases completed:** 21/21
+- **Sessions:** 5
+- **API routes:** 45+
+- **Dashboard pages:** 15+
 - **AI agents:** 5 named agents + orchestrator
 - **WhatsApp templates:** 40+ (with Meta-ready body text)
-- **Cron jobs:** 4 automated workflows
-- **Lines of code:** ~9,000+
+- **Cron jobs:** 7 automated workflows
+- **Add-ons:** Ring, Reach, Client Portal, Sage, Language Pack
+- **Lines of code:** ~13,000+
 
 ---
 
 ## What's Next
 
-AdminOS v1.0 is production-ready. The roadmap beyond launch:
+AdminOS v2.0 is production-ready. The roadmap beyond launch:
 
-1. **Sage / QuickBooks integration** — the majority of SA SME accountants use Sage
+1. **Sage / QuickBooks integration** — the majority of SA SME accountants use Sage; `addon_sage` gate already in schema
 2. **Voice note processing** — WhatsApp voice notes are extremely popular in SA, Whisper API transcription
 3. **Calendar integration** — Google Calendar sync for appointment booking via Alex
 4. **Mobile app** — React Native wrapper (PWA covers ~90% of use cases already)
 5. **Multi-location Enterprise** — franchise and multi-branch support
 6. **Insurance document processor** — CIPC compliance certificate automation
+7. **Inngest job queue** — for Reach campaigns with audiences >10k contacts
 
 ---
 
