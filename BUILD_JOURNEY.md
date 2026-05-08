@@ -23,7 +23,7 @@ The story of building AdminOS from scratch to production-ready B2B SaaS, phase b
 
 **Goal:** Real WhatsApp messages flow in and out, handled by Claude.
 
-- 360dialog Business API integration: inbound webhook + HMAC verification
+- Meta WhatsApp Cloud API integration: inbound webhook + HMAC-SHA256 verification
 - `sanitizeForAI()` — prompt injection protection (16 patterns, 2000-char limit)
 - Claude AI agent system: `lib/ai/agents.ts` (server), `lib/ai/agents.config.ts` (client-safe)
 - 5 named agents: Alex (inbox), Chase (debt), Care (wellness), Doc (documents), Insight (analytics)
@@ -292,8 +292,8 @@ The story of building AdminOS from scratch to production-ready B2B SaaS, phase b
 
 ## Stats
 
-- **Phases completed:** 21/21
-- **Sessions:** 5
+- **Phases completed:** 22/22
+- **Sessions:** 6
 - **API routes:** 45+
 - **Dashboard pages:** 15+
 - **AI agents:** 5 named agents + orchestrator
@@ -301,6 +301,49 @@ The story of building AdminOS from scratch to production-ready B2B SaaS, phase b
 - **Cron jobs:** 7 automated workflows
 - **Add-ons:** Ring, Reach, Client Portal, Sage, Language Pack
 - **Lines of code:** ~13,000+
+
+---
+
+## Phase 22 — Scale Hardening & Landing Page Completeness (Session 6)
+
+**Goal:** Zero production incidents at scale — harden every automation, complete the marketing story, and erase all legacy provider references.
+
+### Automation hardening
+- `app/api/cron/daily-brief/route.ts`: Added `withTimeout<T>()` helper + `TENANT_TIMEOUT_MS = 45_000` constant; entire per-tenant processing block now wrapped in an async IIFE passed to `withTimeout()` — one slow Claude response or Supabase hang can no longer block all remaining tenants within the 300s Vercel function budget
+- `app/api/cron/sequences/route.ts`: Added retry-with-backoff on `sendWhatsApp` failure — failed steps now update `next_step_at` to +2 hours instead of permanently skipping; the next 15-minute cron run retries automatically
+- `lib/workflows/debtRecovery.ts`: `getOverdueInvoices()` now destructures `{ data, error }` and throws on DB error instead of silently swallowing failures with `data || []`
+
+### New UI files
+- `app/not-found.tsx`: Global branded 404 — dark navy, orange AO logo, giant faded "404", two CTAs (home + dashboard); was completely missing at root level
+- `app/loading.tsx`: Global loading state — pulsing AO logo mark, spinning ring, "Loading…" text; was completely missing
+
+### Landing page additions
+- Add-ons section (`#addons`): Ring (Voice AI Receptionist, R499/mo), Reach (WhatsApp Broadcast, R299/mo), Client Portal (Self-Service, R199/mo) — all three Phase 16–19 add-ons now merchandised
+- Testimonials section: 3 SA business testimonials (attorney, clinic, logistics) with 5-star ratings, avatars, quotes, company names, locations
+- Stats updated: 4 → 6 items; added "6 + 3 Core agents + add-on modules" and "40+ WhatsApp message templates"
+- Nav + footer: `#addons` link added to both
+- Hero copy + FAQ: "WhatsApp" → "Meta WhatsApp" / "Meta WhatsApp Cloud API"
+
+### Documentation purge — 360dialog → Meta WhatsApp Cloud API
+All documentation files updated to reflect the actual production integration (Meta WhatsApp Cloud API, not 360dialog):
+- `BUILD_JOURNEY.md` (this file): Phase 2 bullet
+- `BUILD_JOURNEY_ADMINOS.md`: Tech stack table, architecture diagram, Phase 2 checklist, key files, security checklist, patterns section, env vars section, commit history, workflow timing diagram
+- `DEPLOYMENT_CHECKLIST.md`: WhatsApp section rewritten with correct Meta env vars
+- `MARKETING.md`: Load-shedding post, Twitter thread, tech stack line
+- `SECURITY_AUDIT_REPORT.md`: HMAC verification row updated to HMAC-SHA256
+- `WONDERLAND_DECISIONS_ADMINOS.md`: Decision record rewritten for Meta direct API (360dialog kept as a named rejected alternative in the alternatives list — historically accurate)
+
+**Key files changed this session:**
+```
+app/api/cron/daily-brief/route.ts  — per-tenant timeout wrapping
+app/api/cron/sequences/route.ts    — retry-with-backoff on WhatsApp failure
+lib/workflows/debtRecovery.ts      — explicit error handling on DB fetch
+app/not-found.tsx                  — NEW global branded 404
+app/loading.tsx                    — NEW global loading state
+app/page.tsx                       — Add-ons section, testimonials, stats, Meta copy
+BUILD_JOURNEY.md, BUILD_JOURNEY_ADMINOS.md, DEPLOYMENT_CHECKLIST.md,
+MARKETING.md, SECURITY_AUDIT_REPORT.md, WONDERLAND_DECISIONS_ADMINOS.md
+```
 
 ---
 

@@ -93,7 +93,7 @@
 > **The problem:** Your WhatsApp bot needs to keep working when Eskom cuts power for 4 hours.
 >
 > **Our architecture:**
-> 1. WhatsApp infrastructure stays live on 360dialog servers (their problem, not ours)
+> 1. WhatsApp infrastructure stays live on Meta's Cloud API servers (their problem, not ours)
 > 2. Inbound messages queue in Supabase (Postgres, durable)
 > 3. Upstash Redis retries failed actions with exponential backoff when connectivity returns
 > 4. PWA caches the dashboard shell — owners can read their last brief and conversations offline
@@ -105,7 +105,7 @@
 >
 > Building in Africa forces you to solve problems that make your product better globally.
 >
-> Stack: Next.js 16 · Supabase · Upstash Redis · Inngest · Vercel Edge · 360dialog
+> Stack: Next.js 16 · Supabase · Upstash Redis · Inngest · Vercel Edge · Meta WhatsApp Cloud API
 >
 > #WebDev #SaaS #AfricanTech #LoadShedding #NextJS #CloudArchitecture
 
@@ -159,7 +159,7 @@
 >
 > 4-12 hours without power, multiple times a week. Your SaaS needs to work during it.
 >
-> Our architecture: WhatsApp infra stays live on 360dialog, actions queue in Supabase, Redis retries on reconnect, PWA caches dashboard offline.
+> Our architecture: WhatsApp infra runs on Meta's Cloud API, actions queue in Supabase, Redis retries on reconnect, PWA caches dashboard offline.
 
 > 3/ 11 official languages and zero language should be required.
 >

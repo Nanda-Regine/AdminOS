@@ -85,6 +85,13 @@ export async function GET(request: Request) {
     } catch (err) {
       console.error(`[cron/sequences] send failed for enrollment ${enrollment.id}:`, err)
       failed++
+      // Back off 2 hours on failure so the next cron run retries without hammering
+      const retryAt = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString()
+      await supabaseAdmin
+        .from('sequence_enrollments')
+        .update({ next_step_at: retryAt })
+        .eq('id', enrollment.id)
+        .then(() => {}, () => {})
       continue
     }
 

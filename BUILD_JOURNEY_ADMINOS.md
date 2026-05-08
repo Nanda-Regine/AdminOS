@@ -43,7 +43,7 @@ AdminOS was designed to solve all of these at once.
 | AI | Claude API (claude-sonnet-4-6) | Best reasoning, prompt caching = 85% cost reduction |
 | Cache | Upstash Redis | Serverless Redis, global edge, zero cold starts |
 | Queue | Inngest | Async job processing with automatic retries |
-| WhatsApp | 360dialog | Africa-optimised, lower latency than Twilio |
+| WhatsApp | Meta WhatsApp Cloud API | Official first-party API, direct Meta integration, no BSP markup |
 | Email | Resend | Reliable transactional email, great DX |
 | Payments | PayFast + Yoco (SA) + Stripe (international) | Cover the full SA market |
 | Invoicing | Xero API | SME standard in South Africa |
@@ -59,7 +59,7 @@ AdminOS was designed to solve all of these at once.
                     │           ADMINOS PLATFORM          │
                     └─────────────────────────────────────┘
 
-WhatsApp (360dialog)──► /api/webhook/whatsapp
+WhatsApp (Meta Cloud API)──► /api/webhook/whatsapp
                               │
                               ▼
                     ┌─── WorkflowEngine ───┐
@@ -67,7 +67,7 @@ WhatsApp (360dialog)──► /api/webhook/whatsapp
                     │  classifyIntent      │◄── Claude API
                     │  checkFAQCache       │◄── Redis
                     │  generateResponse    │◄── Claude API (cached)
-                    │  sendWhatsApp        │──► 360dialog
+                    │  sendWhatsApp        │──► Meta Cloud API
                     │  logToAudit          │──► Supabase
                     │  updateDashboard     │──► Supabase Realtime
                     └──────────────────────┘
@@ -170,13 +170,13 @@ lib/supabase/admin.ts      — Service role client (bypasses RLS for admin ops)
 ### Phase 2 — WhatsApp Engine
 **Goal:** Receive, process, and respond to WhatsApp messages automatically.
 
-- [x] 360dialog webhook verified via HMAC-SHA256 signature
+- [x] Meta WhatsApp Cloud API webhook verified via HMAC-SHA256 signature
 - [x] Message deduplication via Redis SET NX (atomic, no race conditions)
 - [x] Tenant routing by WhatsApp number (WABA ID)
 - [x] WorkflowEngine with 7 steps in sequence
 - [x] FAQ cache check before any Claude API call (Redis, 7-day TTL)
 - [x] Claude response with prompt caching (85% cost saving)
-- [x] 360dialog outbound message delivery
+- [x] Meta WhatsApp Cloud API outbound message delivery
 - [x] Conversation + message stored in Supabase
 - [x] Supabase Realtime push to dashboard
 - [x] Immutable audit log entry for every processed message
@@ -186,9 +186,9 @@ lib/supabase/admin.ts      — Service role client (bypasses RLS for admin ops)
 
 **Key files:**
 ```
-app/api/webhook/whatsapp/route.ts  — 360dialog inbound webhook
+app/api/webhook/whatsapp/route.ts  — Meta WhatsApp Cloud API inbound webhook
 lib/workflow/engine.ts             — AdminWorkflowEngine (core IP)
-lib/whatsapp/send.ts               — 360dialog outbound + payload parser
+lib/whatsapp/send.ts               — Meta Cloud API outbound + payload parser
 lib/cache/faqCache.ts              — Redis FAQ + dedup + session cache
 lib/ai/callClaude.ts               — Claude API with retry + caching
 ```
@@ -282,7 +282,7 @@ app/api/workflow/trigger/route.ts       — Generic n8n workflow trigger
   - Onboarding: 10 req / hour (prevent signup abuse)
   - Fail-open on Redis unavailability (log, don't block production)
 - [x] **Audit log**: Immutable append-only record of every mutation
-- [x] **Webhook signature verification**: HMAC-SHA256 on 360dialog payloads
+- [x] **Webhook signature verification**: HMAC-SHA256 on Meta WhatsApp Cloud API payloads
 - [x] **Security headers** (via `next.config.ts`):
   - HSTS (2 years, includeSubDomains, preload)
   - Content-Security-Policy
@@ -413,7 +413,7 @@ All tables have:
 - Per-step timeouts prevent a single slow step stalling the whole flow
 - Escalation fallback: if AI fails with no response, send human escalation message
 - Audit + dashboard steps always attempted even after earlier step failures
-- Non-blocking workflow execution on WhatsApp webhook (respond to 360dialog in < 1s)
+- Non-blocking workflow execution on WhatsApp webhook (respond to Meta Cloud API in < 1s)
 
 ---
 
@@ -458,9 +458,11 @@ SUPABASE_SERVICE_ROLE_KEY=          # Service role key — keep secret
 # Anthropic
 ANTHROPIC_API_KEY=                  # From console.anthropic.com
 
-# WhatsApp
-DIALOG360_API_KEY=                  # From app.360dialog.io
-DIALOG360_WEBHOOK_SECRET=           # Webhook signing secret
+# WhatsApp (Meta WhatsApp Cloud API)
+META_WHATSAPP_ACCESS_TOKEN=         # From Meta Business Suite → WhatsApp → API Setup
+META_PHONE_NUMBER_ID=               # Phone number ID from Meta App Dashboard
+META_WEBHOOK_VERIFY_TOKEN=          # Custom verify token for webhook subscription
+META_WEBHOOK_SECRET=                # Webhook signing secret (HMAC-SHA256)
 
 # Email
 RESEND_API_KEY=                     # From resend.com
@@ -549,7 +551,7 @@ PWA
 | `feat: dashboard pages` | All 9 dashboard pages + layout |
 | `feat: auth pages` | Login, signup, auth layout |
 | `feat: landing page` | Marketing homepage with pricing |
-| `feat: WhatsApp webhook` | 360dialog inbound + workflow engine |
+| `feat: WhatsApp webhook` | Meta WhatsApp Cloud API inbound + workflow engine |
 | `feat: AI layer` | Claude API, prompt caching, 5 agents |
 | `feat: debt recovery` | 5-tier automated recovery sequence |
 | `feat: wellness engine` | Daily check-ins, burnout detection |
@@ -767,7 +769,7 @@ checkPlanLimits     (3s)  — Redis counter: block AI if over monthly quota
 generateResponse   (20s)  — Claude API with cached system prompt + language instruction
         │
         ▼
-sendWhatsApp        (5s)  — 360dialog delivery
+sendWhatsApp        (5s)  — Meta Cloud API delivery
         │
         ▼
 logToAudit          (3s)  — append-only audit trail

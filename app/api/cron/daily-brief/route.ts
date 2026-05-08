@@ -7,6 +7,19 @@ import { getFxRates } from '@/lib/integrations/fx-rates'
 export const runtime = 'nodejs'
 export const maxDuration = 300
 
+// Per-tenant timeout: 45 seconds. If Claude or Supabase hangs for one tenant,
+// we skip and still process the rest rather than burning the full 300s budget.
+const TENANT_TIMEOUT_MS = 45_000
+
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error(`[DailyBrief] Timeout after ${ms}ms for ${label}`)), ms)
+    ),
+  ])
+}
+
 export async function GET(request: Request) {
   // Verify Vercel cron secret
   const authHeader = request.headers.get('authorization')
@@ -36,91 +49,96 @@ export async function GET(request: Request) {
 
   for (const tenant of tenants) {
     try {
-      const [convResult, invoiceResult, leaveResult, goalResult, staffResult] =
-        await Promise.all([
-          supabaseAdmin
-            .from('conversations')
-            .select('id', { count: 'exact' })
-            .eq('tenant_id', tenant.id)
-            .eq('status', 'open'),
-          supabaseAdmin
-            .from('invoices')
-            .select('amount')
-            .eq('tenant_id', tenant.id)
-            .in('status', ['unpaid', 'partial'])
-            .gt('days_overdue', 0),
-          supabaseAdmin
-            .from('leave_requests')
-            .select('id', { count: 'exact' })
-            .eq('tenant_id', tenant.id)
-            .eq('status', 'approved')
-            .gte('end_date', new Date().toISOString().split('T')[0]),
-          supabaseAdmin
-            .from('goals')
-            .select('title')
-            .eq('tenant_id', tenant.id)
-            .eq('status', 'active')
-            .limit(3),
-          supabaseAdmin
-            .from('staff')
-            .select('wellness_scores')
-            .eq('tenant_id', tenant.id),
-        ])
+      await withTimeout(
+        (async () => {
+          const [convResult, invoiceResult, leaveResult, goalResult, staffResult] =
+            await Promise.all([
+              supabaseAdmin
+                .from('conversations')
+                .select('id', { count: 'exact' })
+                .eq('tenant_id', tenant.id)
+                .eq('status', 'open'),
+              supabaseAdmin
+                .from('invoices')
+                .select('amount')
+                .eq('tenant_id', tenant.id)
+                .in('status', ['unpaid', 'partial'])
+                .gt('days_overdue', 0),
+              supabaseAdmin
+                .from('leave_requests')
+                .select('id', { count: 'exact' })
+                .eq('tenant_id', tenant.id)
+                .eq('status', 'approved')
+                .gte('end_date', new Date().toISOString().split('T')[0]),
+              supabaseAdmin
+                .from('goals')
+                .select('title')
+                .eq('tenant_id', tenant.id)
+                .eq('status', 'active')
+                .limit(3),
+              supabaseAdmin
+                .from('staff')
+                .select('wellness_scores')
+                .eq('tenant_id', tenant.id),
+            ])
 
-      const totalDebt = (invoiceResult.data || []).reduce(
-        (sum, inv) => sum + Number(inv.amount),
-        0
+          const totalDebt = (invoiceResult.data || []).reduce(
+            (sum, inv) => sum + Number(inv.amount),
+            0
+          )
+
+          // Calculate avg wellness score from last 7 days
+          const sevenDaysAgo = Date.now() - 7 * 24 * 3600 * 1000
+          const wellnessScores = (staffResult.data || []).flatMap((s) => {
+            const scores =
+              (s.wellness_scores as Array<{ score: number; date: string }>) || []
+            return scores
+              .filter((sc) => new Date(sc.date).getTime() > sevenDaysAgo)
+              .map((sc) => sc.score)
+          })
+          const wellnessAvg =
+            wellnessScores.length
+              ? wellnessScores.reduce((a, b) => a + b, 0) / wellnessScores.length
+              : 0
+
+          const brief = await generateDailyBrief({
+            tenantName: tenant.name,
+            openConversations: convResult.count || 0,
+            overdueInvoices: invoiceResult.data?.length || 0,
+            totalDebt,
+            staffOnLeave: leaveResult.count || 0,
+            wellnessAvg: Math.round(wellnessAvg * 10) / 10,
+            topGoals: (goalResult.data || []).map((g) => g.title),
+            fxRates,
+          })
+
+          // Persist the brief in audit log for dashboard display
+          await supabaseAdmin.from('audit_log').insert({
+            tenant_id: tenant.id,
+            actor: 'system',
+            action: 'daily_brief.generated',
+            metadata: {
+              brief,
+              stats: {
+                open_conversations: convResult.count || 0,
+                overdue_invoices: invoiceResult.data?.length || 0,
+                total_debt: totalDebt,
+                staff_on_leave: leaveResult.count || 0,
+                wellness_avg: wellnessAvg,
+              },
+              generated_at: new Date().toISOString(),
+            },
+          })
+
+          await writeAuditLog({
+            tenantId: tenant.id,
+            actor: 'system',
+            action: 'cron.daily_brief.completed',
+          })
+        })(),
+        TENANT_TIMEOUT_MS,
+        tenant.id
       )
-
-      // Calculate avg wellness score from last 7 days
-      const sevenDaysAgo = Date.now() - 7 * 24 * 3600 * 1000
-      const wellnessScores = (staffResult.data || []).flatMap((s) => {
-        const scores =
-          (s.wellness_scores as Array<{ score: number; date: string }>) || []
-        return scores
-          .filter((sc) => new Date(sc.date).getTime() > sevenDaysAgo)
-          .map((sc) => sc.score)
-      })
-      const wellnessAvg =
-        wellnessScores.length
-          ? wellnessScores.reduce((a, b) => a + b, 0) / wellnessScores.length
-          : 0
-
-      const brief = await generateDailyBrief({
-        tenantName: tenant.name,
-        openConversations: convResult.count || 0,
-        overdueInvoices: invoiceResult.data?.length || 0,
-        totalDebt,
-        staffOnLeave: leaveResult.count || 0,
-        wellnessAvg: Math.round(wellnessAvg * 10) / 10,
-        topGoals: (goalResult.data || []).map((g) => g.title),
-        fxRates,
-      })
-
-      // Persist the brief in audit log for dashboard display
-      await supabaseAdmin.from('audit_log').insert({
-        tenant_id: tenant.id,
-        actor: 'system',
-        action: 'daily_brief.generated',
-        metadata: {
-          brief,
-          stats: {
-            open_conversations: convResult.count || 0,
-            overdue_invoices: invoiceResult.data?.length || 0,
-            total_debt: totalDebt,
-            staff_on_leave: leaveResult.count || 0,
-            wellness_avg: wellnessAvg,
-          },
-          generated_at: new Date().toISOString(),
-        },
-      })
-
-      await writeAuditLog({
-        tenantId: tenant.id,
-        actor: 'system',
-        action: 'cron.daily_brief.completed',
-      })
-
       processed++
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)

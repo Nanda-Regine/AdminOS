@@ -31,13 +31,17 @@ function calculateEscalationTier(daysOverdue: number): number {
 }
 
 async function getOverdueInvoices(tenantId: string): Promise<Invoice[]> {
-  const { data } = await supabaseAdmin
+  const { data, error } = await supabaseAdmin
     .from('invoices')
     .select('*')
     .eq('tenant_id', tenantId)
     .in('status', ['unpaid', 'partial'])
     .not('due_date', 'is', null)
     .order('due_date', { ascending: true })
+
+  if (error) {
+    throw new Error(`[DebtRecovery] Failed to fetch invoices for tenant ${tenantId}: ${error.message}`)
+  }
 
   const today = new Date()
   today.setHours(0, 0, 0, 0)

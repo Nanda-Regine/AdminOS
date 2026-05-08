@@ -66,10 +66,10 @@ Defined in `vercel.json` — verify these are registered:
 
 ## 4. External Services
 
-### 360dialog (WhatsApp)
-- [ ] Webhook URL registered: `https://adminos.co.za/api/webhook/whatsapp`
-- [ ] HMAC webhook secret set on 360dialog dashboard
-- [ ] `DIALOG360_WEBHOOK_SECRET` matches
+### Meta WhatsApp Cloud API
+- [ ] Webhook URL registered in Meta Business Suite: `https://adminos.co.za/api/webhook/whatsapp`
+- [ ] Verify token (`META_WEBHOOK_VERIFY_TOKEN`) confirmed in Meta App Dashboard
+- [ ] `META_WHATSAPP_ACCESS_TOKEN` and `META_PHONE_NUMBER_ID` set in Vercel env vars
 - [ ] Test: send a WhatsApp message and confirm it appears in DB
 
 ### Inngest

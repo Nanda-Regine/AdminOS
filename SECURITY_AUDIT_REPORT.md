@@ -55,7 +55,7 @@ AdminOS has been built with security-first architecture throughout. This report 
 |---------|--------|--------|
 | Input validation | ✅ | Zod schemas on all POST/PATCH bodies (`contacts`, `invoices`, `agents`, etc.) |
 | Rate limiting | ✅ | Upstash Redis sliding window: 5 limiters (per-IP, per-tenant-API, WhatsApp inbound, document upload, billing) |
-| HMAC webhook verification | ✅ | 360dialog and PayFast webhooks validate `X-Hub-Signature` / ITN hash |
+| HMAC webhook verification | ✅ | Meta WhatsApp Cloud API and PayFast webhooks validate `X-Hub-Signature-256` (HMAC-SHA256) / ITN hash |
 | Cron authentication | ✅ | All `/api/cron/*` routes require `Authorization: Bearer $CRON_SECRET` |
 | SQL injection | ✅ | Supabase SDK uses parameterised queries — no raw SQL string interpolation |
 | Path traversal | ✅ | Document upload stores to Supabase Storage with UUID filenames, never user-supplied paths |

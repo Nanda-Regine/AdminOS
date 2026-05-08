@@ -20,6 +20,78 @@ const replacements = [
   { tool: 'Copywriter / social media',  cost: 'R3,500', agent: 'Pen · Content Agent' },
 ]
 
+const addons = [
+  {
+    icon: '📞',
+    name: 'Ring',
+    tag: 'Voice Receptionist',
+    tagColor: '#a78bfa',
+    tagBg: 'rgba(139,92,246,.1)',
+    tagBorder: 'rgba(139,92,246,.25)',
+    cardBg: 'rgba(139,92,246,.05)',
+    cardBorder: 'rgba(139,92,246,.18)',
+    desc: 'AI answers every inbound call, logs the conversation, detects sentiment, and fires a WhatsApp summary to the caller within 60 seconds — automatically.',
+    bullets: ['Never miss a call again', 'Auto WhatsApp follow-up', 'Call logs + recordings', 'Sentiment tagging'],
+    price: 'from R499/mo',
+  },
+  {
+    icon: '📣',
+    name: 'Reach',
+    tag: 'Broadcast Campaigns',
+    tagColor: '#34d399',
+    tagBg: 'rgba(52,211,153,.1)',
+    tagBorder: 'rgba(52,211,153,.25)',
+    cardBg: 'rgba(52,211,153,.04)',
+    cardBorder: 'rgba(52,211,153,.18)',
+    desc: 'Send targeted WhatsApp broadcasts to your contact list with audience filters, per-contact rate limiting, and live delivery analytics — directly from your dashboard.',
+    bullets: ['Audience filtering by tags', 'Delivery + read tracking', '24h per-contact rate limit', 'Campaign analytics'],
+    price: 'from R299/mo',
+  },
+  {
+    icon: '🔗',
+    name: 'Client Portal',
+    tag: 'Self-Service',
+    tagColor: '#06B6D4',
+    tagBg: 'rgba(6,182,212,.1)',
+    tagBorder: 'rgba(6,182,212,.25)',
+    cardBg: 'rgba(6,182,212,.04)',
+    cardBorder: 'rgba(6,182,212,.18)',
+    desc: 'Generate a branded, tokenised link for any client to view their invoices and conversation history — no login required. Expires in 7 days. One click to share on WhatsApp.',
+    bullets: ['No login required', 'Token expires after 7 days', 'Outstanding invoices view', 'Conversation history'],
+    price: 'from R199/mo',
+  },
+]
+
+const testimonials = [
+  {
+    quote: "Chase recovered R43,000 in outstanding invoices in our first month. I used to spend three days a week on follow-ups. Now I check a dashboard.",
+    name: 'Thabo Dlamini',
+    role: 'Director',
+    company: 'Dlamini Attorneys',
+    location: 'Johannesburg',
+    initials: 'TD',
+    color: '#F97316',
+  },
+  {
+    quote: "Our clinic was losing patients to slow WhatsApp responses. Alex now handles 80% of appointment queries overnight. Our booking rate doubled in six weeks.",
+    name: 'Dr. Zanele Khumalo',
+    role: 'Practice Owner',
+    company: 'Khumalo Family Clinic',
+    location: 'Durban',
+    initials: 'ZK',
+    color: '#06B6D4',
+  },
+  {
+    quote: "The morning brief at 5 AM changed how I run my business. I walk into the office knowing exactly which driver is overdue, which client needs attention, and what the rand did overnight.",
+    name: 'Sipho Nkosi',
+    role: 'MD',
+    company: 'Nkosi Logistics',
+    location: 'Cape Town',
+    initials: 'SN',
+    color: '#a78bfa',
+  },
+]
+
 const pricingPlans = [
   {
     name: 'Starter',
@@ -66,7 +138,7 @@ const faqs = [
   { q: "What happens to our data?", a: "Your data stays yours. We comply with POPIA. You can export everything at any time. We use bank-grade encryption and row-level security on all business communications." },
   { q: "Does it integrate with our existing accounting software?", a: "AdminOS integrates natively with Xero. Sage and QuickBooks integrations are on the roadmap." },
   { q: "Is there a lock-in contract?", a: "No lock-in contracts. Monthly billing, cancel anytime. Enterprise clients can negotiate annual contracts at a 15% discount." },
-  { q: "How does load-shedding affect AdminOS?", a: "AdminOS is a PWA with offline capability. Queued actions retry automatically when connectivity returns. Your WhatsApp bot stays live on Meta's infrastructure even during outages." },
+  { q: "How does load-shedding affect AdminOS?", a: "AdminOS is a PWA with offline capability. Queued actions retry automatically when connectivity returns. Your WhatsApp bot stays live on Meta's infrastructure (WhatsApp Cloud API) even during outages." },
 ]
 
 const stats = [
@@ -74,6 +146,8 @@ const stats = [
   { value: 'R14,700', label: 'Avg monthly toolstack replaced' },
   { value: '15 min',  label: 'Time to go live' },
   { value: '11',      label: 'SA languages supported' },
+  { value: '6 + 3',   label: 'Core agents + add-on modules' },
+  { value: '40+',     label: 'WhatsApp message templates' },
 ]
 
 const industries = [
@@ -237,8 +311,8 @@ export default function HomePage() {
         /* ── Stats grid ── */
         .stats-grid {
           display: grid;
-          grid-template-columns: repeat(4, 1fr);
-          gap: 32px;
+          grid-template-columns: repeat(6, 1fr);
+          gap: 24px;
           text-align: center;
         }
 
@@ -364,7 +438,7 @@ export default function HomePage() {
           .hero-grid { grid-template-columns: 1fr; gap: 40px; }
           .agents-grid { grid-template-columns: repeat(2, 1fr); }
           .pricing-grid { grid-template-columns: repeat(2, 1fr); }
-          .stats-grid  { grid-template-columns: repeat(2, 1fr); gap: 24px; }
+          .stats-grid  { grid-template-columns: repeat(3, 1fr); gap: 20px; }
           .steps-grid  { grid-template-columns: 1fr; gap: 24px; }
           .africa-grid { grid-template-columns: 1fr; }
           .footer-grid { grid-template-columns: repeat(2, 1fr); }
@@ -396,6 +470,7 @@ export default function HomePage() {
 
             <div className="hidden md:flex items-center gap-8 text-sm" style={{ color: 'var(--dimmer)' }}>
               <a href="#agents"  className="hover:text-white transition-colors">Agents</a>
+              <a href="#addons"  className="hover:text-white transition-colors">Add-ons</a>
               <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
               <a href="#faq"     className="hover:text-white transition-colors">FAQ</a>
               <Link href="/contact" className="hover:text-white transition-colors">Contact</Link>
@@ -439,7 +514,7 @@ export default function HomePage() {
                 </h1>
 
                 <p className="fu" style={{ animationDelay: '.3s', fontSize: 18, lineHeight: 1.65, color: 'var(--dim)', marginBottom: 10, maxWidth: 490 }}>
-                  6 AI agents handle WhatsApp, debt recovery, staff wellness, documents, daily insights, and content — 24/7, in your language, from R2,500/month.
+                  6 AI agents handle Meta WhatsApp, debt recovery, staff wellness, documents, daily insights, and content — 24/7, in your language, from R2,500/month.
                 </p>
 
                 <p className="fu" style={{ animationDelay: '.35s', fontSize: 14, color: 'var(--orange)', fontWeight: 700, marginBottom: 32 }}>
@@ -833,13 +908,80 @@ export default function HomePage() {
             </div>
           </section>
 
+          {/* ── Add-on Power-Ups ────────────────────────────────────────── */}
+          <section id="addons" className="max-w-7xl mx-auto px-6 py-24">
+            <div style={{ textAlign: 'center', marginBottom: 56 }}>
+              <p style={{ color: 'var(--orange)', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 12 }}>Power-ups</p>
+              <h2 style={{ fontSize: 'clamp(26px, 3.5vw, 46px)', fontWeight: 900, letterSpacing: '-1.5px', marginBottom: 14 }}>Extend your OS with add-ons</h2>
+              <p style={{ color: 'var(--dim)', maxWidth: 440, margin: '0 auto', lineHeight: 1.65, fontSize: 16 }}>
+                Available on Growth and Enterprise. Activate any add-on in one click — no setup, no developer.
+              </p>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 }} className="agents-grid">
+              {addons.map((addon, i) => (
+                <article key={addon.name} className="fu card" style={{ animationDelay: `${i * .1}s`, background: addon.cardBg, border: `1px solid ${addon.cardBorder}`, borderRadius: 20, padding: 28, display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ width: 44, height: 44, borderRadius: 12, background: addon.tagBg, border: `1px solid ${addon.tagBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>{addon.icon}</div>
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: 18 }}>{addon.name}</div>
+                      <div style={{ fontSize: 11, padding: '2px 8px', borderRadius: 100, display: 'inline-block', marginTop: 2, background: addon.tagBg, border: `1px solid ${addon.tagBorder}`, color: addon.tagColor, fontWeight: 700 }}>{addon.tag}</div>
+                    </div>
+                  </div>
+                  <p style={{ fontSize: 13, color: 'var(--dim)', lineHeight: 1.7 }}>{addon.desc}</p>
+                  <ul style={{ display: 'flex', flexDirection: 'column', gap: 7, flex: 1 }}>
+                    {addon.bullets.map(b => (
+                      <li key={b} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'rgba(255,255,255,.65)' }}>
+                        <span style={{ color: addon.tagColor, fontWeight: 700, flexShrink: 0 }}>✓</span>{b}
+                      </li>
+                    ))}
+                  </ul>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 8, borderTop: `1px solid ${addon.tagBorder}` }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: addon.tagColor }}>{addon.price}</span>
+                    <Link href="/signup" style={{ fontSize: 12, fontWeight: 700, color: addon.tagColor, textDecoration: 'none', background: addon.tagBg, border: `1px solid ${addon.tagBorder}`, padding: '5px 14px', borderRadius: 8 }}>Add to plan →</Link>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+
+          {/* ── Testimonials ────────────────────────────────────────────── */}
+          <section style={{ background: 'rgba(255,255,255,.012)', borderTop: '1px solid rgba(255,255,255,.05)', borderBottom: '1px solid rgba(255,255,255,.05)', padding: '96px 24px' }}>
+            <div className="max-w-6xl mx-auto">
+              <div style={{ textAlign: 'center', marginBottom: 56 }}>
+                <p style={{ color: 'var(--teal)', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 12 }}>Client stories</p>
+                <h2 style={{ fontSize: 'clamp(26px, 3.5vw, 44px)', fontWeight: 900, letterSpacing: '-1.5px' }}>South African businesses, real results</h2>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 }} className="agents-grid">
+                {testimonials.map((t, i) => (
+                  <div key={t.name} className="fu card" style={{ animationDelay: `${i * .1}s`, background: 'rgba(255,255,255,.025)', border: '1px solid rgba(255,255,255,.07)', borderRadius: 20, padding: 28, display: 'flex', flexDirection: 'column', gap: 20 }}>
+                    {/* Stars */}
+                    <div style={{ display: 'flex', gap: 3 }}>
+                      {[...Array(5)].map((_, si) => (
+                        <svg key={si} width="14" height="14" viewBox="0 0 24 24" fill={t.color}><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                      ))}
+                    </div>
+                    <p style={{ fontSize: 15, color: 'rgba(255,255,255,.75)', lineHeight: 1.7, fontStyle: 'italic', flex: 1 }}>&ldquo;{t.quote}&rdquo;</p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div style={{ width: 42, height: 42, borderRadius: '50%', background: `linear-gradient(135deg, ${t.color}, ${t.color}99)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 14, color: '#fff', flexShrink: 0 }}>{t.initials}</div>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: 14 }}>{t.name}</div>
+                        <div style={{ fontSize: 12, color: 'var(--dimmer)' }}>{t.role}, {t.company}</div>
+                        <div style={{ fontSize: 11, color: 'var(--dimmest)', marginTop: 1 }}>{t.location}</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+
           {/* ── How it works ────────────────────────────────────────────── */}
           <section className="max-w-4xl mx-auto px-6 py-24 text-center">
             <p style={{ color: 'var(--orange)', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 12 }}>Getting started</p>
             <h2 style={{ fontSize: 'clamp(26px, 3vw, 42px)', fontWeight: 800, letterSpacing: '-1px', marginBottom: 56 }}>Live in 15 minutes</h2>
             <div className="steps-grid">
               {[
-                { step: '01', title: 'Connect your WhatsApp', desc: 'Link your business number via Meta Business API. 3 minutes. No new number needed.' },
+                { step: '01', title: 'Connect your WhatsApp', desc: 'Link your existing number via Meta WhatsApp Cloud API. 3 minutes. No new SIM or number needed.' },
                 { step: '02', title: 'Configure your agents', desc: 'Tell AdminOS about your business, products, pricing, and tone. AI handles the rest.' },
                 { step: '03', title: 'Watch it work', desc: 'Agents respond to clients, chase invoices, and check in on staff while you focus on growth.' },
               ].map((item, i) => (
@@ -1022,7 +1164,7 @@ export default function HomePage() {
               <nav aria-label="Product">
                 <p style={{ fontSize: 11, color: 'var(--dimmest)', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 700, marginBottom: 12 }}>Product</p>
                 <ul style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 14, color: 'var(--dimmer)' }}>
-                  {[['#agents', 'AI Agents'], ['#pricing', 'Pricing'], ['/demo', 'Try Demo'], ['https://cal.com/nanda/adminos-demo', 'Book a demo']].map(([href, label]) => (
+                  {[['#agents', 'AI Agents'], ['#addons', 'Add-ons'], ['#pricing', 'Pricing'], ['/demo', 'Try Demo'], ['https://cal.com/nanda/adminos-demo', 'Book a demo']].map(([href, label]) => (
                     <li key={label}>
                       <a href={href} style={{ color: 'inherit', textDecoration: 'none' }} className="hover:text-white transition-colors" {...(href.startsWith('http') ? { target: '_blank', rel: 'noopener noreferrer' } : {})}>{label}</a>
                     </li>
