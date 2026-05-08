@@ -243,11 +243,11 @@ function ChaseAgent() {
               style={{ accentColor: '#F97316', width: 16, height: 16, cursor: 'pointer' }}
             />
             <div style={{ flex: 1 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
+              <div className="demo-chase-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
                 <span style={{ fontWeight: 600, color: '#f1f5f9', fontSize: 14 }}>{inv.client}</span>
                 <span style={{ fontWeight: 700, color: inv.status === 'overdue' ? '#F97316' : '#94a3b8', fontSize: 14 }}>{inv.amount}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <div className="demo-chase-meta" style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ fontSize: 12, color: '#64748b' }}>{inv.id} · Due {inv.due}</span>
                 {inv.status === 'overdue'
                   ? <span style={{ fontSize: 12, color: '#ef4444' }}>⚠ {inv.days} days overdue</span>
@@ -679,7 +679,7 @@ export default function DemoPage() {
   }
 
   return (
-    <>
+    <div className="demo-page">
       <style>{`
         * { box-sizing: border-box; }
         body { background: #050B1A; margin: 0; font-family: 'Geist', system-ui, sans-serif; }
@@ -689,15 +689,27 @@ export default function DemoPage() {
         ::-webkit-scrollbar-track { background: #0f172a; }
         ::-webkit-scrollbar-thumb { background: #1e3a5f; border-radius: 2px; }
         @media (max-width: 640px) {
-          .demo-shell { flex-direction: column !important; }
-          .demo-sidebar { flex-direction: row !important; width: 100% !important; overflow-x: auto; border-right: none !important; border-bottom: 1px solid #1e2a45 !important; padding: 10px !important; }
-          .demo-agent-btn { flex-direction: row !important; gap: 8px !important; padding: 8px 12px !important; min-width: max-content; }
+          .demo-shell { flex-direction: column !important; height: auto !important; min-height: 0 !important; flex: 1; }
+          .demo-sidebar { flex-direction: row !important; width: 100% !important; overflow-x: auto; border-right: none !important; border-bottom: 1px solid #1e2a45 !important; padding: 8px !important; gap: 4px !important; }
+          .demo-sidebar-label { display: none !important; }
+          .demo-agent-btn { flex-direction: row !important; gap: 8px !important; padding: 8px 12px !important; min-width: max-content; border-radius: 20px !important; }
           .demo-agent-btn span:last-child { display: none; }
+          .demo-sidebar-footer { display: none !important; }
+          .demo-banner { padding: 8px 12px !important; }
+          .demo-banner-text { display: none; }
+          .demo-content { flex: 1; min-height: 0; }
+          .demo-page { display: flex; flex-direction: column; height: 100dvh; }
+          .demo-header { padding: 12px 16px !important; }
+          .demo-header-date { display: none; }
+          .demo-header-right { display: none !important; }
+          .demo-bottom-cta { padding: 10px 16px !important; }
+          .demo-chase-row { flex-wrap: wrap; gap: 6px !important; }
+          .demo-chase-meta { flex-direction: column !important; gap: 2px !important; }
         }
       `}</style>
 
       {/* Top demo banner */}
-      <div style={{
+      <div className="demo-banner" style={{
         background: 'linear-gradient(90deg, rgba(249,115,22,0.15), rgba(6,182,212,0.1))',
         borderBottom: '1px solid rgba(249,115,22,0.3)',
         padding: '12px 24px',
@@ -708,7 +720,7 @@ export default function DemoPage() {
             background: '#F97316', color: '#fff', fontSize: 11, fontWeight: 800,
             padding: '3px 10px', borderRadius: 20, letterSpacing: 1.5,
           }}>DEMO MODE</span>
-          <span style={{ color: '#94a3b8', fontSize: 13 }}>
+          <span className="demo-banner-text" style={{ color: '#94a3b8', fontSize: 13 }}>
             You're viewing <strong style={{ color: '#f1f5f9' }}>Thabo Dlamini Attorneys</strong> — fake data, no real API calls
           </span>
         </div>
@@ -720,7 +732,7 @@ export default function DemoPage() {
       </div>
 
       {/* Header */}
-      <div style={{
+      <div className="demo-header" style={{
         padding: '20px 24px', borderBottom: '1px solid #1e2a45',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         background: '#0A0F2C',
@@ -734,10 +746,10 @@ export default function DemoPage() {
           }}>A</div>
           <div>
             <div style={{ fontWeight: 700, color: '#f1f5f9', fontSize: 15 }}>{TENANT}</div>
-            <div style={{ fontSize: 12, color: '#64748b' }}>AdminOS Demo · {DATE}</div>
+            <div className="demo-header-date" style={{ fontSize: 12, color: '#64748b' }}>AdminOS Demo · {DATE}</div>
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div className="demo-header-right" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e' }} />
           <span style={{ fontSize: 12, color: '#22c55e' }}>6 agents active</span>
         </div>
@@ -745,7 +757,7 @@ export default function DemoPage() {
 
       {/* Shell */}
       <div className="demo-shell" style={{
-        display: 'flex', height: 'calc(100vh - 130px)', minHeight: 500,
+        display: 'flex', flex: 1, height: 'calc(100vh - 130px)', minHeight: 500, overflow: 'hidden',
       }}>
         {/* Sidebar */}
         <div className="demo-sidebar" style={{
@@ -753,7 +765,7 @@ export default function DemoPage() {
           borderRight: '1px solid #1e2a45', padding: '16px 8px',
           display: 'flex', flexDirection: 'column', gap: 2, overflowY: 'auto',
         }}>
-          <div style={{ fontSize: 11, color: '#475569', textTransform: 'uppercase', letterSpacing: 1.2, padding: '4px 12px 8px', fontWeight: 600 }}>
+          <div className="demo-sidebar-label" style={{ fontSize: 11, color: '#475569', textTransform: 'uppercase', letterSpacing: 1.2, padding: '4px 12px 8px', fontWeight: 600 }}>
             AI Agents
           </div>
           {AGENTS.map(a => (
@@ -777,7 +789,7 @@ export default function DemoPage() {
             </button>
           ))}
 
-          <div style={{ marginTop: 'auto', padding: '16px 12px 0', borderTop: '1px solid #1e2a45' }}>
+          <div className="demo-sidebar-footer" style={{ marginTop: 'auto', padding: '16px 12px 0', borderTop: '1px solid #1e2a45' }}>
             <Link href="/#pricing" style={{
               display: 'block', background: '#F97316', borderRadius: 8,
               padding: '10px 12px', color: '#fff', textDecoration: 'none',
@@ -791,7 +803,7 @@ export default function DemoPage() {
         </div>
 
         {/* Agent panel */}
-        <div style={{ flex: 1, overflowY: 'auto', background: '#050B1A' }}>
+        <div className="demo-content" style={{ flex: 1, overflowY: 'auto', background: '#050B1A' }}>
           <div style={{
             padding: '14px 20px', borderBottom: '1px solid #1e2a45',
             background: '#0A0F2C', display: 'flex', alignItems: 'center', gap: 10,
@@ -818,7 +830,7 @@ export default function DemoPage() {
       </div>
 
       {/* Bottom CTA */}
-      <div style={{
+      <div className="demo-bottom-cta" style={{
         background: '#0A0F2C', borderTop: '1px solid #1e2a45',
         padding: '20px 24px', textAlign: 'center',
       }}>
@@ -829,6 +841,6 @@ export default function DemoPage() {
           </Link>
         </span>
       </div>
-    </>
+    </div>
   )
 }

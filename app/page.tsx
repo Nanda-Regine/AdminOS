@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import type { Metadata } from 'next'
+import MobileNav from '@/components/MobileNav'
 
 export const metadata: Metadata = {
   title: 'AdminOS — The AI System That Runs Your Business',
@@ -433,10 +434,18 @@ export default function HomePage() {
         .pen-cursor { display:inline-block; width:2px; height:14px; background:var(--orange); margin-left:2px; animation: blink 1s 3s step-end infinite; opacity:0; animation-fill-mode:both; }
         .pen-action { font-size:11px; color:var(--orange); font-weight:600; margin-top:8px; animation: fadeIn .5s 3.5s both; opacity:0; }
 
+        /* ── Add-ons grid (3 cards, never orphans a card in 2-col layout) ── */
+        .addons-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 24px;
+        }
+
         /* ── Responsive ── */
         @media (max-width: 900px) {
           .hero-grid { grid-template-columns: 1fr; gap: 40px; }
           .agents-grid { grid-template-columns: repeat(2, 1fr); }
+          .addons-grid { grid-template-columns: 1fr; }
           .pricing-grid { grid-template-columns: repeat(2, 1fr); }
           .stats-grid  { grid-template-columns: repeat(3, 1fr); gap: 20px; }
           .steps-grid  { grid-template-columns: 1fr; gap: 24px; }
@@ -446,10 +455,15 @@ export default function HomePage() {
 
         @media (max-width: 560px) {
           .agents-grid  { grid-template-columns: 1fr; }
+          .addons-grid  { grid-template-columns: 1fr; }
           .pricing-grid { grid-template-columns: 1fr; }
           .stats-grid   { grid-template-columns: repeat(2, 1fr); }
           .footer-grid  { grid-template-columns: 1fr; }
           .hero-demo-hide { display: none !important; }
+          .hero-section { padding: 56px 20px 48px !important; }
+          .roi-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+          .roi-table { min-width: 480px; }
+          .cta-inner { padding: 44px 24px !important; }
         }
 
         @media (prefers-reduced-motion: reduce) {
@@ -483,6 +497,7 @@ export default function HomePage() {
                 Try demo
               </Link>
               <Link href="/signup" className="btn-orange text-sm px-4 py-2 rounded-lg font-bold text-white" style={{ textDecoration: 'none' }}>Free trial</Link>
+              <MobileNav />
             </div>
           </nav>
         </header>
@@ -490,7 +505,7 @@ export default function HomePage() {
         <main>
 
           {/* ── Hero ────────────────────────────────────────────────────── */}
-          <section className="relative overflow-hidden" style={{ padding: '96px 24px 80px' }}>
+          <section className="hero-section relative overflow-hidden" style={{ padding: '96px 24px 80px' }}>
 
             {/* BG orbs */}
             <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden' }}>
@@ -624,7 +639,8 @@ export default function HomePage() {
               </p>
             </div>
 
-            <div style={{ borderRadius: 20, border: '1px solid rgba(255,255,255,.07)', overflow: 'hidden' }}>
+            <div className="roi-wrap" style={{ borderRadius: 20, border: '1px solid rgba(255,255,255,.07)' }}>
+            <div className="roi-table" style={{ borderRadius: 20, overflow: 'hidden' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', background: 'rgba(255,255,255,.03)', padding: '12px 24px' }}>
                 {['What you pay for now', 'Monthly cost', 'Replaced by'].map((h, i) => (
                   <span key={h} style={{ fontSize: 11, color: 'var(--dimmest)', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 700, textAlign: i === 1 ? 'center' : i === 2 ? 'right' : 'left' }}>{h}</span>
@@ -642,6 +658,7 @@ export default function HomePage() {
                 <span style={{ textAlign: 'center', fontWeight: 800, color: '#f87171', textDecoration: 'line-through' }}>R14,700/mo</span>
                 <span style={{ textAlign: 'right', fontWeight: 800, color: 'var(--orange)' }}>AdminOS Growth: R4,500/mo</span>
               </div>
+            </div>
             </div>
             <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--dimmest)', marginTop: 16 }}>ROI from month one. No setup cost on Growth and Enterprise tiers.</p>
           </section>
@@ -917,7 +934,7 @@ export default function HomePage() {
                 Available on Growth and Enterprise. Activate any add-on in one click — no setup, no developer.
               </p>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 }} className="agents-grid">
+            <div className="addons-grid">
               {addons.map((addon, i) => (
                 <article key={addon.name} className="fu card" style={{ animationDelay: `${i * .1}s`, background: addon.cardBg, border: `1px solid ${addon.cardBorder}`, borderRadius: 20, padding: 28, display: 'flex', flexDirection: 'column', gap: 16 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -935,9 +952,9 @@ export default function HomePage() {
                       </li>
                     ))}
                   </ul>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 8, borderTop: `1px solid ${addon.tagBorder}` }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, paddingTop: 8, borderTop: `1px solid ${addon.tagBorder}` }}>
                     <span style={{ fontSize: 13, fontWeight: 700, color: addon.tagColor }}>{addon.price}</span>
-                    <Link href="/signup" style={{ fontSize: 12, fontWeight: 700, color: addon.tagColor, textDecoration: 'none', background: addon.tagBg, border: `1px solid ${addon.tagBorder}`, padding: '5px 14px', borderRadius: 8 }}>Add to plan →</Link>
+                    <Link href="/signup" style={{ fontSize: 12, fontWeight: 700, color: addon.tagColor, textDecoration: 'none', background: addon.tagBg, border: `1px solid ${addon.tagBorder}`, padding: '5px 14px', borderRadius: 8, flexShrink: 0 }}>Add to plan →</Link>
                   </div>
                 </article>
               ))}
@@ -951,7 +968,7 @@ export default function HomePage() {
                 <p style={{ color: 'var(--teal)', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 12 }}>Client stories</p>
                 <h2 style={{ fontSize: 'clamp(26px, 3.5vw, 44px)', fontWeight: 900, letterSpacing: '-1.5px' }}>South African businesses, real results</h2>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 }} className="agents-grid">
+              <div style={{ display: 'grid', gap: 24 }} className="agents-grid">
                 {testimonials.map((t, i) => (
                   <div key={t.name} className="fu card" style={{ animationDelay: `${i * .1}s`, background: 'rgba(255,255,255,.025)', border: '1px solid rgba(255,255,255,.07)', borderRadius: 20, padding: 28, display: 'flex', flexDirection: 'column', gap: 20 }}>
                     {/* Stars */}
@@ -1125,7 +1142,7 @@ export default function HomePage() {
 
           {/* ── Final CTA ───────────────────────────────────────────────── */}
           <section className="max-w-4xl mx-auto px-6 py-24 text-center">
-            <div style={{ borderRadius: 28, border: '1px solid rgba(249,115,22,.2)', padding: '72px 48px', background: 'linear-gradient(135deg, rgba(249,115,22,.07) 0%, rgba(6,182,212,.05) 60%)', position: 'relative', overflow: 'hidden' }}>
+            <div className="cta-inner" style={{ borderRadius: 28, border: '1px solid rgba(249,115,22,.2)', padding: '72px 48px', background: 'linear-gradient(135deg, rgba(249,115,22,.07) 0%, rgba(6,182,212,.05) 60%)', position: 'relative', overflow: 'hidden' }}>
               <div style={{ position: 'absolute', top: '-50%', left: '50%', transform: 'translateX(-50%)', width: 500, height: 300, borderRadius: '50%', background: 'radial-gradient(circle, rgba(249,115,22,.1) 0%, transparent 70%)', pointerEvents: 'none' }} />
               <h2 style={{ fontSize: 'clamp(28px, 4vw, 50px)', fontWeight: 900, letterSpacing: '-2px', marginBottom: 16, position: 'relative' }}>Your business OS is ready.</h2>
               <p style={{ color: 'var(--dim)', fontSize: 18, marginBottom: 36, lineHeight: 1.6, position: 'relative' }}>

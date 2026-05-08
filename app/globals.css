@@ -62,7 +62,10 @@
 /* ── Base reset ─────────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; }
 
-html { color-scheme: dark; }
+html {
+  color-scheme: dark;
+  overflow-x: hidden;
+}
 
 body {
   background: var(--navy);
@@ -70,6 +73,7 @@ body {
   font-family: var(--font-sans, system-ui, sans-serif);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
 }
 
 /* ── Glass surfaces ─────────────────────────────────────────────────────── */
