@@ -22,7 +22,7 @@
     },
     {
       "path": "/api/cron/sequences",
-      "schedule": "0 * * * *"
+      "schedule": "0 10 * * *"
     },
     {
       "path": "/api/cron/escalate-conversations",
