@@ -10,8 +10,8 @@ const schema = z.object({
   ownerEmail: z.string().email(),
   ownerName: z.string().min(1).max(100),
   plan: z.enum(['starter', 'growth', 'enterprise', 'white_label', 'trial']).default('trial'),
-  phone360dialog: z.string().optional(),
   whatsappNumber: z.string().optional(),
+  wabaId: z.string().optional(),
 })
 
 export async function POST(request: Request) {
@@ -44,12 +44,12 @@ export async function POST(request: Request) {
   const { data: tenant, error: tenantErr } = await supabaseAdmin
     .from('tenants')
     .insert({
-      name:             body.name,
-      slug:             body.slug,
-      plan:             body.plan,
-      active:           body.plan !== 'trial',
-      phone_360dialog:  body.phone360dialog ?? null,
-      whatsapp_number:  body.whatsappNumber ?? null,
+      name:            body.name,
+      slug:            body.slug,
+      plan:            body.plan,
+      active:          body.plan !== 'trial',
+      whatsapp_number: body.whatsappNumber ?? null,
+      waba_id:         body.wabaId ?? null,
     })
     .select('id')
     .single()

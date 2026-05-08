@@ -3,6 +3,7 @@ import { callClaudeWithCache, classifyIntent, classifySentiment } from '@/lib/ai
 import { checkFAQCache, setFAQCache, incrementTenantCounter } from '@/lib/cache/faqCache'
 import { sendWhatsApp } from '@/lib/whatsapp/send'
 import { writeAuditLog } from '@/lib/security/audit'
+import { upsertContact } from '@/lib/contacts/upsert'
 import { Tenant, Message, WellnessScore } from '@/types/database'
 
 interface WorkflowContext {
@@ -182,6 +183,20 @@ const steps = {
 
     const sentiment = (ctx as Record<string, unknown>).sentiment as string | undefined
 
+    // Upsert contact record from inbound message (phone = from, wa_id = from)
+    let contactId: string | undefined
+    try {
+      contactId = await upsertContact({
+        tenantId:    ctx.tenant.id,
+        phone:       ctx.from,
+        fullName:    (ctx as Record<string, unknown>).contactName as string | null ?? null,
+        waId:        ctx.from,
+        source:      'whatsapp',
+      })
+    } catch {
+      // Non-fatal — continue without contact link
+    }
+
     if (existingConv) {
       conversationId = existingConv.id
       await supabaseAdmin
@@ -190,6 +205,7 @@ const steps = {
           updated_at: new Date().toISOString(),
           intent:     result.intent,
           sentiment:  sentiment || undefined,
+          ...(contactId ? { contact_id: contactId } : {}),
         })
         .eq('id', conversationId)
     } else {
@@ -199,6 +215,7 @@ const steps = {
           tenant_id:          ctx.tenant.id,
           channel:            'whatsapp',
           contact_identifier: ctx.from,
+          contact_id:         contactId ?? null,
           contact_type:       'unknown',
           status:             'open',
           intent:             result.intent,

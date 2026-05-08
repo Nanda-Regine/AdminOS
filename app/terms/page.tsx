@@ -166,7 +166,7 @@ export default function TermsPage() {
             </div>
             <p className="text-sm text-gray-500 mt-4">
               Downtime due to scheduled maintenance, load shedding beyond our control, or third-party
-              service failures (WhatsApp/360dialog, Supabase, Anthropic) does not count against uptime targets.
+              service failures (Meta WhatsApp API, Supabase, Anthropic) does not count against uptime targets.
             </p>
           </section>
 

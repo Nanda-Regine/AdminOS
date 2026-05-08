@@ -189,9 +189,10 @@ export async function generateDailyBrief(tenantData: {
   staffOnLeave: number
   wellnessAvg: number
   topGoals: string[]
+  fxRates?: { usdZar?: number; eurZar?: number; gbpZar?: number }
 }): Promise<string> {
   return callClaudeAgent(
-    `You are a world-class business advisor with deep knowledge of South African SME operations. Generate a concise daily brief. Be direct, data-driven, and actionable. Connect insights to company goals. Max 300 words.`,
+    `You are a world-class business advisor with deep knowledge of South African SME operations. Generate a concise daily brief. Be direct, data-driven, and actionable. Connect insights to company goals. If FX rates are provided, briefly note USD/ZAR and EUR/ZAR impact on import-dependent businesses. Max 300 words.`,
     JSON.stringify(tenantData),
     600
   )

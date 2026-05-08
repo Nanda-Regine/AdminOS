@@ -1,29 +1,67 @@
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { TopBar } from '@/components/dashboard/TopBar'
-import { Card } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
+import { Users, AlertCircle, TrendingUp, Search, Plus, ChevronRight } from 'lucide-react'
 
-const sentimentColor: Record<string, string> = {
-  positive: 'text-green-600',
-  neutral:  'text-gray-400',
-  negative: 'text-red-500',
-  urgent:   'text-orange-500',
+type ContactRow = {
+  id:               string
+  full_name:        string | null
+  phone:            string | null
+  email:            string | null
+  company:          string | null
+  contact_type:     string | null
+  balance_owed:     number
+  total_invoiced:   number
+  total_paid:       number
+  sentiment_score:  number | null
+  last_contacted_at: string | null
+  tags:             string[]
+  source:           string | null
+  wa_id:            string | null
+  created_at:       string
 }
 
-const sentimentIcon: Record<string, string> = {
-  positive: '😊',
-  neutral:  '😐',
-  negative: '😟',
-  urgent:   '🚨',
+function initials(name: string | null, phone: string | null): string {
+  if (name) {
+    const parts = name.trim().split(' ')
+    return parts.length >= 2
+      ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+      : name.slice(0, 2).toUpperCase()
+  }
+  return (phone ?? '??').slice(-2)
 }
 
-const contactTypeVariant: Record<string, 'blue' | 'green' | 'yellow' | 'gray'> = {
-  client:   'blue',
-  staff:    'green',
-  supplier: 'yellow',
-  unknown:  'gray',
+const TYPE_COLORS: Record<string, { bg: string; text: string }> = {
+  client:   { bg: 'rgba(99,102,241,0.15)',  text: '#818CF8' },
+  supplier: { bg: 'rgba(245,158,11,0.15)',  text: '#F59E0B' },
+  staff:    { bg: 'rgba(34,197,94,0.15)',   text: '#22C55E' },
+  unknown:  { bg: 'rgba(148,163,184,0.12)', text: '#94A3B8' },
+}
+
+const SENTIMENT_LABEL: Record<number, { label: string; color: string }> = {
+  5: { label: 'Excellent', color: '#22C55E' },
+  4: { label: 'Positive',  color: '#4ADE80' },
+  3: { label: 'Neutral',   color: '#94A3B8' },
+  2: { label: 'Negative',  color: '#F97316' },
+  1: { label: 'Urgent',    color: '#EF4444' },
+}
+
+function sentimentInfo(score: number | null) {
+  if (!score) return null
+  const clamped = Math.max(1, Math.min(5, Math.round(score)))
+  return SENTIMENT_LABEL[clamped] ?? null
+}
+
+const AVATAR_COLORS = [
+  '#6366F1', '#8B5CF6', '#EC4899', '#0EA5E9',
+  '#10B981', '#F59E0B', '#EF4444', '#14B8A6',
+]
+function avatarColor(id: string): string {
+  let h = 0
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0
+  return AVATAR_COLORS[h % AVATAR_COLORS.length]
 }
 
 export default async function ContactsPage() {
@@ -33,179 +71,201 @@ export default async function ContactsPage() {
 
   const tenantId = user.user_metadata?.tenant_id as string
 
-  // Pull all unique contacts from conversations with their latest info
-  const [convsRes, invoicesRes, staffRes] = await Promise.all([
-    supabaseAdmin
-      .from('conversations')
-      .select('contact_identifier, contact_name, contact_type, sentiment, intent, updated_at, status')
-      .eq('tenant_id', tenantId)
-      .not('contact_identifier', 'is', null)
-      .order('updated_at', { ascending: false }),
-    supabaseAdmin
-      .from('invoices')
-      .select('contact_phone, amount, amount_paid, status')
-      .eq('tenant_id', tenantId),
-    supabaseAdmin
-      .from('staff')
-      .select('phone, full_name, role, department')
-      .eq('tenant_id', tenantId),
-  ])
+  const { data: contacts = [] } = await supabaseAdmin
+    .from('contacts')
+    .select('id, full_name, phone, email, company, contact_type, balance_owed, total_invoiced, total_paid, sentiment_score, last_contacted_at, tags, source, wa_id, created_at')
+    .eq('tenant_id', tenantId)
+    .order('updated_at', { ascending: false })
+    .limit(500)
 
-  const conversations = convsRes.data   || []
-  const invoices      = invoicesRes.data || []
-  const staffList     = staffRes.data    || []
+  const rows = (contacts ?? []) as ContactRow[]
 
-  // Build staff lookup by phone
-  const staffByPhone = Object.fromEntries(
-    staffList.filter((s) => s.phone).map((s) => [s.phone, s])
-  )
-
-  // Build invoice outstanding balance lookup by contact phone
-  const balanceByPhone: Record<string, number> = {}
-  for (const inv of invoices) {
-    if (!inv.contact_phone || inv.status === 'paid') continue
-    balanceByPhone[inv.contact_phone] = (balanceByPhone[inv.contact_phone] || 0)
-      + (Number(inv.amount) - Number(inv.amount_paid))
-  }
-
-  // Deduplicate contacts — one record per unique contact_identifier, keep latest conv data
-  const seen = new Set<string>()
-  const contacts: {
-    identifier: string
-    name:        string | null
-    type:        string | null
-    sentiment:   string | null
-    intent:      string | null
-    lastSeen:    string
-    balance:     number
-    staff:       typeof staffList[0] | undefined
-    convCount:   number
-  }[] = []
-
-  const convCountByContact: Record<string, number> = {}
-  for (const c of conversations) {
-    if (!c.contact_identifier) continue
-    convCountByContact[c.contact_identifier] = (convCountByContact[c.contact_identifier] || 0) + 1
-  }
-
-  for (const c of conversations) {
-    if (!c.contact_identifier || seen.has(c.contact_identifier)) continue
-    seen.add(c.contact_identifier)
-    contacts.push({
-      identifier: c.contact_identifier,
-      name:       c.contact_name,
-      type:       c.contact_type,
-      sentiment:  c.sentiment,
-      intent:     c.intent,
-      lastSeen:   c.updated_at,
-      balance:    balanceByPhone[c.contact_identifier] || 0,
-      staff:      staffByPhone[c.contact_identifier],
-      convCount:  convCountByContact[c.contact_identifier] || 1,
-    })
-  }
-
-  const totalOutstanding = contacts.reduce((sum, c) => sum + c.balance, 0)
-  const withDebt         = contacts.filter((c) => c.balance > 0).length
+  const totalContacts   = rows.length
+  const withDebt        = rows.filter(c => c.balance_owed > 0).length
+  const totalOutstanding = rows.reduce((s, c) => s + Number(c.balance_owed || 0), 0)
+  const totalRevenue    = rows.reduce((s, c) => s + Number(c.total_paid || 0), 0)
 
   return (
     <div>
-      <TopBar title="Contacts" subtitle="Unified view of everyone who has reached your business" />
+      <TopBar
+        title="Contacts"
+        subtitle={`${totalContacts} contacts in your CRM`}
+      />
       <div className="p-6 space-y-6">
 
-        {/* Summary row */}
-        <div className="grid grid-cols-3 gap-4">
-          <Card>
-            <p className="text-sm text-gray-500">Total contacts</p>
-            <p className="text-2xl font-bold text-gray-900 mt-1">{contacts.length}</p>
-          </Card>
-          <Card>
-            <p className="text-sm text-gray-500">With outstanding balance</p>
-            <p className="text-2xl font-bold text-red-600 mt-1">{withDebt}</p>
-          </Card>
-          <Card>
-            <p className="text-sm text-gray-500">Total outstanding</p>
-            <p className="text-2xl font-bold text-gray-900 mt-1">R{totalOutstanding.toLocaleString()}</p>
-          </Card>
+        {/* Stats row */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[
+            { icon: Users,        label: 'Total Contacts',    value: totalContacts.toLocaleString(),          color: '#818CF8' },
+            { icon: AlertCircle,  label: 'With Outstanding',  value: withDebt.toLocaleString(),               color: '#EF4444' },
+            { icon: TrendingUp,   label: 'Total Outstanding', value: `R${totalOutstanding.toLocaleString()}`, color: '#F59E0B' },
+            { icon: TrendingUp,   label: 'Lifetime Revenue',  value: `R${totalRevenue.toLocaleString()}`,     color: '#22C55E' },
+          ].map(({ icon: Icon, label, value, color }) => (
+            <div key={label} className="glass rounded-2xl p-5">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center"
+                  style={{ background: `${color}20` }}>
+                  <Icon className="w-4 h-4" style={{ color }} />
+                </div>
+                <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>{label}</span>
+              </div>
+              <p className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{value}</p>
+            </div>
+          ))}
         </div>
 
-        {/* Contact list */}
-        <Card padding="none">
-          <div className="p-5 border-b border-gray-100 flex items-center justify-between">
-            <h3 className="font-semibold text-gray-900">All Contacts</h3>
-            <span className="text-sm text-gray-400">{contacts.length} contacts</span>
+        {/* Table card */}
+        <div className="glass rounded-2xl overflow-hidden">
+          <div className="flex items-center justify-between px-6 py-4"
+            style={{ borderBottom: '1px solid var(--border)' }}>
+            <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>All Contacts</h2>
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5"
+                  style={{ color: 'var(--text-muted)' }} />
+                <input
+                  placeholder="Search…"
+                  className="pl-8 pr-3 py-1.5 rounded-lg text-sm outline-none"
+                  style={{
+                    background: 'var(--surface-2)',
+                    border: '1px solid var(--border)',
+                    color: 'var(--text-primary)',
+                    width: '200px',
+                  }}
+                />
+              </div>
+              <Link
+                href="/dashboard/contacts/new"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium"
+                style={{ background: 'var(--indigo)', color: '#fff' }}
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Add Contact
+              </Link>
+            </div>
           </div>
+
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-100 bg-gray-50">
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Contact</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Type</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Sentiment</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Last intent</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Conversations</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Outstanding</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Last seen</th>
+                <tr style={{ borderBottom: '1px solid var(--border)', background: 'rgba(255,255,255,0.02)' }}>
+                  {['Contact', 'Type', 'Sentiment', 'Balance Owed', 'Revenue', 'Last Contacted', ''].map(h => (
+                    <th key={h} className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-wide"
+                      style={{ color: 'var(--text-muted)' }}>
+                      {h}
+                    </th>
+                  ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50">
-                {contacts.map((contact) => (
-                  <tr key={contact.identifier} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-5 py-3.5">
-                      <p className="font-medium text-gray-900">
-                        {contact.name || contact.staff?.full_name || contact.identifier}
-                      </p>
-                      <p className="text-xs text-gray-400">{contact.identifier}</p>
-                      {contact.staff && (
-                        <p className="text-xs text-emerald-600">{contact.staff.role} · {contact.staff.department}</p>
-                      )}
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <Badge variant={contactTypeVariant[contact.type || 'unknown'] || 'gray'}>
-                        {contact.type || 'unknown'}
-                      </Badge>
-                    </td>
-                    <td className="px-5 py-3.5">
-                      {contact.sentiment ? (
-                        <span className={`text-sm ${sentimentColor[contact.sentiment] || ''}`}>
-                          {sentimentIcon[contact.sentiment] || ''} {contact.sentiment}
+              <tbody>
+                {rows.map((contact) => {
+                  const sinfo  = sentimentInfo(contact.sentiment_score)
+                  const tcolor = TYPE_COLORS[contact.contact_type ?? 'unknown'] ?? TYPE_COLORS.unknown
+                  const color  = avatarColor(contact.id)
+                  const init   = initials(contact.full_name, contact.phone)
+
+                  return (
+                    <tr key={contact.id}
+                      style={{ borderBottom: '1px solid var(--border)' }}
+                      className="transition-colors"
+                      onMouseEnter={e => (e.currentTarget.style.background = 'rgba(99,102,241,0.04)')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                    >
+                      {/* Name / phone */}
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
+                            style={{ background: color }}>
+                            {init}
+                          </div>
+                          <div>
+                            <p className="font-medium" style={{ color: 'var(--text-primary)' }}>
+                              {contact.full_name || contact.phone || '(unnamed)'}
+                            </p>
+                            {contact.phone && (
+                              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{contact.phone}</p>
+                            )}
+                            {contact.company && (
+                              <p className="text-xs" style={{ color: 'var(--text-dim)' }}>{contact.company}</p>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Type */}
+                      <td className="px-5 py-3.5">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
+                          style={{ background: tcolor.bg, color: tcolor.text }}>
+                          {contact.contact_type ?? 'unknown'}
                         </span>
-                      ) : (
-                        <span className="text-gray-300">—</span>
-                      )}
-                    </td>
-                    <td className="px-5 py-3.5 text-gray-600 capitalize">
-                      {contact.intent?.replace(/_/g, ' ') || '—'}
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-gray-100 text-xs font-semibold text-gray-600">
-                        {contact.convCount}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3.5">
-                      {contact.balance > 0 ? (
-                        <span className="text-red-600 font-semibold">R{contact.balance.toLocaleString()}</span>
-                      ) : (
-                        <span className="text-emerald-600 text-xs">Clear</span>
-                      )}
-                    </td>
-                    <td className="px-5 py-3.5 text-gray-400 text-xs">
-                      {new Date(contact.lastSeen).toLocaleDateString('en-ZA')}
-                    </td>
-                  </tr>
-                ))}
-                {contacts.length === 0 && (
+                      </td>
+
+                      {/* Sentiment */}
+                      <td className="px-5 py-3.5">
+                        {sinfo ? (
+                          <span className="text-xs font-medium" style={{ color: sinfo.color }}>
+                            {sinfo.label}
+                          </span>
+                        ) : (
+                          <span style={{ color: 'var(--text-dim)' }}>—</span>
+                        )}
+                      </td>
+
+                      {/* Balance owed */}
+                      <td className="px-5 py-3.5">
+                        {contact.balance_owed > 0 ? (
+                          <span className="font-semibold text-red-400">
+                            R{Number(contact.balance_owed).toLocaleString()}
+                          </span>
+                        ) : (
+                          <span className="text-xs" style={{ color: '#22C55E' }}>Clear</span>
+                        )}
+                      </td>
+
+                      {/* Revenue */}
+                      <td className="px-5 py-3.5">
+                        <span style={{ color: 'var(--text-secondary)' }}>
+                          R{Number(contact.total_paid || 0).toLocaleString()}
+                        </span>
+                      </td>
+
+                      {/* Last contacted */}
+                      <td className="px-5 py-3.5 text-xs" style={{ color: 'var(--text-muted)' }}>
+                        {contact.last_contacted_at
+                          ? new Date(contact.last_contacted_at).toLocaleDateString('en-ZA')
+                          : '—'}
+                      </td>
+
+                      {/* Detail link */}
+                      <td className="px-5 py-3.5">
+                        <Link href={`/dashboard/contacts/${contact.id}`}
+                          className="inline-flex items-center gap-1 text-xs font-medium transition-colors"
+                          style={{ color: 'var(--indigo-light)' }}>
+                          View <ChevronRight className="w-3 h-3" />
+                        </Link>
+                      </td>
+                    </tr>
+                  )
+                })}
+
+                {rows.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-5 py-12 text-center text-gray-400">
-                      <p className="text-3xl mb-2">🧑‍💼</p>
-                      <p className="text-sm font-medium">No contacts yet</p>
-                      <p className="text-xs mt-1">Contacts are built automatically from inbound WhatsApp conversations</p>
+                    <td colSpan={7} className="px-5 py-16 text-center">
+                      <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4"
+                        style={{ background: 'var(--indigo-muted)' }}>
+                        <Users className="w-6 h-6" style={{ color: 'var(--indigo-light)' }} />
+                      </div>
+                      <p className="font-medium mb-1" style={{ color: 'var(--text-primary)' }}>No contacts yet</p>
+                      <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+                        Contacts are created automatically when someone messages you, or add one manually.
+                      </p>
                     </td>
                   </tr>
                 )}
               </tbody>
             </table>
           </div>
-        </Card>
+        </div>
 
       </div>
     </div>

@@ -61,41 +61,73 @@ export async function POST(request: Request) {
 
   const paymentStatus = params.payment_status // 'COMPLETE' | 'FAILED' | 'CANCELLED'
   const tenantId      = params.custom_str1
-  const plan          = params.custom_str2
+  const plan          = params.custom_str2 || null
+  const addon         = params.custom_str3 || null
 
-  if (!tenantId || !plan) {
+  if (!tenantId || (!plan && !addon)) {
     return new NextResponse('Missing custom fields', { status: 400 })
   }
+
+  // Log the payment event
+  await supabaseAdmin.from('payment_events').insert({
+    tenant_id:       tenantId,
+    event_type:      `payfast.${paymentStatus.toLowerCase()}`,
+    payfast_pf_id:   params.pf_payment_id || null,
+    payfast_token:   params.token || null,
+    m_payment_id:    params.m_payment_id || null,
+    amount:          Number(params.amount_gross || 0),
+    plan:            plan || addon,
+    payload:         params,
+    processed:       paymentStatus === 'COMPLETE',
+  }).then(() => {}, () => {}) // non-fatal
 
   if (paymentStatus === 'COMPLETE') {
     const periodEnd = new Date()
     periodEnd.setMonth(periodEnd.getMonth() + 1)
 
-    await Promise.all([
-      supabaseAdmin
-        .from('tenants')
-        .update({ plan, active: true })
-        .eq('id', tenantId),
-      supabaseAdmin
+    if (addon) {
+      // Activate the add-on column on the subscription
+      const addonCol        = `addon_${addon}`
+      const addonExpiresCol = `addon_${addon}_expires_at`
+      await supabaseAdmin
         .from('subscriptions')
         .upsert({
-          tenant_id:          tenantId,
-          plan,
-          status:             'active',
-          payfast_token:      params.token || null,
-          amount:             Number(params.amount_gross || 0),
-          current_period_end: periodEnd.toISOString(),
-          updated_at:         new Date().toISOString(),
+          tenant_id:         tenantId,
+          status:            'active',
+          payfast_token:     params.token || null,
+          [addonCol]:        true,
+          [addonExpiresCol]: periodEnd.toISOString(),
+          updated_at:        new Date().toISOString(),
         }, { onConflict: 'tenant_id' })
-        .then(() => {}, () => {}), // table may not exist yet — non-fatal
-    ])
+        .then(() => {}, () => {})
+    } else if (plan) {
+      await Promise.all([
+        supabaseAdmin
+          .from('tenants')
+          .update({ plan, active: true })
+          .eq('id', tenantId),
+        supabaseAdmin
+          .from('subscriptions')
+          .upsert({
+            tenant_id:          tenantId,
+            plan,
+            status:             'active',
+            payfast_token:      params.token || null,
+            amount:             Number(params.amount_gross || 0),
+            current_period_end: periodEnd.toISOString(),
+            updated_at:         new Date().toISOString(),
+          }, { onConflict: 'tenant_id' })
+          .then(() => {}, () => {}),
+      ])
+    }
 
     await writeAuditLog({
       tenantId,
       actor:    'payfast',
       action:   'billing.payment_complete',
       metadata: {
-        plan,
+        plan:              plan ?? undefined,
+        addon:             addon ?? undefined,
         amount:            params.amount_gross,
         payfastPaymentId:  params.pf_payment_id,
         subscriptionToken: params.token,
@@ -106,7 +138,7 @@ export async function POST(request: Request) {
       tenantId,
       actor:  'payfast',
       action: `billing.payment_${paymentStatus.toLowerCase()}`,
-      metadata: { plan, amount: params.amount_gross },
+      metadata: { plan, addon, amount: params.amount_gross },
     })
   }
 

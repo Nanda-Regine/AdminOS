@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { generateDailyBrief } from '@/lib/ai/callClaude'
 import { writeAuditLog } from '@/lib/security/audit'
+import { getFxRates } from '@/lib/integrations/fx-rates'
 
 export const runtime = 'nodejs'
 export const maxDuration = 300
@@ -21,6 +22,14 @@ export async function GET(request: Request) {
   if (!tenants?.length) {
     return NextResponse.json({ ok: true, processed: 0 })
   }
+
+  // Fetch FX rates once for all tenants (ZAR base → USD/EUR/GBP as inverse)
+  const fxZar = await getFxRates('ZAR').catch(() => null)
+  const fxRates = fxZar ? {
+    usdZar: fxZar.rates['USD'] ? Math.round((1 / fxZar.rates['USD']) * 100) / 100 : undefined,
+    eurZar: fxZar.rates['EUR'] ? Math.round((1 / fxZar.rates['EUR']) * 100) / 100 : undefined,
+    gbpZar: fxZar.rates['GBP'] ? Math.round((1 / fxZar.rates['GBP']) * 100) / 100 : undefined,
+  } : undefined
 
   let processed = 0
   const errors: string[] = []
@@ -85,6 +94,7 @@ export async function GET(request: Request) {
         staffOnLeave: leaveResult.count || 0,
         wellnessAvg: Math.round(wellnessAvg * 10) / 10,
         topGoals: (goalResult.data || []).map((g) => g.title),
+        fxRates,
       })
 
       // Persist the brief in audit log for dashboard display

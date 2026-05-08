@@ -19,6 +19,14 @@
     {
       "path": "/api/cron/fan-out-wellness",
       "schedule": "0 6 * * 1-5"
+    },
+    {
+      "path": "/api/cron/sequences",
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/escalate-conversations",
+      "schedule": "0 9 * * 1-5"
     }
   ],
   "headers": [

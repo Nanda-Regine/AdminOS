@@ -11,7 +11,7 @@ const geistSans = Geist({
   display: 'swap',
 })
 
-const APP_URL = 'https://adminos.co.za'
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://adminos.co.za'
 const APP_NAME = 'AdminOS'
 const APP_DESCRIPTION =
   'AI-powered business operating system for South African SMEs, NGOs, schools, and clinics. Automate WhatsApp, debt recovery, staff wellness, and get daily AI business briefs. Built for Africa.'

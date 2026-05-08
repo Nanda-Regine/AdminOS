@@ -7,13 +7,14 @@ import { z } from 'zod'
 interface Params { params: Promise<{ id: string }> }
 
 const patchSchema = z.object({
-  name: z.string().min(1).max(200).optional(),
-  email: z.string().email().nullable().optional(),
-  phone: z.string().max(30).nullable().optional(),
-  type: z.enum(['client', 'supplier', 'staff', 'unknown']).optional(),
-  notes: z.string().max(2000).nullable().optional(),
-  tags: z.array(z.string()).optional(),
-  sentiment: z.string().optional(),
+  full_name:    z.string().min(1).max(200).optional(),
+  phone:        z.string().max(30).nullable().optional(),
+  email:        z.string().email().nullable().optional(),
+  company:      z.string().max(200).nullable().optional(),
+  contact_type: z.enum(['client', 'supplier', 'staff', 'unknown']).optional(),
+  notes:        z.string().max(2000).nullable().optional(),
+  tags:         z.array(z.string()).optional(),
+  source:       z.string().max(100).nullable().optional(),
 })
 
 export async function GET(_req: Request, { params }: Params) {
@@ -25,9 +26,25 @@ export async function GET(_req: Request, { params }: Params) {
   const tenantId = user.user_metadata?.tenant_id as string
 
   const [contactRes, conversationsRes, invoicesRes] = await Promise.all([
-    supabaseAdmin.from('contacts').select('*').eq('id', id).eq('tenant_id', tenantId).single(),
-    supabaseAdmin.from('conversations').select('id, intent, sentiment, status, channel, created_at').eq('tenant_id', tenantId).or(`contact_identifier.eq.${id}`).order('created_at', { ascending: false }).limit(10),
-    supabaseAdmin.from('invoices').select('id, amount, amount_paid, status, due_date, days_overdue').eq('tenant_id', tenantId).order('created_at', { ascending: false }).limit(10),
+    supabaseAdmin
+      .from('contacts')
+      .select('*')
+      .eq('id', id)
+      .eq('tenant_id', tenantId)
+      .single(),
+    supabaseAdmin
+      .from('conversations')
+      .select('id, intent, sentiment, status, channel, summary, created_at, updated_at')
+      .eq('tenant_id', tenantId)
+      .eq('contact_id', id)
+      .order('updated_at', { ascending: false })
+      .limit(20),
+    supabaseAdmin
+      .from('invoices')
+      .select('id, invoice_number, amount, amount_paid, status, due_date, created_at')
+      .eq('tenant_id', tenantId)
+      .order('created_at', { ascending: false })
+      .limit(20),
   ])
 
   if (contactRes.error || !contactRes.data) {
@@ -35,23 +52,31 @@ export async function GET(_req: Request, { params }: Params) {
   }
 
   const contact = contactRes.data
-  const conversations = conversationsRes.data || []
-  const invoices = invoicesRes.data || []
 
-  // Look up conversations by identifier field
-  const convByIdentifier = await supabaseAdmin
+  // Also fetch convs matched by contact_identifier (phone) for legacy records
+  const { data: legacyConvs } = await supabaseAdmin
     .from('conversations')
-    .select('id, intent, sentiment, status, channel, created_at')
+    .select('id, intent, sentiment, status, channel, summary, created_at, updated_at')
     .eq('tenant_id', tenantId)
-    .eq('contact_identifier', contact.identifier)
-    .order('created_at', { ascending: false })
-    .limit(10)
+    .eq('contact_identifier', contact.phone ?? '')
+    .order('updated_at', { ascending: false })
+    .limit(20)
 
-  return NextResponse.json({
-    contact,
-    conversations: convByIdentifier.data || conversations,
-    invoices,
+  // Merge and deduplicate by id
+  const allConvs = [...(conversationsRes.data ?? []), ...(legacyConvs ?? [])]
+  const seenIds  = new Set<string>()
+  const conversations = allConvs.filter(c => {
+    if (seenIds.has(c.id)) return false
+    seenIds.add(c.id)
+    return true
   })
+
+  // Filter invoices by contact phone
+  const invoices = (invoicesRes.data ?? []).filter(
+    (inv: Record<string, unknown>) => (inv.contact_phone as string) === contact.phone
+  )
+
+  return NextResponse.json({ contact, conversations, invoices })
 }
 
 export async function PATCH(request: Request, { params }: Params) {
@@ -81,11 +106,11 @@ export async function PATCH(request: Request, { params }: Params) {
 
   await writeAuditLog({
     tenantId,
-    actor: user.id,
-    action: 'contact.updated',
+    actor:        user.id,
+    action:       'contact.updated',
     resourceType: 'contact',
-    resourceId: id,
-    metadata: { fields: Object.keys(body) },
+    resourceId:   id,
+    metadata:     { fields: Object.keys(body) },
   })
 
   return NextResponse.json({ contact: data })
@@ -109,11 +134,11 @@ export async function DELETE(_req: Request, { params }: Params) {
 
   await writeAuditLog({
     tenantId,
-    actor: user.id,
-    action: 'contact.deleted',
+    actor:        user.id,
+    action:       'contact.deleted',
     resourceType: 'contact',
-    resourceId: id,
-    metadata: {},
+    resourceId:   id,
+    metadata:     {},
   })
 
   return new NextResponse(null, { status: 204 })

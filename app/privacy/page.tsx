@@ -79,7 +79,7 @@ export default function PrivacyPage() {
 
             <h3 className="text-lg font-semibold text-white mb-2 mt-5">2.2 Business Operations Data</h3>
             <ul className="list-disc pl-5 space-y-1 text-sm">
-              <li>WhatsApp conversations between your business and your clients (processed by 360dialog)</li>
+              <li>WhatsApp conversations between your business and your clients (processed via Meta WhatsApp Business API)</li>
               <li>Invoice and financial data you upload or create within AdminOS</li>
               <li>Staff information you enter for wellness check-ins and leave management</li>
               <li>Documents uploaded for processing (contracts, quotes, compliance documents)</li>
@@ -127,9 +127,9 @@ export default function PrivacyPage() {
                   note: 'Data stored in Supabase-hosted PostgreSQL with row-level security enforcement.',
                 },
                 {
-                  name: '360dialog',
-                  purpose: 'WhatsApp Business API integration',
-                  note: 'WhatsApp messages are routed through 360dialog infrastructure.',
+                  name: 'Meta (WhatsApp Business API)',
+                  purpose: 'WhatsApp messaging and automation',
+                  note: 'WhatsApp messages are sent and received directly via the Meta Cloud API. See meta.com/privacy.',
                 },
                 {
                   name: 'PayFast',
@@ -164,7 +164,7 @@ export default function PrivacyPage() {
               <li>Immutable audit logs for all data access and modifications</li>
               <li>Rate limiting on all API endpoints to prevent abuse</li>
               <li>No sensitive business data (invoice amounts, PII) in application logs</li>
-              <li>Webhook signature verification (PayFast, 360dialog)</li>
+              <li>Webhook signature verification (PayFast, Meta WhatsApp)</li>
               <li>Content Security Policy and HSTS headers enforced on all responses</li>
             </ul>
           </section>

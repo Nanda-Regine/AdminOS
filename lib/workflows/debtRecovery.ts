@@ -64,7 +64,7 @@ async function sendViaChannel(
     await sendWhatsApp({ to: invoice.contact_phone, message })
   } else if (channel === 'email' && invoice.contact_email) {
     await getResend().emails.send({
-      from: `${tenantName} <no-reply@adminos.co.za>`,
+      from: `${tenantName} <no-reply@${new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://adminos.co.za').hostname}>`,
       to: invoice.contact_email,
       subject: `Payment reminder — R${invoice.amount} overdue`,
       text: message,

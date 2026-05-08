@@ -1,5 +1,5 @@
 /**
- * Meta WhatsApp Business API v19.0 — replaces 360dialog
+ * Meta WhatsApp Business Cloud API v19.0
  * All outbound messaging and webhook verification lives here.
  */
 

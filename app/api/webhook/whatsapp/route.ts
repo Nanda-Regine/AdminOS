@@ -14,6 +14,8 @@ import { checkDuplicate } from '@/lib/cache/faqCache'
 import { checkRateLimit } from '@/lib/security/rateLimit'
 import { sanitizeForAI } from '@/lib/security/sanitize'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { incrementUsage, isOverLimit } from '@/lib/billing/usage'
+import { sendWhatsApp } from '@/lib/whatsapp/send'
 
 // GET — Meta webhook challenge verification
 export async function GET(request: NextRequest) {
@@ -68,6 +70,21 @@ export async function POST(request: NextRequest) {
     // 5. Rate limit per tenant
     const { success } = await checkRateLimit('whatsapp', tenant.id)
     if (!success) continue
+
+    // 5b. Monthly conversation limit gate
+    const tenantPlan = (tenant as { plan?: string }).plan ?? 'trial'
+    const overLimit  = await isOverLimit(tenant.id, tenantPlan)
+    if (overLimit) {
+      await sendWhatsApp({
+        to:      from,
+        message: `Hi! You've reached your monthly conversation limit. ` +
+                 `Please contact your account administrator to upgrade your plan at adminos.co.za.`,
+      }).catch(() => {})
+      continue
+    }
+
+    // 5c. Increment usage counter
+    void incrementUsage(tenant.id)
 
     // 6. Deduplicate — prevent replaying the same messageId
     const isDuplicate = await checkDuplicate(messageId)

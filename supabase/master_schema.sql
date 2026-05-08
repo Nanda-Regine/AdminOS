@@ -1064,22 +1064,190 @@ CREATE POLICY "documents_storage_rls"
 
 
 -- =============================================================================
+-- PHASE 8-13 ADDITIONS (safe to re-run — all IF NOT EXISTS / ADD COLUMN IF NOT EXISTS)
+-- =============================================================================
+
+-- ---------------------------------------------------------------------------
+-- A. contacts — add missing columns (wa_id, source, external_id, lifetime_value)
+-- ---------------------------------------------------------------------------
+ALTER TABLE contacts ADD COLUMN IF NOT EXISTS wa_id           text;
+ALTER TABLE contacts ADD COLUMN IF NOT EXISTS source          text;
+ALTER TABLE contacts ADD COLUMN IF NOT EXISTS external_id     text;
+ALTER TABLE contacts ADD COLUMN IF NOT EXISTS lifetime_value  numeric(12,2) DEFAULT 0;
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_contacts_tenant_phone
+  ON contacts(tenant_id, phone) WHERE phone IS NOT NULL;
+
+-- ---------------------------------------------------------------------------
+-- B. subscriptions — add addon columns + payfast_token
+-- ---------------------------------------------------------------------------
+ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS addon_ring            boolean DEFAULT false;
+ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS addon_reach           boolean DEFAULT false;
+ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS addon_sage            boolean DEFAULT false;
+ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS addon_language_pack   boolean DEFAULT false;
+ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS addon_client_portal   boolean DEFAULT false;
+ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS payfast_token         text;
+
+-- ---------------------------------------------------------------------------
+-- C. billing_events — payment & subscription lifecycle events
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS billing_events (
+  id                uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id         uuid        NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  event_type        text        NOT NULL,
+  amount            numeric(10,2),
+  payfast_reference text,
+  metadata          jsonb       DEFAULT '{}',
+  created_at        timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE billing_events ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "billing_events_rls" ON billing_events;
+CREATE POLICY "billing_events_rls" ON billing_events
+  FOR ALL USING (tenant_id = current_tenant_id());
+
+CREATE INDEX IF NOT EXISTS idx_billing_events_tenant
+  ON billing_events(tenant_id, created_at DESC);
+
+-- ---------------------------------------------------------------------------
+-- D. call_logs — Ring (Twilio Voice) call records
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS call_logs (
+  id               uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id        uuid        NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  contact_id       uuid        REFERENCES contacts(id) ON DELETE SET NULL,
+  twilio_call_sid  text        UNIQUE,
+  direction        text        NOT NULL DEFAULT 'inbound',
+  from_number      text        NOT NULL,
+  to_number        text        NOT NULL,
+  status           text        NOT NULL DEFAULT 'ringing',
+  duration_sec     integer,
+  recording_url    text,
+  transcript       text,
+  sentiment        text,
+  summary          text,
+  ai_handled       boolean     DEFAULT true,
+  transferred_to   text,
+  whatsapp_sent    boolean     DEFAULT false,
+  started_at       timestamptz NOT NULL DEFAULT now(),
+  ended_at         timestamptz,
+  created_at       timestamptz NOT NULL DEFAULT now(),
+  updated_at       timestamptz NOT NULL DEFAULT now()
+);
+
+DROP TRIGGER IF EXISTS call_logs_updated_at ON call_logs;
+CREATE TRIGGER call_logs_updated_at
+  BEFORE UPDATE ON call_logs FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+ALTER TABLE call_logs ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "call_logs_rls" ON call_logs;
+CREATE POLICY "call_logs_rls" ON call_logs
+  FOR ALL USING (tenant_id = current_tenant_id());
+
+CREATE INDEX IF NOT EXISTS idx_call_logs_tenant
+  ON call_logs(tenant_id, started_at DESC);
+CREATE INDEX IF NOT EXISTS idx_call_logs_contact
+  ON call_logs(tenant_id, contact_id);
+
+-- ---------------------------------------------------------------------------
+-- E. broadcast_campaigns — Reach campaign table (if not already created)
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS broadcast_campaigns (
+  id               uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id        uuid        NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  name             text        NOT NULL,
+  audience_filter  jsonb       DEFAULT '{}',
+  message_template text        NOT NULL,
+  template_name    text,
+  scheduled_at     timestamptz,
+  sent_at          timestamptz,
+  status           text        NOT NULL DEFAULT 'draft',
+  sent_count       integer     DEFAULT 0,
+  delivered_count  integer     DEFAULT 0,
+  failed_count     integer     DEFAULT 0,
+  created_at       timestamptz NOT NULL DEFAULT now(),
+  updated_at       timestamptz NOT NULL DEFAULT now()
+);
+
+DROP TRIGGER IF EXISTS broadcast_campaigns_updated_at ON broadcast_campaigns;
+CREATE TRIGGER broadcast_campaigns_updated_at
+  BEFORE UPDATE ON broadcast_campaigns FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+ALTER TABLE broadcast_campaigns ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "broadcast_campaigns_rls" ON broadcast_campaigns;
+CREATE POLICY "broadcast_campaigns_rls" ON broadcast_campaigns
+  FOR ALL USING (tenant_id = current_tenant_id());
+
+CREATE INDEX IF NOT EXISTS idx_broadcast_campaigns_tenant
+  ON broadcast_campaigns(tenant_id, created_at DESC);
+
+-- campaign_sends — per-contact delivery tracking
+CREATE TABLE IF NOT EXISTS campaign_sends (
+  id             uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id      uuid        NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  campaign_id    uuid        NOT NULL REFERENCES broadcast_campaigns(id) ON DELETE CASCADE,
+  contact_id     uuid        REFERENCES contacts(id) ON DELETE SET NULL,
+  phone          text        NOT NULL,
+  status         text        NOT NULL DEFAULT 'pending',
+  wa_message_id  text,
+  sent_at        timestamptz,
+  error          text,
+  created_at     timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE campaign_sends ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "campaign_sends_rls" ON campaign_sends;
+CREATE POLICY "campaign_sends_rls" ON campaign_sends
+  FOR ALL USING (tenant_id = current_tenant_id());
+
+CREATE INDEX IF NOT EXISTS idx_campaign_sends_campaign
+  ON campaign_sends(campaign_id, status);
+CREATE INDEX IF NOT EXISTS idx_campaign_sends_tenant
+  ON campaign_sends(tenant_id);
+
+-- ---------------------------------------------------------------------------
+-- F. portal_sessions — Client Self-Service Portal (Phase 13)
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS portal_sessions (
+  id                uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id         uuid        NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  contact_identifier text       NOT NULL,
+  token             text        NOT NULL UNIQUE,
+  expires_at        timestamptz NOT NULL DEFAULT (now() + INTERVAL '7 days'),
+  revoked_at        timestamptz,
+  created_at        timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE portal_sessions ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "portal_sessions_rls" ON portal_sessions;
+CREATE POLICY "portal_sessions_rls" ON portal_sessions
+  FOR ALL USING (tenant_id = current_tenant_id());
+
+CREATE INDEX IF NOT EXISTS idx_portal_sessions_token
+  ON portal_sessions(token) WHERE revoked_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_portal_sessions_tenant
+  ON portal_sessions(tenant_id);
+
+-- Realtime for call_logs (Ring live updates)
+DO $$ BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE call_logs; EXCEPTION WHEN OTHERS THEN NULL; END $$;
+DO $$ BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE broadcast_campaigns; EXCEPTION WHEN OTHERS THEN NULL; END $$;
+
+-- =============================================================================
 -- DONE ✓
 --
--- Tables (20):  tenants, contacts, conversations, messages, staff,
+-- Tables (26):  tenants, contacts, conversations, messages, staff,
 --               leave_requests, invoices, debtors, documents, goals,
 --               calendar_events, audit_log, subscriptions, business_insights,
 --               whatsapp_sequences, sequence_enrollments, referrals,
---               workflow_queue, document_templates, email_drafts
+--               workflow_queue, document_templates, email_drafts,
+--               billing_events, call_logs, broadcast_campaigns, campaign_sends,
+--               portal_sessions
+--               (+ contacts/subscriptions column additions)
 --
--- Policies:     20 tables with tenant_id isolation
---               audit_log append-only (SELECT + INSERT only)
---
--- Triggers (5): auto_create_subscription, trg_invoice_overdue,
---               trg_document_processing, trg_wellness_burnout, trg_contract_expiry
---
--- Views (2):    overdue_invoices, wellness_summary
--- Realtime (6): conversations, messages, workflow_queue, email_drafts,
---               document_templates, calendar_events
--- Storage:      documents bucket (private, 50MB, signed URLs)
+-- Policies:     All tables with tenant_id isolation
 -- =============================================================================

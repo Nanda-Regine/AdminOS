@@ -10,6 +10,14 @@ const PLAN_AMOUNTS: Record<string, { amount: string; name: string }> = {
   white_label: { amount: '14999.00', name: 'AdminOS White Label' },
 }
 
+const ADDON_AMOUNTS: Record<string, { amount: string; name: string }> = {
+  ring:          { amount: '999.00',  name: 'AdminOS Ring Add-on'          },
+  reach:         { amount: '499.00',  name: 'AdminOS Reach Add-on'         },
+  sage:          { amount: '299.00',  name: 'AdminOS Sage Sync Add-on'     },
+  languages:     { amount: '199.00',  name: 'AdminOS Languages Add-on'     },
+  client_portal: { amount: '599.00',  name: 'AdminOS Client Portal Add-on' },
+}
+
 const PF_URL = process.env.NODE_ENV === 'production'
   ? 'https://www.payfast.co.za/eng/process'
   : 'https://sandbox.payfast.co.za/eng/process'
@@ -28,9 +36,20 @@ export async function GET(request: Request) {
   if (!user) return new NextResponse('Unauthorized', { status: 401 })
 
   const { searchParams } = new URL(request.url)
-  const plan = searchParams.get('plan') || 'starter'
-  const planConfig = PLAN_AMOUNTS[plan]
-  if (!planConfig) return new NextResponse('Invalid plan', { status: 400 })
+  const plan  = searchParams.get('plan')
+  const addon = searchParams.get('addon')
+
+  // Resolve item config — plan or add-on purchase
+  const itemConfig = plan
+    ? PLAN_AMOUNTS[plan]
+    : addon
+      ? ADDON_AMOUNTS[addon]
+      : null
+
+  if (!itemConfig) return new NextResponse('Invalid plan or addon', { status: 400 })
+
+  const itemKey  = plan ?? addon!
+  const isAddon  = !!addon
 
   const merchantId  = process.env.PAYFAST_MERCHANT_ID  || ''
   const merchantKey = process.env.PAYFAST_MERCHANT_KEY || ''
@@ -48,17 +67,20 @@ export async function GET(request: Request) {
     name_first:      (user.user_metadata?.full_name || user.email || '').split(' ')[0],
     name_last:       (user.user_metadata?.full_name || '').split(' ').slice(1).join(' ') || 'User',
     email_address:   user.email || '',
-    m_payment_id:    `${tenantId}:${plan}:${Date.now()}`,
-    amount:          planConfig.amount,
-    item_name:       planConfig.name,
-    item_description: `AdminOS ${plan} plan — monthly subscription`,
+    m_payment_id:    `${tenantId}:${itemKey}:${Date.now()}`,
+    amount:          itemConfig.amount,
+    item_name:       itemConfig.name,
+    item_description: isAddon
+      ? `AdminOS ${addon} add-on — monthly subscription`
+      : `AdminOS ${plan} plan — monthly subscription`,
     subscription_type: '1',
     billing_date:    new Date().toISOString().split('T')[0],
-    recurring_amount: planConfig.amount,
+    recurring_amount: itemConfig.amount,
     frequency:       '3', // monthly
     cycles:          '0', // indefinite
     custom_str1:     tenantId,
-    custom_str2:     plan,
+    custom_str2:     plan  ?? '',
+    custom_str3:     addon ?? '',
   }
 
   const signature = buildSignature(params, passphrase)

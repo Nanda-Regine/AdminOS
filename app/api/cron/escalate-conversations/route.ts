@@ -57,7 +57,7 @@ export async function GET(request: Request) {
         const hoursOpen    = Math.round((Date.now() - new Date(conv.updated_at).getTime()) / 3_600_000)
         await sendWhatsApp({
           to: tenant.whatsapp_number,
-          message: `[AdminOS Alert] A conversation with ${contactLabel} (${conv.intent || 'general inquiry'}) has been open for ${hoursOpen} hours. It has been flagged for your attention. Review it in your dashboard: adminos.co.za/dashboard/inbox`,
+          message: `[AdminOS Alert] A conversation with ${contactLabel} (${conv.intent || 'general inquiry'}) has been open for ${hoursOpen} hours. It has been flagged for your attention. Review it in your dashboard: ${process.env.NEXT_PUBLIC_APP_URL || 'https://adminos.co.za'}/dashboard/inbox`,
         }).catch((err) => console.error('[Escalation Cron] WhatsApp notify failed:', err))
       }
 

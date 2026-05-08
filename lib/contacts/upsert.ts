@@ -1,80 +1,41 @@
 import { supabaseAdmin } from '@/lib/supabase/admin'
 
 export async function upsertContact(params: {
-  tenantId: string
-  identifier: string
-  name?: string | null
-  phone?: string | null
-  email?: string | null
-  type?: 'client' | 'supplier' | 'staff' | 'unknown'
-  sentiment?: string | null
+  tenantId:    string
+  phone:       string
+  fullName?:   string | null
+  email?:      string | null
+  company?:    string | null
+  waId?:       string | null
+  source?:     string | null
+  externalId?: string | null
+  contactType?: 'client' | 'supplier' | 'staff' | 'unknown'
 }) {
-  const { tenantId, identifier, name, phone, email, type = 'client', sentiment } = params
-
-  const updates: Record<string, unknown> = {
-    updated_at: new Date().toISOString(),
-  }
-  if (name) updates.name = name
-  if (phone) updates.phone = phone
-  if (email) updates.email = email
-  if (sentiment) updates.sentiment = sentiment
+  const {
+    tenantId, phone, fullName, email, company,
+    waId, source, externalId, contactType = 'client',
+  } = params
 
   const { data, error } = await supabaseAdmin
     .from('contacts')
     .upsert(
       {
-        tenant_id: tenantId,
-        identifier,
-        name: name || identifier,
-        phone: phone || null,
-        email: email || null,
-        type,
-        sentiment: sentiment || null,
-        tags: [],
+        tenant_id:    tenantId,
+        phone,
+        full_name:    fullName   ?? null,
+        email:        email      ?? null,
+        company:      company    ?? null,
+        wa_id:        waId       ?? null,
+        source:       source     ?? null,
+        external_id:  externalId ?? null,
+        contact_type: contactType,
+        updated_at:   new Date().toISOString(),
       },
-      {
-        onConflict: 'tenant_id,identifier',
-        ignoreDuplicates: false,
-      }
+      { onConflict: 'tenant_id,phone', ignoreDuplicates: false }
     )
     .select('id')
     .single()
 
-  if (error) {
-    // If upsert fails (e.g. no unique constraint yet), try update-or-insert manually
-    const { data: existing } = await supabaseAdmin
-      .from('contacts')
-      .select('id')
-      .eq('tenant_id', tenantId)
-      .eq('identifier', identifier)
-      .single()
-
-    if (existing) {
-      await supabaseAdmin
-        .from('contacts')
-        .update(updates)
-        .eq('tenant_id', tenantId)
-        .eq('identifier', identifier)
-      return existing.id as string
-    }
-
-    const { data: inserted } = await supabaseAdmin
-      .from('contacts')
-      .insert({
-        tenant_id: tenantId,
-        identifier,
-        name: name || identifier,
-        phone: phone || null,
-        email: email || null,
-        type,
-        sentiment: sentiment || null,
-        tags: [],
-      })
-      .select('id')
-      .single()
-
-    return inserted?.id as string | undefined
-  }
-
-  return data?.id as string | undefined
+  if (error) throw error
+  return data.id as string
 }

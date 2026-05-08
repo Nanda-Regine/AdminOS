@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { redirect } from 'next/navigation'
 
-const APP_URL = 'https://adminos.co.za'
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://adminos.co.za'
 
 export default async function ReferralsPage() {
   const supabase = await createClient()
