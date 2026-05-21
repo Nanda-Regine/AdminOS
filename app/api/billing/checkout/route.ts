@@ -22,11 +22,19 @@ const PF_URL = process.env.NODE_ENV === 'production'
   ? 'https://www.payfast.co.za/eng/process'
   : 'https://sandbox.payfast.co.za/eng/process'
 
+// PHP urlencode-compatible encoder — matches PayFast's server-side signature calculation
+function phpUrlencode(str: string): string {
+  return encodeURIComponent(str)
+    .replace(/!/g, '%21').replace(/'/g, '%27')
+    .replace(/\(/g, '%28').replace(/\)/g, '%29')
+    .replace(/\*/g, '%2A').replace(/%20/g, '+')
+}
+
 function buildSignature(params: Record<string, string>, passphrase: string): string {
   const str = Object.entries(params)
     .filter(([, v]) => v !== '')
-    .map(([k, v]) => `${k}=${encodeURIComponent(v.trim()).replace(/%20/g, '+')}`)
-    .join('&') + `&passphrase=${encodeURIComponent(passphrase.trim()).replace(/%20/g, '+')}`
+    .map(([k, v]) => `${k}=${phpUrlencode(v.trim())}`)
+    .join('&') + `&passphrase=${phpUrlencode(passphrase.trim())}`
   return createHash('md5').update(str).digest('hex')
 }
 
@@ -58,16 +66,20 @@ export async function GET(request: Request) {
 
   const tenantId = user.user_metadata?.tenant_id as string
 
+  // Universal PayFast hub routes by "adminos_" prefix in m_payment_id.
+  // Return/cancel go to the hub pages which redirect back to adminos.co.za.
+  const HUB = 'https://creativelynanda.co.za'
+
   const params: Record<string, string> = {
     merchant_id:     merchantId,
     merchant_key:    merchantKey,
-    return_url:      `${appUrl}/dashboard/settings/billing?success=true`,
-    cancel_url:      `${appUrl}/dashboard/settings/billing?cancelled=true`,
-    notify_url:      `${appUrl}/api/billing/webhook`,
+    return_url:      `${HUB}/payfast/return?app=adminos`,
+    cancel_url:      `${HUB}/payfast/cancel?app=adminos`,
+    notify_url:      `${HUB}/api/payfast/universal-notify`,
     name_first:      (user.user_metadata?.full_name || user.email || '').split(' ')[0],
     name_last:       (user.user_metadata?.full_name || '').split(' ').slice(1).join(' ') || 'User',
     email_address:   user.email || '',
-    m_payment_id:    `${tenantId}:${itemKey}:${Date.now()}`,
+    m_payment_id:    `adminos_${tenantId}_${itemKey}_${Date.now()}`,
     amount:          itemConfig.amount,
     item_name:       itemConfig.name,
     item_description: isAddon
