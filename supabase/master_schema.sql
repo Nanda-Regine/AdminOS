@@ -1081,12 +1081,20 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_contacts_tenant_phone
 -- ---------------------------------------------------------------------------
 -- B. subscriptions — add addon columns + payfast_token
 -- ---------------------------------------------------------------------------
-ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS addon_ring            boolean DEFAULT false;
-ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS addon_reach           boolean DEFAULT false;
-ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS addon_sage            boolean DEFAULT false;
-ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS addon_language_pack   boolean DEFAULT false;
-ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS addon_client_portal   boolean DEFAULT false;
-ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS payfast_token         text;
+ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS addon_ring                    boolean     DEFAULT false;
+ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS addon_reach                   boolean     DEFAULT false;
+ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS addon_sage                    boolean     DEFAULT false;
+ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS addon_language_pack           boolean     DEFAULT false;
+-- addon_languages is the canonical column name used by checkout + hub (custom_str3='languages')
+ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS addon_languages               boolean     DEFAULT false;
+ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS addon_client_portal           boolean     DEFAULT false;
+ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS payfast_token                 text;
+-- addon expires columns (written by the universal PayFast hub on each renewal)
+ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS addon_ring_expires_at         timestamptz;
+ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS addon_reach_expires_at        timestamptz;
+ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS addon_sage_expires_at         timestamptz;
+ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS addon_languages_expires_at    timestamptz;
+ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS addon_client_portal_expires_at timestamptz;
 
 -- ---------------------------------------------------------------------------
 -- C. billing_events — payment & subscription lifecycle events
@@ -1237,16 +1245,42 @@ CREATE INDEX IF NOT EXISTS idx_portal_sessions_tenant
 DO $$ BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE call_logs; EXCEPTION WHEN OTHERS THEN NULL; END $$;
 DO $$ BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE broadcast_campaigns; EXCEPTION WHEN OTHERS THEN NULL; END $$;
 
+-- ---------------------------------------------------------------------------
+-- E. payment_events — full PayFast ITN audit trail (written by universal hub)
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS payment_events (
+  id              uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id       uuid        NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  event_type      text        NOT NULL,  -- 'payfast.complete' | 'payfast.subscr_payment' | 'payfast.cancelled'
+  payfast_pf_id   text,
+  payfast_token   text,
+  m_payment_id    text,
+  amount          numeric(10,2),
+  plan            text,
+  payload         jsonb       DEFAULT '{}',
+  processed       boolean     DEFAULT false,
+  created_at      timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE payment_events ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "payment_events_rls" ON payment_events;
+CREATE POLICY "payment_events_rls" ON payment_events
+  FOR ALL USING (tenant_id = current_tenant_id());
+
+CREATE INDEX IF NOT EXISTS idx_payment_events_tenant
+  ON payment_events(tenant_id, created_at DESC);
+
 -- =============================================================================
 -- DONE ✓
 --
--- Tables (26):  tenants, contacts, conversations, messages, staff,
+-- Tables (27):  tenants, contacts, conversations, messages, staff,
 --               leave_requests, invoices, debtors, documents, goals,
 --               calendar_events, audit_log, subscriptions, business_insights,
 --               whatsapp_sequences, sequence_enrollments, referrals,
 --               workflow_queue, document_templates, email_drafts,
 --               billing_events, call_logs, broadcast_campaigns, campaign_sends,
---               portal_sessions
+--               portal_sessions, payment_events
 --               (+ contacts/subscriptions column additions)
 --
 -- Policies:     All tables with tenant_id isolation
