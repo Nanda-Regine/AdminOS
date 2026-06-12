@@ -347,17 +347,89 @@ MARKETING.md, SECURITY_AUDIT_REPORT.md, WONDERLAND_DECISIONS_ADMINOS.md
 
 ---
 
+## Phase 23 — PayFast Universal Hub + Schema Hardening (Session 7)
+
+**Goal:** Route all AdminOS payments through the universal PayFast hub and fix schema gaps blocking billing.
+
+- Wired all checkout flows to `creativelynanda.co.za/api/payfast/universal-notify` — single ITN endpoint for all apps
+- `m_payment_id` format: `adminos_{tenantId}_{itemKey}_{timestamp}` — hub routes by prefix
+- `return_url` / `cancel_url` → hub pages with `?app=adminos` query param
+- Fixed `phpUrlencode()` to match PayFast's PHP-style URL encoding (space → `+`, not `%20`) — was causing signature mismatch in production
+- Schema: added `addon_languages` column (was `addon_language_pack` — name mismatch vs hub), `addon_*_expires_at` columns for all 5 add-ons, `payment_events` audit table
+
+**Key decision:** Centralised PayFast hub vs per-app ITN endpoints. The hub at creativelynanda.co.za handles all Mirembe Muse products — one place to debug, one signature key, one IP allowlist.
+
+---
+
+## Phase 24 — Production Completion Sprint (Session 7)
+
+**Goal:** Execute the entire TODO.md — fill every missing API route, dashboard page, and background function.
+
+### DB blockers resolved
+- `admins` superadmin row inserted correctly (schema has `id, user_id, created_at, created_by` — not `email, role`)
+- All schema patches applied via Management API
+
+### 9 missing API routes built
+- `app/api/staff/my-profile/route.ts` — GET/PATCH own profile (phone, emergency contact, bank details)
+- `app/api/staff/[id]/payslips/route.ts` — GET payslips with tenant ownership check
+- `app/api/staff/[id]/documents/route.ts` — GET/POST staff documents
+- `app/api/payroll/[id]/generate-payslips/route.ts` — POST creates payslip records, marks run as `processing`
+- `app/api/payroll/[id]/distribute/route.ts` — POST fires `adminos/payroll.distribute` Inngest event, marks run as `distributed`
+- `app/api/loyalty/route.ts` — GET/POST upserts loyalty programme per tenant
+- `app/api/tasks/[id]/comments/route.ts` — GET/POST task comments with tenant ownership check
+- `app/api/book/[slug]/route.ts` — PUBLIC: GET returns tenant+services by booking slug, POST creates booking+contact
+- `app/api/contracts/[id]/sign/route.ts` — TOKENISED: GET/POST sign_token verification, captures signer IP
+
+### 18 missing dashboard pages built
+Staff hub, payroll run manager, performance reviews, disciplinary cases, leave calendar, shift scheduler, expenses tracker, inventory manager, task board (Kanban), cashflow visualiser (Recharts), bookings manager, contracts centre, SOPs library, NPS dashboard, announcements board, compliance checklist, community forum, Langa AI chat.
+
+### 9 missing Inngest functions built
+- `contextualTrigger` — fires Academy nudges on `adminos/business.event.fired`, 3/day cap
+- `formalizationNudge` — weekly cron, checks 5 formalization milestones, dedupes vs last 7 days
+- `achievementChecker` — event-driven, maps trigger types to achievement codes
+- `cashflowForecast` — Monday 06:00 cron, upserts cashflow forecasts per tenant
+- `loyaltyExpiry` — 31 Dec 23:00 cron, zeros points balances, records expiry transaction
+- `bookingReminder` — fires on `adminos/booking.confirmed`, `step.sleep` until 24h before `start_at`
+- `sopAcknowledgement` — Friday 09:00 cron, notifies staff with unacknowledged SOPs
+- `socialSync` — hourly cron, updates `last_synced_at` (Graph API stub)
+- `benchmarkCalculate` — Sunday 02:00 cron, upserts industry benchmark medians by `business_type`
+
+### UX overhaul — 4 issues fixed
+1. **Tasks board** — `assigned_to` was a UUID; now fetches staff table in parallel, builds `staffMap`, shows real names
+2. **Langa chat** — removed `prose` Tailwind classes (requires `@tailwindcss/typography`, not installed); replaced with explicit per-element `components` prop on `ReactMarkdown`
+3. **Community forum** — first version used wrong categories and field names; rewritten against real API schema (`need_help, can_help, experience, supplier_review, celebration`; fields: `helpful_count, replies_count`)
+4. **Cashflow chart** — `CashflowChart.tsx` client component with Recharts; buckets 90-day entries into 10-day bands; green income bars, red expense bars; custom ZAR formatter (R120k, R1.2M)
+
+**Key decision:** `react-markdown` with a custom `components` prop rather than `@tailwindcss/typography` — Tailwind v4 has no `tailwind.config.ts` so plugins can't be registered the old way.
+
+---
+
+## Stats
+
+- **Phases completed:** 24/24
+- **Sessions:** 7
+- **API routes:** 60+
+- **Dashboard pages:** 33+
+- **AI agents:** 5 named agents + Langa mentor + orchestrator
+- **Inngest functions:** 16 background workflows
+- **WhatsApp templates:** 40+
+- **Cron jobs:** 12 automated workflows
+- **Add-ons:** Ring, Reach, Client Portal, Sage, Language Pack
+- **Lines of code:** ~18,000+
+
+---
+
 ## What's Next
 
-AdminOS v2.0 is production-ready. The roadmap beyond launch:
-
-1. **Sage / QuickBooks integration** — the majority of SA SME accountants use Sage; `addon_sage` gate already in schema
-2. **Voice note processing** — WhatsApp voice notes are extremely popular in SA, Whisper API transcription
-3. **Calendar integration** — Google Calendar sync for appointment booking via Alex
-4. **Mobile app** — React Native wrapper (PWA covers ~90% of use cases already)
-5. **Multi-location Enterprise** — franchise and multi-branch support
-6. **Insurance document processor** — CIPC compliance certificate automation
-7. **Inngest job queue** — for Reach campaigns with audiences >10k contacts
+- **Expo mobile app** — React Native + Expo, offline mode, push notifications, OTA updates
+- **af-south-1 migration** — move Supabase project to Africa (Cape Town) region for <50ms latency
+- **Ozow / SnapScan** — instant EFT and QR code payment options alongside PayFast
+- **Twilio Voice Intelligence** — real call transcription + sentiment for Ring add-on
+- **Sentry** — error monitoring and performance tracing
+- **Academy lesson content** — 30 lessons across 4 levels, Langa contextual triggers
+- **Annual billing** — 2 months free incentive, `billing_cycle` column in subscriptions
+- **Public `/impact` page** — live impact metrics for Cartier Women's Initiative application
+- **White-label reseller** — partner tier, custom branding per tenant
 
 ---
 
