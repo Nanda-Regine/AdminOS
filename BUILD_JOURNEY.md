@@ -419,17 +419,97 @@ Staff hub, payroll run manager, performance reviews, disciplinary cases, leave c
 
 ---
 
+## Phase 25 — Expo Mobile App + Production Audit (Session 8)
+
+**Goal:** Build the full React Native mobile app and fix every production-blocking bug found in the audit.
+
+### Expo app built from scratch (`expo-app/`)
+
+**Stack:** Expo SDK 52 · expo-router v4 (file-based routing) · NativeWind v4 + Tailwind v3 · React Query v5 + AsyncStorage persister · Zustand 4 · Supabase JS 2.49 · expo-secure-store · expo-notifications · expo-local-authentication · expo-location · @react-native-community/netinfo
+
+**Auth & routing:**
+- `expo-app/lib/supabase.ts` — `ExpoSecureStoreAdapter` (not cookies); `detectSessionInUrl: false`
+- `expo-app/lib/api.ts` — `apiFetch<T>()` reads Bearer token from Supabase session, calls `https://adminos.co.za`
+- `expo-app/store/auth.ts` — Zustand store; `setSession()` extracts `role`, `tenantId`, `staffId` from `user_metadata`
+- `expo-app/app/_layout.tsx` — OTA update check on mount; role-based redirect to `(owner)` or `(my-admin)`; PersistQueryClientProvider
+
+**Screens built:**
+- `(auth)/login.tsx` — email/password + Face ID / fingerprint via `expo-local-authentication`; role-based redirect
+- `(owner)/index.tsx` — health score ring (coloured border), KPIs (overdue invoices, open conversations, pending tasks)
+- `(owner)/langa.tsx` — full Langa AI chat; starter prompts, typing indicator; calls `/api/agents/langa` via `apiFetch`
+- `(my-admin)/clock.tsx` — GPS clock-in/out via `expo-location`; writes to `clock_events` table (`event_type: 'clock_in'/'clock_out'`, `lat`, `lng`)
+- `(my-admin)/handbook.tsx` — SOP viewer; `sop_documents` table; JSONB content extracted via `extractText()`; upserts `sop_acknowledgements`
+- `(my-admin)/training.tsx` — Academy progress; queries `academy_progress` joined to `academy_lessons` → `academy_modules` for level info
+- `(my-admin)/announcements.tsx` — reads `announcements` table; pinned items highlighted with left border
+
+**Hooks:**
+- `hooks/usePushNotifications.ts` — requests permission, gets Expo push token, upserts to `push_tokens` table
+- `hooks/useOfflineQueue.ts` — `enqueueAction()` saves to AsyncStorage; flushes queue via Supabase when NetInfo reports `isConnected: true`
+
+**Env files:**
+- `expo-app/.env` — `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY`, `EXPO_PUBLIC_API_URL`
+- Both env files covered by `.env*` in `.gitignore`
+
+### DB schema mismatches fixed (mobile audit)
+
+Four screens had wrong table/column assumptions — all corrected before commit:
+
+| Screen | Bug | Fix |
+|--------|-----|-----|
+| `clock.tsx` | Used `shifts` table (roster) | Rewrote to `clock_events` with `event_type` |
+| `handbook.tsx` | Used `sops` table; `text` content; `effective_date`; `staff_id` for acks | Rewrote to `sop_documents`; JSONB; `published_at`; `user_id` |
+| `training.tsx` | Used `academy_enrollments` (doesn't exist) | Rewrote to `academy_progress` with nested join |
+| `announcements.tsx` | Selected `author_name` (doesn't exist) | Removed — table has `created_by` UUID only |
+
+### New migration
+
+- `supabase/migrations/20260612_mobile_notifications.sql` — `notifications` table; `user_id`, `tenant_id`, `type`, `title`, `body`, `read`, `action_url`, `data`; RLS (`user_id = auth.uid()`); published to `supabase_realtime`
+
+### Next.js API update — dual auth
+
+- `app/api/agents/langa/route.ts` — now accepts both Bearer token (mobile) and cookie session (web); checks `Authorization: Bearer` header first, falls back to `createClient()` cookie auth
+
+### Production audit — 4 bugs fixed (commit `3420aea`)
+
+All issues identified by the Explore-agent audit were fixed:
+
+1. **`inngest/functions/docIntelligence.ts:29`** — storage download used `tenant-documents` bucket; upload route uses `documents` — fixed to match
+2. **`app/api/sops/[id]/route.ts:40`** — `updates.version = supabaseAdmin.rpc as unknown as number` was dead code (overridden 10 lines later by correct fetch + increment) — removed
+3. **`inngest/functions/boardPack.ts:326`** — `from('employees')` → `from('staff')`; `.eq('status', 'active')` → `.eq('employment_status', 'active')`
+4. **`.env.local.example`** — `META_WEBHOOK_VERIFY_TOKEN` and `META_APP_SECRET` were undocumented — added with instructions
+
+**Remaining stub:** `inngest/functions/socialSync.ts` — runs hourly but only updates `last_synced_at`; no actual Graph API calls. Safe to leave as-is; implement when Facebook/Instagram integration is prioritised.
+
+---
+
+## Stats
+
+- **Phases completed:** 25/25
+- **Sessions:** 8
+- **API routes:** 60+
+- **Dashboard pages:** 33+
+- **Mobile screens:** 7 (owner dashboard, Langa chat, clock-in, handbook, training, announcements, login)
+- **AI agents:** 5 named agents + Langa mentor + orchestrator
+- **Inngest functions:** 16 background workflows
+- **WhatsApp templates:** 40+
+- **Cron jobs:** 12 automated workflows
+- **Add-ons:** Ring, Reach, Client Portal, Sage, Language Pack
+- **Lines of code:** ~20,000+
+
+---
+
 ## What's Next
 
-- **Expo mobile app** — React Native + Expo, offline mode, push notifications, OTA updates
-- **af-south-1 migration** — move Supabase project to Africa (Cape Town) region for <50ms latency
-- **Ozow / SnapScan** — instant EFT and QR code payment options alongside PayFast
+- **Deploy** — `npx vercel login` → `npx vercel --prod --yes`; fill Supabase keys in `.env.local` and `expo-app/.env`; run `node scripts/apply-migrations.mjs` for `notifications` table
+- **EAS Build** — `eas build --platform all` for App Store + Play Store submission
+- **More mobile screens** — invoices, leave requests, expense claims (camera), payslips, task list
+- **af-south-1 migration** — move Supabase project to Cape Town for <50ms latency
+- **Ozow / SnapScan** — instant EFT and QR code payment alongside PayFast
 - **Twilio Voice Intelligence** — real call transcription + sentiment for Ring add-on
-- **Sentry** — error monitoring and performance tracing
-- **Academy lesson content** — 30 lessons across 4 levels, Langa contextual triggers
-- **Annual billing** — 2 months free incentive, `billing_cycle` column in subscriptions
+- **Academy content** — 30 lessons across 4 levels; Langa contextual triggers wired up
+- **Annual billing** — 2-month-free incentive; `billing_cycle` column in subscriptions
 - **Public `/impact` page** — live impact metrics for Cartier Women's Initiative application
-- **White-label reseller** — partner tier, custom branding per tenant
+- **socialSync** — implement actual Facebook/Instagram Graph API calls
 
 ---
 
