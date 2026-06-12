@@ -14,7 +14,9 @@ export async function GET(request: Request) {
     .from('workflow_queue')
     .select('*')
     .eq('status', 'pending')
-    .lte('scheduled_for', new Date().toISOString())
+    .lte('next_attempt_at', new Date().toISOString())
+    .order('priority', { ascending: true })  // lower number = higher priority
+    .order('next_attempt_at', { ascending: true })
     .limit(50)
 
   if (!jobs || jobs.length === 0) {
@@ -25,7 +27,7 @@ export async function GET(request: Request) {
     jobs.map(async (job) => {
       await supabaseAdmin
         .from('workflow_queue')
-        .update({ status: 'running', started_at: new Date().toISOString() })
+        .update({ status: 'processing', processing_started_at: new Date().toISOString() })
         .eq('id', job.id)
 
       const eventMap: Record<string, string> = {

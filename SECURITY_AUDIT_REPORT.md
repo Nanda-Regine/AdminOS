@@ -11,7 +11,7 @@
 
 AdminOS has been built with security-first architecture throughout. This report documents the security controls in place, residual risks, and recommendations before the public launch.
 
-**Overall posture: GOOD** — No critical vulnerabilities identified. Three medium-severity items require action before enterprise tier launch.
+**Overall posture: GOOD** — No critical vulnerabilities identified. Three medium-severity items were identified; all three have been resolved (June 2026).
 
 ---
 
@@ -25,7 +25,7 @@ AdminOS has been built with security-first architecture throughout. This report 
 | Session management | ✅ | HTTP-only cookies set by Supabase, no localStorage tokens |
 | Route protection | ✅ | `middleware.ts` enforces auth on all `/dashboard/*` and `/api/*` (except webhooks) |
 | Trial enforcement | ✅ | Trial expiry checked in middleware, redirects to billing |
-| Super-admin role | ✅ | `/api/admin/*` routes check `user_metadata.role === 'super_admin'` |
+| Super-admin role | ✅ | `/api/admin/*` routes verify against `admins` DB table (service-role only write), not JWT metadata |
 
 ### Residual Risks
 - **MEDIUM:** No 2FA enforced on Starter/Growth tiers. Enterprise tier has 2FA in roadmap — prioritise.
@@ -62,7 +62,7 @@ AdminOS has been built with security-first architecture throughout. This report 
 | SSRF | ✅ | No user-controlled URLs fetched server-side |
 
 ### Residual Risks
-- **MEDIUM:** The `/api/admin/create-tenant` route relies on `user_metadata.role` from JWT. If a user can self-assign `super_admin` role via Supabase client SDK, this is a privilege escalation vector. **Action:** Add a server-side DB check against an `admins` table, not just JWT metadata.
+- ~~**MEDIUM:** The `/api/admin/create-tenant` route relies on `user_metadata.role` from JWT.~~ **RESOLVED June 2026** — Both admin routes now query the `admins` DB table via service role. Users can still update `user_metadata` but it is no longer consulted for privilege checks.
 - **LOW:** Zod error messages in API responses reveal schema shape. Consider generic 400 responses in production.
 
 ---
@@ -78,7 +78,7 @@ AdminOS has been built with security-first architecture throughout. This report 
 | Prompt caching | ✅ | System prompts cached with `cache_control: ephemeral` — injected user content cannot poison cache |
 
 ### Residual Risks
-- **LOW:** Document text extracted by pdf-parse/mammoth is passed to Claude without sanitization. A maliciously crafted PDF could contain injection text. **Action:** Run `sanitizeForAI()` on extracted document text before sending to Claude.
+- ~~**LOW:** Document text extracted by pdf-parse/mammoth is passed to Claude without sanitization.~~ **RESOLVED June 2026** — `sanitizeDocumentText()` added to `lib/security/sanitize.ts` and applied in `parseFile()` before returning to the AI layer. All 16 injection patterns stripped; no character limit (documents use their own 80k char cap).
 
 ---
 
@@ -148,14 +148,14 @@ Key dependencies and last audit status (April 2026):
 
 ## Priority Action Items
 
-| Priority | Item | Owner | By |
-|----------|------|-------|----|
-| HIGH | Run `npm audit` and fix HIGH/CRITICAL | Dev | Before launch |
-| MEDIUM | Move super-admin check to DB table, not JWT metadata | Dev | Before enterprise tier |
-| MEDIUM | Enforce 2FA for Enterprise tier | Dev | Q3 2026 |
-| MEDIUM | Sanitize extracted document text before Claude | Dev | Sprint 1 post-launch |
-| LOW | Add zxcvbn password strength scoring | Dev | Q3 2026 |
-| LOW | Implement data breach notification runbook | Legal/Dev | Q3 2026 |
+| Priority | Item | Owner | By | Status |
+|----------|------|-------|----|--------|
+| HIGH | Run `npm audit` and fix HIGH/CRITICAL | Dev | Before launch | Open |
+| ~~MEDIUM~~ | ~~Move super-admin check to DB table, not JWT metadata~~ | ~~Dev~~ | ~~Before enterprise tier~~ | **DONE Jun 2026** |
+| MEDIUM | Enforce 2FA for Enterprise tier | Dev | Q3 2026 | Open |
+| ~~MEDIUM~~ | ~~Sanitize extracted document text before Claude~~ | ~~Dev~~ | ~~Sprint 1 post-launch~~ | **DONE Jun 2026** |
+| LOW | Add zxcvbn password strength scoring | Dev | Q3 2026 | Open |
+| LOW | Implement data breach notification runbook | Legal/Dev | Q3 2026 | DONE (POPIA_BREACH_RESPONSE_PLAN.md) |
 
 ---
 

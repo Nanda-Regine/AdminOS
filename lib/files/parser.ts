@@ -9,6 +9,8 @@
  * Video     : MP4, MOV, AVI       (transcription placeholder)
  */
 
+import { sanitizeDocumentText } from '@/lib/security/sanitize'
+
 export type SupportedFileType =
   // Documents
   | 'pdf' | 'docx' | 'doc' | 'xlsx' | 'xls' | 'csv'
@@ -117,22 +119,28 @@ export async function parseFile(
     }
   }
 
+  let result: ParseResult
   switch (fileType) {
-    case 'pdf': return parsePDF(buffer, fileType)
-    case 'docx': return parseDOCX(buffer, fileType)
-    case 'doc': return parseDOC(buffer, fileType)
+    case 'pdf': result = await parsePDF(buffer, fileType); break
+    case 'docx': result = await parseDOCX(buffer, fileType); break
+    case 'doc': result = await parseDOC(buffer, fileType); break
     case 'xlsx':
-    case 'xls': return parseExcel(buffer, fileType)
-    case 'csv': return parseCSV(buffer, fileType)
-    case 'pptx': return parsePPTX(buffer, fileType)
-    case 'json': return parseJSON(buffer, fileType)
-    case 'xml': return parseXML(buffer, fileType)
+    case 'xls': result = await parseExcel(buffer, fileType); break
+    case 'csv': result = await parseCSV(buffer, fileType); break
+    case 'pptx': result = await parsePPTX(buffer, fileType); break
+    case 'json': result = await parseJSON(buffer, fileType); break
+    case 'xml': result = await parseXML(buffer, fileType); break
     case 'txt':
     case 'md':
     case 'rtf':
     default:
-      return parsePlainText(buffer, fileType)
+      result = parsePlainText(buffer, fileType)
   }
+
+  // Strip prompt injection patterns from extracted document text before
+  // it reaches the AI layer — a malicious PDF/DOCX could otherwise override
+  // the system prompt or exfiltrate tenant data.
+  return { ...result, text: sanitizeDocumentText(result.text) }
 }
 
 async function parsePDF(buffer: Buffer, fileType: SupportedFileType): Promise<ParseResult> {

@@ -67,6 +67,25 @@ export function sanitizeSystemPromptValue(value: string, maxLength = 500): strin
 }
 
 /**
+ * Sanitize extracted document text before passing to an AI agent.
+ * Same injection pattern stripping as sanitizeForAI but without the 2,000
+ * character limit — documents have their own 80k limit in the file parser.
+ * Fixes: security audit finding — document text passed to Claude unsanitized.
+ *
+ * @param text - Raw extracted text from PDF/DOCX/XLSX/etc.
+ * @returns Sanitized text safe for inclusion in AI document analysis
+ */
+export function sanitizeDocumentText(text: string): string {
+  if (typeof text !== 'string') return ''
+
+  let sanitized = text
+  for (const pattern of INJECTION_PATTERNS) {
+    sanitized = sanitized.replace(pattern, '[filtered]')
+  }
+  return sanitized
+}
+
+/**
  * Validate that a tenant ID header value is safe to use as a DB identifier.
  * Prevents header injection into Supabase queries.
  */

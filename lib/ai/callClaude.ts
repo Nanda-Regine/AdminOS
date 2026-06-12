@@ -1,5 +1,11 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { Tenant, Message } from '@/types/database'
+import {
+  checkBudget,
+  recordUsage,
+  getModelForFeature,
+  MODELS,
+} from '@/lib/ai/costControls'
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
@@ -42,17 +48,35 @@ async function withRetry<T>(
 export async function callClaudeWithCache(
   tenant: Tenant,
   userMessage: string,
-  conversationHistory: Message[]
+  conversationHistory: Message[],
+  feature = 'conversation'
 ) {
+  // Budget check — hard stop if tenant exceeded daily token limit
+  const budget = await checkBudget(tenant.id, tenant.plan ?? 'trial', 1200)
+  if (!budget.allowed) {
+    return {
+      text: `I'm unable to respond right now — your daily AI usage limit has been reached. It resets at midnight. To increase your limit, upgrade your plan at /dashboard/settings/billing.`,
+      tokens: 0,
+      cacheReadTokens: 0,
+      cacheWriteTokens: 0,
+      fromCache: false,
+      budgetExceeded: true,
+    }
+  }
+
+  const model = getModelForFeature(feature, tenant.plan ?? 'trial')
+
   // Keep last 10 messages to cap context size and cost
   const history = conversationHistory.slice(-10).map((m) => ({
     role: m.role as 'user' | 'assistant',
     content: m.content,
   }))
 
+  const t0 = Date.now()
+
   const response = await withRetry(() =>
     anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
+      model,
       max_tokens: 1000,
       system: [
         {
@@ -75,28 +99,74 @@ export async function callClaudeWithCache(
   const cacheWriteTokens = usageExtra.cache_creation_input_tokens || 0
   const fromCache = cacheReadTokens > 0
 
+  void recordUsage({
+    tenantId:   tenant.id,
+    plan:       tenant.plan ?? 'trial',
+    feature,
+    model,
+    tokensIn:   response.usage.input_tokens,
+    tokensOut:  response.usage.output_tokens,
+    durationMs: Date.now() - t0,
+  })
+
   return {
     text,
     tokens: response.usage.input_tokens + response.usage.output_tokens,
     cacheReadTokens,
     cacheWriteTokens,
     fromCache,
+    budgetExceeded: false,
   }
+}
+
+export interface AgentCallOpts {
+  tenantId?: string
+  plan?:     string
+  feature?:  string
+  model?:    string  // explicit model override — skips feature routing
 }
 
 export async function callClaudeAgent(
   systemPrompt: string,
   userMessage: string,
-  maxTokens = 500
+  maxTokens = 500,
+  opts?: AgentCallOpts
 ) {
+  const plan    = opts?.plan    ?? 'trial'
+  const feature = opts?.feature ?? 'agent_call'
+  const model   = opts?.model   ?? getModelForFeature(feature, plan)
+
+  // Budget check if we have a tenant context
+  if (opts?.tenantId) {
+    const budget = await checkBudget(opts.tenantId, plan, maxTokens)
+    if (!budget.allowed) {
+      console.warn(`[AI:blocked] tenant=${opts.tenantId} feature=${feature} reason=${budget.reason}`)
+      return ''
+    }
+  }
+
+  const t0 = Date.now()
+
   const response = await withRetry(() =>
     anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
+      model,
       max_tokens: maxTokens,
       system: systemPrompt,
       messages: [{ role: 'user', content: userMessage }],
     })
   )
+
+  if (opts?.tenantId) {
+    void recordUsage({
+      tenantId:   opts.tenantId,
+      plan,
+      feature,
+      model,
+      tokensIn:   response.usage.input_tokens,
+      tokensOut:  response.usage.output_tokens,
+      durationMs: Date.now() - t0,
+    })
+  }
 
   const content = response.content[0]
   return content.type === 'text' ? content.text : ''
@@ -104,21 +174,27 @@ export async function callClaudeAgent(
 
 export async function classifyIntent(
   text: string,
-  tenantContext: string
+  tenantContext: string,
+  opts?: AgentCallOpts
 ): Promise<string> {
   const result = await callClaudeAgent(
     `${tenantContext}\n\nClassify the intent of the following message into ONE of: leave_request, invoice_query, general_faq, complaint, appointment, wellness_checkin, document_request, other. Reply with ONLY the intent label.`,
     text,
-    50
+    50,
+    { feature: 'intent_classify', model: MODELS.HAIKU, ...opts }
   )
   return result.trim().toLowerCase()
 }
 
-export async function classifySentiment(text: string): Promise<string> {
+export async function classifySentiment(
+  text: string,
+  opts?: AgentCallOpts
+): Promise<string> {
   const result = await callClaudeAgent(
     'Classify the sentiment of this message into ONE of: positive, neutral, negative, urgent. Reply with ONLY the label.',
     text,
-    20
+    20,
+    { feature: 'sentiment_classify', model: MODELS.HAIKU, ...opts }
   )
   const sentiment = result.trim().toLowerCase()
   const valid = ['positive', 'neutral', 'negative', 'urgent']

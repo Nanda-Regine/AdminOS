@@ -27,6 +27,22 @@
     {
       "path": "/api/cron/escalate-conversations",
       "schedule": "0 9 * * 1-5"
+    },
+    {
+      "path": "/api/cron/health-score",
+      "schedule": "0 2 * * 1"
+    },
+    {
+      "path": "/api/cron/calculate-benchmarks",
+      "schedule": "0 3 * * 1"
+    },
+    {
+      "path": "/api/cron/process-queue",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/license-reminders",
+      "schedule": "0 7 * * 1"
     }
   ],
   "headers": [

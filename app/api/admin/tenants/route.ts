@@ -3,15 +3,23 @@ import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { writeAuditLog, getClientIp } from '@/lib/security/audit'
 
-// Super admin only — requires admin role in user_metadata
-async function requireSuperAdmin(request: Request) {
-  const { createClient: serverClient } = await import('@/lib/supabase/server')
-  const supabase = await serverClient()
+// Super admin only — verified against DB admins table, NOT JWT metadata.
+// Users can write to user_metadata via supabase.auth.updateUser() (client SDK),
+// so JWT metadata alone is a privilege-escalation vector. The admins table is
+// only writable via the service role (supabaseAdmin), making it tamper-proof.
+async function requireSuperAdmin(_request: Request) {
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  if (!user || user.user_metadata?.role !== 'super_admin') {
-    return null
-  }
+  if (!user) return null
+
+  const { data: adminRecord } = await supabaseAdmin
+    .from('admins')
+    .select('id')
+    .eq('user_id', user.id)
+    .single()
+
+  if (!adminRecord) return null
   return user
 }
 

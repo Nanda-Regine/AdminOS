@@ -2,6 +2,7 @@ import { inngest } from '@/inngest/client'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { sendWhatsAppTemplate } from '@/lib/whatsapp/send'
 import { WHATSAPP_TEMPLATES } from '@/lib/whatsapp/templates'
+import { seedDefaultRoles, assignRole } from '@/lib/auth/permissions'
 import { Resend } from 'resend'
 
 const resend = new Resend(process.env.RESEND_API_KEY!)
@@ -20,6 +21,19 @@ export const onboardingSequence = inngest.createFunction(
         .single()
       return data
     })
+
+    // Seed default roles (owner, admin, manager, staff, field_agent, client)
+    await step.run('seed-roles', async () => {
+      await seedDefaultRoles(tenant_id)
+    })
+
+    // Assign the owner user their owner role
+    const ownerId = (tenant?.settings as Record<string, string>)?.owner_user_id
+    if (ownerId) {
+      await step.run('assign-owner-role', async () => {
+        await assignRole({ userId: ownerId, tenantId: tenant_id, roleName: 'owner' })
+      })
+    }
 
     const ownerPhone = (tenant?.settings as Record<string, string>)?.owner_phone
     const ownerEmail = (tenant?.settings as Record<string, string>)?.owner_email

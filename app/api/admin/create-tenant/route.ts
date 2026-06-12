@@ -18,7 +18,18 @@ export async function POST(request: Request) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  if (!user || user.user_metadata?.role !== 'super_admin') {
+  if (!user) {
+    return new NextResponse('Forbidden', { status: 403 })
+  }
+
+  // Verify against DB admins table — not JWT metadata (users can self-assign user_metadata).
+  const { data: adminRecord } = await supabaseAdmin
+    .from('admins')
+    .select('id')
+    .eq('user_id', user.id)
+    .single()
+
+  if (!adminRecord) {
     return new NextResponse('Forbidden', { status: 403 })
   }
 
