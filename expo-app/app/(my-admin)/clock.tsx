@@ -14,40 +14,40 @@ export default function ClockScreen() {
   const qc = useQueryClient()
   const [locLoading, setLocLoading] = useState(false)
 
-  const { data: activeShift, isLoading } = useQuery({
-    queryKey: ['active-shift', staffId],
+  // Last event tells us if clocked in or out
+  const { data: lastEvent, isLoading } = useQuery({
+    queryKey: ['last-clock-event', staffId],
     queryFn: async () => {
       const { data } = await supabase
-        .from('shifts')
-        .select('id, clock_in, notes')
+        .from('clock_events')
+        .select('id, event_type, timestamp, lat, lng')
         .eq('staff_id', staffId!)
-        .is('clock_out', null)
-        .order('clock_in', { ascending: false })
+        .in('event_type', ['clock_in', 'clock_out'])
+        .order('timestamp', { ascending: false })
         .limit(1)
-        .single()
+        .maybeSingle()
       return data
     },
     enabled: !!staffId,
-    retry: false,
   })
 
-  const { data: recentShifts = [] } = useQuery({
-    queryKey: ['recent-shifts', staffId],
+  const { data: recentEvents = [] } = useQuery({
+    queryKey: ['recent-clock-events', staffId],
     queryFn: async () => {
       const { data } = await supabase
-        .from('shifts')
-        .select('id, clock_in, clock_out')
+        .from('clock_events')
+        .select('id, event_type, timestamp')
         .eq('staff_id', staffId!)
-        .not('clock_out', 'is', null)
-        .order('clock_in', { ascending: false })
-        .limit(7)
+        .in('event_type', ['clock_in', 'clock_out'])
+        .order('timestamp', { ascending: false })
+        .limit(14)
       return data ?? []
     },
     enabled: !!staffId,
   })
 
   const clockMutation = useMutation({
-    mutationFn: async (action: 'in' | 'out') => {
+    mutationFn: async (action: 'clock_in' | 'clock_out') => {
       setLocLoading(true)
       let lat: number | null = null
       let lng: number | null = null
@@ -61,60 +61,59 @@ export default function ClockScreen() {
       } finally {
         setLocLoading(false)
       }
-
-      if (action === 'in') {
-        const { error } = await supabase.from('shifts').insert({
-          staff_id: staffId,
-          tenant_id: tenantId,
-          clock_in: new Date().toISOString(),
-          location_lat: lat,
-          location_lng: lng,
-        })
-        if (error) throw error
-      } else {
-        const { error } = await supabase
-          .from('shifts')
-          .update({ clock_out: new Date().toISOString() })
-          .eq('id', activeShift!.id)
-        if (error) throw error
-      }
+      const { error } = await supabase.from('clock_events').insert({
+        staff_id: staffId,
+        tenant_id: tenantId,
+        event_type: action,
+        timestamp: new Date().toISOString(),
+        lat,
+        lng,
+      })
+      if (error) throw error
     },
     onSuccess: () => {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
-      qc.invalidateQueries({ queryKey: ['active-shift', staffId] })
-      qc.invalidateQueries({ queryKey: ['recent-shifts', staffId] })
+      qc.invalidateQueries({ queryKey: ['last-clock-event', staffId] })
+      qc.invalidateQueries({ queryKey: ['recent-clock-events', staffId] })
     },
     onError: (e: Error) => Alert.alert('Error', e.message),
   })
+
+  const isClockedIn = lastEvent?.event_type === 'clock_in'
+  const busy = clockMutation.isPending || locLoading || isLoading
 
   function formatTime(iso: string) {
     return new Date(iso).toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' })
   }
 
-  function formatDuration(clockIn: string, clockOut?: string | null) {
-    const start = new Date(clockIn).getTime()
-    const end = clockOut ? new Date(clockOut).getTime() : Date.now()
-    const hrs = Math.floor((end - start) / 3_600_000)
-    const mins = Math.floor(((end - start) % 3_600_000) / 60_000)
+  function sinceClockIn() {
+    if (!lastEvent || !isClockedIn) return null
+    const diff = Date.now() - new Date(lastEvent.timestamp).getTime()
+    const hrs = Math.floor(diff / 3_600_000)
+    const mins = Math.floor((diff % 3_600_000) / 60_000)
     return `${hrs}h ${mins}m`
   }
 
-  const isClockedIn = !!activeShift
-  const busy = clockMutation.isPending || locLoading || isLoading
+  // Pair events into shifts: clock_in → clock_out pairs
+  const pairs: { in: string; out: string | null }[] = []
+  for (let i = 0; i < recentEvents.length; i++) {
+    if (recentEvents[i].event_type === 'clock_in') {
+      const next = recentEvents[i - 1]
+      pairs.push({ in: recentEvents[i].timestamp, out: next?.event_type === 'clock_out' ? next.timestamp : null })
+    }
+  }
 
   return (
     <SafeAreaView className="flex-1 bg-gray-50" edges={['top']}>
       <ScreenHeader title="Clock In / Out" />
 
       <View className="flex-1 px-4 py-6 space-y-4">
-        {/* Big clock button */}
+        {/* Big button */}
         <View className="items-center py-8">
           <TouchableOpacity
-            onPress={() => clockMutation.mutate(isClockedIn ? 'out' : 'in')}
+            onPress={() => clockMutation.mutate(isClockedIn ? 'clock_out' : 'clock_in')}
             disabled={busy}
-            className={`w-44 h-44 rounded-full items-center justify-center shadow-xl ${
-              isClockedIn ? 'bg-red-500' : 'bg-emerald-500'
-            }`}
+            className={`w-44 h-44 rounded-full items-center justify-center shadow-xl ${isClockedIn ? 'bg-red-500' : 'bg-emerald-500'}`}
             style={{ elevation: 8 }}
           >
             {busy
@@ -126,28 +125,27 @@ export default function ClockScreen() {
             }
           </TouchableOpacity>
 
-          {isClockedIn && activeShift && (
+          {isClockedIn && lastEvent && (
             <View className="mt-6 items-center">
-              <Text className="text-gray-500 text-sm">Clocked in at {formatTime(activeShift.clock_in)}</Text>
-              <Text className="text-gray-900 font-bold text-2xl mt-1">{formatDuration(activeShift.clock_in)}</Text>
+              <Text className="text-gray-500 text-sm">Clocked in at {formatTime(lastEvent.timestamp)}</Text>
+              <Text className="text-gray-900 font-bold text-2xl mt-1">{sinceClockIn()}</Text>
             </View>
           )}
         </View>
 
-        {/* Recent shifts */}
+        {/* Recent */}
         <Card>
           <Text className="text-xs text-gray-500 font-medium mb-3 uppercase tracking-wide">Recent Shifts</Text>
-          {recentShifts.length === 0
-            ? <Text className="text-gray-400 text-sm">No shifts yet</Text>
-            : recentShifts.map(s => (
-                <View key={s.id} className="flex-row items-center justify-between py-2 border-b border-gray-100 last:border-0">
+          {pairs.length === 0
+            ? <Text className="text-gray-400 text-sm">No clock events yet</Text>
+            : pairs.slice(0, 7).map((p, i) => (
+                <View key={i} className="flex-row items-center justify-between py-2 border-b border-gray-100 last:border-0">
                   <Text className="text-gray-700 text-sm">
-                    {new Date(s.clock_in).toLocaleDateString('en-ZA', { weekday: 'short', day: 'numeric', month: 'short' })}
+                    {new Date(p.in).toLocaleDateString('en-ZA', { weekday: 'short', day: 'numeric', month: 'short' })}
                   </Text>
                   <Text className="text-gray-500 text-sm">
-                    {formatTime(s.clock_in)} – {s.clock_out ? formatTime(s.clock_out) : '—'}
+                    {formatTime(p.in)} – {p.out ? formatTime(p.out) : '—'}
                   </Text>
-                  <Text className="text-indigo-600 text-sm font-medium">{formatDuration(s.clock_in, s.clock_out)}</Text>
                 </View>
               ))
           }

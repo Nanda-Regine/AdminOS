@@ -8,16 +8,16 @@ import { ScreenHeader } from '@/components/layout/ScreenHeader'
 import { Badge } from '@/components/ui/Badge'
 
 export default function HandbookScreen() {
-  const { tenantId, staffId } = useAuthStore()
+  const { tenantId, user } = useAuthStore()
   const qc = useQueryClient()
   const [selected, setSelected] = useState<any>(null)
 
   const { data: sops = [], isLoading } = useQuery({
-    queryKey: ['sops', tenantId],
+    queryKey: ['sop_documents', tenantId],
     queryFn: async () => {
       const { data } = await supabase
-        .from('sops')
-        .select('id, title, category, version, content, effective_date')
+        .from('sop_documents')
+        .select('id, title, category, version, content, published_at, status')
         .eq('tenant_id', tenantId!)
         .eq('status', 'active')
         .order('category')
@@ -27,34 +27,42 @@ export default function HandbookScreen() {
   })
 
   const { data: acks = [] } = useQuery({
-    queryKey: ['sop-acks', staffId],
+    queryKey: ['sop-acks', user?.id],
     queryFn: async () => {
       const { data } = await supabase
         .from('sop_acknowledgements')
         .select('sop_id')
-        .eq('staff_id', staffId!)
+        .eq('user_id', user!.id)
       return (data ?? []).map(a => a.sop_id)
     },
-    enabled: !!staffId,
+    enabled: !!user?.id,
   })
 
   const ackMutation = useMutation({
     mutationFn: async (sopId: string) => {
       const { error } = await supabase.from('sop_acknowledgements').upsert({
         sop_id: sopId,
-        staff_id: staffId,
-        tenant_id: tenantId,
+        user_id: user!.id,
         acknowledged_at: new Date().toISOString(),
       })
       if (error) throw error
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['sop-acks', staffId] })
+      qc.invalidateQueries({ queryKey: ['sop-acks', user?.id] })
       setSelected(null)
     },
   })
 
-  const categories = [...new Set(sops.map(s => s.category).filter(Boolean))]
+  function extractText(content: unknown): string {
+    if (typeof content === 'string') return content
+    if (typeof content === 'object' && content !== null) {
+      const c = content as Record<string, unknown>
+      if (typeof c.text === 'string') return c.text
+      if (typeof c.body === 'string') return c.body
+      return JSON.stringify(content, null, 2)
+    }
+    return ''
+  }
 
   return (
     <SafeAreaView className="flex-1 bg-gray-50" edges={['top']}>
@@ -80,7 +88,7 @@ export default function HandbookScreen() {
                   </View>
                   <View className="flex-1">
                     <Text className="text-gray-900 font-semibold text-sm" numberOfLines={1}>{item.title}</Text>
-                    <Text className="text-gray-500 text-xs mt-0.5 capitalize">{item.category} · v{item.version}</Text>
+                    <Text className="text-gray-500 text-xs mt-0.5 capitalize">{item.category ?? 'General'} · v{item.version}</Text>
                   </View>
                   <Badge label={acknowledged ? 'Signed' : 'Pending'} color={acknowledged ? 'green' : 'yellow'} />
                 </TouchableOpacity>
@@ -98,8 +106,11 @@ export default function HandbookScreen() {
               <TouchableOpacity onPress={() => setSelected(null)}><Text className="text-gray-500">Close</Text></TouchableOpacity>
             </View>
             <ScrollView className="flex-1 px-5 py-4">
-              <Text className="text-gray-600 text-xs mb-4">Version {selected.version} · Effective {new Date(selected.effective_date ?? '').toLocaleDateString('en-ZA')}</Text>
-              <Text className="text-gray-800 text-sm leading-relaxed">{selected.content}</Text>
+              <Text className="text-gray-400 text-xs mb-4">
+                Version {selected.version}
+                {selected.published_at ? ` · Published ${new Date(selected.published_at).toLocaleDateString('en-ZA')}` : ''}
+              </Text>
+              <Text className="text-gray-800 text-sm leading-relaxed">{extractText(selected.content)}</Text>
             </ScrollView>
             {!acks.includes(selected.id) && (
               <View className="px-5 py-4 border-t border-gray-100">

@@ -21,7 +21,7 @@ export default function AnnouncementsScreen() {
     queryFn: async () => {
       const { data } = await supabase
         .from('announcements')
-        .select('id, title, body, created_at, pinned, author_name')
+        .select('id, title, body, created_at, pinned')
         .eq('tenant_id', tenantId!)
         .order('pinned', { ascending: false })
         .order('created_at', { ascending: false })
@@ -50,9 +50,6 @@ export default function AnnouncementsScreen() {
                 </View>
                 <Text className="text-gray-900 font-bold text-sm mb-1.5">{item.title}</Text>
                 <Text className="text-gray-600 text-sm leading-relaxed">{item.body}</Text>
-                {item.author_name && (
-                  <Text className="text-gray-400 text-xs mt-3">— {item.author_name}</Text>
-                )}
               </View>
             )}
           />

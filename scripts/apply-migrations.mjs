@@ -37,6 +37,7 @@ const MIGRATIONS = [
   '20260612_phase10_helpers.sql',
   '20260612_phase11_billing.sql',
   '20260612_phase11_nps_social_webhook.sql',
+  '20260612_mobile_notifications.sql',
 ]
 
 async function applyMigration(filename) {
