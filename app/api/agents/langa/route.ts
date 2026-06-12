@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { chatWithLanga, LangaMessage } from '@/lib/ai/agents/langa'
 import { z } from 'zod'
 
@@ -12,8 +13,19 @@ const schema = z.object({
 })
 
 export async function POST(request: Request) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  // Support both cookie auth (web) and Bearer token auth (mobile)
+  let user: { id: string; user_metadata: Record<string, unknown> } | null = null
+  const authHeader = request.headers.get('Authorization')
+  if (authHeader?.startsWith('Bearer ')) {
+    const token = authHeader.slice(7)
+    const admin = createAdminClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+    const { data } = await admin.auth.getUser(token)
+    user = data.user
+  } else {
+    const supabase = await createClient()
+    const { data } = await supabase.auth.getUser()
+    user = data.user
+  }
   if (!user) return new NextResponse('Unauthorized', { status: 401 })
 
   const tenantId = user.user_metadata?.tenant_id as string
