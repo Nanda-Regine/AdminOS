@@ -26,7 +26,7 @@ export const docIntelligencePipeline = inngest.createFunction(
       if (!docRes.data) return ''
 
       const { data: fileData } = await supabaseAdmin.storage
-        .from('tenant-documents')
+        .from('documents')
         .download(docRes.data.storage_path)
 
       if (!fileData) return ''

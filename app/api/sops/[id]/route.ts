@@ -36,8 +36,6 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (body.status !== undefined) {
     updates.status = body.status
     if (body.status === 'active') updates.published_at = new Date().toISOString()
-    // Bump version on publish
-    updates.version = supabaseAdmin.rpc as unknown as number
   }
 
   // Version bump: fetch current version first

@@ -323,10 +323,10 @@ async function gatherInvoices(tenantId: string, from: string, to: string) {
 
 async function gatherStaff(tenantId: string, from: string, to: string) {
   const { count: headcount } = await supabaseAdmin
-    .from('employees')
+    .from('staff')
     .select('*', { count: 'exact', head: true })
     .eq('tenant_id', tenantId)
-    .eq('status', 'active')
+    .eq('employment_status', 'active')
 
   const { count: leaves } = await supabaseAdmin
     .from('leave_requests')
