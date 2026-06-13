@@ -25,18 +25,23 @@ import { bookingReminderFunction }                         from '@/inngest/funct
 import { sopAcknowledgementFunction }                      from '@/inngest/functions/sopAcknowledgement'
 import { socialSyncFunction }                              from '@/inngest/functions/socialSync'
 import { benchmarkCalculateFunction }                      from '@/inngest/functions/benchmarkCalculate'
+import { fanOutBriefCron }                                 from '@/inngest/functions/fanOutBrief'
+import { fanOutWellnessCron }                              from '@/inngest/functions/fanOutWellness'
+import { fanOutHealthScoreCron }                           from '@/inngest/functions/fanOutHealthScore'
+import { fanOutDebtRecoveryCron }                          from '@/inngest/functions/fanOutDebtRecovery'
+import { sequencesCronFunction }                           from '@/inngest/functions/sequencesCron'
+import { licenseRemindersCronFunction }                    from '@/inngest/functions/licenseRemindersCron'
 
 export const { GET, POST, PUT } = serve({
   client: inngest,
   functions: [
+    // Event-driven functions
     debtRecoveryEngine,
     docIntelligencePipeline,
     wellnessFanOut,
     dailyBriefEngine,
     onboardingSequence,
     trialNudgeSequence,
-    processQueueCron,
-    escalateConversationsCron,
     healthScoreFunction,
     payrollReminderCron,
     impactSnapshotFunction,
@@ -57,6 +62,15 @@ export const { GET, POST, PUT } = serve({
     bookingReminderFunction,
     sopAcknowledgementFunction,
     socialSyncFunction,
+    // Scheduled crons (all managed by Inngest — no Vercel crons needed)
+    processQueueCron,
+    escalateConversationsCron,
     benchmarkCalculateFunction,
+    fanOutBriefCron,
+    fanOutWellnessCron,
+    fanOutHealthScoreCron,
+    fanOutDebtRecoveryCron,
+    sequencesCronFunction,
+    licenseRemindersCronFunction,
   ],
 })
