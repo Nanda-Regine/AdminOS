@@ -95,7 +95,7 @@ export const onNPSSurveySent = inngest.createFunction(
       await sendWhatsAppMessage({
         phoneNumberId,
         to: contact_phone,
-        text: `Hi ${contact_name || 'there'}! ${tenant?.name ?? 'We''d'} love to know how we''re doing. How likely are you to recommend us? (0–10): ${survey_url}\n\nTakes 30 seconds. Thank you! 🙏`,
+        text: `Hi ${contact_name || 'there'}! ${tenant?.name ?? "We'd"} love to know how we're doing. How likely are you to recommend us? (0–10): ${survey_url}\n\nTakes 30 seconds. Thank you!`,
       })
     })
 
