@@ -8,7 +8,7 @@ import { updateLearningStreak } from '@/lib/academy/checkAchievements'
 
 const completeSchema = z.object({
   score:            z.number().min(0).max(100).optional(),
-  timeSpentSeconds: z.number().int().nonneg().optional(),
+  timeSpentSeconds: z.number().int().nonnegative().optional(),
 })
 
 // GET /api/academy/lessons/[lessonId] — get lesson with content

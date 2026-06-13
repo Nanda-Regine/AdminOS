@@ -8,22 +8,22 @@ import { checkPermission } from '@/lib/auth/permissions'
 // SA businesses with 50+ employees must submit annual EE reports to the DoEL
 
 const demographicsSchema = z.object({
-  african_male:    z.number().int().nonneg().default(0),
-  african_female:  z.number().int().nonneg().default(0),
-  coloured_male:   z.number().int().nonneg().default(0),
-  coloured_female: z.number().int().nonneg().default(0),
-  indian_male:     z.number().int().nonneg().default(0),
-  indian_female:   z.number().int().nonneg().default(0),
-  white_male:      z.number().int().nonneg().default(0),
-  white_female:    z.number().int().nonneg().default(0),
-  foreign_male:    z.number().int().nonneg().default(0),
-  foreign_female:  z.number().int().nonneg().default(0),
-  disabled:        z.number().int().nonneg().default(0),
+  african_male:    z.number().int().nonnegative().default(0),
+  african_female:  z.number().int().nonnegative().default(0),
+  coloured_male:   z.number().int().nonnegative().default(0),
+  coloured_female: z.number().int().nonnegative().default(0),
+  indian_male:     z.number().int().nonnegative().default(0),
+  indian_female:   z.number().int().nonnegative().default(0),
+  white_male:      z.number().int().nonnegative().default(0),
+  white_female:    z.number().int().nonnegative().default(0),
+  foreign_male:    z.number().int().nonnegative().default(0),
+  foreign_female:  z.number().int().nonnegative().default(0),
+  disabled:        z.number().int().nonnegative().default(0),
 })
 
 const updateSchema = z.object({
   reportingYear:      z.number().int().min(2020).max(2099),
-  totalWorkforce:     z.number().int().nonneg().optional(),
+  totalWorkforce:     z.number().int().nonnegative().optional(),
   demographics:       demographicsSchema.optional(),
   occupationalLevels: z.record(z.unknown()).optional(),
 })
