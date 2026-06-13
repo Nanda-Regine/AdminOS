@@ -3,9 +3,8 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 
 // Runs every Monday at 9am — nudges informal businesses through the formalization pathway
 export const formalizationNudgeFunction = inngest.createFunction(
-  { id: 'formalization-nudge-weekly', retries: 2 },
-  { cron: '0 9 * * 1' },
-  async ({ step }) => {
+  { id: 'formalization-nudge-weekly', retries: 2, triggers: [{ cron: '0 9 * * 1' }] },
+  async ({ step }: any) => {
     // Step 1: Fetch all tenants at 'informal' stage
     const targets = await step.run('get-informal-tenants', async () => {
       const { data } = await supabaseAdmin

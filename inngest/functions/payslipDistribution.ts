@@ -4,8 +4,7 @@ import { sendWhatsAppMessage } from '@/lib/whatsapp/send'
 
 // Triggered when a payroll run is finalised — distributes payslip links via WhatsApp
 export const payslipDistributionFunction = inngest.createFunction(
-  { id: 'payslip-distribution', retries: 2 },
-  { event: 'adminos/payroll.run.approved' },
+  { id: 'payslip-distribution', retries: 2, triggers: [{ event: 'adminos/payroll.run.approved' }] },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async ({ event, step }: any) => {
     const { tenant_id, payroll_run_id } = event.data as {

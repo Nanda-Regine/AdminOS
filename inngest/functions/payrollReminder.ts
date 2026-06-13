@@ -3,8 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 
 // Runs on the 20th of each month — reminds tenants with active staff to run payroll
 export const payrollReminderCron = inngest.createFunction(
-  { id: 'payroll-reminder-cron' },
-  { cron: '0 8 20 * *' },  // 8am on the 20th
+  { id: 'payroll-reminder-cron', triggers: [{ cron: '0 8 20 * *' }] },
   async () => {
     const now   = new Date()
     const month = now.getMonth() + 1

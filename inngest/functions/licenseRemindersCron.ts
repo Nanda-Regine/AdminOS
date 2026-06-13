@@ -2,9 +2,8 @@ import { inngest } from '@/inngest/client'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 
 export const licenseRemindersCronFunction = inngest.createFunction(
-  { id: 'license-reminders-cron', retries: 1 },
-  { cron: '0 7 * * 1' }, // Monday 9am SAST
-  async ({ step }) => {
+  { id: 'license-reminders-cron', retries: 1, triggers: [{ cron: '0 7 * * 1' }] },
+  async ({ step }: any) => {
     const today = new Date().toISOString().split('T')[0]
 
     const licenses = await step.run('fetch-licenses', async () => {

@@ -84,9 +84,8 @@ async function calculateForecast(tenantId: string): Promise<{
 
 // Runs every Monday at 6am — recalculates 90-day cashflow forecasts for all active tenants
 export const cashflowForecastFunction = inngest.createFunction(
-  { id: 'cashflow-forecast-weekly', retries: 2 },
-  { cron: '0 6 * * 1' },
-  async ({ step }) => {
+  { id: 'cashflow-forecast-weekly', retries: 2, triggers: [{ cron: '0 6 * * 1' }] },
+  async ({ step }: any) => {
     // Step 1: Fetch all active tenant IDs
     const tenants = await step.run('get-active-tenants', async () => {
       const { data } = await supabaseAdmin

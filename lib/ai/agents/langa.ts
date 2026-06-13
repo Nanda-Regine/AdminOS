@@ -92,7 +92,7 @@ export async function buildLangaContext(tenantId: string, userId: string): Promi
 
   // Pending learning triggers
   const pendingTriggers = (triggersRes.data ?? []).map((t) => {
-    const trigger = t.contextual_triggers as { event_type: string; message_template?: string } | null
+    const trigger = t.contextual_triggers as unknown as { event_type: string; message_template?: string } | null
     return trigger?.message_template ?? trigger?.event_type ?? ''
   }).filter(Boolean)
 

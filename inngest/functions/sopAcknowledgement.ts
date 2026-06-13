@@ -3,9 +3,8 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 
 // Runs every Friday at 9am — reminds staff who haven't acknowledged required SOPs
 export const sopAcknowledgementFunction = inngest.createFunction(
-  { id: 'sop-acknowledgement-weekly', retries: 2 },
-  { cron: '0 9 * * 5' },
-  async ({ step }) => {
+  { id: 'sop-acknowledgement-weekly', retries: 2, triggers: [{ cron: '0 9 * * 5' }] },
+  async ({ step }: any) => {
     // Step 1: Fetch all SOPs that require acknowledgement (across all tenants)
     const sops = await step.run('get-required-sops', async () => {
       const { data } = await supabaseAdmin

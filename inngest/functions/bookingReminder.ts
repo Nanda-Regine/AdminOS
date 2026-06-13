@@ -4,9 +4,8 @@ import { sendWhatsApp } from '@/lib/whatsapp/send'
 
 // Listens for booking confirmations and sends a WhatsApp reminder 24h before start
 export const bookingReminderFunction = inngest.createFunction(
-  { id: 'booking-reminder-24h', retries: 2 },
-  { event: 'adminos/booking.confirmed' },
-  async ({ event, step }) => {
+  { id: 'booking-reminder-24h', retries: 2, triggers: [{ event: 'adminos/booking.confirmed' }] },
+  async ({ event, step }: any) => {
     const { tenant_id, booking_id } = event.data as {
       tenant_id: string
       booking_id: string

@@ -3,8 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { calculateHealthScore, saveHealthSnapshot } from '@/lib/intelligence/healthScore'
 
 export const healthScoreFunction = inngest.createFunction(
-  { id: 'health-score-calculate', retries: 2 },
-  { event: 'adminos/health.score.calculate' },
+  { id: 'health-score-calculate', retries: 2, triggers: [{ event: 'adminos/health.score.calculate' }] },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async ({ event, step }: any) => {
     const { tenant_id } = event.data as { tenant_id: string }

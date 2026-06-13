@@ -28,8 +28,7 @@ interface BoardPackData {
 
 // Triggered on-demand via adminos/board_pack.generate event
 export const onBoardPackRequested = inngest.createFunction(
-  { id: 'board-pack-generate', retries: 1 },
-  { event: 'adminos/board_pack.generate' },
+  { id: 'board-pack-generate', retries: 1, triggers: [{ event: 'adminos/board_pack.generate' }] },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async ({ event, step }: any) => {
     const { tenant_id, board_pack_id, period_start, period_end, period_label } = event.data as {
@@ -164,9 +163,8 @@ Be specific and data-driven. Mention actual numbers. Keep it under 200 words.`,
 
 // Monthly auto-generation for Scale/Partner tenants
 export const boardPackMonthlyCron = inngest.createFunction(
-  { id: 'board-pack-monthly', retries: 1 },
-  { cron: '0 6 1 * *' },  // 1st of every month at 6am
-  async ({ step }) => {
+  { id: 'board-pack-monthly', retries: 1, triggers: [{ cron: '0 6 1 * *' }] },
+  async ({ step }: any) => {
     const today      = new Date()
     const lastMonth  = new Date(today.getFullYear(), today.getMonth() - 1, 1)
     const monthEnd   = new Date(today.getFullYear(), today.getMonth(), 0)

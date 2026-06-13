@@ -13,9 +13,8 @@ const TRIGGER_ACHIEVEMENT_MAP: Record<string, string[]> = {
 
 // Event-driven achievement checker — fired whenever a business action occurs
 export const achievementCheckerFunction = inngest.createFunction(
-  { id: 'achievement-checker', retries: 2 },
-  { event: 'adminos/achievement.check' },
-  async ({ event, step }) => {
+  { id: 'achievement-checker', retries: 2, triggers: [{ event: 'adminos/achievement.check' }] },
+  async ({ event, step }: any) => {
     const { tenant_id, user_id, trigger_type } = event.data as {
       tenant_id: string
       user_id: string

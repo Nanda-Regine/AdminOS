@@ -13,9 +13,8 @@ function median(values: number[]): number | null {
 
 // Runs every Sunday at 2am — aggregates anonymized benchmark metrics by business type
 export const benchmarkCalculateFunction = inngest.createFunction(
-  { id: 'benchmark-calculate-weekly', retries: 2 },
-  { cron: '0 2 * * 0' },
-  async ({ step }) => {
+  { id: 'benchmark-calculate-weekly', retries: 2, triggers: [{ cron: '0 2 * * 0' }] },
+  async ({ step }: any) => {
     // Step 1: Get all active tenants with their business type
     const tenants = await step.run('get-tenants', async () => {
       const { data } = await supabaseAdmin

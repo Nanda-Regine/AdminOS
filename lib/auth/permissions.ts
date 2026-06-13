@@ -106,7 +106,7 @@ export async function getUserPermissions(
     .single()
 
   if (!data?.roles) return null
-  const role = data.roles as { name: string; permissions: string[] }
+  const role = data.roles as unknown as { name: string; permissions: string[] }
   return {
     role:        role.name,
     permissions: role.permissions as Permission[],
@@ -162,9 +162,7 @@ export async function seedDefaultRoles(tenantId: string): Promise<void> {
 
   await supabaseAdmin
     .from('roles')
-    .insert(rows)
-    .onConflict('tenant_id, name')
-    .ignore()
+    .upsert(rows, { onConflict: 'tenant_id, name', ignoreDuplicates: true })
 }
 
 /**

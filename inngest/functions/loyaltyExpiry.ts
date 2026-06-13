@@ -3,9 +3,8 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 
 // Runs on Dec 31 at 11pm — expires all outstanding loyalty points at year end
 export const loyaltyExpiryFunction = inngest.createFunction(
-  { id: 'loyalty-expiry-year-end', retries: 2 },
-  { cron: '0 23 31 12 *' },
-  async ({ step }) => {
+  { id: 'loyalty-expiry-year-end', retries: 2, triggers: [{ cron: '0 23 31 12 *' }] },
+  async ({ step }: any) => {
     const year = new Date().getFullYear()
 
     // Step 1: Fetch all accounts with a positive points balance

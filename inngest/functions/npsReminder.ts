@@ -4,9 +4,8 @@ import { sendWhatsAppMessage } from '@/lib/whatsapp/send'
 
 // Runs weekly on Wednesday at 10am — sends WhatsApp reminders for unanswered NPS surveys
 export const npsReminderFunction = inngest.createFunction(
-  { id: 'nps-reminder-weekly', retries: 1 },
-  { cron: '0 10 * * 3' },
-  async ({ step }) => {
+  { id: 'nps-reminder-weekly', retries: 1, triggers: [{ cron: '0 10 * * 3' }] },
+  async ({ step }: any) => {
     const weekAgo  = new Date(Date.now() - 7  * 86400000).toISOString()
     const monthAgo = new Date(Date.now() - 30 * 86400000).toISOString()
 

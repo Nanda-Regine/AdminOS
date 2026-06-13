@@ -4,9 +4,8 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 // Runs every hour — syncs social media messages and comments for connected accounts
 // TODO: Implement actual Facebook/Instagram Graph API calls
 export const socialSyncFunction = inngest.createFunction(
-  { id: 'social-sync-hourly', retries: 1 },
-  { cron: '0 * * * *' },
-  async ({ step }) => {
+  { id: 'social-sync-hourly', retries: 1, triggers: [{ cron: '0 * * * *' }] },
+  async ({ step }: any) => {
     // Step 1: Fetch all active social accounts
     const accounts = await step.run('get-active-social-accounts', async () => {
       const { data } = await supabaseAdmin

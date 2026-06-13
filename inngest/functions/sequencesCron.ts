@@ -3,9 +3,8 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { sendWhatsApp } from '@/lib/whatsapp/send'
 
 export const sequencesCronFunction = inngest.createFunction(
-  { id: 'sequences-cron', retries: 0 },
-  { cron: '0 * * * *' }, // hourly
-  async ({ step }) => {
+  { id: 'sequences-cron', retries: 0, triggers: [{ cron: '0 * * * *' }] },
+  async ({ step }: any) => {
     const enrollments = await step.run('fetch-due-enrollments', async () => {
       const { data } = await supabaseAdmin
         .from('sequence_enrollments')

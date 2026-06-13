@@ -2,9 +2,8 @@ import { inngest } from '@/inngest/client'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 
 export const fanOutDebtRecoveryCron = inngest.createFunction(
-  { id: 'fan-out-debt-recovery-cron', retries: 0 },
-  { cron: '0 8 * * *' }, // daily 10am SAST
-  async ({ step }) => {
+  { id: 'fan-out-debt-recovery-cron', retries: 0, triggers: [{ cron: '0 8 * * *' }] },
+  async ({ step }: any) => {
     const invoices = await step.run('fetch-overdue-invoices', async () => {
       const { data } = await supabaseAdmin
         .from('invoices')
@@ -20,7 +19,7 @@ export const fanOutDebtRecoveryCron = inngest.createFunction(
 
     await step.run('send-events', async () => {
       await inngest.send(
-        invoices.map((inv) => ({
+        invoices.map((inv: any) => ({
           name: 'adminos/invoice.overdue' as const,
           data: {
             invoice_id: inv.id,

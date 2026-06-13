@@ -4,9 +4,8 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 // Routes business events to relevant academy lessons
 // Fired whenever a significant business event occurs (invoice sent, staff added, etc.)
 export const contextualTriggerFunction = inngest.createFunction(
-  { id: 'contextual-trigger-academy', retries: 2 },
-  { event: 'adminos/business.event.fired' },
-  async ({ event, step }) => {
+  { id: 'contextual-trigger-academy', retries: 2, triggers: [{ event: 'adminos/business.event.fired' }] },
+  async ({ event, step }: any) => {
     const { tenant_id, user_id, event_type } = event.data as {
       tenant_id: string
       user_id: string
@@ -53,7 +52,7 @@ export const contextualTriggerFunction = inngest.createFunction(
     const toCreate = triggers.slice(0, remaining)
     const created = await step.run('create-notifications', async () => {
       const now = new Date().toISOString()
-      const rows = toCreate.map((trigger) => ({
+      const rows = toCreate.map((trigger: any) => ({
         tenant_id,
         user_id,
         lesson_id: trigger.lesson_id,

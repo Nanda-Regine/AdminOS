@@ -4,8 +4,7 @@ import { awardAchievement } from '@/lib/academy/checkAchievements'
 
 // Runs daily at midnight — breaks streaks for users who missed a day
 export const streakCheckerFunction = inngest.createFunction(
-  { id: 'streak-checker-daily' },
-  { cron: '0 0 * * *' },
+  { id: 'streak-checker-daily', triggers: [{ cron: '0 0 * * *' }] },
   async () => {
     const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]
 
@@ -36,9 +35,8 @@ export const streakCheckerFunction = inngest.createFunction(
 
 // Listen for academy lesson completions and update streaks
 export const onLessonCompleted = inngest.createFunction(
-  { id: 'on-lesson-completed' },
-  { event: 'adminos/academy.lesson.completed' },
-  async ({ event }) => {
+  { id: 'on-lesson-completed', triggers: [{ event: 'adminos/academy.lesson.completed' }] },
+  async ({ event }: any) => {
     const { tenantId, userId, lessonId } = event.data as {
       tenantId: string
       userId:   string

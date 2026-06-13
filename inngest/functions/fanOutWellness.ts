@@ -2,9 +2,8 @@ import { inngest } from '@/inngest/client'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 
 export const fanOutWellnessCron = inngest.createFunction(
-  { id: 'fan-out-wellness-cron', retries: 0 },
-  { cron: '0 7 * * 1' }, // Monday 9am SAST
-  async ({ step }) => {
+  { id: 'fan-out-wellness-cron', retries: 0, triggers: [{ cron: '0 7 * * 1' }] },
+  async ({ step }: any) => {
     const tenants = await step.run('fetch-tenants', async () => {
       const { data } = await supabaseAdmin
         .from('tenants')
@@ -17,7 +16,7 @@ export const fanOutWellnessCron = inngest.createFunction(
 
     await step.run('send-events', async () => {
       await inngest.send(
-        tenants.map((t) => ({
+        tenants.map((t: any) => ({
           name: 'adminos/wellness.checkin.due' as const,
           data: { tenant_id: t.id },
         }))
