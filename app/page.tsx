@@ -3,63 +3,76 @@ import type { Metadata } from 'next'
 import MobileNav from '@/components/MobileNav'
 
 export const metadata: Metadata = {
-  title: 'AdminOS — The AI System That Runs Your Business',
+  title: 'AdminOS — The Business OS Built for South Africa',
   description:
-    'AdminOS gives South African businesses 6 AI agents: WhatsApp automation, debt recovery, staff wellness, document intelligence, daily briefs, and content creation. R2,500/month.',
+    'AdminOS is the complete business operating system for South African SMEs — AI agents, Employee OS, Business Academy, Payroll, Compliance, Operations and more. From R349/month.',
   alternates: { canonical: 'https://adminos.co.za' },
 }
 
 // ─── Data ────────────────────────────────────────────────────────────────────
 
 const replacements = [
-  { tool: 'WhatsApp Business Manager', cost: 'R1,200', agent: 'Alex · Inbox Agent' },
+  { tool: 'WhatsApp Business Manager',  cost: 'R1,200', agent: 'Alex · Inbox Agent' },
   { tool: 'Debt collection service',    cost: 'R2,500', agent: 'Chase · Debt Recovery' },
-  { tool: 'HR check-in software',       cost: 'R800',   agent: 'Care · Wellness Agent' },
-  { tool: 'Xero accountant time',       cost: 'R1,500', agent: 'Xero Integration' },
-  { tool: 'Business analyst / reports', cost: 'R4,000', agent: 'Insight · Analytics' },
+  { tool: 'HR & wellness software',     cost: 'R800',   agent: 'Care · Wellness Agent' },
+  { tool: 'Payroll bureau fees',        cost: 'R1,800', agent: 'Payroll Module (built-in)' },
+  { tool: 'Business analyst / reports', cost: 'R4,000', agent: 'Insight · Daily Brief' },
   { tool: 'Document processing',        cost: 'R1,200', agent: 'Doc · Document AI' },
   { tool: 'Copywriter / social media',  cost: 'R3,500', agent: 'Pen · Content Agent' },
 ]
 
 const addons = [
   {
-    icon: '📞',
-    name: 'Ring',
-    tag: 'Voice Receptionist',
+    icon: '💰',
+    name: 'Payroll Module',
+    tag: 'PAYE / UIF / SDL',
     tagColor: '#a78bfa',
     tagBg: 'rgba(139,92,246,.1)',
     tagBorder: 'rgba(139,92,246,.25)',
     cardBg: 'rgba(139,92,246,.05)',
     cardBorder: 'rgba(139,92,246,.18)',
-    desc: 'AI answers every inbound call, logs the conversation, detects sentiment, and fires a WhatsApp summary to the caller within 60 seconds — automatically.',
-    bullets: ['Never miss a call again', 'Auto WhatsApp follow-up', 'Call logs + recordings', 'Sentiment tagging'],
-    price: 'from R499/mo',
+    desc: 'Full SA payroll inside AdminOS — PAYE, UIF, and SDL calculated to SARS spec. Payslips delivered to staff via WhatsApp. EMP201 summary generated monthly.',
+    bullets: ['PAYE / UIF / SDL auto-calculated', 'WhatsApp payslip delivery', 'EMP201 monthly summary', 'Audit-ready payroll runs'],
+    price: 'R299/mo',
   },
   {
-    icon: '📣',
-    name: 'Reach',
-    tag: 'Broadcast Campaigns',
+    icon: '📱',
+    name: 'Social Inbox',
+    tag: 'Unified Channels',
     tagColor: '#34d399',
     tagBg: 'rgba(52,211,153,.1)',
     tagBorder: 'rgba(52,211,153,.25)',
     cardBg: 'rgba(52,211,153,.04)',
     cardBorder: 'rgba(52,211,153,.18)',
-    desc: 'Send targeted WhatsApp broadcasts to your contact list with audience filters, per-contact rate limiting, and live delivery analytics — directly from your dashboard.',
-    bullets: ['Audience filtering by tags', 'Delivery + read tracking', '24h per-contact rate limit', 'Campaign analytics'],
-    price: 'from R299/mo',
+    desc: 'Manage Facebook, Instagram, and Google Reviews alongside WhatsApp in one inbox. AI drafts replies, detects sentiment, and flags urgent messages for human review.',
+    bullets: ['Facebook + Instagram messages', 'Google Reviews management', 'AI-drafted replies', 'Unified sentiment view'],
+    price: 'R249/mo',
   },
   {
-    icon: '🔗',
-    name: 'Client Portal',
-    tag: 'Self-Service',
+    icon: '📅',
+    name: 'Booking Engine',
+    tag: 'Online Appointments',
     tagColor: '#06B6D4',
     tagBg: 'rgba(6,182,212,.1)',
     tagBorder: 'rgba(6,182,212,.25)',
     cardBg: 'rgba(6,182,212,.04)',
     cardBorder: 'rgba(6,182,212,.18)',
-    desc: 'Generate a branded, tokenised link for any client to view their invoices and conversation history — no login required. Expires in 7 days. One click to share on WhatsApp.',
-    bullets: ['No login required', 'Token expires after 7 days', 'Outstanding invoices view', 'Conversation history'],
-    price: 'from R199/mo',
+    desc: 'Embeddable online booking widget for your website. Clients self-book appointments; AdminOS sends WhatsApp confirmations, reminders, and follow-ups automatically.',
+    bullets: ['Embeddable on any website', 'WhatsApp confirmations + reminders', 'Staff calendar sync', 'No-show follow-up automation'],
+    price: 'R199/mo',
+  },
+  {
+    icon: '✍️',
+    name: 'eSignature',
+    tag: 'ECTA Compliant',
+    tagColor: '#F97316',
+    tagBg: 'rgba(249,115,22,.1)',
+    tagBorder: 'rgba(249,115,22,.25)',
+    cardBg: 'rgba(249,115,22,.05)',
+    cardBorder: 'rgba(249,115,22,.18)',
+    desc: 'Legally binding digital signatures on contracts, proposals, and employment agreements — compliant with South Africa\'s Electronic Communications and Transactions Act.',
+    bullets: ['ECTA-compliant signatures', 'Sign via link (no account needed)', 'Immutable audit trail', 'Auto-archive to document store'],
+    price: 'R149/mo',
   },
 ]
 
@@ -95,41 +108,41 @@ const testimonials = [
 
 const pricingPlans = [
   {
-    name: 'Starter',
-    price: 'R2,500',
-    sub: '1–10 staff',
-    features: ['1 WhatsApp number', '500 AI conversations/month', 'Inbox + Debt Recovery agents', 'Basic analytics dashboard', 'POPIA compliance centre', 'Email support'],
+    name: 'Solo',
+    price: 'R349',
+    sub: '1 person · 100 conversations/mo',
+    features: ['1 WhatsApp number', '100 AI conversations/month', 'Inbox + Debt Recovery agents', 'Daily business brief', 'POPIA compliance centre', 'Email support'],
     highlight: false,
     cta: 'Start free trial',
     href: '/signup',
   },
   {
-    name: 'Growth',
-    price: 'R4,500',
-    sub: '11–50 staff',
+    name: 'Grow',
+    price: 'R899',
+    sub: 'Up to 5 staff · 500 conversations/mo',
     badge: 'MOST POPULAR',
-    features: ['3 WhatsApp numbers', '5,000 AI conversations/month', 'All 6 AI agents', 'Xero integration', 'Advanced analytics + daily brief', 'Document intelligence', 'Priority support'],
+    features: ['1 WhatsApp number', '500 AI conversations/month', 'All 6 AI agents', 'Employee OS (clock-in, shifts, leave)', 'Business Academy access', 'Document intelligence', 'Priority support'],
     highlight: true,
     cta: 'Start free trial',
     href: '/signup',
   },
   {
-    name: 'Enterprise',
-    price: 'R8,500',
-    sub: '50+ staff',
-    features: ['Unlimited AI conversations', 'Custom agent configuration', 'Dedicated onboarding manager', 'SLA guarantee', 'Multi-location support', '2FA enforcement', 'Custom integrations'],
+    name: 'Operate',
+    price: 'R1,999',
+    sub: 'Up to 20 staff · 2,000 conversations/mo',
+    features: ['2 WhatsApp numbers', '2,000 AI conversations/month', 'Full operations suite (tasks, SOPs, inventory)', 'Payroll + PAYE/UIF/SDL', 'Compliance calendar', 'Business health score + daily brief', 'Dedicated support'],
+    highlight: false,
+    cta: 'Start free trial',
+    href: '/signup',
+  },
+  {
+    name: 'Scale',
+    price: 'R3,999',
+    sub: 'Up to 100 staff · Unlimited conversations',
+    features: ['3 WhatsApp numbers', 'Unlimited AI conversations', 'Business valuation engine', 'Exit readiness score', 'Multi-location branches', 'Board pack generation', 'SLA guarantee'],
     highlight: false,
     cta: 'Book a demo',
     href: 'https://cal.com/nanda/adminos-demo',
-  },
-  {
-    name: 'White Label',
-    price: 'R14,999',
-    sub: 'Accountants & resellers',
-    features: ['Rebrand & resell as your own', 'Manage 50+ SME clients', 'Revenue share model', 'Full whitelabel dashboard', 'Partner onboarding support'],
-    highlight: false,
-    cta: 'Contact us',
-    href: '/contact',
   },
 ]
 
@@ -137,18 +150,18 @@ const faqs = [
   { q: "We already use WhatsApp Business. Why do we need AdminOS?", a: "WhatsApp Business is a messaging tool. AdminOS adds 6 AI agents that respond, recover debt, check in on staff, process documents, brief you every morning, and generate content — automatically. It uses WhatsApp as the channel, not the tool." },
   { q: "We're not a tech company. Is this hard to set up?", a: "Our 15-minute onboarding wizard walks you through everything. No coding. No IT support needed. Most businesses are live within the same day." },
   { q: "What happens to our data?", a: "Your data stays yours. We comply with POPIA. You can export everything at any time. We use bank-grade encryption and row-level security on all business communications." },
-  { q: "Does it integrate with our existing accounting software?", a: "AdminOS integrates natively with Xero. Sage and QuickBooks integrations are on the roadmap." },
-  { q: "Is there a lock-in contract?", a: "No lock-in contracts. Monthly billing, cancel anytime. Enterprise clients can negotiate annual contracts at a 15% discount." },
+  { q: "Does it integrate with our existing accounting software?", a: "AdminOS includes a built-in payroll engine (PAYE/UIF/SDL) and cash flow forecasting. Xero sync is on the integrations roadmap. You can also export payroll runs and financial summaries in standard formats." },
+  { q: "Is there a lock-in contract?", a: "No lock-in contracts. Monthly billing, cancel anytime. Scale and Partner clients can negotiate annual contracts at a 15% discount." },
   { q: "How does load-shedding affect AdminOS?", a: "AdminOS is a PWA with offline capability. Queued actions retry automatically when connectivity returns. Your WhatsApp bot stays live on Meta's infrastructure (WhatsApp Cloud API) even during outages." },
 ]
 
 const stats = [
-  { value: '< 3s',    label: 'WhatsApp response time' },
-  { value: 'R14,700', label: 'Avg monthly toolstack replaced' },
-  { value: '15 min',  label: 'Time to go live' },
-  { value: '11',      label: 'SA languages supported' },
-  { value: '6 + 3',   label: 'Core agents + add-on modules' },
-  { value: '40+',     label: 'WhatsApp message templates' },
+  { value: '< 3s',   label: 'WhatsApp response time' },
+  { value: 'R349',   label: 'Starting price per month' },
+  { value: '15 min', label: 'Time to go live' },
+  { value: '11',     label: 'SA languages supported' },
+  { value: '6',      label: 'Core AI agents included' },
+  { value: '95+',    label: 'Platform features & automations' },
 ]
 
 const industries = [
@@ -164,9 +177,9 @@ const jsonLd = {
   applicationCategory: 'BusinessApplication',
   operatingSystem: 'Web, Android, iOS',
   url: 'https://adminos.co.za',
-  description: 'AI-powered business operating system for South African SMEs. 6 AI agents: WhatsApp automation, debt recovery, staff wellness, document intelligence, daily business briefs, content creation.',
+  description: 'Complete business operating system for South African SMEs — 6 AI agents, Employee OS, Business Academy, Payroll, Compliance, Operations, and Community features. From R349/month.',
   author: { '@type': 'Organization', name: 'Mirembe Muse (Pty) Ltd', url: 'https://adminos.co.za' },
-  offers: { '@type': 'AggregateOffer', priceCurrency: 'ZAR', lowPrice: '2500', highPrice: '14999', offerCount: '4' },
+  offers: { '@type': 'AggregateOffer', priceCurrency: 'ZAR', lowPrice: '349', highPrice: '9999', offerCount: '5' },
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -434,10 +447,10 @@ export default function HomePage() {
         .pen-cursor { display:inline-block; width:2px; height:14px; background:var(--orange); margin-left:2px; animation: blink 1s 3s step-end infinite; opacity:0; animation-fill-mode:both; }
         .pen-action { font-size:11px; color:var(--orange); font-weight:600; margin-top:8px; animation: fadeIn .5s 3.5s both; opacity:0; }
 
-        /* ── Add-ons grid (3 cards, never orphans a card in 2-col layout) ── */
+        /* ── Add-ons grid (4 cards, 2×2) ── */
         .addons-grid {
           display: grid;
-          grid-template-columns: repeat(3, 1fr);
+          grid-template-columns: repeat(4, 1fr);
           gap: 24px;
         }
 
@@ -445,7 +458,7 @@ export default function HomePage() {
         @media (max-width: 900px) {
           .hero-grid { grid-template-columns: 1fr; gap: 40px; }
           .agents-grid { grid-template-columns: repeat(2, 1fr); }
-          .addons-grid { grid-template-columns: 1fr; }
+          .addons-grid { grid-template-columns: repeat(2, 1fr); }
           .pricing-grid { grid-template-columns: repeat(2, 1fr); }
           .stats-grid  { grid-template-columns: repeat(3, 1fr); gap: 20px; }
           .steps-grid  { grid-template-columns: 1fr; gap: 24px; }
@@ -529,11 +542,11 @@ export default function HomePage() {
                 </h1>
 
                 <p className="fu" style={{ animationDelay: '.3s', fontSize: 18, lineHeight: 1.65, color: 'var(--dim)', marginBottom: 10, maxWidth: 490 }}>
-                  6 AI agents handle Meta WhatsApp, debt recovery, staff wellness, documents, daily insights, and content — 24/7, in your language, from R2,500/month.
+                  6 AI agents handle WhatsApp, debt recovery, staff wellness, documents, daily insights, and content — plus payroll, compliance, operations, and a business academy. From R349/month.
                 </p>
 
                 <p className="fu" style={{ animationDelay: '.35s', fontSize: 14, color: 'var(--orange)', fontWeight: 700, marginBottom: 32 }}>
-                  Average client saves <strong>R14,700/month</strong> in replaced tools.
+                  Average client replaces <strong>R15,000/month</strong> in tools and outsourced services.
                 </p>
 
                 <div className="fu" style={{ animationDelay: '.45s', display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
@@ -633,9 +646,9 @@ export default function HomePage() {
           <section className="max-w-5xl mx-auto px-6 py-24">
             <div style={{ textAlign: 'center', marginBottom: 48 }}>
               <p style={{ color: 'var(--orange)', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 12 }}>Return on investment</p>
-              <h2 style={{ fontSize: 'clamp(28px, 4vw, 46px)', fontWeight: 800, letterSpacing: '-1.5px', marginBottom: 16 }}>Replace R14,700/month<br />with one platform</h2>
+              <h2 style={{ fontSize: 'clamp(28px, 4vw, 46px)', fontWeight: 800, letterSpacing: '-1.5px', marginBottom: 16 }}>Replace R15,000/month<br />with one platform</h2>
               <p style={{ color: 'var(--dim)', maxWidth: 480, margin: '0 auto', lineHeight: 1.6 }}>
-                AdminOS Growth at <strong style={{ color: '#fff' }}>R4,500/month</strong> replaces over <strong style={{ color: 'var(--orange)' }}>R14,700/month</strong> in tools, services, and admin time.
+                AdminOS Operate at <strong style={{ color: '#fff' }}>R1,999/month</strong> replaces over <strong style={{ color: 'var(--orange)' }}>R15,000/month</strong> in tools, services, and admin time.
               </p>
             </div>
 
@@ -655,12 +668,12 @@ export default function HomePage() {
               ))}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', padding: '16px 24px', alignItems: 'center', background: 'rgba(249,115,22,.06)', borderTop: '1px solid rgba(249,115,22,.15)' }}>
                 <span style={{ fontWeight: 800 }}>Total saved</span>
-                <span style={{ textAlign: 'center', fontWeight: 800, color: '#f87171', textDecoration: 'line-through' }}>R14,700/mo</span>
-                <span style={{ textAlign: 'right', fontWeight: 800, color: 'var(--orange)' }}>AdminOS Growth: R4,500/mo</span>
+                <span style={{ textAlign: 'center', fontWeight: 800, color: '#f87171', textDecoration: 'line-through' }}>R15,000/mo</span>
+                <span style={{ textAlign: 'right', fontWeight: 800, color: 'var(--orange)' }}>AdminOS Operate: R1,999/mo</span>
               </div>
             </div>
             </div>
-            <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--dimmest)', marginTop: 16 }}>ROI from month one. No setup cost on Growth and Enterprise tiers.</p>
+            <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--dimmest)', marginTop: 16 }}>ROI from month one. No setup cost on Grow, Operate, and Scale tiers.</p>
           </section>
 
           {/* ── 6 Agents ────────────────────────────────────────────────── */}
@@ -925,13 +938,94 @@ export default function HomePage() {
             </div>
           </section>
 
+          {/* ── Platform Depth ──────────────────────────────────────────── */}
+          <section style={{ background: 'rgba(255,255,255,.012)', borderTop: '1px solid rgba(255,255,255,.05)', borderBottom: '1px solid rgba(255,255,255,.05)', padding: '96px 24px' }}>
+            <div className="max-w-7xl mx-auto">
+              <div style={{ textAlign: 'center', marginBottom: 60 }}>
+                <p style={{ color: 'var(--orange)', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 12 }}>Beyond the agents</p>
+                <h2 style={{ fontSize: 'clamp(28px, 4vw, 52px)', fontWeight: 900, letterSpacing: '-2px', marginBottom: 16 }}>A complete business OS.</h2>
+                <p style={{ color: 'var(--dim)', maxWidth: 480, margin: '0 auto', lineHeight: 1.65, fontSize: 16 }}>
+                  AdminOS goes deeper than messaging. Every system your business needs — built in, not bolted on.
+                </p>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }} className="agents-grid">
+
+                {[
+                  {
+                    icon: '🧑‍💼',
+                    title: 'Employee OS',
+                    color: 'var(--orange)',
+                    dimColor: 'var(--orange-dim)',
+                    borderColor: 'var(--orange-border)',
+                    items: ['Digital clock-in & clock-out', 'Shift scheduling', 'Leave requests & approval', 'Expense capture on WhatsApp', 'Performance reviews', 'Disciplinary records'],
+                  },
+                  {
+                    icon: '🎓',
+                    title: 'Business Academy',
+                    color: 'var(--teal)',
+                    dimColor: 'var(--teal-dim)',
+                    borderColor: 'var(--teal-border)',
+                    items: ['Langa AI mentor (your business)', '40+ frameworks & playbooks', 'Achievement system', 'Contextual lesson triggers', 'SA-specific business content', 'Streak & progress tracking'],
+                  },
+                  {
+                    icon: '⚙️',
+                    title: 'Operations',
+                    color: '#a78bfa',
+                    dimColor: 'rgba(139,92,246,.1)',
+                    borderColor: 'rgba(139,92,246,.25)',
+                    items: ['Task & project management', 'SOPs with staff acknowledgement', 'Inventory tracking', 'Supplier management', 'Quote-to-contract workflow', 'Online booking engine'],
+                  },
+                  {
+                    icon: '📋',
+                    title: 'Compliance',
+                    color: '#34d399',
+                    dimColor: 'rgba(52,211,153,.1)',
+                    borderColor: 'rgba(52,211,153,.25)',
+                    items: ['SA compliance calendar (pre-seeded)', 'Professional licence tracking', 'Health & safety incident log', 'Employment equity data (EEA)', 'POPIA right-to-erasure tools', 'Immutable audit trail'],
+                  },
+                  {
+                    icon: '📈',
+                    title: 'Business Intelligence',
+                    color: 'var(--teal)',
+                    dimColor: 'var(--teal-dim)',
+                    borderColor: 'var(--teal-border)',
+                    items: ['Business Health Score engine', '90-day cash flow forecast', 'Sector benchmarking', 'Business valuation model', 'Exit readiness score', 'Impact dashboard'],
+                  },
+                  {
+                    icon: '🤝',
+                    title: 'Ubuntu & Community',
+                    color: 'var(--orange)',
+                    dimColor: 'var(--orange-dim)',
+                    borderColor: 'var(--orange-border)',
+                    items: ['Stokvel group management', 'Peer mentorship matching', 'Community knowledge board', 'Informal-to-formal tracker', 'B-BBEE data capture', 'Formalization pathway'],
+                  },
+                ].map((section, i) => (
+                  <article key={section.title} className="fu card" style={{ animationDelay: `${i * .08}s`, background: section.dimColor, border: `1px solid ${section.borderColor}`, borderRadius: 20, padding: 24 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                      <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(0,0,0,.2)', border: `1px solid ${section.borderColor}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>{section.icon}</div>
+                      <h3 style={{ fontWeight: 800, fontSize: 16, color: section.color }}>{section.title}</h3>
+                    </div>
+                    <ul style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                      {section.items.map(item => (
+                        <li key={item} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 13, color: 'rgba(255,255,255,.65)' }}>
+                          <span style={{ color: section.color, fontWeight: 700, flexShrink: 0 }}>✓</span>{item}
+                        </li>
+                      ))}
+                    </ul>
+                  </article>
+                ))}
+              </div>
+            </div>
+          </section>
+
           {/* ── Add-on Power-Ups ────────────────────────────────────────── */}
           <section id="addons" className="max-w-7xl mx-auto px-6 py-24">
             <div style={{ textAlign: 'center', marginBottom: 56 }}>
               <p style={{ color: 'var(--orange)', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 12 }}>Power-ups</p>
               <h2 style={{ fontSize: 'clamp(26px, 3.5vw, 46px)', fontWeight: 900, letterSpacing: '-1.5px', marginBottom: 14 }}>Extend your OS with add-ons</h2>
               <p style={{ color: 'var(--dim)', maxWidth: 440, margin: '0 auto', lineHeight: 1.65, fontSize: 16 }}>
-                Available on Growth and Enterprise. Activate any add-on in one click — no setup, no developer.
+                Available on all plans. Activate any add-on in one click — no setup, no developer needed.
               </p>
             </div>
             <div className="addons-grid">
@@ -1113,7 +1207,7 @@ export default function HomePage() {
               ))}
             </div>
             <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--dimmest)', marginTop: 24 }}>
-              Annual billing available at 15% discount. Onboarding support R5,000–R15,000 (optional).
+              Annual billing available (save 2 months). Partner plan (R9,999/mo) for white-label resellers — <Link href="/contact" style={{ color: 'var(--dimmer)', textDecoration: 'underline' }}>contact us</Link>.
             </p>
           </section>
 
