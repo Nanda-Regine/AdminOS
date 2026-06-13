@@ -1,6 +1,6 @@
 import { inngest } from '@/inngest/client'
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import { sendWhatsAppMessage } from '@/lib/whatsapp/send'
+import { sendWhatsApp } from '@/lib/whatsapp/send'
 
 // Listens for booking confirmations and sends a WhatsApp reminder 24h before start
 export const bookingReminderFunction = inngest.createFunction(
@@ -94,11 +94,7 @@ export const bookingReminderFunction = inngest.createFunction(
       const serviceName = service?.name ?? 'your appointment'
       const message = `Hi ${contact.full_name ?? 'there'} 👋 Just a reminder that you have *${serviceName}* tomorrow, ${dateStr} at ${timeStr}. See you then! Reply CANCEL to cancel.`
 
-      await sendWhatsAppMessage({
-        to: phone,
-        message,
-        tenant_id,
-      })
+      await sendWhatsApp({ to: phone, message })
     })
 
     return {

@@ -11,8 +11,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   const tenantId = user.user_metadata?.tenant_id as string
   if (!tenantId) return new NextResponse('No tenant', { status: 400 })
 
-  const planError = await requireAdminOSPlan('scale', tenantId)
-  if (planError) return NextResponse.json({ error: planError }, { status: 403 })
+  try { await requireAdminOSPlan('scale') } catch { return NextResponse.json({ error: 'Scale plan or higher required' }, { status: 403 }) }
 
   const { id } = await params
 

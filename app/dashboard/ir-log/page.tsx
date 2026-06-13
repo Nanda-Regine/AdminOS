@@ -61,7 +61,7 @@ export default async function IRLogPage() {
   }
 
   function RecordRow({ record }: { record: typeof allRecords[number] }) {
-    const staffName = (record.staff as { full_name: string } | null)?.full_name || 'Staff member'
+    const staffName = (record.staff as unknown as { full_name: string } | null)?.full_name || 'Staff member'
     const recordDate = record.date
       ? new Date(record.date).toLocaleDateString('en-ZA', {
           day: 'numeric',

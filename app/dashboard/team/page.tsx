@@ -193,7 +193,7 @@ export default async function TeamPage() {
                   {shifts.map((shift) => (
                     <tr key={shift.id} className="hover:bg-gray-50">
                       <td className="py-2 font-medium text-gray-900">
-                        {(shift.staff as { full_name: string } | null)?.full_name || 'Staff'}
+                        {(shift.staff as unknown as { full_name: string } | null)?.full_name || 'Staff'}
                       </td>
                       <td className="py-2 text-gray-600">{shift.shift_date}</td>
                       <td className="py-2 text-gray-500">

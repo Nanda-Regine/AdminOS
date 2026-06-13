@@ -8,7 +8,7 @@ const createSchema = z.object({
   contactId:    z.string().uuid().optional(),
   title:        z.string().min(1).max(500),
   contractType: z.string().max(100).optional(),
-  content:      z.record(z.unknown()).default({}),
+  content:      z.record(z.string(), z.unknown()).default({}),
   value:        z.number().nonnegative().optional(),
   startDate:    z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   endDate:      z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),

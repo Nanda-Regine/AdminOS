@@ -110,7 +110,7 @@ export default async function ExpensesPage() {
           ) : (
             <div className="space-y-3">
               {pending.map((claim) => {
-                const staffName = (claim.staff as { full_name: string } | null)?.full_name || 'Staff member'
+                const staffName = (claim.staff as unknown as { full_name: string } | null)?.full_name || 'Staff member'
                 const catVariant = categoryColors[claim.category?.toLowerCase()] ?? 'gray'
                 const submittedDate = claim.submitted_at
                   ? new Date(claim.submitted_at).toLocaleDateString('en-ZA', {
@@ -193,7 +193,7 @@ export default async function ExpensesPage() {
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {processed.map((claim) => {
-                    const staffName = (claim.staff as { full_name: string } | null)?.full_name || 'Staff'
+                    const staffName = (claim.staff as unknown as { full_name: string } | null)?.full_name || 'Staff'
                     return (
                       <tr key={claim.id} className="hover:bg-gray-50">
                         <td className="py-2 font-medium text-gray-900">{staffName}</td>

@@ -6,7 +6,7 @@ import { z } from 'zod'
 const createSchema = z.object({
   title:                   z.string().min(1).max(500),
   category:                z.string().max(100).optional(),
-  content:                 z.record(z.unknown()).default({}),
+  content:                 z.record(z.string(), z.unknown()).default({}),
   status:                  z.enum(['draft','active','archived']).default('draft'),
   requiresAcknowledgement: z.boolean().default(false),
   applicableRoles:         z.array(z.string()).default(['all']),

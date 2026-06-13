@@ -6,7 +6,7 @@ import { z } from 'zod'
 const updateSchema = z.object({
   title:                   z.string().min(1).max(500).optional(),
   category:                z.string().max(100).optional(),
-  content:                 z.record(z.unknown()).optional(),
+  content:                 z.record(z.string(), z.unknown()).optional(),
   status:                  z.enum(['draft','active','archived']).optional(),
   requiresAcknowledgement: z.boolean().optional(),
   applicableRoles:         z.array(z.string()).optional(),

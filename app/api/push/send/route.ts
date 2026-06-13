@@ -7,7 +7,7 @@ const schema = z.object({
   userIds: z.array(z.string().uuid()).min(1).max(500),
   title:   z.string().min(1).max(150),
   body:    z.string().min(1).max(500),
-  data:    z.record(z.unknown()).optional(),
+  data:    z.record(z.string(), z.unknown()).optional(),
 })
 
 interface ExpoMessage {

@@ -37,7 +37,7 @@ export const payslipDistributionFunction = inngest.createFunction(
     let distributed = 0
 
     for (const payslip of payslips) {
-      const staff = payslip.staff as Record<string, string> | null
+      const staff = payslip.staff as unknown as Record<string, string> | null
       if (!staff?.phone) continue
 
       const payslipUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/payroll/payslip/${payslip.id}`
@@ -45,11 +45,11 @@ export const payslipDistributionFunction = inngest.createFunction(
       await step.run(`send-payslip-${payslip.id}`, async () => {
         try {
           const netPay = new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR' }).format(payslip.net_pay ?? 0)
-          await sendWhatsAppMessage({
+          await sendWhatsAppMessage(
             phoneNumberId,
-            to: staff.phone,
-            text: `Hi ${staff.full_name ?? 'there'} 👋\n\nYour payslip from ${tenant?.name ?? 'your employer'} is ready.\n\nNet Pay: *${netPay}*\n\nView your payslip here: ${payslipUrl}\n\nThis link is private to you.`,
-          })
+            staff.phone,
+            `Hi ${staff.full_name ?? 'there'} 👋\n\nYour payslip from ${tenant?.name ?? 'your employer'} is ready.\n\nNet Pay: *${netPay}*\n\nView your payslip here: ${payslipUrl}\n\nThis link is private to you.`,
+          )
 
           await supabaseAdmin
             .from('payslips')

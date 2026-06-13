@@ -25,7 +25,7 @@ const updateSchema = z.object({
   reportingYear:      z.number().int().min(2020).max(2099),
   totalWorkforce:     z.number().int().nonnegative().optional(),
   demographics:       demographicsSchema.optional(),
-  occupationalLevels: z.record(z.unknown()).optional(),
+  occupationalLevels: z.record(z.string(), z.unknown()).optional(),
 })
 
 export async function GET(request: Request) {

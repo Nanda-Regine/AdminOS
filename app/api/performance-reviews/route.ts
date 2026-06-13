@@ -7,7 +7,7 @@ import { requirePermission } from '@/lib/auth/permissions'
 const createSchema = z.object({
   staffId:      z.string().uuid(),
   reviewPeriod: z.string().max(50).optional(),
-  ratings:      z.record(z.number().min(1).max(5)).optional(),
+  ratings:      z.record(z.string(), z.number().min(1).max(5)).optional(),
   comments:     z.string().max(5000).optional(),
   goalsSet:     z.array(z.object({
     title:       z.string(),

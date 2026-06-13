@@ -45,11 +45,11 @@ export const npsReminderFunction = inngest.createFunction(
 
           if (!phoneNumberId) return
 
-          await sendWhatsAppMessage({
+          await sendWhatsAppMessage(
             phoneNumberId,
-            to: contact.phone!,
-            text: `Hi ${contact.name ?? 'there'} 👋 We noticed you haven't had a chance to share your feedback yet. It only takes 30 seconds and really helps us improve. Click here: ${surveyUrl}`,
-          })
+            contact.phone!,
+            `Hi ${contact.name ?? 'there'} 👋 We noticed you haven't had a chance to share your feedback yet. It only takes 30 seconds and really helps us improve. Click here: ${surveyUrl}`,
+          )
 
           await supabaseAdmin
             .from('nps_surveys')
@@ -92,11 +92,11 @@ export const onNPSSurveySent = inngest.createFunction(
 
       if (!phoneNumberId) return
 
-      await sendWhatsAppMessage({
+      await sendWhatsAppMessage(
         phoneNumberId,
-        to: contact_phone,
-        text: `Hi ${contact_name || 'there'}! ${tenant?.name ?? "We'd"} love to know how we're doing. How likely are you to recommend us? (0–10): ${survey_url}\n\nTakes 30 seconds. Thank you!`,
-      })
+        contact_phone,
+        `Hi ${contact_name || 'there'}! ${tenant?.name ?? "We'd"} love to know how we're doing. How likely are you to recommend us? (0–10): ${survey_url}\n\nTakes 30 seconds. Thank you!`,
+      )
     })
 
     return { tenant_id, survey_token }

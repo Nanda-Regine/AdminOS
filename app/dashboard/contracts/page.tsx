@@ -84,7 +84,7 @@ export default async function ContractsPage() {
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {allContracts.map((contract) => {
-                  const contact = contract.contacts as { full_name: string; email?: string } | null
+                  const contact = contract.contacts as unknown as { full_name: string; email?: string } | null
                   return (
                     <tr key={contract.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-5 py-3">
