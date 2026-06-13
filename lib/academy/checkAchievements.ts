@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 export interface AchievementContext {
   tenantId: string
   userId: string
+  event?: string
   // Metrics — only populate what you've already fetched
   contactCount?: number
   staffCount?: number
