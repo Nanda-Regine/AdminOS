@@ -41,10 +41,10 @@ export async function GET(_req: Request, { params }: Params) {
       .limit(20),
     supabaseAdmin
       .from('invoices')
-      .select('id, invoice_number, amount, amount_paid, status, due_date, created_at')
+      .select('id, invoice_number, amount, amount_paid, status, due_date, created_at, contact_id, contact_phone')
       .eq('tenant_id', tenantId)
       .order('created_at', { ascending: false })
-      .limit(20),
+      .limit(50),
   ])
 
   if (contactRes.error || !contactRes.data) {
@@ -71,9 +71,11 @@ export async function GET(_req: Request, { params }: Params) {
     return true
   })
 
-  // Filter invoices by contact phone
+  // Match invoices by contact_id (primary) or contact_phone fallback for legacy records
   const invoices = (invoicesRes.data ?? []).filter(
-    (inv: Record<string, unknown>) => (inv.contact_phone as string) === contact.phone
+    (inv: Record<string, unknown>) =>
+      (inv.contact_id as string) === id ||
+      ((inv.contact_phone as string) && (inv.contact_phone as string) === contact.phone)
   )
 
   return NextResponse.json({ contact, conversations, invoices })

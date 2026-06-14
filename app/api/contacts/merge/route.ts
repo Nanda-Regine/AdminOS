@@ -60,6 +60,11 @@ export async function POST(request: Request) {
       .in('contact_id', mergeIds)
       .eq('tenant_id', tenantId),
     supabaseAdmin
+      .from('invoices')
+      .update({ contact_id: keepId })
+      .in('contact_id', mergeIds)
+      .eq('tenant_id', tenantId),
+    supabaseAdmin
       .from('call_logs')
       .update({ contact_id: keepId })
       .in('contact_id', mergeIds)

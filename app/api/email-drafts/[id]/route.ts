@@ -82,6 +82,7 @@ export async function POST(request: Request, { params }: Params) {
     .from('email_drafts')
     .update({ status: 'sent', sent_at: new Date().toISOString() })
     .eq('id', id)
+    .eq('tenant_id', tenantId)
 
   return NextResponse.json({ status: 'sent' })
 }

@@ -15,6 +15,7 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
   const [error, setError] = useState('')
+  const [confirmationSent, setConfirmationSent] = useState(false)
 
   const update = (field: string, value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }))
@@ -25,7 +26,7 @@ export default function SignupPage() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=/dashboard/settings/onboarding`,
+        redirectTo: `${window.location.origin}/auth/callback?next=/dashboard/onboarding`,
         queryParams: { access_type: 'offline', prompt: 'consent' },
       },
     })
@@ -40,49 +41,106 @@ export default function SignupPage() {
     setLoading(true)
     setError('')
 
-    // Create auth user
     const { data, error: authError } = await supabase.auth.signUp({
       email: form.email,
       password: form.password,
       options: {
         data: { full_name: form.name },
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=/dashboard/onboarding`,
       },
     })
 
     if (authError) {
-      setError(authError.message)
+      if (authError.message.toLowerCase().includes('already registered')) {
+        setError('An account with this email already exists. Sign in instead.')
+      } else {
+        setError(authError.message)
+      }
       setLoading(false)
       return
     }
 
-    // Create tenant via API
-    if (data.user) {
+    if (!data.user) {
+      setError('Something went wrong. Please try again.')
+      setLoading(false)
+      return
+    }
+
+    // Only create tenant if this user doesn't have one yet
+    const alreadyHasTenant = !!data.user.user_metadata?.tenant_id
+    if (!alreadyHasTenant) {
       const res = await fetch('/api/onboarding/create-tenant', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId: data.user.id,
-          businessName: form.businessName,
+          businessName: form.businessName || 'My Business',
           email: form.email,
         }),
       })
-
       if (!res.ok) {
-        setError('Failed to create account. Please try again.')
+        setError('Account created but business setup failed. Please contact support.')
         setLoading(false)
         return
       }
     }
 
-    router.push('/dashboard/settings/onboarding')
+    // If session exists, email confirmation is disabled — go straight to dashboard
+    if (data.session) {
+      router.push('/dashboard/onboarding')
+      return
+    }
+
+    // No session = email confirmation required
+    setConfirmationSent(true)
+    setLoading(false)
+  }
+
+  if (confirmationSent) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="w-full max-w-md text-center">
+          <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Check your email</h1>
+          <p className="text-gray-500 mb-2">
+            We sent a confirmation link to <strong className="text-gray-900">{form.email}</strong>
+          </p>
+          <p className="text-gray-400 text-sm mb-8">
+            Click the link in the email to activate your account, then come back to sign in.
+          </p>
+          <Link
+            href="/login"
+            className="inline-block bg-[#0A0F2C] text-white font-semibold px-6 py-3 rounded-xl hover:bg-[#0f1840] transition-colors"
+          >
+            Go to sign in
+          </Link>
+          <p className="text-xs text-gray-400 mt-4">
+            Didn&apos;t get the email? Check your spam folder or{' '}
+            <button
+              className="text-emerald-600 underline"
+              onClick={async () => {
+                await supabase.auth.resend({ type: 'signup', email: form.email })
+                alert('Confirmation email resent!')
+              }}
+            >
+              resend it
+            </button>
+          </p>
+        </div>
+      </div>
+    )
   }
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="w-12 h-12 bg-emerald-500 rounded-xl flex items-center justify-center text-white font-bold text-xl mx-auto mb-3">
-            A
+          <div className="w-12 h-12 bg-[#0A0F2C] rounded-xl flex items-center justify-center mx-auto mb-3">
+            <span className="font-bold text-[#C9A84C] text-lg">AO</span>
           </div>
           <h1 className="text-2xl font-bold text-gray-900">Start your free trial</h1>
           <p className="text-sm text-gray-500 mt-1">Set up AdminOS for your business in 15 minutes</p>
@@ -165,7 +223,10 @@ export default function SignupPage() {
 
             {error && (
               <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-700">
-                {error}
+                {error}{' '}
+                {error.includes('already exists') && (
+                  <Link href="/login" className="font-semibold underline">Sign in →</Link>
+                )}
               </div>
             )}
 

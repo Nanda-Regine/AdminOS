@@ -464,19 +464,36 @@ export default function HomePage() {
           .steps-grid  { grid-template-columns: 1fr; gap: 24px; }
           .africa-grid { grid-template-columns: 1fr; }
           .footer-grid { grid-template-columns: repeat(2, 1fr); }
+          .bi-grid { grid-template-columns: 1fr !important; }
+          .ubuntu-grid { grid-template-columns: 1fr !important; }
+          .academy-grid { grid-template-columns: 1fr !important; }
+          .impact-counter-grid { grid-template-columns: repeat(2, 1fr) !important; }
         }
 
         @media (max-width: 560px) {
           .agents-grid  { grid-template-columns: 1fr; }
           .addons-grid  { grid-template-columns: 1fr; }
           .pricing-grid { grid-template-columns: 1fr; }
-          .stats-grid   { grid-template-columns: repeat(2, 1fr); }
+          .stats-grid   { grid-template-columns: repeat(2, 1fr); gap: 12px; }
           .footer-grid  { grid-template-columns: 1fr; }
           .hero-demo-hide { display: none !important; }
           .hero-section { padding: 56px 20px 48px !important; }
           .roi-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
           .roi-table { min-width: 480px; }
           .cta-inner { padding: 44px 24px !important; }
+          .hero-ctas { flex-direction: column !important; align-items: stretch !important; }
+          .hero-cta-btn { width: 100% !important; justify-content: center !important; text-align: center !important; }
+          .section-title { font-size: clamp(22px, 6vw, 32px) !important; }
+          .impact-counter-grid { grid-template-columns: repeat(2, 1fr) !important; }
+          .footer-bottom { flex-direction: column !important; align-items: center !important; gap: 10px !important; }
+          .testimonials-grid { grid-template-columns: 1fr !important; }
+        }
+
+        @media (max-width: 380px) {
+          .hero-section { padding: 44px 16px 40px !important; }
+          .stats-grid { grid-template-columns: 1fr 1fr; }
+          .pricing-grid { grid-template-columns: 1fr; }
+          .impact-counter-grid { grid-template-columns: 1fr 1fr; }
         }
 
         @media (prefers-reduced-motion: reduce) {
@@ -549,12 +566,12 @@ export default function HomePage() {
                   Average client replaces <strong>R15,000/month</strong> in tools and outsourced services.
                 </p>
 
-                <div className="fu" style={{ animationDelay: '.45s', display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
-                  <Link href="/signup" className="btn-orange" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '14px 28px', borderRadius: 14, fontWeight: 800, fontSize: 16, color: 'white', textDecoration: 'none' }}>
+                <div className="fu hero-ctas" style={{ animationDelay: '.45s', display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
+                  <Link href="/signup" className="btn-orange hero-cta-btn" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '14px 28px', borderRadius: 14, fontWeight: 800, fontSize: 16, color: 'white', textDecoration: 'none' }}>
                     Start 14-day free trial
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                   </Link>
-                  <Link href="/demo" className="btn-demo" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '14px 28px', borderRadius: 14, fontWeight: 700, fontSize: 16, color: 'white', textDecoration: 'none' }}>
+                  <Link href="/demo" className="btn-demo hero-cta-btn" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '14px 28px', borderRadius: 14, fontWeight: 700, fontSize: 16, color: 'white', textDecoration: 'none' }}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><polygon points="5,3 19,12 5,21" fill="white"/></svg>
                     Try interactive demo
                   </Link>
@@ -1019,6 +1036,175 @@ export default function HomePage() {
             </div>
           </section>
 
+          {/* ── Business Intelligence ───────────────────────────────────── */}
+          <section style={{ background: 'linear-gradient(180deg,#050B1A 0%,#071020 100%)', borderTop: '1px solid rgba(6,182,212,.12)', borderBottom: '1px solid rgba(6,182,212,.12)', padding: '96px 24px' }}>
+            <div className="max-w-6xl mx-auto">
+              <div style={{ textAlign: 'center', marginBottom: 64 }}>
+                <p style={{ color: '#06B6D4', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 12 }}>Business Intelligence</p>
+                <h2 className="section-title" style={{ fontSize: 'clamp(26px, 3.5vw, 46px)', fontWeight: 900, letterSpacing: '-1.5px', marginBottom: 16 }}>Your numbers, contextualised</h2>
+                <p style={{ color: 'var(--dim)', maxWidth: 520, margin: '0 auto', lineHeight: 1.65, fontSize: 16 }}>
+                  AdminOS doesn&apos;t just track data — it interprets it against your sector, your stage, and your goals.
+                </p>
+              </div>
+
+              <div className="bi-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 }}>
+                {/* Health Score card */}
+                <div style={{ background: '#0A1628', border: '1px solid rgba(34,197,94,.2)', borderRadius: 16, padding: 28, display: 'flex', flexDirection: 'column', gap: 20 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(34,197,94,.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>📊</div>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 15, color: '#f1f5f9' }}>Business Health Score</div>
+                      <div style={{ fontSize: 12, color: '#64748b' }}>Updated weekly · AI-driven</div>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+                    <div style={{ position: 'relative', width: 80, height: 80, flexShrink: 0 }}>
+                      <svg viewBox="0 0 80 80" style={{ transform: 'rotate(-90deg)', width: 80, height: 80 }}>
+                        <circle cx="40" cy="40" r="32" fill="none" stroke="#1e3a5f" strokeWidth="8"/>
+                        <circle cx="40" cy="40" r="32" fill="none" stroke="#22c55e" strokeWidth="8" strokeDasharray={`${2*Math.PI*32*0.74} ${2*Math.PI*32}`} strokeLinecap="round"/>
+                      </svg>
+                      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: 22, color: '#22c55e' }}>74</div>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
+                      {[['Cash flow', 82, '#22c55e'], ['Collections', 71, '#F97316'], ['Staff wellness', 68, '#F97316'], ['Compliance', 90, '#22c55e']].map(([label, val, color]) => (
+                        <div key={String(label)}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
+                            <span style={{ fontSize: 11, color: '#64748b' }}>{label}</span>
+                            <span style={{ fontSize: 11, color: String(color), fontWeight: 600 }}>{val}</span>
+                          </div>
+                          <div style={{ height: 4, background: '#1e2a45', borderRadius: 2, overflow: 'hidden' }}>
+                            <div style={{ height: '100%', width: `${val}%`, background: String(color), borderRadius: 2, transition: 'width 1s ease' }}/>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div style={{ padding: '10px 14px', background: 'rgba(34,197,94,.08)', borderRadius: 8, fontSize: 13, color: '#22c55e', border: '1px solid rgba(34,197,94,.15)' }}>
+                    ↑ 6 pts vs last quarter — your sector avg is 61
+                  </div>
+                </div>
+
+                {/* Cash Flow Forecast */}
+                <div style={{ background: '#0A1628', border: '1px solid rgba(249,115,22,.2)', borderRadius: 16, padding: 28, display: 'flex', flexDirection: 'column', gap: 20 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(249,115,22,.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>📈</div>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 15, color: '#f1f5f9' }}>90-Day Cash Forecast</div>
+                      <div style={{ fontSize: 12, color: '#64748b' }}>AI-modelled from your data</div>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, height: 80 }}>
+                    {[
+                      { m: 'Jun', h: 55, act: true }, { m: 'Jul', h: 72, act: false }, { m: 'Aug', h: 68, act: false }, { m: 'Sep', h: 84, act: false }, { m: 'Oct', h: 91, act: false }, { m: 'Nov', h: 78, act: false }
+                    ].map(({ m, h, act }) => (
+                      <div key={m} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                        <div style={{ width: '100%', height: `${h}%`, background: act ? '#F97316' : 'rgba(249,115,22,.3)', borderRadius: '4px 4px 0 0', border: act ? 'none' : '1px dashed rgba(249,115,22,.4)' }}/>
+                        <div style={{ fontSize: 10, color: '#475569' }}>{m}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {[['Projected inflow (Jul)', 'R 142,000', '#22c55e'], ['Outstanding debtors', 'R 38,500', '#F97316'], ['30-day runway', '94 days', '#06B6D4']].map(([label, val, color]) => (
+                      <div key={String(label)} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', background: '#0f172a', borderRadius: 8 }}>
+                        <span style={{ fontSize: 13, color: '#64748b' }}>{label}</span>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: String(color) }}>{val}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Valuation Engine */}
+                <div style={{ background: '#0A1628', border: '1px solid rgba(167,139,250,.2)', borderRadius: 16, padding: 28, display: 'flex', flexDirection: 'column', gap: 20 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(167,139,250,.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>🏦</div>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 15, color: '#f1f5f9' }}>Valuation Engine</div>
+                      <div style={{ fontSize: 12, color: '#64748b' }}>Exit readiness · Investor-ready</div>
+                    </div>
+                  </div>
+                  <div style={{ padding: '16px', background: '#050B1A', borderRadius: 12, border: '1px solid rgba(167,139,250,.15)' }}>
+                    <div style={{ fontSize: 12, color: '#64748b', marginBottom: 4 }}>Estimated business value</div>
+                    <div style={{ fontSize: 32, fontWeight: 900, color: '#a78bfa', letterSpacing: '-1px' }}>R 1.84M</div>
+                    <div style={{ fontSize: 12, color: '#22c55e', marginTop: 4 }}>↑ R 240k from last quarter</div>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {[['Revenue multiple', '2.4×', '#a78bfa'], ['EBITDA multiple', '6.1×', '#a78bfa'], ['Exit readiness score', '73 / 100', '#F97316'], ['Board pack ready', 'Yes', '#22c55e']].map(([label, val, color]) => (
+                      <div key={String(label)} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,.04)' }}>
+                        <span style={{ fontSize: 13, color: '#64748b' }}>{label}</span>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: String(color) }}>{val}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ marginTop: 40, textAlign: 'center' }}>
+                <p style={{ color: 'var(--dim)', fontSize: 14 }}>Available on Operate, Scale & Partner plans · <a href="#pricing" style={{ color: '#06B6D4', textDecoration: 'none', fontWeight: 600 }}>See pricing →</a></p>
+              </div>
+            </div>
+          </section>
+
+          {/* ── Academy & Langa ─────────────────────────────────────────── */}
+          <section style={{ padding: '96px 24px' }}>
+            <div className="max-w-6xl mx-auto">
+              <div className="academy-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 64, alignItems: 'center' }}>
+                {/* Left: content */}
+                <div>
+                  <p style={{ color: 'var(--orange)', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 16 }}>Business Academy</p>
+                  <h2 className="section-title" style={{ fontSize: 'clamp(24px, 3vw, 42px)', fontWeight: 900, letterSpacing: '-1px', marginBottom: 20 }}>Langa: your AI business mentor</h2>
+                  <p style={{ color: 'var(--dim)', lineHeight: 1.7, fontSize: 16, marginBottom: 28 }}>
+                    Langa knows your financials, your team, your clients — and meets you exactly where you are. Not generic advice: <em style={{ color: '#f1f5f9' }}>your next move, with your numbers</em>.
+                  </p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 32 }}>
+                    {[
+                      { icon: '📚', title: '200+ frameworks & books', desc: 'Built from African business classics + global playbooks. SA Labour Law, Ubuntu Leadership, Cash Flow Mastery.' },
+                      { icon: '🎯', title: 'Contextual advice', desc: 'Langa reads your health score, revenue trend, and team pulse before answering any question.' },
+                      { icon: '🏆', title: 'Achievement system', desc: 'Earn badges as your business grows. Complete the Pricing Audit → unlock the Pitch Deck framework.' },
+                      { icon: '🛤️', title: 'SETA-aligned pathways', desc: 'For businesses ready to formalise — NQF-aligned learning tracks, CPD points, and accreditation guides.' },
+                    ].map(item => (
+                      <div key={item.title} style={{ display: 'flex', gap: 14 }}>
+                        <div style={{ fontSize: 20, flexShrink: 0, marginTop: 2 }}>{item.icon}</div>
+                        <div>
+                          <div style={{ fontWeight: 700, color: '#f1f5f9', marginBottom: 3, fontSize: 15 }}>{item.title}</div>
+                          <div style={{ fontSize: 13, color: 'var(--dim)', lineHeight: 1.55 }}>{item.desc}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <Link href="/demo" className="btn-orange" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '13px 24px', borderRadius: 12, fontWeight: 700, fontSize: 15, color: 'white', textDecoration: 'none' }}>
+                    Ask Langa a question →
+                  </Link>
+                </div>
+                {/* Right: Langa chat mockup */}
+                <div style={{ background: '#0A1628', borderRadius: 20, padding: 24, border: '1px solid rgba(249,115,22,.2)', boxShadow: '0 24px 64px rgba(0,0,0,.5)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20, paddingBottom: 16, borderBottom: '1px solid rgba(255,255,255,.06)' }}>
+                    <div style={{ width: 38, height: 38, borderRadius: 10, background: 'linear-gradient(135deg,#F97316,#a78bfa)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>🦁</div>
+                    <div>
+                      <div style={{ fontWeight: 700, color: '#f1f5f9', fontSize: 14 }}>Langa</div>
+                      <div style={{ fontSize: 11, color: '#22c55e' }}>● Online · knows your business</div>
+                    </div>
+                  </div>
+                  {[
+                    { from: 'user', msg: 'My revenue is up 18% but I\'m always short on cash. Why?' },
+                    { from: 'langa', msg: 'Your revenue growth is outpacing your collections. Chase shows 74% collection rate this month vs 91% in April. You have R 38,500 sitting in outstanding invoices.\n\nI\'d suggest running a collections campaign today targeting the 3 clients overdue by 30+ days. Want me to draft the WhatsApp messages now?' },
+                    { from: 'user', msg: 'Yes, and what framework covers cash flow management?' },
+                    { from: 'langa', msg: '📚 I\'ll open **Profit First by Mike Michalowicz** — it\'s in your Academy library. Given your stage, the 5-account system will fix this in 90 days. Unlocking it for you now.' },
+                  ].map((m, i) => (
+                    <div key={i} style={{ marginBottom: 14, display: 'flex', flexDirection: m.from === 'user' ? 'row-reverse' : 'row', gap: 8 }}>
+                      <div style={{ maxWidth: '80%', padding: '10px 14px', borderRadius: m.from === 'user' ? '14px 14px 4px 14px' : '14px 14px 14px 4px', background: m.from === 'user' ? 'rgba(249,115,22,.2)' : '#0f172a', border: m.from === 'user' ? '1px solid rgba(249,115,22,.3)' : '1px solid rgba(255,255,255,.06)', fontSize: 13, color: m.from === 'user' ? '#f1f5f9' : '#94a3b8', lineHeight: 1.55, whiteSpace: 'pre-line' }}>
+                        {m.msg}
+                      </div>
+                    </div>
+                  ))}
+                  <div style={{ marginTop: 16, padding: '10px 14px', background: '#050B1A', borderRadius: 10, border: '1px solid rgba(255,255,255,.06)', fontSize: 13, color: '#334155', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span>Ask Langa anything about your business…</span>
+                    <span style={{ marginLeft: 'auto', fontSize: 18, cursor: 'pointer' }}>➤</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
           {/* ── Add-on Power-Ups ────────────────────────────────────────── */}
           <section id="addons" className="max-w-7xl mx-auto px-6 py-24">
             <div style={{ textAlign: 'center', marginBottom: 56 }}>
@@ -1062,7 +1248,7 @@ export default function HomePage() {
                 <p style={{ color: 'var(--teal)', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 12 }}>Client stories</p>
                 <h2 style={{ fontSize: 'clamp(26px, 3.5vw, 44px)', fontWeight: 900, letterSpacing: '-1.5px' }}>South African businesses, real results</h2>
               </div>
-              <div style={{ display: 'grid', gap: 24 }} className="agents-grid">
+              <div style={{ display: 'grid', gap: 24 }} className="agents-grid testimonials-grid">
                 {testimonials.map((t, i) => (
                   <div key={t.name} className="fu card" style={{ animationDelay: `${i * .1}s`, background: 'rgba(255,255,255,.025)', border: '1px solid rgba(255,255,255,.07)', borderRadius: 20, padding: 28, display: 'flex', flexDirection: 'column', gap: 20 }}>
                     {/* Stars */}
@@ -1082,6 +1268,57 @@ export default function HomePage() {
                     </div>
                   </div>
                 ))}
+              </div>
+            </div>
+          </section>
+
+          {/* ── Ubuntu & Economic Liberation ────────────────────────────── */}
+          <section style={{ background: 'rgba(167,139,250,.04)', borderTop: '1px solid rgba(167,139,250,.1)', borderBottom: '1px solid rgba(167,139,250,.1)', padding: '96px 24px' }}>
+            <div className="max-w-6xl mx-auto">
+              <div className="ubuntu-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 64, alignItems: 'center' }}>
+                {/* Left: stats + message */}
+                <div>
+                  <p style={{ color: '#a78bfa', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 16 }}>Ubuntu OS</p>
+                  <h2 className="section-title" style={{ fontSize: 'clamp(24px, 3vw, 40px)', fontWeight: 900, letterSpacing: '-1px', marginBottom: 20 }}>
+                    Built by African women.<br/>
+                    <span style={{ color: '#a78bfa' }}>For African businesses.</span>
+                  </h2>
+                  <p style={{ color: 'var(--dim)', lineHeight: 1.7, fontSize: 16, marginBottom: 32 }}>
+                    International tools ignore informal economies, load-shedding, and B-BBEE. AdminOS is built from the ground up for the R76 billion stokvel economy and the 3.3 million township businesses that power South Africa.
+                  </p>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 32 }}>
+                    {[
+                      { val: 'R76B', label: 'Informal stokvel economy — fully managed' },
+                      { val: '3.3M', label: 'Township businesses in SA needing tools built for them' },
+                      { val: '68%', label: 'Women-owned businesses in AdminOS\'s target market' },
+                      { val: '15min', label: 'Time to go live, even without IT support' },
+                    ].map(({ val, label }) => (
+                      <div key={val} style={{ padding: '16px', background: '#0A1628', borderRadius: 12, border: '1px solid rgba(167,139,250,.15)' }}>
+                        <div style={{ fontSize: 24, fontWeight: 900, color: '#a78bfa', letterSpacing: '-1px', marginBottom: 4 }}>{val}</div>
+                        <div style={{ fontSize: 12, color: '#64748b', lineHeight: 1.4 }}>{label}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                {/* Right: Ubuntu features list */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  {[
+                    { icon: '🤝', title: 'Stokvel group management', desc: 'Track contributions, rotations, payouts, and member standings for informal savings groups.' },
+                    { icon: '📋', title: 'Formalization pathway', desc: 'Step-by-step guide from unregistered business → CIPC registration → B-BBEE Level 2 → SARS compliant.' },
+                    { icon: '📊', title: 'B-BBEE scorecard automation', desc: 'Capture qualifying spend, employment equity data, and ownership automatically. Board pack ready.' },
+                    { icon: '🌐', title: 'Community knowledge board', desc: 'Share supplier wins, client red flags, and pricing benchmarks with vetted local peers.' },
+                    { icon: '👥', title: 'Peer mentorship network', desc: 'Match with experienced business owners in your sector through the AdminOS community.' },
+                    { icon: '🔆', title: 'Load-shedding resilience', desc: 'Offline mode, SMS fallback for WhatsApp, and auto-reschedule reminders around Eskom schedules.' },
+                  ].map(item => (
+                    <div key={item.title} style={{ display: 'flex', gap: 14, padding: '16px', background: '#0A1628', borderRadius: 12, border: '1px solid rgba(167,139,250,.08)' }}>
+                      <div style={{ fontSize: 22, flexShrink: 0, marginTop: 2 }}>{item.icon}</div>
+                      <div>
+                        <div style={{ fontWeight: 700, color: '#f1f5f9', marginBottom: 4, fontSize: 14 }}>{item.title}</div>
+                        <div style={{ fontSize: 13, color: '#64748b', lineHeight: 1.5 }}>{item.desc}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </section>
@@ -1308,7 +1545,7 @@ export default function HomePage() {
                 <span>POPIA Compliant · Reg. No. 2026-005658 · Information Officer: N. Kabali-Kagwa ·</span>
                 <Link href="/privacy" style={{ color: 'inherit', textDecoration: 'none' }} className="hover:text-white transition-colors">Privacy Policy</Link>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+              <div className="footer-bottom" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
                 <p style={{ fontSize: 12, color: 'var(--dimmest)' }}>© {new Date().getFullYear()} Mirembe Muse (Pty) Ltd · All rights reserved</p>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 16, fontSize: 12, color: 'var(--dimmest)' }}>
                   <span>Powered by Claude AI</span>

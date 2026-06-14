@@ -681,28 +681,59 @@ export default function DemoPage() {
         .agent-btn.active { background: rgba(249,115,22,0.12) !important; }
         .notif-item { animation: slideIn .3s ease both; }
         .tour-hint { animation: fadeUp .4s ease both; }
+        .demo-page { height: 100dvh; overflow: hidden; display: flex; flex-direction: column; }
+        .demo-shell { flex: 1; min-height: 0; }
+        .demo-content-area { min-height: 0; }
         @media (max-width: 700px) {
-          .demo-shell { flex-direction: column !important; height: auto !important; }
-          .demo-sidebar { flex-direction: row !important; width: 100% !important; overflow-x: auto; border-right: none !important; border-bottom: 1px solid #1e2a45 !important; padding: 8px !important; gap: 4px !important; }
+          .demo-page { height: 100dvh; overflow: hidden; display: flex; flex-direction: column; }
+          .demo-shell { flex-direction: column-reverse !important; height: auto !important; flex: 1; min-height: 0; overflow: hidden; }
+          .demo-sidebar {
+            flex-direction: row !important;
+            width: 100% !important;
+            height: auto !important;
+            flex-shrink: 0;
+            overflow-x: auto;
+            overflow-y: hidden;
+            border-right: none !important;
+            border-top: 1px solid #1e2a45 !important;
+            padding: 6px 8px !important;
+            gap: 2px !important;
+            -webkit-overflow-scrolling: touch;
+          }
+          .agents-container { flex-direction: row !important; padding: 4px 0 !important; gap: 2px !important; }
           .demo-sidebar-label, .demo-sidebar-footer, .demo-notifs, .demo-header-right { display: none !important; }
-          .demo-agent-btn { flex-direction: row !important; padding: 8px 12px !important; border-radius: 20px !important; }
+          .demo-agent-btn {
+            flex-direction: column !important;
+            padding: 6px 10px !important;
+            border-radius: 10px !important;
+            min-width: 54px;
+            align-items: center !important;
+            gap: 2px !important;
+          }
+          .demo-agent-icon { font-size: 20px !important; }
+          .demo-agent-name { font-size: 11px !important; }
           .demo-agent-role { display: none !important; }
           .demo-banner-text { display: none; }
-          .demo-page { display: flex; flex-direction: column; height: 100dvh; }
+          .demo-content-area { flex: 1 !important; min-height: 0 !important; overflow-y: auto !important; display: flex; flex-direction: column; }
+          .demo-bottom-cta { padding: 10px 16px !important; }
+          .demo-top-banner { padding: 8px 12px !important; gap: 8px !important; }
+          .demo-top-banner-cta { font-size: 11px !important; padding: 6px 10px !important; }
+          .demo-header { padding: 10px 16px !important; }
+          .tour-controls { font-size: 11px !important; padding: 5px 10px !important; }
         }
       `}</style>
 
       {/* ── Top banner ─────────────────────────────── */}
-      <div style={{ background: 'linear-gradient(90deg,rgba(249,115,22,.15),rgba(6,182,212,.1))', borderBottom: '1px solid rgba(249,115,22,.3)', padding: '10px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+      <div className="demo-top-banner" style={{ background: 'linear-gradient(90deg,rgba(249,115,22,.15),rgba(6,182,212,.1))', borderBottom: '1px solid rgba(249,115,22,.3)', padding: '10px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <span style={{ background: '#F97316', color: '#fff', fontSize: 11, fontWeight: 800, padding: '3px 10px', borderRadius: 20, letterSpacing: 1.5 }}>DEMO MODE</span>
           <span className="demo-banner-text" style={{ color: '#94a3b8', fontSize: 13 }}>Viewing <strong style={{ color: '#f1f5f9' }}>{TENANT}</strong> — fake data, no real API calls</span>
         </div>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-          <button onClick={tourActive ? stopTour : startTour} style={{ background: tourActive ? 'rgba(6,182,212,.2)' : 'rgba(255,255,255,.08)', border: `1px solid ${tourActive ? '#06B6D4' : 'rgba(255,255,255,.15)'}`, borderRadius: 8, padding: '7px 14px', color: tourActive ? '#06B6D4' : '#f1f5f9', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
-            {tourActive ? '⏹ Stop tour' : '▶ Auto-guided tour'}
+          <button onClick={tourActive ? stopTour : startTour} className="tour-controls" style={{ background: tourActive ? 'rgba(6,182,212,.2)' : 'rgba(255,255,255,.08)', border: `1px solid ${tourActive ? '#06B6D4' : 'rgba(255,255,255,.15)'}`, borderRadius: 8, padding: '7px 14px', color: tourActive ? '#06B6D4' : '#f1f5f9', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+            {tourActive ? '⏹ Stop tour' : '▶ Tour'}
           </button>
-          <Link href="/#pricing" style={{ background: '#F97316', color: '#fff', textDecoration: 'none', padding: '8px 18px', borderRadius: 8, fontWeight: 700, fontSize: 13, whiteSpace: 'nowrap' }}>Get AdminOS — from R349/mo →</Link>
+          <Link href="/#pricing" className="demo-top-banner-cta" style={{ background: '#F97316', color: '#fff', textDecoration: 'none', padding: '8px 18px', borderRadius: 8, fontWeight: 700, fontSize: 13, whiteSpace: 'nowrap' }}>Get AdminOS →</Link>
         </div>
       </div>
 
@@ -719,7 +750,7 @@ export default function DemoPage() {
       )}
 
       {/* ── Header ─────────────────────────────────── */}
-      <div style={{ padding: '16px 24px', borderBottom: '1px solid #1e2a45', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#0A0F2C' }}>
+      <div className="demo-header" style={{ padding: '16px 24px', borderBottom: '1px solid #1e2a45', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#0A0F2C', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <div style={{ width: 36, height: 36, borderRadius: 8, background: 'linear-gradient(135deg,#F97316,#ea580c)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: 16, color: '#fff' }}>A</div>
           <div>
@@ -740,22 +771,23 @@ export default function DemoPage() {
       </div>
 
       {/* ── Shell ──────────────────────────────────── */}
-      <div className="demo-shell" style={{ display: 'flex', flex: 1, height: 'calc(100vh - 160px)', minHeight: 500, overflow: 'hidden' }}>
+      <div className="demo-shell" style={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
 
         {/* Sidebar */}
         <div className="demo-sidebar" style={{ width: 220, flexShrink: 0, background: '#0A0F2C', borderRight: '1px solid #1e2a45', display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
           <div className="demo-sidebar-label" style={{ fontSize: 11, color: '#475569', textTransform: 'uppercase', letterSpacing: 1.2, padding: '14px 14px 6px', fontWeight: 600 }}>AI Agents</div>
 
-          <div style={{ padding: '6px 8px', display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <div className="agents-container" style={{ padding: '6px 8px', display: 'flex', flexDirection: 'column', gap: 2 }}>
             {AGENTS.map(a => (
               <button key={a.id} onClick={() => { setActiveAgent(a.id); if (tourActive) stopTour() }}
+                className="demo-agent-btn"
                 style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 10px', borderRadius: 8, border: 'none', cursor: 'pointer', textAlign: 'left', background: activeAgent === a.id ? 'rgba(249,115,22,0.12)' : 'none', transition: 'background .15s', position: 'relative' }}
                 onMouseEnter={e => { if (activeAgent !== a.id) e.currentTarget.style.background = '#0f172a' }}
                 onMouseLeave={e => { if (activeAgent !== a.id) e.currentTarget.style.background = 'none' }}
               >
-                <span style={{ fontSize: 18, flexShrink: 0 }}>{a.icon}</span>
+                <span className="demo-agent-icon" style={{ fontSize: 18, flexShrink: 0 }}>{a.icon}</span>
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontWeight: 600, fontSize: 14, color: activeAgent === a.id ? a.color : '#f1f5f9', transition: 'color .15s' }}>{a.label}</div>
+                  <div className="demo-agent-name" style={{ fontWeight: 600, fontSize: 14, color: activeAgent === a.id ? a.color : '#f1f5f9', transition: 'color .15s' }}>{a.label}</div>
                   <div className="demo-agent-role" style={{ fontSize: 11, color: '#475569' }}>{a.role}</div>
                 </div>
                 {a.id === 'langa' && <span style={{ marginLeft: 'auto', fontSize: 9, fontWeight: 800, background: 'rgba(251,191,36,.2)', color: '#fbbf24', padding: '2px 6px', borderRadius: 20, flexShrink: 0 }}>NEW</span>}
@@ -785,7 +817,7 @@ export default function DemoPage() {
         </div>
 
         {/* Agent panel */}
-        <div style={{ flex: 1, overflowY: 'auto', background: '#050B1A', display: 'flex', flexDirection: 'column' }}>
+        <div className="demo-content-area" style={{ flex: 1, overflowY: 'auto', background: '#050B1A', display: 'flex', flexDirection: 'column' }}>
           {/* Panel header */}
           <div style={{ padding: '14px 20px', borderBottom: '1px solid #1e2a45', background: '#0A0F2C', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
             <span style={{ fontSize: 22 }}>{activeAgentMeta.icon}</span>
@@ -806,7 +838,7 @@ export default function DemoPage() {
       </div>
 
       {/* Bottom CTA */}
-      <div style={{ background: '#0A0F2C', borderTop: '1px solid #1e2a45', padding: '16px 24px', textAlign: 'center' }}>
+      <div className="demo-bottom-cta" style={{ background: '#0A0F2C', borderTop: '1px solid #1e2a45', padding: '16px 24px', textAlign: 'center', flexShrink: 0 }}>
         <span style={{ color: '#64748b', fontSize: 14 }}>
           Ready for the real thing?{' '}
           <Link href="/signup" style={{ color: '#F97316', fontWeight: 700, textDecoration: 'none' }}>

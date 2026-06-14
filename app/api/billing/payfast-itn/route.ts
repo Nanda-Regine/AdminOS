@@ -86,7 +86,7 @@ export async function POST(request: Request) {
     if (addon) {
       const addonCol        = `addon_${addon}`
       const addonExpiresCol = `addon_${addon}_expires_at`
-      await supabaseAdmin
+      const { error: addonErr } = await supabaseAdmin
         .from('subscriptions')
         .upsert(
           {
@@ -99,9 +99,12 @@ export async function POST(request: Request) {
           },
           { onConflict: 'tenant_id' }
         )
-        .then(() => {}, () => {})
+      if (addonErr) {
+        console.error('[PayFast ITN] addon upsert failed:', addonErr.message, { tenantId, addon })
+        return new NextResponse('DB error', { status: 500 })
+      }
     } else if (plan) {
-      await Promise.all([
+      const [tenantRes, subRes] = await Promise.all([
         supabaseAdmin
           .from('tenants')
           .update({ plan, active: true })
@@ -122,7 +125,12 @@ export async function POST(request: Request) {
             },
             { onConflict: 'tenant_id' }
           ),
-      ]).catch(() => {})
+      ])
+      if (tenantRes.error || subRes.error) {
+        const msg = tenantRes.error?.message ?? subRes.error?.message
+        console.error('[PayFast ITN] plan activation failed:', msg, { tenantId, plan })
+        return new NextResponse('DB error', { status: 500 })
+      }
     }
 
     await writeAuditLog({
@@ -132,11 +140,13 @@ export async function POST(request: Request) {
       metadata: { plan: plan || null, addon: addon || null, amount: params.amount_gross },
     })
   } else if (paymentStatus === 'CANCELLED') {
-    await supabaseAdmin
+    const { error: cancelErr } = await supabaseAdmin
       .from('subscriptions')
       .update({ status: 'cancelled', cancelled_at: new Date().toISOString() })
       .eq('tenant_id', tenantId)
-      .then(() => {}, () => {})
+    if (cancelErr) {
+      console.error('[PayFast ITN] cancellation update failed:', cancelErr.message, { tenantId })
+    }
 
     await writeAuditLog({
       tenantId,

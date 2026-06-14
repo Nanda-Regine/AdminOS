@@ -4,18 +4,21 @@ export const dynamic = 'force-dynamic'
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 
 export default function LoginPage() {
   const supabase = createClient()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
   const [error, setError] = useState('')
+  const [resendLoading, setResendLoading] = useState(false)
+  const [resendSent, setResendSent] = useState(false)
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -23,11 +26,27 @@ export default function LoginPage() {
     setError('')
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) {
-      setError(error.message)
+      if (error.message.toLowerCase().includes('email not confirmed')) {
+        setError('Please confirm your email first. Check your inbox for a confirmation link.')
+      } else if (error.message.toLowerCase().includes('invalid login credentials')) {
+        setError('Incorrect email or password.')
+      } else {
+        setError(error.message)
+      }
       setLoading(false)
     } else {
-      router.push('/dashboard')
+      const redirect = searchParams.get('redirect') || '/dashboard'
+      router.push(redirect)
+      router.refresh()
     }
+  }
+
+  const handleResendConfirmation = async () => {
+    if (!email) { setError('Enter your email above first.'); return }
+    setResendLoading(true)
+    await supabase.auth.resend({ type: 'signup', email })
+    setResendSent(true)
+    setResendLoading(false)
   }
 
   const handleGoogleLogin = async () => {
@@ -114,6 +133,22 @@ export default function LoginPage() {
             {error && (
               <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700">
                 {error}
+                {error.includes('confirm your email') && (
+                  <div className="mt-2">
+                    {resendSent ? (
+                      <span className="text-emerald-700 font-medium">Confirmation email resent!</span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleResendConfirmation}
+                        disabled={resendLoading}
+                        className="text-red-800 font-semibold underline disabled:opacity-50"
+                      >
+                        {resendLoading ? 'Sending…' : 'Resend confirmation email'}
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
