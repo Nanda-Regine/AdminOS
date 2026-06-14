@@ -2,12 +2,13 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createHash } from 'crypto'
 
-// PayFast plan amounts in ZAR (B2B SaaS pricing)
+// PayFast plan amounts in ZAR — must match plan_catalogue table
 const PLAN_AMOUNTS: Record<string, { amount: string; name: string }> = {
-  starter:     { amount: '2500.00',  name: 'AdminOS Starter'     },
-  growth:      { amount: '4500.00',  name: 'AdminOS Growth'      },
-  enterprise:  { amount: '8500.00',  name: 'AdminOS Enterprise'  },
-  white_label: { amount: '14999.00', name: 'AdminOS White Label' },
+  solo:        { amount: '349.00',  name: 'AdminOS Solo'    },
+  grow:        { amount: '899.00',  name: 'AdminOS Grow'    },
+  operate:     { amount: '1999.00', name: 'AdminOS Operate' },
+  scale:       { amount: '3999.00', name: 'AdminOS Scale'   },
+  partner:     { amount: '9999.00', name: 'AdminOS Partner' },
 }
 
 const ADDON_AMOUNTS: Record<string, { amount: string; name: string }> = {
@@ -63,6 +64,11 @@ export async function GET(request: Request) {
   const merchantKey = process.env.PAYFAST_MERCHANT_KEY || ''
   const passphrase  = process.env.PAYFAST_PASSPHRASE   || ''
   const appUrl      = process.env.NEXT_PUBLIC_APP_URL  || 'https://adminos.co.za'
+
+  if (!merchantId || !merchantKey || !passphrase) {
+    console.error('PayFast credentials missing from environment variables')
+    return new NextResponse('Billing configuration error', { status: 500 })
+  }
 
   const tenantId = user.user_metadata?.tenant_id as string
 

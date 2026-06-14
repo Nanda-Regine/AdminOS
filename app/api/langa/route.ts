@@ -73,7 +73,7 @@ export async function POST(request: Request) {
   }
 
   return NextResponse.json({
-    response:  response.text,
+    reply:     response.text,
     model:     response.model,
     timestamp: new Date().toISOString(),
   })

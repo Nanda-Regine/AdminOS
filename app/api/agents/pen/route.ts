@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { orchestrator } from '@/lib/ai/orchestrator'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { checkRateLimit } from '@/lib/security/rateLimit'
+import { checkBudget } from '@/lib/ai/costControls'
 import { z } from 'zod'
 
 const bodySchema = z.object({
@@ -46,15 +47,29 @@ Include:
 4. Clear call to action
 5. Professional sign-off`
 
-  const stream = await orchestrator.stream({
-    agentName: 'pen',
-    userMessage,
-    tenantId,
-    metadata: { tone: body.tone, emailType: body.emailType, language: body.language },
-  })
+  // Budget check
+  const { data: tenant } = await supabaseAdmin
+    .from('tenants').select('plan').eq('id', tenantId).single()
+  const plan = tenant?.plan ?? 'solo'
+  const budget = await checkBudget(tenantId, plan, 1500)
+  if (!budget.allowed) {
+    return NextResponse.json({ error: 'Daily AI budget exceeded.' }, { status: 429 })
+  }
+
+  let stream: ReadableStream
+  try {
+    stream = await orchestrator.stream({
+      agentName: 'pen',
+      userMessage,
+      tenantId,
+      metadata: { tone: body.tone, emailType: body.emailType, language: body.language },
+    })
+  } catch {
+    return NextResponse.json({ error: 'Stream failed. Please try again.' }, { status: 500 })
+  }
 
   if (body.saveDraft) {
-    orchestrator.run({
+    void orchestrator.run({
       agentName: 'pen',
       userMessage,
       tenantId,

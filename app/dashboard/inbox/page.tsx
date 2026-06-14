@@ -143,7 +143,7 @@ export default function InboxPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          context,
+          userMessage: context,
           contactIdentifier: selected.contact_identifier,
         }),
       })
@@ -215,16 +215,16 @@ export default function InboxPage() {
       <div className="flex flex-1 overflow-hidden">
 
         {/* Conversation list */}
-        <div className="w-72 border-r border-gray-200 bg-white flex flex-col overflow-hidden">
-          <div className="p-3 border-b border-gray-100">
+        <div className="w-72 border-r border-[var(--border)] bg-[var(--surface-1)] flex flex-col overflow-hidden">
+          <div className="p-3 border-b border-[var(--border)]">
             <input
-              className="w-full px-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              className="w-full px-3 py-2 text-sm bg-[var(--surface-2)] border border-[var(--border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-[var(--text-primary)] placeholder:text-[var(--text-muted)]"
               placeholder="Search conversations..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <div className="flex-1 overflow-y-auto divide-y divide-gray-50">
+          <div className="flex-1 overflow-y-auto divide-y divide-[var(--border)]">
             {filtered.map((conv) => (
               <button
                 key={conv.id}
@@ -233,8 +233,8 @@ export default function InboxPage() {
                   setAgentResponse('')
                   setNewConvIds((prev) => { const next = new Set(prev); next.delete(conv.id); return next })
                 }}
-                className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors ${
-                  selected?.id === conv.id ? 'bg-emerald-50 border-l-2 border-l-emerald-500' : ''
+                className={`w-full text-left px-4 py-3 hover:bg-[rgba(255,255,255,0.05)] transition-colors ${
+                  selected?.id === conv.id ? 'bg-indigo-500/10 border-l-2 border-l-indigo-400' : ''
                 }`}
               >
                 <div className="flex items-center justify-between mb-0.5">
@@ -242,7 +242,7 @@ export default function InboxPage() {
                     {newConvIds.has(conv.id) && (
                       <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" title="New conversation" />
                     )}
-                    <p className="text-sm font-medium text-gray-900 truncate">
+                    <p className="text-sm font-medium text-[var(--text-primary)] truncate">
                       {conv.contact_name || conv.contact_identifier || 'Unknown'}
                     </p>
                   </div>
@@ -251,7 +251,7 @@ export default function InboxPage() {
                   </Badge>
                 </div>
                 <div className="flex items-center gap-2">
-                  <p className="text-xs text-gray-400 capitalize">{conv.channel} · {conv.intent || 'general'}</p>
+                  <p className="text-xs text-[var(--text-muted)] capitalize">{conv.channel} · {conv.intent || 'general'}</p>
                   {conv.sentiment && (
                     <span className={`text-xs font-medium ${sentimentColor[conv.sentiment] || ''}`}>
                       {conv.sentiment}
@@ -261,7 +261,7 @@ export default function InboxPage() {
               </button>
             ))}
             {filtered.length === 0 && (
-              <div className="p-6 text-center text-sm text-gray-400">
+              <div className="p-6 text-center text-sm text-[var(--text-muted)]">
                 {search ? 'No conversations match your search.' : 'No conversations yet.'}
               </div>
             )}
@@ -272,12 +272,12 @@ export default function InboxPage() {
         {selected ? (
           <div className="flex-1 flex flex-col overflow-hidden">
             {/* Conversation header */}
-            <div className="px-5 py-3 border-b border-gray-200 bg-white flex items-center justify-between">
+            <div className="px-5 py-3 border-b border-[var(--border)] bg-[var(--surface-1)] flex items-center justify-between">
               <div>
-                <p className="font-semibold text-gray-900">
+                <p className="font-semibold text-[var(--text-primary)]">
                   {selected.contact_name || selected.contact_identifier}
                 </p>
-                <p className="text-xs text-gray-400 capitalize">
+                <p className="text-xs text-[var(--text-muted)] capitalize">
                   {selected.channel} · {selected.intent} · {selected.sentiment || 'neutral'}
                 </p>
               </div>
@@ -335,10 +335,10 @@ export default function InboxPage() {
             </div>
 
             {/* Reply box */}
-            <div className="border-t border-gray-200 bg-white">
+            <div className="border-t border-[var(--border)] bg-[var(--surface-1)]">
               <div className="px-4 pt-3 pb-1">
                 <textarea
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="w-full border border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-primary)] rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder:text-[var(--text-muted)]"
                   rows={3}
                   placeholder={`Reply via ${selected.channel}...`}
                   value={replyText}
@@ -363,8 +363,8 @@ export default function InboxPage() {
               </div>
 
               {/* AI Agent panel */}
-              <div className="border-t border-gray-100 px-4 py-3">
-                <p className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">AI Agents</p>
+              <div className="border-t border-[var(--border)] px-4 py-3">
+                <p className="text-xs font-semibold text-[var(--text-muted)] mb-2 uppercase tracking-wide">AI Agents</p>
                 <div className="flex gap-2 flex-wrap mb-3">
                   {(Object.entries(AGENT_DEFINITIONS) as [AgentType, typeof AGENT_DEFINITIONS[AgentType]][]).map(([key, agent]) => (
                     <Button

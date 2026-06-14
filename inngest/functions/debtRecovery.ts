@@ -51,7 +51,8 @@ export const debtRecoveryEngine = inngest.createFunction(
       if (days <= 6) return 2
       if (days <= 13) return 3
       if (days <= 29) return 4
-      return 5
+      if (days <= 60) return 5
+      return 6  // manual review escalation
     })
 
     if (tier > 5) {

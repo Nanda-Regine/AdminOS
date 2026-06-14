@@ -16,14 +16,19 @@ export default async function InventoryPage() {
 
   const tenantId = user.user_metadata?.tenant_id as string
 
-  const { data: items } = await supabaseAdmin
-    .from('inventory_items')
-    .select('id, tenant_id, name, sku, category, unit, quantity_on_hand, reorder_level, cost_price, selling_price, created_at')
+  const { data: rawItems } = await supabaseAdmin
+    .from('products')
+    .select('id, tenant_id, name, sku, category, unit, current_stock, reorder_level, cost_price, unit_price, created_at')
     .eq('tenant_id', tenantId)
     .order('category')
     .order('name')
 
-  const allItems = items || []
+  // Map products table columns to the expected shape
+  const allItems = (rawItems || []).map(item => ({
+    ...item,
+    quantity_on_hand: item.current_stock,
+    selling_price: item.unit_price,
+  }))
 
   const lowStockItems = allItems.filter(
     item => Number(item.quantity_on_hand) <= Number(item.reorder_level)

@@ -59,7 +59,7 @@ export default async function CashflowPage() {
   const allOutflow = entries.filter(e => e.type === 'expense').reduce((s, e) => s + Number(e.amount), 0)
   const net        = allInflow - allOutflow
 
-  const monthlyBurn = allOutflow / 3
+  const monthlyBurn = allOutflow / (90 / 30.4)
   const runway      = monthlyBurn > 0 ? net / monthlyBurn : null
 
   const next30 = entries.filter(e => e.date <= in30Str)

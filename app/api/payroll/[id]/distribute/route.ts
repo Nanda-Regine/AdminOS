@@ -39,7 +39,7 @@ export async function POST(
 
   // Fire Inngest event to handle actual payslip distribution (WhatsApp / email / push)
   await inngest.send({
-    name: 'adminos/payroll.distribute',
+    name: 'adminos/payroll.run.approved',
     data: {
       tenant_id:      tenantId,
       payroll_run_id: payrollRunId,

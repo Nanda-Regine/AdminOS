@@ -21,7 +21,7 @@ export default async function PayrollPage() {
 
   const { data: runs } = await supabaseAdmin
     .from('payroll_runs')
-    .select('id, tenant_id, period_start, period_end, status, staff_count, total_gross, total_net, created_at')
+    .select('id, tenant_id, period_month, period_year, status, total_gross, total_net, created_at')
     .eq('tenant_id', tenantId)
     .order('created_at', { ascending: false })
     .limit(12)
@@ -41,13 +41,12 @@ export default async function PayrollPage() {
               <div>
                 <p className="text-sm text-gray-500 mb-1">Current / Latest Run</p>
                 <h3 className="font-semibold text-gray-900 text-lg">
-                  {latestRun.period_start} → {latestRun.period_end}
+                  {latestRun.period_month}/{latestRun.period_year}
                 </h3>
                 <div className="mt-2 flex items-center gap-3">
                   <Badge variant={statusVariant[latestRun.status] || 'gray'}>
                     {latestRun.status}
                   </Badge>
-                  <span className="text-xs text-gray-500">{latestRun.staff_count} staff members</span>
                 </div>
               </div>
               <div className="text-right">
@@ -141,10 +140,10 @@ export default async function PayrollPage() {
                 {allRuns.map((run) => (
                   <tr key={run.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-5 py-3">
-                      <p className="font-medium text-gray-900">{run.period_start}</p>
-                      <p className="text-xs text-gray-400">→ {run.period_end}</p>
+                      <p className="font-medium text-gray-900">{run.period_month}/{run.period_year}</p>
+                      <p className="text-xs text-gray-400">{run.created_at?.slice(0, 10)}</p>
                     </td>
-                    <td className="px-5 py-3 text-gray-600">{run.staff_count}</td>
+                    <td className="px-5 py-3 text-gray-600">—</td>
                     <td className="px-5 py-3 font-semibold text-gray-900">
                       R{Number(run.total_gross || 0).toLocaleString()}
                     </td>

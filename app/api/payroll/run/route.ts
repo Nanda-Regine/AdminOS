@@ -49,7 +49,7 @@ export async function POST(request: Request) {
     .from('staff')
     .select('id, full_name, salary, employment_type, job_title')
     .eq('tenant_id', tenantId)
-    .eq('status', 'active')
+    .eq('active', true)
     .not('salary', 'is', null)
     .gt('salary', 0)
 

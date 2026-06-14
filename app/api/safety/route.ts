@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { requirePermission } from '@/lib/auth/permissions'
 import { z } from 'zod'
 
 const createSchema = z.object({
@@ -24,6 +25,10 @@ export async function GET(request: Request) {
 
   const tenantId = user.user_metadata?.tenant_id as string
   if (!tenantId) return new NextResponse('No tenant', { status: 400 })
+
+  try { await requirePermission('manage_staff') } catch {
+    return new NextResponse('Forbidden', { status: 403 })
+  }
 
   const url  = new URL(request.url)
   const type = url.searchParams.get('type')

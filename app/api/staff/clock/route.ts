@@ -74,12 +74,12 @@ export async function GET(request: Request) {
     .from('clock_events')
     .select('*')
     .eq('tenant_id', tenantId)
-    .order('timestamp', { ascending: false })
+    .order('created_at', { ascending: false })
     .limit(200)
 
   if (staffId) query = query.eq('staff_id', staffId)
-  if (from)    query = query.gte('timestamp', from)
-  if (to)      query = query.lte('timestamp', to)
+  if (from)    query = query.gte('created_at', from)
+  if (to)      query = query.lte('created_at', to)
 
   const { data, error } = await query
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })

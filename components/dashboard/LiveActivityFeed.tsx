@@ -73,15 +73,15 @@ export function LiveActivityFeed({ initial }: { initial: ActivityItem[] }) {
         const cfg = typeConfig[item.type]
         const Icon = cfg.icon
         return (
-          <div key={item.id} className="flex items-center gap-3 px-1 py-2 rounded-lg hover:bg-gray-50 transition-colors">
+          <div key={item.id} className="flex items-center gap-3 px-1 py-2 rounded-lg hover:bg-[rgba(255,255,255,0.05)] transition-colors">
             <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${cfg.color}`}>
               <Icon className="w-3.5 h-3.5" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm text-gray-800 truncate">{item.label}</p>
-              <p className="text-xs text-gray-400 capitalize">{item.sub}</p>
+              <p className="text-sm text-[var(--text-primary)] truncate">{item.label}</p>
+              <p className="text-xs text-[var(--text-muted)] capitalize">{item.sub}</p>
             </div>
-            <span className="text-xs text-gray-300 shrink-0">
+            <span className="text-xs text-[var(--text-secondary)] shrink-0">
               {item.time.toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' })}
             </span>
           </div>

@@ -15,8 +15,10 @@ export default async function TeamPage() {
 
   const tenantId = user.user_metadata?.tenant_id as string
 
-  const todayISO = new Date().toISOString().slice(0, 10)
-  const sevenDaysLater = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+  // Use SAST (UTC+2) for date calculations — clocking happens in South African time
+  const sast = new Date(Date.now() + 2 * 3600000)
+  const todayISO = sast.toISOString().slice(0, 10)
+  const sevenDaysLater = new Date(Date.now() + 2 * 3600000 + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
 
   const [staffResult, leaveResult, clockResult, shiftResult, onLeaveResult] = await Promise.all([
     supabaseAdmin
@@ -34,8 +36,8 @@ export default async function TeamPage() {
       .from('clock_events')
       .select('staff_id, event_type, created_at')
       .eq('tenant_id', tenantId)
-      .gte('created_at', todayISO + 'T00:00:00Z')
-      .lte('created_at', todayISO + 'T23:59:59Z')
+      .gte('created_at', todayISO + 'T00:00:00+02:00')
+      .lte('created_at', todayISO + 'T23:59:59+02:00')
       .order('created_at', { ascending: false }),
     supabaseAdmin
       .from('shifts')

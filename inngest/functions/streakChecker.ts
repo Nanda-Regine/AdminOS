@@ -37,10 +37,10 @@ export const streakCheckerFunction = inngest.createFunction(
 export const onLessonCompleted = inngest.createFunction(
   { id: 'on-lesson-completed', triggers: [{ event: 'adminos/academy.lesson.completed' }] },
   async ({ event }: any) => {
-    const { tenantId, userId, lessonId } = event.data as {
-      tenantId: string
-      userId:   string
-      lessonId: string
+    const { tenant_id: tenantId, user_id: userId, lesson_id: lessonId } = event.data as {
+      tenant_id: string
+      user_id:   string
+      lesson_id: string
     }
 
     const today = new Date().toISOString().split('T')[0]

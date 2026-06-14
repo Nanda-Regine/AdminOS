@@ -23,6 +23,10 @@ export async function GET(request: Request) {
   const tenantId = user.user_metadata?.tenant_id as string
   if (!tenantId) return new NextResponse('No tenant', { status: 400 })
 
+  try { await requirePermission('manage_staff') } catch {
+    return new NextResponse('Forbidden', { status: 403 })
+  }
+
   const url     = new URL(request.url)
   const staffId = url.searchParams.get('staffId')
 

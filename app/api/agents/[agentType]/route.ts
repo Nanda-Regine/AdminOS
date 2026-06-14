@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { supabaseAdmin } from '@/lib/supabase/admin'
 import { orchestrator, AGENT_CONFIGS } from '@/lib/ai/orchestrator'
 import { checkRateLimit } from '@/lib/security/rateLimit'
 import { getClientIp } from '@/lib/security/audit'
+import { checkBudget } from '@/lib/ai/costControls'
 import type { AgentName } from '@/lib/ai/types'
 import { z } from 'zod'
 
@@ -41,10 +43,42 @@ export async function POST(request: Request, { params }: AgentRouteParams) {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
   }
 
+  // Budget check before calling Claude
+  const { data: tenant } = await supabaseAdmin
+    .from('tenants').select('plan').eq('id', tenantId).single()
+  const plan = tenant?.plan ?? 'solo'
+  const budget = await checkBudget(tenantId, plan, 1500)
+  if (!budget.allowed) {
+    return NextResponse.json({ error: 'Daily AI budget exceeded. Upgrade your plan or try again tomorrow.' }, { status: 429 })
+  }
+
   const config = AGENT_CONFIGS[agentName]
 
   if (config.streaming) {
-    const stream = await orchestrator.stream({
+    try {
+      const stream = await orchestrator.stream({
+        agentName,
+        userMessage: body.userMessage,
+        tenantId,
+        conversationId: body.conversationId,
+        contactIdentifier: body.contactIdentifier,
+        documentId: body.documentId,
+        metadata: { ...body.metadata, callerIp: getClientIp(request) },
+      })
+      return new Response(stream, {
+        headers: {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+        },
+      })
+    } catch {
+      return NextResponse.json({ error: 'Stream failed. Please try again.' }, { status: 500 })
+    }
+  }
+
+  try {
+    const result = await orchestrator.run({
       agentName,
       userMessage: body.userMessage,
       tenantId,
@@ -53,25 +87,8 @@ export async function POST(request: Request, { params }: AgentRouteParams) {
       documentId: body.documentId,
       metadata: { ...body.metadata, callerIp: getClientIp(request) },
     })
-
-    return new Response(stream, {
-      headers: {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-      },
-    })
+    return NextResponse.json(result)
+  } catch {
+    return NextResponse.json({ error: 'Agent failed. Please try again.' }, { status: 500 })
   }
-
-  const result = await orchestrator.run({
-    agentName,
-    userMessage: body.userMessage,
-    tenantId,
-    conversationId: body.conversationId,
-    contactIdentifier: body.contactIdentifier,
-    documentId: body.documentId,
-    metadata: { ...body.metadata, callerIp: getClientIp(request) },
-  })
-
-  return NextResponse.json(result)
 }

@@ -1,4 +1,5 @@
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { inngest } from '@/inngest/client'
 
 export interface TenantSnapshot {
   tenantId: string
@@ -164,5 +165,12 @@ export function fireBusinessEvent(
   tenantId: string,
   userId: string
 ): void {
+  // Fire Inngest event so contextualTrigger can handle it
+  inngest.send({
+    name: 'adminos/business.event.fired',
+    data: { event_type: eventType, tenant_id: tenantId, user_id: userId },
+  }).catch(() => null)
+
+  // Also check for triggered lessons locally (fallback / direct DB path)
   getTriggeredLesson(eventType, tenantId, userId).catch(() => null)
 }

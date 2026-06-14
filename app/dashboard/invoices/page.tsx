@@ -82,7 +82,7 @@ export default async function InvoicesPage() {
                 {allInvoices.map((inv) => (
                   <tr key={inv.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-5 py-3">
-                      <p className="font-medium text-gray-900">{inv.contact_name}</p>
+                      <p className="font-medium text-gray-900">{inv.contact_name || '(Unknown)'}</p>
                       <p className="text-xs text-gray-400">{inv.contact_email || inv.contact_phone}</p>
                     </td>
                     <td className="px-5 py-3">

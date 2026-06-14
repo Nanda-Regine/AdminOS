@@ -188,7 +188,7 @@ export class AgentOrchestrator {
       messages: [{ role: 'user', content: contextBlock }],
     })
 
-    const text = response.content[0].type === 'text' ? response.content[0].text : ''
+    const text = response.content[0]?.type === 'text' ? response.content[0]?.text ?? '' : ''
     const latencyMs = Date.now() - startMs
     const cached = (response.usage.cache_read_input_tokens ?? 0) > 0
 
