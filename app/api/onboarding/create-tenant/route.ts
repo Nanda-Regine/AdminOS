@@ -21,7 +21,7 @@ export async function POST(request: Request) {
     .insert({
       name: businessName,
       slug,
-      plan: 'starter',
+      plan: 'solo',
       country: 'ZA',
       language_primary: 'en',
       timezone: 'Africa/Johannesburg',
