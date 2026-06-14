@@ -62,7 +62,7 @@ export default function NotificationsScreen() {
   const unreadCount = notifications.filter(n => !n.read).length
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50" edges={['top']}>
+    <SafeAreaView className="flex-1 bg-gray-50" edges={['bottom']}>
       <ScreenHeader
         title="Notifications"
         back

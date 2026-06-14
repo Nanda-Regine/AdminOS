@@ -87,7 +87,7 @@ export default function ExpensesScreen() {
   const totalPending = expenses.filter(e => e.status === 'pending').reduce((s, e) => s + (e.amount ?? 0), 0)
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50" edges={['top']}>
+    <SafeAreaView className="flex-1 bg-gray-50" edges={['bottom']}>
       <ScreenHeader
         title="Expenses"
         right={

@@ -4,11 +4,14 @@ import {
   TextInput, ActivityIndicator, KeyboardAvoidingView, Platform, Alert,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/store/auth'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
+import { ScreenHeader } from '@/components/layout/ScreenHeader'
+import { useOfflineFriendlyQuery } from '@/hooks/useOfflineFriendlyQuery'
+import { STALE } from '@/lib/cacheWarmer'
 
 type StatusColor = 'green' | 'red' | 'yellow' | 'gray'
 function statusColor(s: string): StatusColor {
@@ -30,7 +33,7 @@ export default function InvoicesScreen() {
   const [amount, setAmount] = useState('')
   const [description, setDescription] = useState('')
 
-  const { data: invoices = [], isLoading } = useQuery({
+  const { data: invoices = [], isLoading, isFromCache } = useOfflineFriendlyQuery({
     queryKey: ['invoices', tenantId],
     queryFn: async () => {
       const { data } = await supabase
@@ -42,6 +45,7 @@ export default function InvoicesScreen() {
       return data ?? []
     },
     enabled: !!tenantId,
+    staleTime: STALE.invoices,
   })
 
   const createMutation = useMutation({
@@ -68,18 +72,18 @@ export default function InvoicesScreen() {
   const totalDue = invoices.filter(i => i.status !== 'paid').reduce((s, i) => s + (i.total_amount ?? 0), 0)
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50" edges={['top']}>
-      {/* Header */}
-      <View className="bg-navy-900 px-5 pt-4 pb-4">
-        <View className="flex-row items-center justify-between mb-3">
-          <Text className="text-white text-xl font-bold">Invoices</Text>
-          <TouchableOpacity
-            onPress={() => setShowCreate(true)}
-            className="bg-brand rounded-xl px-4 py-2"
-          >
+    <SafeAreaView className="flex-1 bg-gray-50" edges={['bottom']}>
+      <ScreenHeader
+        title="Invoices"
+        subtitle={isFromCache ? 'Showing cached data' : undefined}
+        right={
+          <TouchableOpacity onPress={() => setShowCreate(true)} className="bg-brand rounded-xl px-4 py-2">
             <Text className="text-white font-semibold text-sm">+ New</Text>
           </TouchableOpacity>
-        </View>
+        }
+      />
+      {/* Summary bar */}
+      <View className="bg-navy-900 px-5 pb-4">
         <View className="bg-white/10 rounded-xl px-4 py-3">
           <Text className="text-gray-400 text-xs">Total outstanding</Text>
           <Text className="text-white text-2xl font-bold mt-0.5">{formatZAR(totalDue)}</Text>

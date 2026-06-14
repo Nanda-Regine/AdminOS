@@ -13,6 +13,7 @@ import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persi
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/store/auth'
+import { warmCache } from '@/lib/cacheWarmer'
 
 SplashScreen.preventAutoHideAsync()
 
@@ -20,8 +21,9 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 1000 * 60 * 5,
-      gcTime: 1000 * 60 * 60 * 24,
+      gcTime: 1000 * 60 * 60 * 24 * 3, // keep cache 3 days (was 1 day)
       retry: 2,
+      networkMode: 'offlineFirst',
     },
   },
 })
@@ -39,7 +41,7 @@ async function checkOTA() {
 }
 
 export default function RootLayout() {
-  const { setSession, role } = useAuthStore()
+  const { setSession } = useAuthStore()
   usePushNotifications()
   useOfflineQueue()
 
@@ -53,6 +55,10 @@ export default function RootLayout() {
         router.replace('/(auth)/login')
       } else {
         const r = session.user.user_metadata?.role ?? 'staff'
+        const tenantId = session.user.user_metadata?.tenant_id
+        if (tenantId) {
+          warmCache(queryClient, tenantId)
+        }
         router.replace(r === 'owner' || r === 'manager' ? '/(owner)' : '/(my-admin)')
       }
     })

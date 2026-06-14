@@ -1,9 +1,11 @@
 import { ScrollView, View, Text, TouchableOpacity, RefreshControl, ActivityIndicator } from 'react-native'
-import { useQuery } from '@tanstack/react-query'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/store/auth'
 import { Card } from '@/components/ui/Card'
+import { ScreenHeader } from '@/components/layout/ScreenHeader'
+import { useOfflineFriendlyQuery } from '@/hooks/useOfflineFriendlyQuery'
+import { STALE } from '@/lib/cacheWarmer'
 
 function HealthRing({ score }: { score: number }) {
   const color = score >= 75 ? '#10B981' : score >= 50 ? '#F59E0B' : '#EF4444'
@@ -24,7 +26,7 @@ function HealthRing({ score }: { score: number }) {
 export default function OwnerDashboard() {
   const { tenantId, user } = useAuthStore()
 
-  const { data: healthScore, isLoading: loadingHealth, refetch, isRefetching } = useQuery({
+  const { data: healthScore, isLoading: loadingHealth, refetch, isRefetching } = useOfflineFriendlyQuery({
     queryKey: ['health-score', tenantId],
     queryFn: async () => {
       const { data } = await supabase
@@ -37,9 +39,10 @@ export default function OwnerDashboard() {
       return data
     },
     enabled: !!tenantId,
+    staleTime: STALE.healthScore,
   })
 
-  const { data: stats } = useQuery({
+  const { data: stats } = useOfflineFriendlyQuery({
     queryKey: ['owner-stats', tenantId],
     queryFn: async () => {
       const [invoices, conversations, tasks] = await Promise.all([
@@ -54,23 +57,20 @@ export default function OwnerDashboard() {
       return { overdueAmount, openConvs, pendingTasks, overdueCount: overdueInvoices.length }
     },
     enabled: !!tenantId,
+    staleTime: STALE.invoices,
   })
 
   const name = user?.user_metadata?.full_name?.split(' ')[0] ?? 'there'
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50" edges={['top']}>
+    <SafeAreaView className="flex-1 bg-gray-50" edges={['bottom']}>
+      <ScreenHeader title={`Hey ${name} 👋`} subtitle="Business overview" />
       <ScrollView
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
       >
-        {/* Header */}
-        <View className="bg-navy-900 px-5 pt-4 pb-8">
-          <Text className="text-gray-400 text-sm">Good morning,</Text>
-          <Text className="text-white text-2xl font-bold">{name} 👋</Text>
-        </View>
 
-        <View className="px-4 -mt-4 space-y-4 pb-8">
+        <View className="px-4 pt-4 space-y-4 pb-8">
           {/* Health Ring Card */}
           <Card className="items-center py-6">
             {loadingHealth

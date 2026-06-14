@@ -39,7 +39,7 @@ export default function TeamScreen() {
   const departments = [...new Set(staff.map(s => s.department).filter(Boolean))]
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50" edges={['top']}>
+    <SafeAreaView className="flex-1 bg-gray-50" edges={['bottom']}>
       <ScreenHeader title="Team Directory" subtitle={`${staff.length} members`} />
 
       <View className="px-4 py-3">

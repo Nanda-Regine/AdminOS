@@ -104,7 +104,7 @@ export default function ClockScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50" edges={['top']}>
+    <SafeAreaView className="flex-1 bg-gray-50" edges={['bottom']}>
       <ScreenHeader title="Clock In / Out" />
 
       <View className="flex-1 px-4 py-6 space-y-4">

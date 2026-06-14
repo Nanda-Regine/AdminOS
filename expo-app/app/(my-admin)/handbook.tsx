@@ -65,7 +65,7 @@ export default function HandbookScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50" edges={['top']}>
+    <SafeAreaView className="flex-1 bg-gray-50" edges={['bottom']}>
       <ScreenHeader title="Company Handbook" subtitle={`${sops.length} procedures`} />
 
       {isLoading

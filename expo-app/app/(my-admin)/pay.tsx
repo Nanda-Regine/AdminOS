@@ -27,7 +27,7 @@ export default function PayScreen() {
   })
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50" edges={['top']}>
+    <SafeAreaView className="flex-1 bg-gray-50" edges={['bottom']}>
       <ScreenHeader title="My Pay" subtitle="Payslip history" />
 
       {isLoading

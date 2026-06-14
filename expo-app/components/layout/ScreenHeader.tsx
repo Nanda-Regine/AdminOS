@@ -1,6 +1,7 @@
 import { View, Text, TouchableOpacity } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
+import { OfflineBanner } from '@/components/ui/OfflineBanner'
 
 interface ScreenHeaderProps {
   title: string
@@ -12,11 +13,8 @@ interface ScreenHeaderProps {
 export function ScreenHeader({ title, subtitle, back, right }: ScreenHeaderProps) {
   const insets = useSafeAreaInsets()
   return (
-    <View
-      className="bg-navy-900 px-5 pb-4"
-      style={{ paddingTop: insets.top + 8 }}
-    >
-      <View className="flex-row items-center justify-between">
+    <View className="bg-navy-900" style={{ paddingTop: insets.top + 8 }}>
+      <View className="flex-row items-center justify-between px-5 pb-4">
         <View className="flex-row items-center gap-3">
           {back && (
             <TouchableOpacity onPress={() => router.back()} className="mr-1">
@@ -30,6 +28,7 @@ export function ScreenHeader({ title, subtitle, back, right }: ScreenHeaderProps
         </View>
         {right}
       </View>
+      <OfflineBanner />
     </View>
   )
 }
