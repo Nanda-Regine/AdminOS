@@ -4,6 +4,7 @@ import { TopBar } from '@/components/dashboard/TopBar'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { redirect } from 'next/navigation'
+import { CreateTaskModal, MoveTaskButton } from './TaskActions'
 
 export const dynamic = 'force-dynamic'
 
@@ -77,6 +78,9 @@ function TaskColumn({
                 <Badge variant={priorityVariant[task.priority] ?? 'gray'}>
                   {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
                 </Badge>
+              </div>
+              <div className="mt-2">
+                <MoveTaskButton taskId={task.id} currentStatus={task.status} />
               </div>
 
               {task.description && (
@@ -167,6 +171,7 @@ export default async function TasksPage() {
       <TopBar
         title="Tasks"
         subtitle={`${allTasks.length} total · ${todo.length + inProgress.length} open`}
+        actions={<CreateTaskModal staff={staffList} />}
       />
       <div className="p-6 space-y-5">
 

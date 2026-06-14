@@ -4,6 +4,7 @@ import { TopBar } from '@/components/dashboard/TopBar'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { redirect } from 'next/navigation'
+import { AddStaffModal } from './AddStaffModal'
 
 function WellnessDot({ score }: { score: number }) {
   const color =
@@ -39,7 +40,7 @@ export default async function StaffPage() {
 
   return (
     <div>
-      <TopBar title="Staff" subtitle={`${staff.length} team members`} />
+      <TopBar title="Staff" subtitle={`${staff.length} team members`} actions={<AddStaffModal />} />
       <div className="p-6 space-y-6">
 
         {/* Pending leave requests */}

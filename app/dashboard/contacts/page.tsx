@@ -4,6 +4,7 @@ import { TopBar } from '@/components/dashboard/TopBar'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Users, AlertCircle, TrendingUp, Search, Plus, ChevronRight } from 'lucide-react'
+import { CreateContactModal } from './CreateContactModal'
 
 type ContactRow = {
   id:               string
@@ -90,6 +91,7 @@ export default async function ContactsPage() {
       <TopBar
         title="Contacts"
         subtitle={`${totalContacts} contacts in your CRM`}
+        actions={<CreateContactModal />}
       />
       <div className="p-6 space-y-6">
 

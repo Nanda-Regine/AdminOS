@@ -4,6 +4,7 @@ import { TopBar } from '@/components/dashboard/TopBar'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { redirect } from 'next/navigation'
+import { CreateInvoiceModal } from './CreateInvoiceModal'
 
 const statusVariant: Record<string, 'green' | 'yellow' | 'red' | 'gray' | 'blue'> = {
   paid: 'green',
@@ -28,6 +29,13 @@ export default async function InvoicesPage() {
 
   const tenantId = user.user_metadata?.tenant_id as string
 
+  const { data: contacts } = await supabaseAdmin
+    .from('contacts')
+    .select('id, full_name')
+    .eq('tenant_id', tenantId)
+    .order('full_name')
+    .limit(100)
+
   const { data: invoices } = await supabaseAdmin
     .from('invoices')
     .select('*')
@@ -42,7 +50,7 @@ export default async function InvoicesPage() {
 
   return (
     <div>
-      <TopBar title="Invoices" subtitle="Debt register and recovery" />
+      <TopBar title="Invoices" subtitle="Debt register and recovery" actions={<CreateInvoiceModal contacts={contacts || []} />} />
       <div className="p-6 space-y-6">
 
         {/* Summary */}

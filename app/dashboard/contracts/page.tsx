@@ -4,6 +4,7 @@ import { TopBar } from '@/components/dashboard/TopBar'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { redirect } from 'next/navigation'
+import { CreateContractModal } from './CreateContractModal'
 
 const statusVariant: Record<string, 'gray' | 'yellow' | 'green' | 'red'> = {
   draft: 'gray',
@@ -18,6 +19,13 @@ export default async function ContractsPage() {
   if (!user) redirect('/login')
 
   const tenantId = user.user_metadata?.tenant_id as string
+
+  const { data: contacts } = await supabaseAdmin
+    .from('contacts')
+    .select('id, full_name')
+    .eq('tenant_id', tenantId)
+    .order('full_name')
+    .limit(100)
 
   const { data: contracts } = await supabaseAdmin
     .from('contracts')
@@ -34,7 +42,7 @@ export default async function ContractsPage() {
 
   return (
     <div>
-      <TopBar title="Contracts" subtitle={`${allContracts.length} contracts`} />
+      <TopBar title="Contracts" subtitle={`${allContracts.length} contracts`} actions={<CreateContractModal contacts={contacts || []} />} />
       <div className="p-6 space-y-6">
 
         {/* Summary */}

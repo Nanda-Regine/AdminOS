@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { redirect } from 'next/navigation'
 import { AlertTriangle, CheckCircle, Clock } from 'lucide-react'
+import { LogIncidentModal } from './LogIncidentModal'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,6 +19,12 @@ export default async function IRLogPage() {
   const monthStart = new Date()
   monthStart.setDate(1)
   monthStart.setHours(0, 0, 0, 0)
+
+  const { data: staffList } = await supabaseAdmin
+    .from('staff')
+    .select('id, full_name')
+    .eq('tenant_id', tenantId)
+    .order('full_name')
 
   const { data: records } = await supabaseAdmin
     .from('disciplinary_records')
@@ -108,6 +115,7 @@ export default async function IRLogPage() {
       <TopBar
         title="IR Log"
         subtitle="Industrial Relations &amp; Disciplinary Records"
+        actions={<LogIncidentModal staff={staffList || []} />}
       />
       <div className="p-6 space-y-6">
 

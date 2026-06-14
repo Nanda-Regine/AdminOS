@@ -4,6 +4,7 @@ import { TopBar } from '@/components/dashboard/TopBar'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { redirect } from 'next/navigation'
+import { CreateSOPModal } from './CreateSOPModal'
 
 // Assign a stable badge colour per category name
 function categoryVariant(category: string): 'blue' | 'green' | 'yellow' | 'red' | 'purple' | 'gray' {
@@ -79,7 +80,7 @@ export default async function HandbookPage() {
 
   return (
     <div>
-      <TopBar title="Handbook & SOPs" subtitle={`${sops.length} procedures`} />
+      <TopBar title="Handbook & SOPs" subtitle={`${sops.length} procedures`} actions={<CreateSOPModal />} />
       <div className="p-6 space-y-6">
 
         {/* Summary */}

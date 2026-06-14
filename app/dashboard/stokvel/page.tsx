@@ -4,6 +4,7 @@ import { TopBar } from '@/components/dashboard/TopBar'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { redirect } from 'next/navigation'
+import { CreateStokvelModal, AddMemberModal } from './StokvelActions'
 
 type Stokvel = {
   id: string
@@ -90,6 +91,7 @@ export default async function StokvelPage() {
       <TopBar
         title="Stokvel"
         subtitle={`${activeStorkvels.length} active group${activeStorkvels.length !== 1 ? 's' : ''}`}
+        actions={<CreateStokvelModal />}
       />
       <div className="p-6 space-y-6">
 
@@ -203,6 +205,8 @@ export default async function StokvelPage() {
                 {members.length === 0 && (
                   <p className="text-xs text-gray-400 text-center py-3">No members added yet.</p>
                 )}
+
+                <AddMemberModal stokvelId={stokvel.id} />
               </Card>
             )
           })

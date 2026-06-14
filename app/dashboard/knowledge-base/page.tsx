@@ -4,6 +4,7 @@ import { TopBar } from '@/components/dashboard/TopBar'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { redirect } from 'next/navigation'
+import { CreateArticleModal } from './CreateArticleModal'
 
 type KbArticle = {
   id: string
@@ -85,6 +86,7 @@ export default async function KnowledgeBasePage() {
       <TopBar
         title="Knowledge Base"
         subtitle={`${articles.length} articles · ${publishedCount} published`}
+        actions={<CreateArticleModal />}
       />
       <div className="p-6 space-y-6">
 
