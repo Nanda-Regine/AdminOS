@@ -93,7 +93,6 @@ export async function GET(request: Request) {
       ? `AdminOS ${addon} add-on — monthly subscription`
       : `AdminOS ${plan} plan — monthly subscription`,
     subscription_type: '1',
-    billing_date:    new Date().toISOString().split('T')[0],
     recurring_amount: itemConfig.amount,
     frequency:       '3', // monthly
     cycles:          '0', // indefinite
