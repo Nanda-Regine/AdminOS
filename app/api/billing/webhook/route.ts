@@ -45,18 +45,23 @@ export async function POST(request: Request) {
   const body = await request.text()
   const params = Object.fromEntries(new URLSearchParams(body))
 
-  // Verify source IP
-  const validIp = await verifyPayFastIp(request)
-  if (!validIp) {
-    console.warn('[PayFast] Webhook from unrecognised IP')
-    return new NextResponse('Forbidden', { status: 403 })
-  }
+  // The Mirembe hub forwards already-verified ITNs authenticated with x-hub-secret —
+  // trust those and skip IP + signature checks. Only direct PayFast posts are re-validated.
+  const fromHub =
+    !!process.env.HUB_INTERNAL_SECRET &&
+    request.headers.get('x-hub-secret') === process.env.HUB_INTERNAL_SECRET
 
-  // Verify signature
-  const passphrase = process.env.PAYFAST_PASSPHRASE || ''
-  if (!verifyPayFastSignature(params, passphrase)) {
-    console.warn('[PayFast] Invalid signature')
-    return new NextResponse('Invalid signature', { status: 400 })
+  if (!fromHub) {
+    const validIp = await verifyPayFastIp(request)
+    if (!validIp) {
+      console.warn('[PayFast] Webhook from unrecognised IP')
+      return new NextResponse('Forbidden', { status: 403 })
+    }
+    const passphrase = process.env.PAYFAST_PASSPHRASE || ''
+    if (!verifyPayFastSignature(params, passphrase)) {
+      console.warn('[PayFast] Invalid signature')
+      return new NextResponse('Invalid signature', { status: 400 })
+    }
   }
 
   const paymentStatus = params.payment_status // 'COMPLETE' | 'FAILED' | 'CANCELLED'

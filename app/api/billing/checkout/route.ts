@@ -72,20 +72,21 @@ export async function GET(request: Request) {
 
   const tenantId = user.user_metadata?.tenant_id as string
 
-  // Universal PayFast hub routes by "adminos_" prefix in m_payment_id.
-  // Return/cancel go to the hub pages which redirect back to adminos.co.za.
-  const HUB = 'https://creativelynanda.co.za'
+  // Mirembe unified hub validates the ITN, books central Finance under the adminos
+  // stream, and forwards it back to /api/billing/webhook here. Return/cancel stay on adminos.
+  const appUrlClean = appUrl.replace(/\/$/, '')
+  const HUB_NOTIFY = process.env.PAYFAST_HUB_NOTIFY_URL || 'https://jarvis.mirembemuse.co.za/api/payfast/notify'
 
   const params: Record<string, string> = {
     merchant_id:     merchantId,
     merchant_key:    merchantKey,
-    return_url:      `${HUB}/payfast/return?app=adminos`,
-    cancel_url:      `${HUB}/payfast/cancel?app=adminos`,
-    notify_url:      `${HUB}/api/payfast/universal-notify`,
+    return_url:      `${appUrlClean}/dashboard/settings/billing?success=1`,
+    cancel_url:      `${appUrlClean}/dashboard/settings/billing?cancelled=1`,
+    notify_url:      HUB_NOTIFY,
     name_first:      (user.user_metadata?.full_name || user.email || '').split(' ')[0],
     name_last:       (user.user_metadata?.full_name || '').split(' ').slice(1).join(' ') || 'User',
     email_address:   user.email || '',
-    m_payment_id:    `adminos_${tenantId}_${itemKey}_${Date.now()}`,
+    m_payment_id:    `mm.adminos.subscription.${tenantId}`,
     amount:          itemConfig.amount,
     item_name:       itemConfig.name,
     item_description: isAddon
