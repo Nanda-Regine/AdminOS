@@ -60,6 +60,27 @@ export async function GET(request: Request) {
   const itemKey  = plan ?? addon!
   const isAddon  = !!addon
 
+  // ⚠️⚠️ PAYMENTS — DO NOT REVERT PLANS TO PAYFAST ⚠️⚠️
+  // PLAN subscriptions go through PAYSTACK via the Mirembe hub (reliable recurring
+  // billing; PayFast's recurring kept failing). The PayFast code below now only handles
+  // add-ons (until their Paystack plans exist). Paystack → JarvisOS hub → /api/paystack/webhook here.
+  if (plan) {
+    const PLAN_MAP: Record<string, string> = {
+      solo: 'adminos_solo', grow: 'adminos_grow', operate: 'adminos_operate', scale: 'adminos_scale', partner: 'adminos_partner',
+    }
+    const planKey = PLAN_MAP[plan]
+    if (planKey) {
+      const tid = (user.user_metadata?.tenant_id as string) || ''
+      const base = (process.env.NEXT_PUBLIC_APP_URL || 'https://adminos.co.za').replace(/\/$/, '')
+      const url =
+        `https://jarvis.mirembemuse.co.za/api/paystack/checkout?plan=${planKey}` +
+        `&email=${encodeURIComponent(user.email || '')}` +
+        `&ref=${encodeURIComponent(tid)}` +
+        `&callback=${encodeURIComponent(base + '/dashboard/settings/billing?success=1')}`
+      return NextResponse.redirect(url, 302)
+    }
+  }
+
   const merchantId  = process.env.PAYFAST_MERCHANT_ID  || ''
   const merchantKey = process.env.PAYFAST_MERCHANT_KEY || ''
   const passphrase  = process.env.PAYFAST_PASSPHRASE   || ''
