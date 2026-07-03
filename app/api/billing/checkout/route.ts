@@ -60,15 +60,36 @@ export async function GET(request: Request) {
   const itemKey  = plan ?? addon!
   const isAddon  = !!addon
 
-  // ⚠️⚠️ PAYMENTS — DO NOT REVERT PLANS TO PAYFAST ⚠️⚠️
-  // PLAN subscriptions go through PAYSTACK via the Mirembe hub (reliable recurring
-  // billing; PayFast's recurring kept failing). The PayFast code below now only handles
-  // add-ons (until their Paystack plans exist). Paystack → JarvisOS hub → /api/paystack/webhook here.
+  // ⚠️⚠️ PAYMENTS — DO NOT REVERT TO PAYFAST ⚠️⚠️
+  // BOTH plans AND add-ons go through PAYSTACK via the Mirembe hub (reliable recurring
+  // billing; PayFast's recurring kept failing). Paystack → JarvisOS hub → /api/paystack/webhook
+  // here. The PayFast form below is now dead code for real items (kept only as a fallback).
   if (plan) {
     const PLAN_MAP: Record<string, string> = {
       solo: 'adminos_solo', grow: 'adminos_grow', operate: 'adminos_operate', scale: 'adminos_scale', partner: 'adminos_partner',
     }
     const planKey = PLAN_MAP[plan]
+    if (planKey) {
+      const tid = (user.user_metadata?.tenant_id as string) || ''
+      const base = (process.env.NEXT_PUBLIC_APP_URL || 'https://adminos.co.za').replace(/\/$/, '')
+      const url =
+        `https://jarvis.mirembemuse.co.za/api/paystack/checkout?plan=${planKey}` +
+        `&email=${encodeURIComponent(user.email || '')}` +
+        `&ref=${encodeURIComponent(tid)}` +
+        `&callback=${encodeURIComponent(base + '/dashboard/settings/billing?success=1')}`
+      return NextResponse.redirect(url, 302)
+    }
+  }
+
+  // ⚠️⚠️ Add-ons ALSO run through PAYSTACK now — their plans exist (Jul 3 2026). Same
+  // hub flow as plans: the plan key = `adminos_<addon>`, and the hub sets metadata.tier
+  // to that key so the receiver (/api/paystack/webhook) knows which add-on to switch on.
+  if (addon) {
+    const ADDON_MAP: Record<string, string> = {
+      ring: 'adminos_ring', reach: 'adminos_reach', sage: 'adminos_sage',
+      languages: 'adminos_languages', client_portal: 'adminos_client_portal',
+    }
+    const planKey = ADDON_MAP[addon]
     if (planKey) {
       const tid = (user.user_metadata?.tenant_id as string) || ''
       const base = (process.env.NEXT_PUBLIC_APP_URL || 'https://adminos.co.za').replace(/\/$/, '')
