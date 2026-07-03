@@ -4,6 +4,7 @@ import { TopBar } from '@/components/dashboard/TopBar'
 import { PlanBadge } from '@/components/ui/PlanBadge'
 import { redirect } from 'next/navigation'
 import { CheckCircle2, Zap, Phone, Radio, BookOpen, Languages, Globe, AlertTriangle } from 'lucide-react'
+import { CancelSubscriptionButton } from '@/components/billing/CancelSubscriptionButton'
 
 const PLANS = [
   {
@@ -212,6 +213,14 @@ export default async function BillingPage({
               </div>
             )}
           </div>
+
+          {/* Cancel — only for an active paid subscription (Paystack). Trial and
+              PayFast one-time buyers get a graceful "no active subscription" (hub 404). */}
+          {!isOnTrial && sub && (
+            <div className="mt-4 pt-4" style={{ borderTop: '1px solid var(--border)' }}>
+              <CancelSubscriptionButton />
+            </div>
+          )}
         </div>
 
         {/* Plan cards */}
