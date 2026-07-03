@@ -5,6 +5,7 @@ import { PlanBadge } from '@/components/ui/PlanBadge'
 import { redirect } from 'next/navigation'
 import { CheckCircle2, Zap, Phone, Radio, BookOpen, Languages, Globe, AlertTriangle } from 'lucide-react'
 import { CancelSubscriptionButton } from '@/components/billing/CancelSubscriptionButton'
+import { CancelAddonButton } from '@/components/billing/CancelAddonButton'
 
 const PLANS = [
   {
@@ -355,6 +356,7 @@ export default async function BillingPage({
                         style={{ background: 'rgba(34,197,94,0.1)', color: '#22C55E' }}>
                         Add-on active
                       </div>
+                      <CancelAddonButton slug={addon.id} />
                     </div>
                   ) : (
                     <a href={`/api/billing/checkout?addon=${addon.id}`}
