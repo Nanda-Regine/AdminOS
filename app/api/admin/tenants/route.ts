@@ -1,30 +1,10 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { writeAuditLog, getClientIp } from '@/lib/security/audit'
+import { requireSuperAdmin } from '@/lib/auth/context'
 
-// Super admin only — verified against DB admins table, NOT JWT metadata.
-// Users can write to user_metadata via supabase.auth.updateUser() (client SDK),
-// so JWT metadata alone is a privilege-escalation vector. The admins table is
-// only writable via the service role (supabaseAdmin), making it tamper-proof.
-async function requireSuperAdmin(_request: Request) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
-  if (!user) return null
-
-  const { data: adminRecord } = await supabaseAdmin
-    .from('admins')
-    .select('id')
-    .eq('user_id', user.id)
-    .single()
-
-  if (!adminRecord) return null
-  return user
-}
-
-export async function GET(request: Request) {
-  const admin = await requireSuperAdmin(request)
+export async function GET() {
+  const admin = await requireSuperAdmin()
   if (!admin) {
     return new NextResponse('Forbidden', { status: 403 })
   }
@@ -44,7 +24,7 @@ export async function GET(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  const admin = await requireSuperAdmin(request)
+  const admin = await requireSuperAdmin()
   if (!admin) {
     return new NextResponse('Forbidden', { status: 403 })
   }
@@ -76,6 +56,7 @@ export async function PATCH(request: Request) {
     resourceId: id,
     ipAddress: getClientIp(request),
     metadata: filtered,
+    critical: true,   // operator mutation — an unlogged tenant change is not acceptable
   })
 
   return NextResponse.json(data)

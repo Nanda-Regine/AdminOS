@@ -1,14 +1,6 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
-
-async function requireSuperAdmin() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return null
-  const { data } = await supabaseAdmin.from('admins').select('id').eq('user_id', user.id).single()
-  return data ? user : null
-}
+import { requireSuperAdmin } from '@/lib/auth/context'
 
 // GET /api/admin/impact — impact dashboard for admins + public metrics
 // Super-admin gets full data; public caller gets only aggregated totals

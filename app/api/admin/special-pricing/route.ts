@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { requireSuperAdmin } from '@/lib/auth/context'
 import { z } from 'zod'
 
 // Super-admin route for reviewing special pricing applications
-// Auth: verifies against `admins` DB table — NOT JWT metadata
+// Auth: verifies against `admins` DB table via requireSuperAdmin — NOT JWT metadata
 
 const reviewSchema = z.object({
   applicationId:   z.string().uuid(),
@@ -23,17 +23,7 @@ const PROGRAMME_DISCOUNTS: Record<string, number> = {
 
 // GET /api/admin/special-pricing — list all pending applications
 export async function GET(request: Request) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new NextResponse('Unauthorized', { status: 401 })
-
-  // Verify super-admin via DB — never trust JWT metadata
-  const { data: admin } = await supabaseAdmin
-    .from('admins')
-    .select('id')
-    .eq('user_id', user.id)
-    .maybeSingle()
-
+  const admin = await requireSuperAdmin()
   if (!admin) return new NextResponse('Forbidden', { status: 403 })
 
   const url    = new URL(request.url)
@@ -51,16 +41,7 @@ export async function GET(request: Request) {
 
 // PATCH /api/admin/special-pricing — approve or reject an application
 export async function PATCH(request: Request) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new NextResponse('Unauthorized', { status: 401 })
-
-  const { data: admin } = await supabaseAdmin
-    .from('admins')
-    .select('id')
-    .eq('user_id', user.id)
-    .maybeSingle()
-
+  const admin = await requireSuperAdmin()
   if (!admin) return new NextResponse('Forbidden', { status: 403 })
 
   let body: z.infer<typeof reviewSchema>
@@ -80,7 +61,7 @@ export async function PATCH(request: Request) {
   const updates: Record<string, unknown> = {
     status:          body.decision,
     reviewed_at:     new Date().toISOString(),
-    reviewed_by:     user.id,
+    reviewed_by:     admin.id,
     rejection_reason: body.rejectionReason ?? null,
   }
 
@@ -111,7 +92,7 @@ export async function PATCH(request: Request) {
       previous_plan: tenant?.plan ?? null,
       new_plan:      tenant?.plan ?? 'solo',
       reason:        `Special pricing approved: ${application.programme} (${updates.discount_pct}% discount)`,
-      changed_by:    user.id,
+      changed_by:    admin.id,
     })
   }
 

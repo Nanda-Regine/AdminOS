@@ -126,6 +126,27 @@ export async function requireContext(): Promise<Context> {
   return ctx
 }
 
+/**
+ * The single super-admin gate for operator/admin surfaces.
+ *
+ * Verifies the caller against the `admins` table — never a JWT claim — and,
+ * unlike getContext(), does NOT require a tenant: a platform operator may have
+ * no tenant of their own. Returns the user when they are a super-admin, else
+ * null. API routes should render 403; pages should notFound() (invisible, not
+ * merely forbidden — do not confirm the surface exists to someone probing).
+ *
+ * This replaces the ~5 hand-copied admins-table checks across /api/admin/* and
+ * the `x-operator-secret` header model in /operator — one definition of
+ * "operator", verified per request.
+ */
+export async function requireSuperAdmin(): Promise<{ id: string; email: string | null } | null> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return null
+  const ok = await checkSuperAdmin(user.id)
+  return ok ? { id: user.id, email: user.email ?? null } : null
+}
+
 // ─── Internals ───────────────────────────────────────────────────────────────
 
 /** Super-admin comes from the admins table, never from a JWT claim. */

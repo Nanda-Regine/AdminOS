@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { writeAuditLog, getClientIp } from '@/lib/security/audit'
 import { seedDefaultRoles, assignRole } from '@/lib/auth/permissions'
+import { requireSuperAdmin } from '@/lib/auth/context'
 import { z } from 'zod'
 
 const schema = z.object({
@@ -18,21 +18,8 @@ const schema = z.object({
 })
 
 export async function POST(request: Request) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
-  if (!user) {
-    return new NextResponse('Forbidden', { status: 403 })
-  }
-
-  // Verify against DB admins table — not JWT metadata (users can self-assign user_metadata).
-  const { data: adminRecord } = await supabaseAdmin
-    .from('admins')
-    .select('id')
-    .eq('user_id', user.id)
-    .single()
-
-  if (!adminRecord) {
+  const admin = await requireSuperAdmin()
+  if (!admin) {
     return new NextResponse('Forbidden', { status: 403 })
   }
 
@@ -128,12 +115,13 @@ export async function POST(request: Request) {
     .eq('id', tenant.id)
 
   await writeAuditLog({
-    actor:        user.id,
+    actor:        admin.id,
     action:       'admin.tenant.created',
     resourceType: 'tenant',
     resourceId:   tenant.id,
     ipAddress:    getClientIp(request),
     metadata:     { name: body.name, slug: body.slug, plan: body.plan, ownerEmail: body.ownerEmail },
+    critical:     true,   // operator provisioning — must be logged
   })
 
   return NextResponse.json({

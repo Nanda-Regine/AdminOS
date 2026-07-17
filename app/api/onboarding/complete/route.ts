@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { writeAuditLog } from '@/lib/security/audit'
 
 export async function POST() {
   const supabase = await createClient()
@@ -17,8 +18,11 @@ export async function POST() {
     },
   })
 
-  await supabaseAdmin.from('audit_logs').insert({
-    tenant_id: tenantId,
+  // Was a raw insert into `audit_logs` (plural) — a table that does not exist,
+  // so every onboarding-completed record was silently dropped. Route through
+  // writeAuditLog, which writes the canonical `audit_log`.
+  await writeAuditLog({
+    tenantId,
     actor: user.id,
     action: 'onboarding.completed',
     metadata: {

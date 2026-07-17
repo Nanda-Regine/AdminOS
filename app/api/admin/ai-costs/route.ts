@@ -1,30 +1,16 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { Redis } from '@upstash/redis'
 import { budgetKey, getDailyTokenLimit, usdToZar } from '@/lib/ai/costControls'
+import { requireSuperAdmin } from '@/lib/auth/context'
 
 const redis = new Redis({
   url:   process.env.UPSTASH_REDIS_REST_URL!,
   token: process.env.UPSTASH_REDIS_REST_TOKEN!,
 })
 
-async function requireSuperAdmin(request: Request) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return null
-
-  const { data: adminRecord } = await supabaseAdmin
-    .from('admins')
-    .select('id')
-    .eq('user_id', user.id)
-    .single()
-
-  return adminRecord ? user : null
-}
-
 export async function GET(request: Request) {
-  const admin = await requireSuperAdmin(request)
+  const admin = await requireSuperAdmin()
   if (!admin) return new NextResponse('Forbidden', { status: 403 })
 
   const url    = new URL(request.url)
@@ -103,7 +89,7 @@ export async function GET(request: Request) {
 
 // PATCH — super-admin override for a tenant's daily budget
 export async function PATCH(request: Request) {
-  const admin = await requireSuperAdmin(request)
+  const admin = await requireSuperAdmin()
   if (!admin) return new NextResponse('Forbidden', { status: 403 })
 
   const { tenantId, budgetOverride, clearAbuseFlag } = await request.json() as {
