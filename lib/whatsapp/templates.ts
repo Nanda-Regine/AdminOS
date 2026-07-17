@@ -92,11 +92,15 @@ export const TEMPLATE_BODIES: Record<WhatsAppTemplate, string> = {
   [WHATSAPP_TEMPLATES.DEBT_TIER_2_FOLLOWUP]:
     'Hi {{1}}, we noticed invoice #{{2}} (R{{3}}) is now {{4}} days overdue. We\'d love to help you settle this — please get in touch if you\'d like to arrange a payment plan. Pay now: {{5}}',
   [WHATSAPP_TEMPLATES.DEBT_TIER_3_FIRM]:
-    'Dear {{1}}, invoice #{{2}} for R{{3}} is now significantly overdue. Please arrange payment within 5 business days to avoid further action. Contact us: {{4}} or pay at: {{5}}',
+    'Dear {{1}}, invoice #{{2}} for R{{3}} is still outstanding. Please arrange payment, or contact us on {{4}} if you would like to discuss a payment arrangement. Pay at: {{5}}',
+  // Tiers 4 and 5 are never sent automatically — they are drafts the business owner
+  // reviews and sends themselves. They state facts only: what is owed, and who to call.
+  // They must not assert that any step has been taken, or threaten any step that the
+  // business has not decided to take. See lib/ai/callClaude.ts:draftRecoveryMessage.
   [WHATSAPP_TEMPLATES.DEBT_TIER_4_FINAL]:
-    'Dear {{1}}, this is a final notice for invoice #{{2}} (R{{3}}). Payment is required within 48 hours. Failure to pay may result in legal proceedings. Please contact {{4}} immediately.',
+    'Dear {{1}}, invoice #{{2}} for R{{3}} is now {{4}} days overdue and remains unpaid. Please contact us on {{5}} to arrange payment or discuss your options.',
   [WHATSAPP_TEMPLATES.DEBT_TIER_5_DEMAND]:
-    'FORMAL DEMAND: {{1}}, you owe R{{2}} per invoice #{{3}}. A letter of demand has been issued. Legal proceedings begin in 5 days unless payment or arrangement is made. Ref: {{4}}',
+    'Dear {{1}}, invoice #{{2}} for R{{3}} remains unpaid despite previous reminders. Please contact us on {{4}} as soon as possible so we can resolve this with you.',
 
   // Wellness
   [WHATSAPP_TEMPLATES.WELLNESS_CHECKIN]:
