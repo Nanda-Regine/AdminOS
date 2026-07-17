@@ -89,11 +89,19 @@ export class PermissionError extends Error {
 
 // ─── Core lookup ─────────────────────────────────────────────────────────────
 
+/**
+ * Role and permissions for this user *within this tenant*, from the user_roles
+ * table. Returns null when no role is assigned.
+ *
+ * The tenant_id filter is the control that makes a spoofed tenant useless:
+ * holding a tenant you were never granted returns no row here. Callers MUST
+ * treat null as "deny" — see checkPermission.
+ */
 export async function getUserPermissions(
   userId: string,
   tenantId: string
 ): Promise<{ role: string; permissions: Permission[] } | null> {
-  const { data } = await supabaseAdmin
+  const { data, error } = await supabaseAdmin
     .from('user_roles')
     .select(`
       roles (
@@ -103,13 +111,15 @@ export async function getUserPermissions(
     `)
     .eq('user_id', userId)
     .eq('tenant_id', tenantId)
-    .single()
+    .maybeSingle()
 
-  if (!data?.roles) return null
+  // A transport error is not proof of absence, but it is not proof of presence
+  // either — and only one of those is safe to assume.
+  if (error || !data?.roles) return null
   const role = data.roles as unknown as { name: string; permissions: string[] }
   return {
     role:        role.name,
-    permissions: role.permissions as Permission[],
+    permissions: (role.permissions ?? []) as Permission[],
   }
 }
 
@@ -119,19 +129,28 @@ export async function getUserPermissions(
  * Check if the currently authenticated user has the given permission
  * within their tenant. Returns true/false — does not throw.
  *
- * Falls back to `true` (owner-equivalent) when no role record exists yet.
- * This covers existing tenants before role migration is complete.
+ * Fails closed at every step. This function used to end with
+ *
+ *     if (!userPerms) return true   // No role record = legacy owner — allow all
+ *
+ * which inverted its own purpose: spoofing a tenant you had no role in returns
+ * no role record, so the check that should have caught the attack granted
+ * owner-equivalent access instead. If a caller has no role here, they get
+ * nothing. Seed roles with seedDefaultRoles() at tenant creation rather than
+ * inferring ownership from absence.
  */
 export async function checkPermission(permission: Permission): Promise<boolean> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return false
 
-  const tenantId = user.user_metadata?.tenant_id as string | undefined
+  // app_metadata, never user_metadata — the user can rewrite the latter, which
+  // would make the tenant filter below attacker-controlled.
+  const tenantId = user.app_metadata?.tenant_id as string | undefined
   if (!tenantId) return false
 
   const userPerms = await getUserPermissions(user.id, tenantId)
-  if (!userPerms) return true  // No role record = legacy owner — allow all
+  if (!userPerms) return false
 
   return userPerms.permissions.includes(permission)
 }

@@ -18,7 +18,7 @@ export default async function DashboardPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const tenantId = user.user_metadata?.tenant_id as string
+  const tenantId = user.app_metadata?.tenant_id as string
 
   const [convResult, invoiceResult, staffResult, goalResult, recentConvs, recentDocs, workflowResult] = await Promise.all([
     supabaseAdmin.from('conversations').select('id, sentiment', { count: 'exact' }).eq('tenant_id', tenantId).eq('status', 'open'),

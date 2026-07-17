@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { buildCachedSystemPrompt } from '@/lib/ai/buildSystemPrompt'
+import { seedDefaultRoles, assignRole } from '@/lib/auth/permissions'
 import { Tenant } from '@/types/database'
 
 export async function GET(request: Request) {
@@ -26,9 +27,14 @@ export async function GET(request: Request) {
   }
 
   // If this is a new OAuth user (no tenant yet), provision one automatically
-  if (!user.user_metadata?.tenant_id) {
+  if (!user.app_metadata?.tenant_id) {
+    // Email/password signups carry the business name the user actually typed;
+    // OAuth signups have no such field, so fall back to deriving one.
     const fullName = user.user_metadata?.full_name || user.user_metadata?.name || ''
-    const businessName = fullName ? `${fullName.split(' ')[0]}'s Business` : 'My Business'
+    const typedName = (user.user_metadata?.business_name as string | undefined)?.trim()
+    const businessName =
+      typedName ||
+      (fullName ? `${fullName.split(' ')[0]}'s Business` : 'My Business')
     const baseSlug = businessName.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').slice(0, 30)
     const slug = `${baseSlug}-${Math.random().toString(36).slice(2, 6)}`
 
@@ -41,7 +47,7 @@ export async function GET(request: Request) {
         country: 'ZA',
         language_primary: 'en',
         timezone: 'Africa/Johannesburg',
-        settings: {},
+        settings: { owner_user_id: user.id, owner_email: user.email },
         active: true,
       })
       .select()
@@ -54,11 +60,25 @@ export async function GET(request: Request) {
         .update({ system_prompt_cache: systemPrompt, prompt_cached_at: new Date().toISOString() })
         .eq('id', tenant.id)
 
+      // Seed roles and grant ownership BEFORE writing the tenant claim.
+      // Permission checks fail closed as of Phase 0: a user holding a tenant_id
+      // with no matching user_roles row gets nothing. The onboarding Inngest
+      // function also seeds roles, but only on subscription.activated — i.e.
+      // after payment — which would lock every new signup out of their own
+      // dashboard until they paid. Seeding is idempotent, so both can run.
+      await seedDefaultRoles(tenant.id)
+      await assignRole({ userId: user.id, tenantId: tenant.id, roleName: 'owner' })
+
       await supabaseAdmin.auth.admin.updateUserById(user.id, {
+        // tenant_id and role are security claims: app_metadata only. The user
+        // owns user_metadata and can rewrite it via supabase.auth.updateUser(),
+        // so a tenant_id kept there is attacker-controlled.
+        app_metadata: {
+          tenant_id: tenant.id,
+          role: 'owner',
+        },
         user_metadata: {
           ...user.user_metadata,
-          tenant_id: tenant.id,
-          role: 'admin',
           onboarding_completed: false,
           onboarding_step: 0,
         },

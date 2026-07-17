@@ -50,7 +50,7 @@ export default function DocumentsPage() {
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user) {
-        const tid = user.user_metadata?.tenant_id
+        const tid = user.app_metadata?.tenant_id
         setTenantId(tid)
         loadData(tid)
       }

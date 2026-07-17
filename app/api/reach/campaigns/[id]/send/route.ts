@@ -21,7 +21,7 @@ export async function POST(
   }
 
   const { id } = await params
-  const tenantId = user.user_metadata?.tenant_id as string
+  const tenantId = user.app_metadata?.tenant_id as string
 
   const { data: campaign } = await supabaseAdmin
     .from('broadcast_campaigns')

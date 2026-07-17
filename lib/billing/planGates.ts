@@ -58,7 +58,7 @@ export async function requireAdminOSPlan(minPlan: AdminOSPlan): Promise<void> {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new PlanGateError('Unauthorized', 'plan_required', minPlan)
 
-  const tenantId = user.user_metadata?.tenant_id as string
+  const tenantId = user.app_metadata?.tenant_id as string
   if (!tenantId) throw new PlanGateError('No tenant', 'plan_required', minPlan)
 
   const plan = await getTenantPlan(tenantId)
@@ -83,7 +83,7 @@ export async function requireAdminOSAddon(addon: AdminOSAddon): Promise<void> {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new PlanGateError('Unauthorized', 'addon_required', undefined, addon)
 
-  const tenantId = user.user_metadata?.tenant_id as string
+  const tenantId = user.app_metadata?.tenant_id as string
   if (!tenantId) throw new PlanGateError('No tenant', 'addon_required', undefined, addon)
 
   const { data } = await supabaseAdmin

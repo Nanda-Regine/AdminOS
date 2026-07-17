@@ -13,7 +13,7 @@ export default async function AnnouncementsPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const tenantId = user.user_metadata?.tenant_id as string
+  const tenantId = user.app_metadata?.tenant_id as string
 
   const { data: announcements } = await supabaseAdmin
     .from('announcements')

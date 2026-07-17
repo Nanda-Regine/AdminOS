@@ -49,7 +49,7 @@ export default async function KnowledgeBasePage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const tenantId = user.user_metadata?.tenant_id as string
+  const tenantId = user.app_metadata?.tenant_id as string
 
   // Also fetch the tenant slug for public URL construction
   const [articlesResult, tenantResult] = await Promise.all([

@@ -21,7 +21,7 @@ export default function LoginScreen() {
     setLoading(false)
     if (error) { Alert.alert('Sign in failed', error.message); return }
     setSession(data.session)
-    const role = data.session.user.user_metadata?.role ?? 'staff'
+    const role = data.session.user.app_metadata?.role ?? 'staff'
     router.replace(role === 'owner' || role === 'manager' ? '/(owner)' : '/(my-admin)')
   }
 
@@ -31,7 +31,7 @@ export default function LoginScreen() {
       const { data } = await supabase.auth.getSession()
       if (data.session) {
         setSession(data.session)
-        const role = data.session.user.user_metadata?.role ?? 'staff'
+        const role = data.session.user.app_metadata?.role ?? 'staff'
         router.replace(role === 'owner' || role === 'manager' ? '/(owner)' : '/(my-admin)')
       }
     }

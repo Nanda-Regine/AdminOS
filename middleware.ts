@@ -95,14 +95,19 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
-  const tenantId = user.user_metadata?.tenant_id as string | undefined
-  const role     = user.user_metadata?.role as string | undefined
+  // Security claims come from app_metadata (service-role writable only), never
+  // user_metadata — the user owns user_metadata and can rewrite it via
+  // supabase.auth.updateUser(). Reading tenant_id, role, suspended, plan or
+  // trial_expired_at from there lets the caller pick their own answers to every
+  // check below. See migrations/20260717_phase0_tenant_isolation.sql.
+  const tenantId = user.app_metadata?.tenant_id as string | undefined
+  const role     = user.app_metadata?.role as string | undefined
 
   if (tenantId) response.headers.set('x-tenant-id', tenantId)
   if (role)     response.headers.set('x-user-role', role)
   response.headers.set('x-user-id', user.id)
 
-  const isSuspended = user.user_metadata?.suspended === true
+  const isSuspended = user.app_metadata?.suspended === true
   if (isSuspended) {
     if (pathname.startsWith('/dashboard')) {
       return NextResponse.redirect(new URL('/login?error=suspended', request.url))
@@ -133,8 +138,8 @@ export async function middleware(request: NextRequest) {
 
   const isExempt = BILLING_EXEMPT.some((p) => pathname.startsWith(p))
   if (!isExempt && (pathname.startsWith('/dashboard') || pathname.startsWith('/api/'))) {
-    const trialExpiredAt = user.user_metadata?.trial_expired_at as string | undefined
-    const plan           = user.user_metadata?.plan as string | undefined
+    const trialExpiredAt = user.app_metadata?.trial_expired_at as string | undefined
+    const plan           = user.app_metadata?.plan as string | undefined
 
     if (trialExpiredAt && plan === 'trial') {
       const expired = new Date(trialExpiredAt) < new Date()

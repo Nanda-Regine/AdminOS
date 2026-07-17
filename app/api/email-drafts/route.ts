@@ -6,7 +6,7 @@ export async function GET(request: Request) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new NextResponse('Unauthorized', { status: 401 })
 
-  const tenantId = user.user_metadata?.tenant_id as string
+  const tenantId = user.app_metadata?.tenant_id as string
   const url = new URL(request.url)
   const page = parseInt(url.searchParams.get('page') ?? '1')
   const limit = 20

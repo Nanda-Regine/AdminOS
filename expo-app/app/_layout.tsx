@@ -54,8 +54,8 @@ export default function RootLayout() {
       if (!session) {
         router.replace('/(auth)/login')
       } else {
-        const r = session.user.user_metadata?.role ?? 'staff'
-        const tenantId = session.user.user_metadata?.tenant_id
+        const r = session.user.app_metadata?.role ?? 'staff'
+        const tenantId = session.user.app_metadata?.tenant_id
         if (tenantId) {
           warmCache(queryClient, tenantId)
         }

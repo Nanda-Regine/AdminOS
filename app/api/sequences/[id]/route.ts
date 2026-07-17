@@ -13,7 +13,7 @@ export async function PATCH(
   if (!user) return new NextResponse('Unauthorized', { status: 401 })
 
   const { id } = await params
-  const tenantId = user.user_metadata?.tenant_id as string
+  const tenantId = user.app_metadata?.tenant_id as string
 
   const body = await request.json() as {
     name?: string
@@ -56,7 +56,7 @@ export async function DELETE(
   if (!user) return new NextResponse('Unauthorized', { status: 401 })
 
   const { id } = await params
-  const tenantId = user.user_metadata?.tenant_id as string
+  const tenantId = user.app_metadata?.tenant_id as string
 
   const { error } = await supabaseAdmin
     .from('whatsapp_sequences')

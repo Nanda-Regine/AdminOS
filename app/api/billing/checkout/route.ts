@@ -70,7 +70,7 @@ export async function GET(request: Request) {
     return new NextResponse('Billing configuration error', { status: 500 })
   }
 
-  const tenantId = user.user_metadata?.tenant_id as string
+  const tenantId = user.app_metadata?.tenant_id as string
 
   // Universal PayFast hub routes by "adminos_" prefix in m_payment_id.
   // Return/cancel go to the hub pages which redirect back to adminos.co.za.
