@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { sendWhatsAppMessage } from '@/lib/whatsapp/send'
 import { WHATSAPP_TEMPLATES } from '@/lib/whatsapp/templates'
 import { checkRecoveryMessage } from '@/lib/debt/recoveryGuard'
+import { daysOverdue } from '@/lib/debt/overdue'
 import { writeAuditLog } from '@/lib/security/audit'
 import Anthropic from '@anthropic-ai/sdk'
 
@@ -25,7 +26,7 @@ export const debtRecoveryEngine = inngest.createFunction(
       const [invoiceRes, tenantRes] = await Promise.all([
         supabaseAdmin
           .from('invoices')
-          .select('contact_name, contact_phone, contact_email, amount, days_overdue, reference, recovery_tier')
+          .select('contact_name, contact_phone, contact_email, amount, due_date, reference, recovery_tier')
           .eq('id', invoice_id)
           .single(),
         supabaseAdmin
@@ -52,7 +53,8 @@ export const debtRecoveryEngine = inngest.createFunction(
     if (!context.invoice) return { status: 'invoice_not_found' }
 
     const tier = await step.run('calculate-tier', async () => {
-      const days = context.invoice!.days_overdue ?? 0
+      // Computed from due_date, not a stored column — see lib/debt/overdue.
+      const days = daysOverdue(context.invoice!.due_date)
       if (days <= 2) return 1
       if (days <= 6) return 2
       if (days <= 13) return 3
@@ -84,6 +86,7 @@ export const debtRecoveryEngine = inngest.createFunction(
 
     const message = await step.run('generate-message', async () => {
       const inv = context.invoice!
+      const days = daysOverdue(inv.due_date)
       const tenantName = context.tenant?.name ?? 'our business'
       const lang = context.tenant?.language_primary ?? 'en'
 
@@ -104,7 +107,7 @@ export const debtRecoveryEngine = inngest.createFunction(
 Business: ${tenantName}
 Contact: ${inv.contact_name ?? 'valued client'}
 Amount owed: R${inv.amount}
-Days overdue: ${inv.days_overdue}
+Days overdue: ${days}
 Invoice ref: ${inv.reference ?? invoice_id.slice(0, 8)}
 
 You must NOT threaten or mention legal action, lawyers, courts, letters of demand, debt collectors, credit bureaus or blacklisting. Do not state or imply that any step has been taken, or set any deadline or consequence. Do not use shaming or pressure language. State only what is owed, how overdue it is, and how to get in touch. Offer to discuss a payment arrangement — the customer may be in real difficulty, or may dispute the invoice.
