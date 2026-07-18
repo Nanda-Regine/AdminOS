@@ -34,6 +34,16 @@ async function sql(query, attempt = 0) {
   return Array.isArray(j) ? j : []
 }
 
+// Returns the raw response so callers can tell a real SQL error (e.g. missing
+// table/column → { message: ... }) apart from an empty result set ([]).
+async function sqlRaw(query) {
+  const r = await fetch(`https://api.supabase.com/v1/projects/${REF}/database/query`, {
+    method: 'POST', headers: { Authorization: `Bearer ${MT}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query }),
+  })
+  return r.json().catch(() => ({ message: 'unparseable response' }))
+}
+
 console.log('\n== AdminOS production verification ==')
 
 // 1. Homepage
@@ -95,6 +105,34 @@ try {
   const orphan = (await sql(`select to_regclass('public.addon_subscriptions') as t;`))[0]?.t
   orphan === null ? ok('orphan addon_subscriptions dropped') : bad('addon_subscriptions still exists')
 } catch (e) { bad('catalogue check error: ' + e.message) }
+
+// 6. Page data contracts — the exact table+columns each dashboard page reads.
+// Guards against silent schema drift: a page that selects a missing table/column
+// gets an error swallowed by `data || []` and renders permanently empty. Session
+// 14 found four such pages (handbook/sops, expenses, stokvel ×2). `limit 0`
+// resolves the query plan without returning rows, so a bad table/column errors.
+console.log('\n[page data contracts]')
+const contracts = [
+  ['contacts',       'id, full_name, phone, email, company, contact_type, balance_owed, total_paid, sentiment_score, last_contacted_at'],
+  ['invoices',       'id, contact_name, amount, amount_paid, days_overdue, status, recovery_tier, recovery_status'],
+  ['products',       'id, name, sku, category, unit, current_stock, reorder_level, cost_price, unit_price'],
+  ['contracts',      'id, title, contact_id, status, value, signed_at, created_at'],
+  ['call_logs',      'id, direction, from_number, status, duration_sec, sentiment, summary, ai_handled, started_at'],
+  ['broadcast_campaigns', 'id, name, status, message_body, sent_count, delivered_count, read_count, failed_count'],
+  ['whatsapp_sequences',  'id, name, trigger_type, steps, is_active'],
+  ['sop_documents',  'id, title, category, content, version, status, requires_acknowledgement'],
+  ['kb_articles',    'id, category_id, title, content, tags, published, view_count'],
+  ['expenses',       'id, staff_id, amount, category, description, receipt_url, status, submitted_at'],
+  ['stokvel_groups', 'id, name, rules, contribution_amount, frequency, status'],
+  ['stokvel_members','id, group_id, name, phone, payout_position, joined_at'],
+  ['stokvel_contributions', 'group_id, member_id, amount, status, period_month, period_year'],
+]
+for (const [table, cols] of contracts) {
+  const res = await sqlRaw(`select ${cols} from public.${table} limit 0;`)
+  Array.isArray(res)
+    ? ok(`page contract: ${table}`)
+    : bad(`page contract: ${table} — ${res.message?.split('\n')[0] ?? 'error'}`)
+}
 
 console.log(`\n== ${pass} passed, ${fail} failed, ${warn} warnings ==`)
 process.exit(fail > 0 ? 1 : 0)

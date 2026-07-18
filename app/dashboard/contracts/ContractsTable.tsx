@@ -2,14 +2,15 @@
 
 import { Badge } from '@/components/ui/badge'
 import { DataTable, type Column, type FilterDef } from '@/components/ui/DataTable'
+import { formatZAR } from '@/lib/format'
 
 export type ContractRow = {
   id:          string
   title:       string
   contact_id:  string | null
   status:      string
+  value:       number | null
   signed_at:   string | null
-  signer_name: string | null
   created_at:  string | null
   contacts:    { full_name: string; email?: string } | { full_name: string; email?: string }[] | null
 }
@@ -64,6 +65,19 @@ export function ContractsTable({ rows }: { rows: ContractRow[] }) {
       render: c => <Badge variant={statusVariant[c.status] || 'gray'}>{titleCase(c.status)}</Badge>,
     },
     {
+      key: 'value',
+      header: 'Value',
+      numeric: true,
+      accessor: c => Number(c.value || 0),
+      csv: c => Number(c.value || 0),
+      render: c =>
+        c.value != null ? (
+          <span style={{ color: 'var(--text-primary)' }}>{formatZAR(c.value)}</span>
+        ) : (
+          <span style={{ color: 'var(--text-dim)' }}>—</span>
+        ),
+    },
+    {
       key: 'created_at',
       header: 'Created',
       accessor: c => c.created_at ?? '',
@@ -78,17 +92,6 @@ export function ContractsTable({ rows }: { rows: ContractRow[] }) {
       render: c =>
         c.signed_at ? (
           <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{dateZA(c.signed_at)}</span>
-        ) : (
-          <span style={{ color: 'var(--text-dim)' }}>—</span>
-        ),
-    },
-    {
-      key: 'signer_name',
-      header: 'Signer',
-      accessor: c => c.signer_name ?? '',
-      render: c =>
-        c.signer_name ? (
-          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{c.signer_name}</span>
         ) : (
           <span style={{ color: 'var(--text-dim)' }}>—</span>
         ),

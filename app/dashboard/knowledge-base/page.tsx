@@ -13,22 +13,33 @@ export default async function KnowledgeBasePage() {
 
   const tenantId = user.app_metadata?.tenant_id as string
 
-  // Also fetch the tenant slug for public URL construction
-  const [articlesResult, tenantResult] = await Promise.all([
-    supabaseAdmin
-      .from('kb_articles')
-      .select('id, tenant_id, title, slug, body, category, published, view_count, created_at')
-      .eq('tenant_id', tenantId)
-      .order('created_at', { ascending: false }),
-    supabaseAdmin
-      .from('tenants')
-      .select('slug')
-      .eq('id', tenantId)
-      .maybeSingle(),
-  ])
+  // Real columns only. The page previously selected slug/body/category — none of
+  // which exist on kb_articles (body is `content`, category is a `category_id`
+  // FK) — so the whole select errored and the page always rendered empty.
+  const { data: articlesData } = await supabaseAdmin
+    .from('kb_articles')
+    .select('id, category_id, title, content, tags, published, view_count, created_at, kb_categories(name)')
+    .eq('tenant_id', tenantId)
+    .order('created_at', { ascending: false })
 
-  const articles = (articlesResult.data || []) as KbArticle[]
-  const tenantSlug = (tenantResult.data as { slug?: string } | null)?.slug ?? tenantId
+  type ArticleWithCat = {
+    id: string; title: string; content: string; published: boolean
+    view_count: number; created_at: string
+    kb_categories: { name: string } | { name: string }[] | null
+  }
+
+  const articles: KbArticle[] = ((articlesData || []) as ArticleWithCat[]).map((a) => {
+    const cat = Array.isArray(a.kb_categories) ? a.kb_categories[0] : a.kb_categories
+    return {
+      id: a.id,
+      title: a.title,
+      content: a.content ?? '',
+      category: cat?.name ?? 'General',
+      published: a.published,
+      view_count: a.view_count ?? 0,
+      created_at: a.created_at,
+    }
+  })
 
   const publishedCount = articles.filter((a) => a.published).length
   const totalViews = articles.reduce((sum, a) => sum + (a.view_count || 0), 0)
@@ -58,7 +69,7 @@ export default async function KnowledgeBasePage() {
           </Card>
         </div>
 
-        <KnowledgeBaseTable rows={articles} tenantSlug={tenantSlug} />
+        <KnowledgeBaseTable rows={articles} />
 
       </div>
     </div>

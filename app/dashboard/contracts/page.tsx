@@ -20,11 +20,12 @@ export default async function ContractsPage() {
     .order('full_name')
     .limit(100)
 
-  // Note: sign_token is intentionally NOT selected — it's a signing secret and
-  // was previously leaked into the rendered table.
+  // Real columns only. The page previously selected sign_token + signer_name,
+  // NEITHER of which exists on `contracts` (it has no signer columns — only
+  // signed_at), so the whole select errored and the page always rendered empty.
   const { data: contracts } = await supabaseAdmin
     .from('contracts')
-    .select('id, tenant_id, title, contact_id, status, signed_at, signer_name, created_at, contacts(full_name, email)')
+    .select('id, tenant_id, title, contact_id, status, value, signed_at, created_at, contacts(full_name, email)')
     .eq('tenant_id', tenantId)
     .order('created_at', { ascending: false })
 
