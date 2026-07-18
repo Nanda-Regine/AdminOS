@@ -91,7 +91,7 @@ export async function GET(request: Request) {
 
   const { data, error } = await supabaseAdmin
     .from('nps_surveys')
-    .select('id, contact_id, trigger_type, sent_at, responded_at, score, comment, channel, contacts(name)')
+    .select('id, contact_id, trigger_type, sent_at, responded_at, score, comment, channel, contacts(name:full_name)')
     .eq('tenant_id', tenantId)
     .gte('sent_at', from)
     .order('sent_at', { ascending: false })

@@ -41,7 +41,7 @@ export async function GET(request: Request) {
 
   let query = supabaseAdmin
     .from('invoices')
-    .select('*, contact:contacts(name, email, phone)')
+    .select('*, contact:contacts(name:full_name, email, phone)')
     .eq('tenant_id', tenantId)
     .order('created_at', { ascending: false })
     .limit(limit)

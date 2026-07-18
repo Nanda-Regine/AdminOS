@@ -26,7 +26,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
   const { data, error } = await supabaseAdmin
     .from('invoices')
-    .select('*, contact:contacts(name, email, phone, address)')
+    .select('*, contact:contacts(name:full_name, email, phone)')
     .eq('id', id)
     .eq('tenant_id', tenantId)
     .single()

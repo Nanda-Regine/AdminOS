@@ -33,7 +33,7 @@ export async function GET(request: Request) {
 
   let query = supabaseAdmin
     .from('bookings')
-    .select('*, service:booking_services(name, duration_minutes, colour), contact:contacts(name, phone, email), staff:staff(full_name)')
+    .select('*, service:booking_services(name, duration_minutes, colour), contact:contacts(name:full_name, phone, email), staff:staff(full_name)')
     .eq('tenant_id', tenantId)
     .gte('start_at', fromDate)
     .lte('start_at', toDate)

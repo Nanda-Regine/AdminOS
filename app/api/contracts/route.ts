@@ -34,7 +34,7 @@ export async function GET(request: Request) {
 
   let query = supabaseAdmin
     .from('contracts')
-    .select('*, contact:contacts(name, email), signatures:contract_signatures(*)')
+    .select('*, contact:contacts(name:full_name, email), signatures:contract_signatures(*)')
     .eq('tenant_id', tenantId)
     .order('created_at', { ascending: false })
 
@@ -89,10 +89,13 @@ export async function POST(request: Request) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
 
-  // Create signature records for each signer
+  // Create a signature invite per signer. `token` auto-generates (DB default);
+  // return the created rows so the caller can build each signing link
+  // (/contracts/<id>/sign?token=<token>).
+  let signatures: { id: string; signer_name: string; signer_email: string | null; token: string }[] = []
   if (body.signers.length > 0) {
     const expiresAt = new Date(Date.now() + 30 * 86400000).toISOString()
-    await supabaseAdmin
+    const { data: sigRows } = await supabaseAdmin
       .from('contract_signatures')
       .insert(body.signers.map(s => ({
         contract_id:  contract.id,
@@ -101,6 +104,8 @@ export async function POST(request: Request) {
         signer_role:  s.role   ?? null,
         expires_at:   expiresAt,
       })))
+      .select('id, signer_name, signer_email, token')
+    signatures = sigRows ?? []
   }
 
   // Update formalization progress: first contract
@@ -112,5 +117,5 @@ export async function POST(request: Request) {
 
   fireBusinessEvent('contract.created', tenantId, user.id)
 
-  return NextResponse.json({ contract, warnings: contractWarnings }, { status: 201 })
+  return NextResponse.json({ contract, signatures, warnings: contractWarnings }, { status: 201 })
 }
