@@ -210,10 +210,8 @@ export default async function DashboardPage() {
                   <Link
                     key={conv.id}
                     href={`/dashboard/inbox?id=${conv.id}`}
-                    className="flex items-center gap-3 px-5 py-3 transition-all border-b"
+                    className="flex items-center gap-3 px-5 py-3 transition-all border-b hover:bg-[var(--surface-hover)]"
                     style={{ borderColor: 'var(--border)' }}
-                    onMouseEnter={e => ((e.currentTarget as HTMLElement).style.background = 'var(--surface-hover)')}
-                    onMouseLeave={e => ((e.currentTarget as HTMLElement).style.background = 'transparent')}
                   >
                     <div
                       className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold shrink-0"
@@ -356,16 +354,7 @@ function QuickAction({ href, icon, label }: { href: string; icon: React.ReactNod
   return (
     <Link
       href={href}
-      className="flex flex-col items-center gap-1.5 p-3 rounded-xl text-center transition-all"
-      style={{ background: 'var(--surface-2)', color: 'var(--text-muted)' }}
-      onMouseEnter={e => {
-        (e.currentTarget as HTMLElement).style.background = 'var(--indigo-muted)'
-        ;(e.currentTarget as HTMLElement).style.color = 'var(--indigo-light)'
-      }}
-      onMouseLeave={e => {
-        (e.currentTarget as HTMLElement).style.background = 'var(--surface-2)'
-        ;(e.currentTarget as HTMLElement).style.color = 'var(--text-muted)'
-      }}
+      className="flex flex-col items-center gap-1.5 p-3 rounded-xl text-center transition-all bg-[var(--surface-2)] text-[var(--text-muted)] hover:bg-[var(--indigo-muted)] hover:text-[var(--indigo-light)]"
     >
       {icon}
       <span className="text-xs font-medium">{label}</span>

@@ -169,9 +169,7 @@ export default async function ContactsPage() {
                   return (
                     <tr key={contact.id}
                       style={{ borderBottom: '1px solid var(--border)' }}
-                      className="transition-colors"
-                      onMouseEnter={e => (e.currentTarget.style.background = 'rgba(99,102,241,0.04)')}
-                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                      className="transition-colors hover:bg-[rgba(99,102,241,0.04)]"
                     >
                       {/* Name / phone */}
                       <td className="px-5 py-3.5">

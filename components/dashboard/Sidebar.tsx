@@ -1,7 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
 import {
   LayoutDashboard, MessageSquare, Users, UserCircle2, FileText,
   BarChart3, Settings, CalendarDays, Receipt, PenLine, Activity,
@@ -29,6 +30,14 @@ const navItems = [
 
 export function Sidebar() {
   const pathname = usePathname()
+  const router = useRouter()
+
+  async function handleSignOut() {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    router.push('/login')
+    router.refresh()
+  }
 
   return (
     <aside className="w-60 flex flex-col h-screen fixed left-0 top-0 z-30 border-r"
@@ -108,16 +117,17 @@ export function Sidebar() {
 
       {/* Sign out */}
       <div className="px-4 py-4 border-t" style={{ borderColor: 'var(--border)' }}>
-        <Link
-          href="/api/auth/signout"
-          className="flex items-center gap-2 text-sm transition-colors"
+        <button
+          type="button"
+          onClick={handleSignOut}
+          className="flex items-center gap-2 text-sm transition-colors w-full"
           style={{ color: 'var(--text-muted)' }}
           onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = 'var(--text-secondary)')}
           onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = 'var(--text-muted)')}
         >
           <LogOut className="w-4 h-4" />
           Sign out
-        </Link>
+        </button>
       </div>
     </aside>
   )
