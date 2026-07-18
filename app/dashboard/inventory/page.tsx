@@ -2,12 +2,11 @@ import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { TopBar } from '@/components/dashboard/TopBar'
 import { Card } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { redirect } from 'next/navigation'
+import { InventoryTable, type ProductRow } from './InventoryTable'
+import { formatZAR } from '@/lib/format'
 
-function formatCurrency(val: number) {
-  return `R${val.toLocaleString('en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-}
+const money = (v: number) => formatZAR(v, { cents: true })
 
 export default async function InventoryPage() {
   const supabase = await createClient()
@@ -23,24 +22,19 @@ export default async function InventoryPage() {
     .order('category')
     .order('name')
 
-  // Map products table columns to the expected shape
-  const allItems = (rawItems || []).map(item => ({
-    ...item,
-    quantity_on_hand: item.current_stock,
-    selling_price: item.unit_price,
-  }))
+  const allItems = (rawItems || []) as ProductRow[]
 
   const lowStockItems = allItems.filter(
-    item => Number(item.quantity_on_hand) <= Number(item.reorder_level)
+    item => Number(item.current_stock) <= Number(item.reorder_level)
   )
 
   const totalStockValue = allItems.reduce(
-    (sum, item) => sum + Number(item.quantity_on_hand) * Number(item.cost_price || 0),
+    (sum, item) => sum + Number(item.current_stock) * Number(item.cost_price || 0),
     0
   )
 
   const totalSellingValue = allItems.reduce(
-    (sum, item) => sum + Number(item.quantity_on_hand) * Number(item.selling_price || 0),
+    (sum, item) => sum + Number(item.current_stock) * Number(item.unit_price || 0),
     0
   )
 
@@ -57,39 +51,40 @@ export default async function InventoryPage() {
           </Card>
           <Card>
             <p className="text-xs text-[var(--text-muted)]">Low Stock Alerts</p>
-            <p className={`text-2xl font-bold mt-1 ${lowStockItems.length > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+            <p className={`text-2xl font-bold mt-1 ${lowStockItems.length > 0 ? 'text-red-400' : 'text-emerald-400'}`}>
               {lowStockItems.length}
             </p>
           </Card>
           <Card>
             <p className="text-xs text-[var(--text-muted)]">Stock Value (Cost)</p>
-            <p className="text-2xl font-bold text-[var(--text-primary)] mt-1">{formatCurrency(totalStockValue)}</p>
+            <p className="text-2xl font-bold text-[var(--text-primary)] mt-1">{money(totalStockValue)}</p>
           </Card>
           <Card>
             <p className="text-xs text-[var(--text-muted)]">Stock Value (Retail)</p>
-            <p className="text-2xl font-bold text-emerald-600 mt-1">{formatCurrency(totalSellingValue)}</p>
+            <p className="text-2xl font-bold text-emerald-400 mt-1">{money(totalSellingValue)}</p>
           </Card>
         </div>
 
         {/* Low stock alerts */}
         {lowStockItems.length > 0 && (
           <Card>
-            <h3 className="font-semibold text-red-700 mb-3">
+            <h3 className="font-semibold mb-3" style={{ color: '#F87171' }}>
               Low Stock Alerts — {lowStockItems.length} item{lowStockItems.length !== 1 ? 's' : ''} at or below reorder level
             </h3>
             <div className="space-y-2">
               {lowStockItems.map((item) => (
                 <div
                   key={item.id}
-                  className="flex items-center justify-between p-3 bg-red-50 border border-red-100 rounded-lg"
+                  className="flex items-center justify-between p-3 rounded-lg"
+                  style={{ background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.25)' }}
                 >
                   <div>
                     <p className="text-sm font-medium text-[var(--text-primary)]">{item.name}</p>
                     <p className="text-xs text-[var(--text-muted)]">SKU: {item.sku || '—'} · {item.category}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-bold text-red-600">
-                      {item.quantity_on_hand} {item.unit}
+                    <p className="text-sm font-bold" style={{ color: '#F87171' }}>
+                      {item.current_stock} {item.unit}
                     </p>
                     <p className="text-xs text-[var(--text-dim)]">reorder at {item.reorder_level}</p>
                   </div>
@@ -100,68 +95,7 @@ export default async function InventoryPage() {
         )}
 
         {/* Inventory table */}
-        <Card padding="none">
-          <div className="p-5 border-b border-[var(--border)] flex items-center justify-between">
-            <h3 className="font-semibold text-[var(--text-primary)]">All Products</h3>
-            <span className="text-xs text-[var(--text-dim)]">Total cost value: {formatCurrency(totalStockValue)}</span>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-[var(--border)] bg-[var(--surface-2)]">
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wide">Name</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wide">SKU</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wide">Category</th>
-                  <th className="text-right px-5 py-3 text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wide">Qty</th>
-                  <th className="text-right px-5 py-3 text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wide">Reorder</th>
-                  <th className="text-right px-5 py-3 text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wide">Cost</th>
-                  <th className="text-right px-5 py-3 text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wide">Selling</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wide">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--border)]">
-                {allItems.map((item) => {
-                  const isLow = Number(item.quantity_on_hand) <= Number(item.reorder_level)
-                  return (
-                    <tr key={item.id} className={`hover:bg-[var(--surface-hover)] transition-colors ${isLow ? 'bg-red-50/40' : ''}`}>
-                      <td className="px-5 py-3">
-                        <p className="font-medium text-[var(--text-primary)]">{item.name}</p>
-                      </td>
-                      <td className="px-5 py-3 text-[var(--text-muted)] font-mono text-xs">{item.sku || '—'}</td>
-                      <td className="px-5 py-3">
-                        <Badge variant="gray">{item.category || 'Uncategorised'}</Badge>
-                      </td>
-                      <td className="px-5 py-3 text-right font-semibold text-[var(--text-primary)]">
-                        {item.quantity_on_hand} {item.unit}
-                      </td>
-                      <td className="px-5 py-3 text-right text-[var(--text-dim)] text-xs">{item.reorder_level}</td>
-                      <td className="px-5 py-3 text-right text-[var(--text-muted)]">
-                        {formatCurrency(Number(item.cost_price || 0))}
-                      </td>
-                      <td className="px-5 py-3 text-right text-emerald-600">
-                        {formatCurrency(Number(item.selling_price || 0))}
-                      </td>
-                      <td className="px-5 py-3">
-                        {isLow ? (
-                          <Badge variant="red">Low stock</Badge>
-                        ) : (
-                          <Badge variant="green">OK</Badge>
-                        )}
-                      </td>
-                    </tr>
-                  )
-                })}
-                {allItems.length === 0 && (
-                  <tr>
-                    <td colSpan={8} className="px-5 py-10 text-center text-[var(--text-dim)]">
-                      No inventory items found. Add products to start tracking stock.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </Card>
+        <InventoryTable rows={allItems} />
       </div>
     </div>
   )
