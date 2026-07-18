@@ -549,5 +549,43 @@ All issues identified by the Explore-agent audit were fixed:
 
 ---
 
+## Session 13 — 2026-07-18 · Full UI overhaul: dark theme, backgrounds, light/dark toggle
+
+**Context:** Demo account revealed the dashboard crashed on load and "logged out" on nav clicks. Fixed both, then did a world-class UX audit of all 41 pages and rebuilt the UI to a premium, coherent standard. Production stayed live throughout (deploy-first; each wave verified green on Vercel before the next).
+
+### Reported blockers — fixed & deployed (commit `9a43285`)
+- **Crash on load:** Overview / Contacts / Compliance were Server Components passing inline event handlers to DOM elements → React 19/Next 16 rejects at render → error boundary. Hover handlers → Tailwind `hover:` classes.
+- **Phantom logout:** the Sidebar "Sign out" was `<Link href="/api/auth/signout">`. Next prefetches in-viewport links → prefetching that GET ran `supabase.auth.signOut()` in the background → next nav hit middleware with no session → `/login`. Now a real button. (See `ui_nextjs_footguns` memory.)
+
+### Correspondence audit
+- Nav ↔ pages (all 16 exist), UI ↔ backend (every `/api/*` the frontend calls resolves), pricing tiers (UI reads `plan_catalogue`/`addon_catalogue`; checkout maps all 5 plans + 5 add-ons) — all consistent. Fixed mojibake em-dashes in prod `addon_catalogue` descriptions.
+
+### UX audit — all 41 pages
+- Five parallel design passes scored every page /10 (avg ~5.6). Headline: the design system was good but not switched on. Deliverable = a published audit artifact (health heatmap + prioritised roadmap). See `ux_excellence_roadmap` memory.
+
+### Dark theme unification + billing gate (commit `0a9d050`)
+- Root cause: tokens were authored for a **dark** app but the shell rendered **light** (`bg-[#F8F9FB]`), so ~20 token pages were white-on-white and ~29 hard-coded light greys — 3 clashing identities. Flipped the shell to a dark `--app-bg`, raised token contrast to WCAG AA, defined `--text-dim`, unified the primary accent to indigo, migrated ~40 pages + components from hard-coded gray/white to tokens (scripted sed remap, verified).
+- **Billing revenue bug:** `BillingGateOverlay` never checked entitlement — it always showed the lock, walling **paying** Ring/Reach tenants out. Now gates on `locked` (server `hasAddon`); prices corrected to the live catalogue; locked state is a value pitch.
+- Added `lib/format.ts` (`formatZAR` etc.) — one money format.
+
+### Destructive-action guards (commit `c4ca3c7`)
+- New `ConfirmSubmit` (confirm dialog + pending state) on payroll Distribute, POPIA erasure, expenses approve/reject, leave approve/decline (staff+team), bookings cancel. email-studio send/delete got a confirm dialog + real error handling (was failing silently).
+
+### Premium textured background system (commit `77b1821`)
+- Founder's design signature: every surface is frosted glass over an intentional texture (under a scrim so data stays legible). Material map: dashboard ground = navy leather; nav rail = navy slate; modals = black leather; billing/upgrade = gold-black leather (`.tex-premium`); auth = fluted grey / cream paper. 15 clean-named textures in `public/backgrounds/` (raw source library gitignored — one original filename too long for git on Windows).
+
+### Light / dark theme toggle + per-section accents (commit `00f5df8`)
+- Full light token set under `:root[data-theme="light"]`; because the app is token-driven the whole UI flips. Theme-aware chrome (sidebar/topbar/modal textures swap), badge chip colours flip fg, `.on-dark` forces light text on always-dark surfaces (premium cards, overview hero). `ThemeToggle` in the sidebar; persists to localStorage; applied pre-paint (no flash); dark is default.
+- `SectionBackground` gives Langa / Community / Stokvel a warm ground (dark wood ⇄ light stucco) distinct from the business surfaces.
+- ⚠️ Light mode needs a per-page visual QA pass (possible un-caught dark-island headers). Dark is default so the primary experience is unaffected. Design system documented in `design_system_dark` memory.
+
+### Test account (unchanged)
+- `founder@adminos-demo.co.za` / `AdminOS-Test-2026!` — tenant "Mzansi Test Traders" (operate).
+
+### Still open — the standing plan
+- Full remaining work lives in the **`ux_excellence_roadmap`** memory (resume point for fresh chats). Next up: light-mode visual QA pass; then Wave A = reusable `DataTable` (search/filter/sort/export across ~15 list pages); then finance/money polish, states+a11y, IA merges (Staff+Team, real Calendar), per-page correctness (payroll empty Staff column, contracts sign-token leak, static compliance checklist). Optional: extend section accents to more clusters.
+
+---
+
 *Built by Nandawula Regine Kabali-Kagwa · Mirembe Muse (Pty) Ltd · South Africa*  
 *"African-built, African-first."*
