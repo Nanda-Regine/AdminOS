@@ -3,7 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { writeAuditLog, getClientIp } from '@/lib/security/audit'
 import { requireSuperAdmin } from '@/lib/auth/context'
 
-export async function GET() {
+export async function GET(request: Request) {
   const admin = await requireSuperAdmin()
   if (!admin) {
     return new NextResponse('Forbidden', { status: 403 })
