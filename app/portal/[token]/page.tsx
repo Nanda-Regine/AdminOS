@@ -27,7 +27,7 @@ async function getPortalData(token: string) {
   // Fetch contact
   const { data: contact } = await supabaseAdmin
     .from('contacts')
-    .select('id, name, email, phone, tags, type')
+    .select('id, name:full_name, email, phone, tags, type:contact_type')
     .eq('tenant_id', tenantId)
     .eq('id', contactIdentifier)
     .maybeSingle()
@@ -44,10 +44,10 @@ async function getPortalData(token: string) {
   // Fetch recent conversations
   const { data: conversations } = await supabaseAdmin
     .from('conversations')
-    .select('id, summary, status, created_at, last_message_at')
+    .select('id, summary, status, created_at, last_message_at:updated_at')
     .eq('tenant_id', tenantId)
     .eq('contact_id', contactIdentifier)
-    .order('last_message_at', { ascending: false })
+    .order('updated_at', { ascending: false })
     .limit(5)
 
   // Fetch tenant name

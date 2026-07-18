@@ -51,7 +51,7 @@ export async function POST(request: Request) {
     const contactIds = data.map(s => s.contact_id)
     const { data: contacts } = await supabaseAdmin
       .from('contacts')
-      .select('id, name, phone')
+      .select('id, name:full_name, phone')
       .in('id', contactIds)
       .eq('tenant_id', tenantId)
 

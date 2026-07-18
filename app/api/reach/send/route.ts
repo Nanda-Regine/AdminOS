@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
   const audienceFilter = (campaign.audience_filter ?? {}) as { tags?: string[] }
   let contactsQuery = supabaseAdmin
     .from('contacts')
-    .select('id, phone, name')
+    .select('id, phone, name:full_name')
     .eq('tenant_id', tenantId)
     .not('phone', 'is', null)
 

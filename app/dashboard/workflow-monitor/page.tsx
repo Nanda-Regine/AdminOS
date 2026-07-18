@@ -34,12 +34,14 @@ export default async function WorkflowMonitorPage() {
       .eq('tenant_id', tenantId)
       .order('created_at', { ascending: false })
       .limit(30),
+    // conversations has no escalation_level column; surface the real
+    // "needs attention" signal instead — negative-sentiment conversations.
     supabaseAdmin
       .from('conversations')
-      .select('id, contact_name, status, intent, escalation_level, updated_at')
+      .select('id, contact_name, status, intent, sentiment, updated_at')
       .eq('tenant_id', tenantId)
-      .gt('escalation_level', 0)
-      .order('escalation_level', { ascending: false })
+      .eq('sentiment', 'negative')
+      .order('updated_at', { ascending: false })
       .limit(10),
   ])
 
@@ -148,15 +150,15 @@ export default async function WorkflowMonitorPage() {
 
         </div>
 
-        {/* Escalated conversations */}
+        {/* Conversations needing attention (negative sentiment) */}
         {escalated.length > 0 && (
           <div className="bg-[var(--surface-1)] rounded-2xl border border-[var(--border)] overflow-hidden">
-            <div className="px-5 py-4 border-b border-gray-50 flex items-center justify-between">
+            <div className="px-5 py-4 border-b border-[var(--border)] flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <XCircle className="w-4 h-4 text-red-500" />
-                <h3 className="font-semibold text-[var(--text-primary)] text-sm">Escalated Conversations</h3>
+                <XCircle className="w-4 h-4 text-red-400" />
+                <h3 className="font-semibold text-[var(--text-primary)] text-sm">Needs Attention</h3>
               </div>
-              <Link href="/dashboard/inbox" className="text-xs text-[#2D4A22] font-medium hover:underline">View inbox</Link>
+              <Link href="/dashboard/inbox" className="text-xs font-medium hover:underline" style={{ color: 'var(--indigo-light)' }}>View inbox</Link>
             </div>
             <div className="divide-y divide-[var(--border)]">
               {escalated.map((conv) => (
@@ -165,12 +167,13 @@ export default async function WorkflowMonitorPage() {
                   href={`/dashboard/inbox?id=${conv.id}`}
                   className="flex items-center gap-3 px-5 py-3 hover:bg-[var(--surface-hover)] transition-colors"
                 >
-                  <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center text-red-700 font-semibold text-sm shrink-0">
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center font-semibold text-sm shrink-0"
+                    style={{ background: 'rgba(239,68,68,0.15)', color: '#F87171' }}>
                     {(conv.contact_name || '?')[0].toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-[var(--text-primary)] truncate">{conv.contact_name || 'Unknown'}</p>
-                    <p className="text-xs text-[var(--text-dim)] capitalize">{conv.intent || 'general'} · Level {conv.escalation_level}</p>
+                    <p className="text-xs text-[var(--text-dim)] capitalize">{conv.intent || 'general'} · {conv.sentiment || 'negative'}</p>
                   </div>
                   <span className="text-xs text-[var(--text-dim)]">
                     {new Date(conv.updated_at).toLocaleDateString('en-ZA', { day: '2-digit', month: 'short' })}

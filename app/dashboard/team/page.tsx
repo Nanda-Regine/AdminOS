@@ -24,7 +24,7 @@ export default async function TeamPage() {
   const [staffResult, leaveResult, clockResult, shiftResult, onLeaveResult] = await Promise.all([
     supabaseAdmin
       .from('staff')
-      .select('id, full_name, role, department, phone, employment_status')
+      .select('id, full_name, role, department, phone, employment_type, active')
       .eq('tenant_id', tenantId)
       .order('full_name'),
     supabaseAdmin

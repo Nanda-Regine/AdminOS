@@ -50,7 +50,7 @@ export default async function BookingsPage() {
   const [bookingsResult, servicesResult] = await Promise.all([
     supabaseAdmin
       .from('bookings')
-      .select('*, booking_services(service_name, duration_minutes, price)')
+      .select('*, booking_services(service_name:name, duration_minutes, price)')
       .eq('tenant_id', tenantId)
       .gte('booking_date', start)
       .lte('booking_date', end)
@@ -58,9 +58,9 @@ export default async function BookingsPage() {
       .order('start_time'),
     supabaseAdmin
       .from('booking_services')
-      .select('id, service_name, duration_minutes, price')
+      .select('id, service_name:name, duration_minutes, price')
       .eq('tenant_id', tenantId)
-      .order('service_name'),
+      .order('name'),
   ])
 
   const bookings = bookingsResult.data || []
