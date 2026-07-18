@@ -2,6 +2,19 @@
 
 The connective tissue that makes the cockpits *act*, not just show. Grounded in what already exists.
 
+## ✅ SHIPPED (Session 15, all deployed green)
+- **2A — signal-refresh cron** (`inngest/functions/signalRefresh.ts`): hourly, fans over active tenants, recomputes all 5 domain signals into the bus (Promise.allSettled). Registered.
+- **1 core — the spine + bell:** `lib/notifications/notify.ts` (`notify`/`notifyTenant`/`notifyContact`, never-throws, config-guarded, dedupe) · `/api/notifications` (GET+read) · `NotificationBell` in the TopBar (every page) · **recovery tier-4+ escalations now alert the owner** (in-app + WhatsApp) — fixed the "escalation quietly disappears" gap.
+- **2B — autonomy backbone:** migration `tenant_autonomy_config` (applied) · `lib/autonomy/tiers.ts` (pure, unit-tested, `resolveTier`/quiet-hours) + `config.ts` · **debtRecovery gated on the tenant's autonomy** (auto-send only when tier≤3 AND autonomy=A, else hold+alert) · `/dashboard/settings/autonomy` control surface (Auto/Draft/Off per decision) + `/api/autonomy`. npm 26/26, audit 177/0.
+
+### ⏭ Remaining (next):
+- **1.4** wire spine into more workers: `bookingReminder`→`notifyContact` (customer), payment-received→`notifyTenant`, expense/leave submit→`notifyTenant('approval.needed')`.
+- **1.5** `POST /api/money/remind` + Money cockpit "Send reminders" (gated by autonomy).
+- **1.3** Meta template approval for customer-facing sends.
+- **2.9** gate customer-facing spine sends by autonomy · **2.10** per-tenant AI cost ceiling · **2.2** fold refreshers into the 06:00 brief · **2.3** durable `domain_signals` mirror · quiet-hours wiring · **1.7** notification preferences.
+
+---
+
 **Existing assets (reuse, don't rebuild):**
 - `notifications` table → `id, user_id, tenant_id, type, title, body, read, action_url, data, created_at`
 - `lib/whatsapp/send.ts` → `sendWhatsApp({to, message})` (Meta Cloud API; `sendWhatsAppMessage`, `sendWhatsAppTemplate`)
