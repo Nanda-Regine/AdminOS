@@ -56,10 +56,10 @@ export function AgentStatusBar() {
             className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${
               hasActivity
                 ? 'bg-[#2D4A22] text-[#C9A84C]'
-                : 'bg-gray-100 text-gray-400'
+                : 'bg-[var(--surface-2)] text-[var(--text-dim)]'
             }`}
           >
-            <span className={`w-1.5 h-1.5 rounded-full ${hasActivity ? 'bg-[#C9A84C]' : 'bg-gray-300'}`} />
+            <span className={`w-1.5 h-1.5 rounded-full ${hasActivity ? 'bg-[#C9A84C]' : 'bg-[var(--surface-hover)]'}`} />
             {agent.label}
           </div>
         )

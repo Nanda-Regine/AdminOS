@@ -98,7 +98,7 @@ export function CarePreview({ staffName, role, businessName }: CarePreviewProps)
           {/* Typing indicator */}
           {step > 0 && step < messages.length && (
             <div className="flex justify-start">
-              <div className="rounded-2xl rounded-tl-sm px-3 py-2 bg-white shadow-sm flex gap-1 items-center">
+              <div className="rounded-2xl rounded-tl-sm px-3 py-2 bg-[var(--surface-1)] shadow-sm flex gap-1 items-center">
                 {[0, 1, 2].map(d => (
                   <span
                     key={d}

@@ -124,7 +124,7 @@ export default function DocumentsPage() {
         {/* Upload zone */}
         <div
           className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors cursor-pointer ${
-            dragOver ? 'border-emerald-500 bg-emerald-50' : 'border-gray-300 bg-gray-50 hover:border-emerald-400 hover:bg-emerald-50/50'
+            dragOver ? 'border-emerald-500 bg-emerald-50' : 'border-[var(--border)] bg-[var(--surface-2)] hover:border-emerald-400 hover:bg-emerald-50/50'
           }`}
           onClick={() => fileInputRef.current?.click()}
           onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
@@ -139,10 +139,10 @@ export default function DocumentsPage() {
             onChange={handleFileInput}
           />
           <p className="text-3xl mb-3">📎</p>
-          <p className="font-semibold text-gray-700 mb-1">
+          <p className="font-semibold text-[var(--text-secondary)] mb-1">
             {uploading ? uploadProgress : 'Drop a file here or click to upload'}
           </p>
-          <p className="text-xs text-gray-400 mb-4">
+          <p className="text-xs text-[var(--text-dim)] mb-4">
             PDF, Word, Excel, PowerPoint, CSV, Images, Audio, Video · Max 50MB
           </p>
           {uploadProgress && !uploading && (
@@ -168,10 +168,10 @@ export default function DocumentsPage() {
             { icon: '🖼️', label: 'Images', types: 'JPG, PNG, WEBP, HEIC' },
             { icon: '🎵', label: 'Media', types: 'MP3, MP4, WAV, MOV' },
           ].map((item) => (
-            <div key={item.label} className="bg-white border border-gray-200 rounded-lg p-3 text-center">
+            <div key={item.label} className="bg-[var(--surface-1)] border border-[var(--border)] rounded-lg p-3 text-center">
               <p className="text-xl mb-1">{item.icon}</p>
-              <p className="text-xs font-semibold text-gray-700">{item.label}</p>
-              <p className="text-xs text-gray-400">{item.types}</p>
+              <p className="text-xs font-semibold text-[var(--text-secondary)]">{item.label}</p>
+              <p className="text-xs text-[var(--text-dim)]">{item.types}</p>
             </div>
           ))}
         </div>
@@ -179,24 +179,24 @@ export default function DocumentsPage() {
         {/* Goal tracker */}
         {goals.length > 0 && (
           <Card>
-            <h3 className="font-semibold text-gray-900 mb-4">Goal Tracker</h3>
+            <h3 className="font-semibold text-[var(--text-primary)] mb-4">Goal Tracker</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {goals.map((goal) => (
-                <div key={goal.id} className="border border-gray-200 rounded-lg p-3">
+                <div key={goal.id} className="border border-[var(--border)] rounded-lg p-3">
                   <div className="flex items-center justify-between mb-1">
-                    <p className="text-sm font-medium text-gray-800">{goal.title}</p>
+                    <p className="text-sm font-medium text-[var(--text-secondary)]">{goal.title}</p>
                     <Badge variant={goal.status === 'achieved' ? 'green' : goal.status === 'missed' ? 'red' : 'blue'}>
                       {goal.status}
                     </Badge>
                   </div>
-                  {goal.quarter && <p className="text-xs text-gray-400 mb-2">{goal.quarter}</p>}
+                  {goal.quarter && <p className="text-xs text-[var(--text-dim)] mb-2">{goal.quarter}</p>}
                   {goal.target_value !== null && (
                     <div>
-                      <div className="flex justify-between text-xs text-gray-500 mb-1">
+                      <div className="flex justify-between text-xs text-[var(--text-muted)] mb-1">
                         <span>{goal.target_metric || 'Progress'}</span>
                         <span>{goal.current_value || 0} / {goal.target_value}</span>
                       </div>
-                      <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                      <div className="h-1.5 bg-[var(--surface-2)] rounded-full overflow-hidden">
                         <div
                           className="h-full bg-emerald-500 rounded-full transition-all duration-700"
                           style={{ width: `${Math.min(goal.progress_pct || 0, 100)}%` }}
@@ -212,25 +212,25 @@ export default function DocumentsPage() {
 
         {/* Document list */}
         <Card padding="none">
-          <div className="p-5 border-b border-gray-100 flex items-center justify-between">
-            <h3 className="font-semibold text-gray-900">Uploaded Documents</h3>
-            <span className="text-sm text-gray-400">{documents.length} files</span>
+          <div className="p-5 border-b border-[var(--border)] flex items-center justify-between">
+            <h3 className="font-semibold text-[var(--text-primary)]">Uploaded Documents</h3>
+            <span className="text-sm text-[var(--text-dim)]">{documents.length} files</span>
           </div>
-          <div className="divide-y divide-gray-50">
+          <div className="divide-y divide-[var(--border)]">
             {documents.map((doc) => (
-              <div key={doc.id} className="px-5 py-4 hover:bg-gray-50 transition-colors">
+              <div key={doc.id} className="px-5 py-4 hover:bg-[var(--surface-hover)] transition-colors">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3 min-w-0">
                     <span className="text-2xl shrink-0">{fileTypeIcon[doc.file_type || ''] || '📄'}</span>
                     <div className="min-w-0">
                       <button
-                        className="text-sm font-medium text-gray-900 hover:text-emerald-600 truncate text-left"
+                        className="text-sm font-medium text-[var(--text-primary)] hover:text-emerald-600 truncate text-left"
                         onClick={() => doc.storage_url && getSignedUrl(doc.storage_url)}
                         title={doc.original_filename || ''}
                       >
                         {doc.original_filename}
                       </button>
-                      <p className="text-xs text-gray-400">
+                      <p className="text-xs text-[var(--text-dim)]">
                         {new Date(doc.created_at).toLocaleDateString('en-ZA')} · {doc.uploaded_by || 'System'}
                       </p>
                     </div>
@@ -250,12 +250,12 @@ export default function DocumentsPage() {
                   </div>
                 </div>
                 {doc.ai_summary && (
-                  <p className="mt-2 text-xs text-gray-500 pl-11 leading-relaxed">{doc.ai_summary}</p>
+                  <p className="mt-2 text-xs text-[var(--text-muted)] pl-11 leading-relaxed">{doc.ai_summary}</p>
                 )}
               </div>
             ))}
             {documents.length === 0 && (
-              <div className="px-5 py-12 text-center text-gray-400">
+              <div className="px-5 py-12 text-center text-[var(--text-dim)]">
                 <p className="text-4xl mb-2">📁</p>
                 <p className="text-sm font-medium">No documents yet</p>
                 <p className="text-xs mt-1">Upload any file above — AI will classify and extract insights automatically</p>

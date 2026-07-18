@@ -86,18 +86,18 @@ export default async function ValuationPage() {
         <Card>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-              <p className="text-sm text-gray-500 mb-1">Estimated Valuation</p>
+              <p className="text-sm text-[var(--text-muted)] mb-1">Estimated Valuation</p>
               {latest ? (
                 <>
                   <p className="text-5xl font-extrabold text-emerald-600 tracking-tight">
                     {formatValuation(latest.valuation_estimate)}
                   </p>
-                  <p className="text-xs text-gray-400 mt-1">
+                  <p className="text-xs text-[var(--text-dim)] mt-1">
                     Calculated {formatDate(latest.created_at)} · {latest.methodology}
                   </p>
                 </>
               ) : (
-                <p className="text-3xl font-bold text-gray-300">No snapshot yet</p>
+                <p className="text-3xl font-bold text-[var(--text-dim)]">No snapshot yet</p>
               )}
             </div>
             <form action="/api/valuation" method="GET">
@@ -112,8 +112,8 @@ export default async function ValuationPage() {
 
           {/* Trend line (sparkline-style) */}
           {trend.length > 0 && (
-            <div className="mt-5 pt-5 border-t border-gray-100">
-              <p className="text-xs text-gray-400 mb-3">Prior snapshots</p>
+            <div className="mt-5 pt-5 border-t border-[var(--border)]">
+              <p className="text-xs text-[var(--text-dim)] mb-3">Prior snapshots</p>
               <div className="flex items-end gap-2">
                 {[...trend].reverse().map((snap) => {
                   const maxVal = Math.max(...allSnaps.map((s) => s.valuation_estimate), 1)
@@ -125,7 +125,7 @@ export default async function ValuationPage() {
                         style={{ height: `${Math.max(height, 6)}px` }}
                         title={formatValuation(snap.valuation_estimate)}
                       />
-                      <p className="text-xs text-gray-400">
+                      <p className="text-xs text-[var(--text-dim)]">
                         {new Date(snap.created_at).toLocaleDateString('en-ZA', { month: 'short' })}
                       </p>
                     </div>
@@ -148,7 +148,7 @@ export default async function ValuationPage() {
 
         {/* 7 Value Drivers */}
         <Card>
-          <h3 className="font-semibold text-gray-900 mb-5">7 Value Drivers</h3>
+          <h3 className="font-semibold text-[var(--text-primary)] mb-5">7 Value Drivers</h3>
           {drivers ? (
             <div className="space-y-4">
               {(Object.keys(DRIVER_LABELS) as Array<keyof Driver>).map((key) => {
@@ -158,10 +158,10 @@ export default async function ValuationPage() {
                 return (
                   <div key={key}>
                     <div className="flex items-center justify-between text-sm mb-1.5">
-                      <span className="text-gray-700 font-medium">{DRIVER_LABELS[key]}</span>
-                      <span className="text-gray-500 font-semibold tabular-nums">{pct}%</span>
+                      <span className="text-[var(--text-secondary)] font-medium">{DRIVER_LABELS[key]}</span>
+                      <span className="text-[var(--text-muted)] font-semibold tabular-nums">{pct}%</span>
                     </div>
-                    <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                    <div className="h-2.5 bg-[var(--surface-2)] rounded-full overflow-hidden">
                       <div
                         className={`h-full rounded-full transition-all duration-700 ${color}`}
                         style={{ width: `${pct}%` }}
@@ -172,7 +172,7 @@ export default async function ValuationPage() {
               })}
             </div>
           ) : (
-            <div className="text-center py-10 text-gray-400">
+            <div className="text-center py-10 text-[var(--text-dim)]">
               <p className="text-4xl mb-3">📊</p>
               <p className="text-sm">No valuation data yet. Click Recalculate to generate your first snapshot.</p>
             </div>
@@ -182,9 +182,9 @@ export default async function ValuationPage() {
         {/* Methodology note */}
         {latest?.methodology && (
           <Card>
-            <h3 className="font-semibold text-gray-900 mb-2">Methodology</h3>
-            <p className="text-sm text-gray-600">{latest.methodology}</p>
-            <p className="text-xs text-gray-400 mt-3">
+            <h3 className="font-semibold text-[var(--text-primary)] mb-2">Methodology</h3>
+            <p className="text-sm text-[var(--text-muted)]">{latest.methodology}</p>
+            <p className="text-xs text-[var(--text-dim)] mt-3">
               Valuations are estimates based on available financial data. Consult a professional valuator for legal or investment purposes.
             </p>
           </Card>

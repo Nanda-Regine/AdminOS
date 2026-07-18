@@ -55,15 +55,15 @@ function TaskColumn({
   return (
     <div className="flex flex-col gap-3">
       <div className={`flex items-center justify-between pb-2.5 border-b-2 ${accent}`}>
-        <h3 className="font-semibold text-gray-700 text-xs uppercase tracking-widest">{title}</h3>
-        <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-medium">
+        <h3 className="font-semibold text-[var(--text-secondary)] text-xs uppercase tracking-widest">{title}</h3>
+        <span className="text-xs bg-[var(--surface-2)] text-[var(--text-muted)] px-2 py-0.5 rounded-full font-medium">
           {tasks.length}
         </span>
       </div>
 
       <div className="space-y-2 min-h-[40px]">
         {tasks.length === 0 && (
-          <p className="text-xs text-gray-300 text-center py-8">Empty</p>
+          <p className="text-xs text-[var(--text-dim)] text-center py-8">Empty</p>
         )}
         {tasks.map((task) => {
           const assigneeName = task.assigned_to ? staffMap[task.assigned_to] : null
@@ -72,7 +72,7 @@ function TaskColumn({
           return (
             <Card key={task.id} padding="sm">
               <div className="flex items-start justify-between gap-2">
-                <p className="text-sm font-medium text-gray-900 leading-snug flex-1">
+                <p className="text-sm font-medium text-[var(--text-primary)] leading-snug flex-1">
                   {task.title}
                 </p>
                 <Badge variant={priorityVariant[task.priority] ?? 'gray'}>
@@ -84,7 +84,7 @@ function TaskColumn({
               </div>
 
               {task.description && (
-                <p className="text-xs text-gray-400 mt-1.5 line-clamp-2 leading-relaxed">
+                <p className="text-xs text-[var(--text-dim)] mt-1.5 line-clamp-2 leading-relaxed">
                   {task.description}
                 </p>
               )}
@@ -96,13 +96,13 @@ function TaskColumn({
                       <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 text-[10px] font-bold shrink-0">
                         {initials(assigneeName)}
                       </div>
-                      <span className="text-xs text-gray-500 truncate max-w-[80px]">
+                      <span className="text-xs text-[var(--text-muted)] truncate max-w-[80px]">
                         {assigneeName.split(' ')[0]}
                       </span>
                     </div>
                   ) : null}
                   {task.source && task.source !== 'manual' && (
-                    <span className="text-[10px] text-gray-300 bg-gray-50 px-1.5 py-0.5 rounded">
+                    <span className="text-[10px] text-[var(--text-dim)] bg-[var(--surface-2)] px-1.5 py-0.5 rounded">
                       {task.source.replace(/_/g, ' ')}
                     </span>
                   )}
@@ -111,7 +111,7 @@ function TaskColumn({
                 {task.due_date && (
                   <span
                     className={`text-xs font-medium shrink-0 ${
-                      isOverdue ? 'text-red-500' : 'text-gray-400'
+                      isOverdue ? 'text-red-500' : 'text-[var(--text-dim)]'
                     }`}
                   >
                     {isOverdue ? '⚠ ' : ''}
@@ -197,17 +197,17 @@ export default async function TasksPage() {
 
         {/* Kanban */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <TaskColumn title="To Do"      tasks={todo}       accent="border-gray-200"   staffMap={staffMap} />
+          <TaskColumn title="To Do"      tasks={todo}       accent="border-[var(--border)]"   staffMap={staffMap} />
           <TaskColumn title="In Progress" tasks={inProgress} accent="border-yellow-400" staffMap={staffMap} />
           <TaskColumn title="Done"        tasks={done}       accent="border-emerald-400" staffMap={staffMap} />
         </div>
 
         {allTasks.length === 0 && (
-          <div className="text-center py-16 text-gray-400">
-            <div className="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-3">
+          <div className="text-center py-16 text-[var(--text-dim)]">
+            <div className="w-12 h-12 rounded-2xl bg-[var(--surface-2)] flex items-center justify-center mx-auto mb-3">
               <span className="text-2xl">✓</span>
             </div>
-            <p className="text-sm font-medium text-gray-500">All clear</p>
+            <p className="text-sm font-medium text-[var(--text-muted)]">All clear</p>
             <p className="text-xs mt-1">Tasks created by you or Langa will appear here.</p>
           </div>
         )}

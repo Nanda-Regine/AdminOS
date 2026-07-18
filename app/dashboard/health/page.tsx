@@ -59,11 +59,11 @@ function ScoreRing({ score }: { score: number }) {
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-3xl font-bold text-gray-900">{clamped}</span>
-          <span className="text-xs text-gray-500">/100</span>
+          <span className="text-3xl font-bold text-[var(--text-primary)]">{clamped}</span>
+          <span className="text-xs text-[var(--text-muted)]">/100</span>
         </div>
       </div>
-      <p className="text-sm font-semibold text-gray-700 mt-2">Overall Health Score</p>
+      <p className="text-sm font-semibold text-[var(--text-secondary)] mt-2">Overall Health Score</p>
     </div>
   )
 }
@@ -73,10 +73,10 @@ function DimensionBar({ label, score, color }: { label: string; score: number; c
   return (
     <div>
       <div className="flex justify-between items-center mb-1.5">
-        <p className="text-sm text-gray-700 font-medium">{label}</p>
-        <span className="text-sm font-bold text-gray-900">{pct}</span>
+        <p className="text-sm text-[var(--text-secondary)] font-medium">{label}</p>
+        <span className="text-sm font-bold text-[var(--text-primary)]">{pct}</span>
       </div>
-      <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
+      <div className="h-2 rounded-full bg-[var(--surface-2)] overflow-hidden">
         <div
           className="h-full rounded-full transition-all duration-700"
           style={{ width: `${pct}%`, background: color }}
@@ -125,7 +125,7 @@ export default async function HealthPage() {
 
         {!latest ? (
           <Card>
-            <div className="text-center py-12 text-gray-400">
+            <div className="text-center py-12 text-[var(--text-dim)]">
               <p className="text-3xl mb-2">🩺</p>
               <p className="text-sm">No health snapshots yet. The system generates scores weekly.</p>
             </div>
@@ -139,7 +139,7 @@ export default async function HealthPage() {
 
                 <div className="flex-1 space-y-2">
                   <div className="flex items-center gap-3">
-                    <h3 className="text-lg font-semibold text-gray-900">Health Score</h3>
+                    <h3 className="text-lg font-semibold text-[var(--text-primary)]">Health Score</h3>
                     {TrendIcon && scoreDelta !== null && (
                       <span
                         className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${
@@ -147,7 +147,7 @@ export default async function HealthPage() {
                             ? 'bg-emerald-100 text-emerald-700'
                             : scoreDelta < 0
                             ? 'bg-red-100 text-red-700'
-                            : 'bg-gray-100 text-gray-600'
+                            : 'bg-[var(--surface-2)] text-[var(--text-muted)]'
                         }`}
                       >
                         <TrendIcon className="w-3 h-3" />
@@ -155,7 +155,7 @@ export default async function HealthPage() {
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-[var(--text-muted)]">
                     Last updated:{' '}
                     {new Date(latest.created_at).toLocaleDateString('en-ZA', {
                       weekday: 'short',
@@ -164,7 +164,7 @@ export default async function HealthPage() {
                       year: 'numeric',
                     })}
                   </p>
-                  <p className="text-xs text-gray-400 mt-2">
+                  <p className="text-xs text-[var(--text-dim)] mt-2">
                     Benchmark: South African SME average is ~55/100. Scores above 70 indicate strong business health.
                   </p>
                   <div className="mt-4 grid grid-cols-3 gap-2">
@@ -173,10 +173,10 @@ export default async function HealthPage() {
                       return (
                         <div
                           key={key}
-                          className="text-center p-2 bg-gray-50 rounded-lg border border-gray-100"
+                          className="text-center p-2 bg-[var(--surface-2)] rounded-lg border border-[var(--border)]"
                         >
                           <p className="text-base font-bold" style={{ color }}>{score}</p>
-                          <p className="text-[10px] text-gray-500 mt-0.5">{label}</p>
+                          <p className="text-[10px] text-[var(--text-muted)] mt-0.5">{label}</p>
                         </div>
                       )
                     })}
@@ -187,7 +187,7 @@ export default async function HealthPage() {
 
             {/* Dimension progress bars */}
             <Card>
-              <h3 className="font-semibold text-gray-900 mb-5">Dimension Breakdown</h3>
+              <h3 className="font-semibold text-[var(--text-primary)] mb-5">Dimension Breakdown</h3>
               <div className="space-y-4">
                 {DIMENSION_LABELS.map(({ key, label, color }) => (
                   <DimensionBar
@@ -203,11 +203,11 @@ export default async function HealthPage() {
             {/* Score trend table */}
             {trend.length > 1 && (
               <Card>
-                <h3 className="font-semibold text-gray-900 mb-4">Score Trend (Last {trend.length} Snapshots)</h3>
+                <h3 className="font-semibold text-[var(--text-primary)] mb-4">Score Trend (Last {trend.length} Snapshots)</h3>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="text-left text-xs text-gray-500 border-b border-gray-100">
+                      <tr className="text-left text-xs text-[var(--text-muted)] border-b border-[var(--border)]">
                         <th className="pb-2 font-medium">Date</th>
                         <th className="pb-2 font-medium text-right">Overall</th>
                         <th className="pb-2 font-medium text-right">Financial</th>
@@ -216,16 +216,16 @@ export default async function HealthPage() {
                         <th className="pb-2 font-medium text-right">Compliance</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-50">
+                    <tbody className="divide-y divide-[var(--border)]">
                       {trend.map((snap, i) => {
                         const dims: Dimensions = snap.dimensions ?? {}
                         const isLatest = i === trend.length - 1
                         return (
                           <tr
                             key={snap.id}
-                            className={isLatest ? 'bg-indigo-50 font-semibold' : 'hover:bg-gray-50'}
+                            className={isLatest ? 'bg-indigo-50 font-semibold' : 'hover:bg-[var(--surface-hover)]'}
                           >
-                            <td className="py-2 text-gray-700">
+                            <td className="py-2 text-[var(--text-secondary)]">
                               {new Date(snap.created_at).toLocaleDateString('en-ZA', {
                                 day: 'numeric',
                                 month: 'short',
@@ -237,11 +237,11 @@ export default async function HealthPage() {
                                 </span>
                               )}
                             </td>
-                            <td className="py-2 text-right font-bold text-gray-900">{snap.overall_score}</td>
-                            <td className="py-2 text-right text-gray-600">{dims.financial ?? '—'}</td>
-                            <td className="py-2 text-right text-gray-600">{dims.operational ?? '—'}</td>
-                            <td className="py-2 text-right text-gray-600">{dims.team ?? '—'}</td>
-                            <td className="py-2 text-right text-gray-600">{dims.compliance ?? '—'}</td>
+                            <td className="py-2 text-right font-bold text-[var(--text-primary)]">{snap.overall_score}</td>
+                            <td className="py-2 text-right text-[var(--text-muted)]">{dims.financial ?? '—'}</td>
+                            <td className="py-2 text-right text-[var(--text-muted)]">{dims.operational ?? '—'}</td>
+                            <td className="py-2 text-right text-[var(--text-muted)]">{dims.team ?? '—'}</td>
+                            <td className="py-2 text-right text-[var(--text-muted)]">{dims.compliance ?? '—'}</td>
                           </tr>
                         )
                       })}

@@ -78,32 +78,32 @@ export default async function BookingsPage() {
         {/* Week summary */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card>
-            <p className="text-xs text-gray-500">This Week</p>
-            <p className="text-2xl font-bold text-gray-900 mt-1">{bookings.length}</p>
+            <p className="text-xs text-[var(--text-muted)]">This Week</p>
+            <p className="text-2xl font-bold text-[var(--text-primary)] mt-1">{bookings.length}</p>
           </Card>
           <Card>
-            <p className="text-xs text-gray-500">Confirmed</p>
+            <p className="text-xs text-[var(--text-muted)]">Confirmed</p>
             <p className="text-2xl font-bold text-emerald-600 mt-1">{confirmedCount}</p>
           </Card>
           <Card>
-            <p className="text-xs text-gray-500">Pending</p>
+            <p className="text-xs text-[var(--text-muted)]">Pending</p>
             <p className="text-2xl font-bold text-yellow-600 mt-1">{pendingCount}</p>
           </Card>
           <Card>
-            <p className="text-xs text-gray-500">Cancelled</p>
+            <p className="text-xs text-[var(--text-muted)]">Cancelled</p>
             <p className="text-2xl font-bold text-red-500 mt-1">{cancelledCount}</p>
           </Card>
         </div>
 
         {/* Today's bookings */}
         <Card padding="none">
-          <div className="p-5 border-b border-gray-100 flex items-center justify-between">
-            <h3 className="font-semibold text-gray-900">Today&apos;s Bookings</h3>
-            <span className="text-xs text-gray-400">{todayStr}</span>
+          <div className="p-5 border-b border-[var(--border)] flex items-center justify-between">
+            <h3 className="font-semibold text-[var(--text-primary)]">Today&apos;s Bookings</h3>
+            <span className="text-xs text-[var(--text-dim)]">{todayStr}</span>
           </div>
-          <div className="divide-y divide-gray-50">
+          <div className="divide-y divide-[var(--border)]">
             {todayBookings.length === 0 && (
-              <p className="px-5 py-8 text-center text-sm text-gray-400">No bookings today.</p>
+              <p className="px-5 py-8 text-center text-sm text-[var(--text-dim)]">No bookings today.</p>
             )}
             {todayBookings.map((booking) => {
               const service = Array.isArray(booking.booking_services)
@@ -113,13 +113,13 @@ export default async function BookingsPage() {
                 <div key={booking.id} className="flex items-center justify-between px-5 py-3">
                   <div className="flex items-center gap-4">
                     <div className="text-center w-14 shrink-0">
-                      <p className="text-sm font-bold text-gray-900">{formatTime(booking.start_time)}</p>
+                      <p className="text-sm font-bold text-[var(--text-primary)]">{formatTime(booking.start_time)}</p>
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-gray-900">
+                      <p className="text-sm font-medium text-[var(--text-primary)]">
                         {service?.service_name || booking.service_name || 'Appointment'}
                       </p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-[var(--text-muted)]">
                         {booking.contact_name || '—'}
                         {booking.staff_name && <span> · {booking.staff_name}</span>}
                       </p>
@@ -136,37 +136,37 @@ export default async function BookingsPage() {
 
         {/* Full week table */}
         <Card padding="none">
-          <div className="p-5 border-b border-gray-100">
-            <h3 className="font-semibold text-gray-900">Week Schedule ({start} – {end})</h3>
+          <div className="p-5 border-b border-[var(--border)]">
+            <h3 className="font-semibold text-[var(--text-primary)]">Week Schedule ({start} – {end})</h3>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-100 bg-gray-50">
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Date &amp; Time</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Service</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Contact</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Staff</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Actions</th>
+                <tr className="border-b border-[var(--border)] bg-[var(--surface-2)]">
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wide">Date &amp; Time</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wide">Service</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wide">Contact</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wide">Staff</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wide">Status</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wide">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50">
+              <tbody className="divide-y divide-[var(--border)]">
                 {bookings.map((booking) => {
                   const service = Array.isArray(booking.booking_services)
                     ? booking.booking_services[0]
                     : booking.booking_services
                   return (
-                    <tr key={booking.id} className="hover:bg-gray-50 transition-colors">
+                    <tr key={booking.id} className="hover:bg-[var(--surface-hover)] transition-colors">
                       <td className="px-5 py-3">
-                        <p className="font-medium text-gray-900">{booking.booking_date}</p>
-                        <p className="text-xs text-gray-400">{formatTime(booking.start_time)}</p>
+                        <p className="font-medium text-[var(--text-primary)]">{booking.booking_date}</p>
+                        <p className="text-xs text-[var(--text-dim)]">{formatTime(booking.start_time)}</p>
                       </td>
-                      <td className="px-5 py-3 text-gray-700">
+                      <td className="px-5 py-3 text-[var(--text-secondary)]">
                         {service?.service_name || booking.service_name || '—'}
                       </td>
-                      <td className="px-5 py-3 text-gray-700">{booking.contact_name || '—'}</td>
-                      <td className="px-5 py-3 text-gray-600">{booking.staff_name || '—'}</td>
+                      <td className="px-5 py-3 text-[var(--text-secondary)]">{booking.contact_name || '—'}</td>
+                      <td className="px-5 py-3 text-[var(--text-muted)]">{booking.staff_name || '—'}</td>
                       <td className="px-5 py-3">
                         <Badge variant={statusVariant[booking.status] || 'gray'}>
                           {booking.status?.replace('_', ' ') || 'pending'}
@@ -195,7 +195,7 @@ export default async function BookingsPage() {
                 })}
                 {bookings.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-5 py-10 text-center text-gray-400">
+                    <td colSpan={6} className="px-5 py-10 text-center text-[var(--text-dim)]">
                       No bookings this week.
                     </td>
                   </tr>
@@ -208,13 +208,13 @@ export default async function BookingsPage() {
         {/* Services offered */}
         {services.length > 0 && (
           <Card>
-            <h3 className="font-semibold text-gray-900 mb-4">Services Offered ({services.length})</h3>
+            <h3 className="font-semibold text-[var(--text-primary)] mb-4">Services Offered ({services.length})</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
               {services.map((svc) => (
-                <div key={svc.id} className="p-3 bg-gray-50 rounded-lg">
-                  <p className="text-sm font-medium text-gray-900">{svc.service_name}</p>
+                <div key={svc.id} className="p-3 bg-[var(--surface-2)] rounded-lg">
+                  <p className="text-sm font-medium text-[var(--text-primary)]">{svc.service_name}</p>
                   <div className="flex items-center justify-between mt-1">
-                    <span className="text-xs text-gray-400">{svc.duration_minutes} min</span>
+                    <span className="text-xs text-[var(--text-dim)]">{svc.duration_minutes} min</span>
                     <span className="text-xs font-semibold text-emerald-600">
                       R{Number(svc.price || 0).toLocaleString()}
                     </span>

@@ -98,8 +98,8 @@ export default async function TeamPage() {
                 <Users className="w-5 h-5 text-indigo-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-gray-900">{staff.length}</p>
-                <p className="text-xs text-gray-500">Total Staff</p>
+                <p className="text-2xl font-bold text-[var(--text-primary)]">{staff.length}</p>
+                <p className="text-xs text-[var(--text-muted)]">Total Staff</p>
               </div>
             </div>
           </Card>
@@ -109,8 +109,8 @@ export default async function TeamPage() {
                 <Clock className="w-5 h-5 text-emerald-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-gray-900">{clockedInIds.size}</p>
-                <p className="text-xs text-gray-500">Clocked In Today</p>
+                <p className="text-2xl font-bold text-[var(--text-primary)]">{clockedInIds.size}</p>
+                <p className="text-xs text-[var(--text-muted)]">Clocked In Today</p>
               </div>
             </div>
           </Card>
@@ -120,8 +120,8 @@ export default async function TeamPage() {
                 <CalendarOff className="w-5 h-5 text-yellow-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-gray-900">{onLeaveIds.size}</p>
-                <p className="text-xs text-gray-500">On Leave Today</p>
+                <p className="text-2xl font-bold text-[var(--text-primary)]">{onLeaveIds.size}</p>
+                <p className="text-xs text-[var(--text-muted)]">On Leave Today</p>
               </div>
             </div>
           </Card>
@@ -131,8 +131,8 @@ export default async function TeamPage() {
                 <Calendar className="w-5 h-5 text-blue-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-gray-900">{shifts.length}</p>
-                <p className="text-xs text-gray-500">Shifts (Next 7 Days)</p>
+                <p className="text-2xl font-bold text-[var(--text-primary)]">{shifts.length}</p>
+                <p className="text-xs text-[var(--text-muted)]">Shifts (Next 7 Days)</p>
               </div>
             </div>
           </Card>
@@ -141,7 +141,7 @@ export default async function TeamPage() {
         {/* Pending leave requests */}
         {pendingLeave.length > 0 && (
           <Card>
-            <h3 className="font-semibold text-gray-900 mb-4">
+            <h3 className="font-semibold text-[var(--text-primary)] mb-4">
               Pending Leave Requests ({pendingLeave.length})
             </h3>
             <div className="space-y-2">
@@ -151,10 +151,10 @@ export default async function TeamPage() {
                   className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg border border-yellow-200"
                 >
                   <div>
-                    <p className="text-sm font-medium text-gray-900">
+                    <p className="text-sm font-medium text-[var(--text-primary)]">
                       {(req.staff as { full_name: string } | null)?.full_name || 'Staff member'}
                     </p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-[var(--text-muted)]">
                       {req.start_date} &rarr; {req.end_date}
                       {req.days ? ` (${req.days} days)` : ''}
                       {req.reason ? ` · ${req.reason}` : ''}
@@ -181,24 +181,24 @@ export default async function TeamPage() {
         {/* Upcoming shifts */}
         {shifts.length > 0 && (
           <Card>
-            <h3 className="font-semibold text-gray-900 mb-4">Upcoming Shifts (Next 7 Days)</h3>
+            <h3 className="font-semibold text-[var(--text-primary)] mb-4">Upcoming Shifts (Next 7 Days)</h3>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-left text-xs text-gray-500 border-b border-gray-100">
+                  <tr className="text-left text-xs text-[var(--text-muted)] border-b border-[var(--border)]">
                     <th className="pb-2 font-medium">Staff Member</th>
                     <th className="pb-2 font-medium">Date</th>
                     <th className="pb-2 font-medium">Time</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-50">
+                <tbody className="divide-y divide-[var(--border)]">
                   {shifts.map((shift) => (
-                    <tr key={shift.id} className="hover:bg-gray-50">
-                      <td className="py-2 font-medium text-gray-900">
+                    <tr key={shift.id} className="hover:bg-[var(--surface-hover)]">
+                      <td className="py-2 font-medium text-[var(--text-primary)]">
                         {(shift.staff as unknown as { full_name: string } | null)?.full_name || 'Staff'}
                       </td>
-                      <td className="py-2 text-gray-600">{shift.shift_date}</td>
-                      <td className="py-2 text-gray-500">
+                      <td className="py-2 text-[var(--text-muted)]">{shift.shift_date}</td>
+                      <td className="py-2 text-[var(--text-muted)]">
                         {shift.start_time} &ndash; {shift.end_time}
                       </td>
                     </tr>
@@ -211,7 +211,7 @@ export default async function TeamPage() {
 
         {/* Staff grid */}
         <div>
-          <h3 className="font-semibold text-gray-900 mb-3">All Team Members</h3>
+          <h3 className="font-semibold text-[var(--text-primary)] mb-3">All Team Members</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {staff.map((member) => {
               const status = getStaffStatus(member.id)
@@ -224,8 +224,8 @@ export default async function TeamPage() {
                         {member.full_name.charAt(0).toUpperCase()}
                       </div>
                       <div>
-                        <p className="font-semibold text-gray-900 text-sm">{member.full_name}</p>
-                        <p className="text-xs text-gray-500">
+                        <p className="font-semibold text-[var(--text-primary)] text-sm">{member.full_name}</p>
+                        <p className="text-xs text-[var(--text-muted)]">
                           {member.role || 'Staff'} &middot; {member.department || 'General'}
                         </p>
                       </div>
@@ -233,7 +233,7 @@ export default async function TeamPage() {
                     <Badge variant={status.variant}>{status.label}</Badge>
                   </div>
                   {lastEvent && (
-                    <p className="mt-3 text-xs text-gray-400">
+                    <p className="mt-3 text-xs text-[var(--text-dim)]">
                       Last event:{' '}
                       <span className="capitalize">{lastEvent.event_type.replace('_', ' ')}</span>{' '}
                       at{' '}
@@ -244,14 +244,14 @@ export default async function TeamPage() {
                     </p>
                   )}
                   {member.phone && (
-                    <p className="mt-1 text-xs text-gray-400">{member.phone}</p>
+                    <p className="mt-1 text-xs text-[var(--text-dim)]">{member.phone}</p>
                   )}
                 </Card>
               )
             })}
 
             {staff.length === 0 && (
-              <div className="col-span-3 text-center py-12 text-gray-400">
+              <div className="col-span-3 text-center py-12 text-[var(--text-dim)]">
                 <p className="text-3xl mb-2">👥</p>
                 <p className="text-sm">No staff added yet. Add team members in Settings.</p>
               </div>

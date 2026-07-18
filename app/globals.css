@@ -15,14 +15,18 @@
 
   /* Surfaces */
   --surface-0:     #0A0F2C;
-  --surface-1:     rgba(255,255,255,0.04);
-  --surface-2:     rgba(255,255,255,0.07);
-  --surface-hover: rgba(255,255,255,0.09);
+  --surface-1:     rgba(255,255,255,0.05);
+  --surface-2:     rgba(255,255,255,0.08);
+  --surface-hover: rgba(255,255,255,0.11);
+  /* App content background — a touch lighter than the sidebar navy so the
+     sidebar reads as a rail and .glass cards sit visibly on top. */
+  --app-bg:        #0B1031;
 
-  /* Text */
+  /* Text — opacities tuned to clear WCAG AA on the dark ground */
   --text-primary:   #F8FAFC;
-  --text-secondary: rgba(248,250,252,0.55);
-  --text-muted:     rgba(248,250,252,0.28);
+  --text-secondary: rgba(248,250,252,0.74);
+  --text-muted:     rgba(248,250,252,0.52);
+  --text-dim:       rgba(248,250,252,0.36);
 
   /* Borders */
   --border:         rgba(255,255,255,0.07);

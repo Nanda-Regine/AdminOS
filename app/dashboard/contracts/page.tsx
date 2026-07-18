@@ -48,19 +48,19 @@ export default async function ContractsPage() {
         {/* Summary */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card>
-            <p className="text-xs text-gray-500">Draft</p>
-            <p className="text-2xl font-bold text-gray-700 mt-1">{draftCount}</p>
+            <p className="text-xs text-[var(--text-muted)]">Draft</p>
+            <p className="text-2xl font-bold text-[var(--text-secondary)] mt-1">{draftCount}</p>
           </Card>
           <Card>
-            <p className="text-xs text-gray-500">Sent (Awaiting)</p>
+            <p className="text-xs text-[var(--text-muted)]">Sent (Awaiting)</p>
             <p className="text-2xl font-bold text-yellow-600 mt-1">{sentCount}</p>
           </Card>
           <Card>
-            <p className="text-xs text-gray-500">Signed</p>
+            <p className="text-xs text-[var(--text-muted)]">Signed</p>
             <p className="text-2xl font-bold text-emerald-600 mt-1">{signedCount}</p>
           </Card>
           <Card>
-            <p className="text-xs text-gray-500">Expired</p>
+            <p className="text-xs text-[var(--text-muted)]">Expired</p>
             <p className="text-2xl font-bold text-red-500 mt-1">{expiredCount}</p>
           </Card>
         </div>
@@ -75,30 +75,30 @@ export default async function ContractsPage() {
 
         {/* Contracts table */}
         <Card padding="none">
-          <div className="p-5 border-b border-gray-100">
-            <h3 className="font-semibold text-gray-900">All Contracts</h3>
+          <div className="p-5 border-b border-[var(--border)]">
+            <h3 className="font-semibold text-[var(--text-primary)]">All Contracts</h3>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-100 bg-gray-50">
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Title</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Contact</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Created</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Signed</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Signer</th>
+                <tr className="border-b border-[var(--border)] bg-[var(--surface-2)]">
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wide">Title</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wide">Contact</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wide">Status</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wide">Created</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wide">Signed</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wide">Signer</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50">
+              <tbody className="divide-y divide-[var(--border)]">
                 {allContracts.map((contract) => {
                   const contact = contract.contacts as unknown as { full_name: string; email?: string } | null
                   return (
-                    <tr key={contract.id} className="hover:bg-gray-50 transition-colors">
+                    <tr key={contract.id} className="hover:bg-[var(--surface-hover)] transition-colors">
                       <td className="px-5 py-3">
-                        <p className="font-medium text-gray-900">{contract.title}</p>
+                        <p className="font-medium text-[var(--text-primary)]">{contract.title}</p>
                         {contract.sign_token && contract.status === 'sent' && (
-                          <p className="text-xs text-gray-400 mt-0.5 font-mono truncate max-w-xs">
+                          <p className="text-xs text-[var(--text-dim)] mt-0.5 font-mono truncate max-w-xs">
                             Token: {contract.sign_token.slice(0, 12)}…
                           </p>
                         )}
@@ -106,13 +106,13 @@ export default async function ContractsPage() {
                       <td className="px-5 py-3">
                         {contact ? (
                           <>
-                            <p className="text-gray-900">{contact.full_name}</p>
+                            <p className="text-[var(--text-primary)]">{contact.full_name}</p>
                             {contact.email && (
-                              <p className="text-xs text-gray-400">{contact.email}</p>
+                              <p className="text-xs text-[var(--text-dim)]">{contact.email}</p>
                             )}
                           </>
                         ) : (
-                          <span className="text-gray-400">—</span>
+                          <span className="text-[var(--text-dim)]">—</span>
                         )}
                       </td>
                       <td className="px-5 py-3">
@@ -120,25 +120,25 @@ export default async function ContractsPage() {
                           {contract.status}
                         </Badge>
                       </td>
-                      <td className="px-5 py-3 text-gray-500 text-xs">
+                      <td className="px-5 py-3 text-[var(--text-muted)] text-xs">
                         {contract.created_at
                           ? new Date(contract.created_at).toLocaleDateString('en-ZA')
                           : '—'}
                       </td>
-                      <td className="px-5 py-3 text-gray-500 text-xs">
+                      <td className="px-5 py-3 text-[var(--text-muted)] text-xs">
                         {contract.signed_at
                           ? new Date(contract.signed_at).toLocaleDateString('en-ZA')
-                          : <span className="text-gray-300">—</span>}
+                          : <span className="text-[var(--text-dim)]">—</span>}
                       </td>
-                      <td className="px-5 py-3 text-gray-600 text-xs">
-                        {contract.signer_name || <span className="text-gray-300">—</span>}
+                      <td className="px-5 py-3 text-[var(--text-muted)] text-xs">
+                        {contract.signer_name || <span className="text-[var(--text-dim)]">—</span>}
                       </td>
                     </tr>
                   )
                 })}
                 {allContracts.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-5 py-10 text-center text-gray-400">
+                    <td colSpan={6} className="px-5 py-10 text-center text-[var(--text-dim)]">
                       No contracts found. Create your first contract to get started.
                     </td>
                   </tr>

@@ -19,7 +19,7 @@ type Post = {
 }
 
 const CATEGORIES: { key: string; label: string; color: string; emoji: string }[] = [
-  { key: 'all',            label: 'All',            color: 'bg-gray-100 text-gray-700',       emoji: '🗂' },
+  { key: 'all',            label: 'All',            color: 'bg-[var(--surface-2)] text-[var(--text-secondary)]',       emoji: '🗂' },
   { key: 'need_help',      label: 'Need Help',      color: 'bg-violet-100 text-violet-700',   emoji: '🙋' },
   { key: 'can_help',       label: 'Can Help',       color: 'bg-blue-100 text-blue-700',       emoji: '🤝' },
   { key: 'experience',     label: 'Experience',     color: 'bg-indigo-100 text-indigo-700',   emoji: '💡' },
@@ -40,7 +40,7 @@ function timeAgo(iso: string): string {
 }
 
 function catMeta(key: string) {
-  return CATEGORIES.find(c => c.key === key) ?? { label: key, color: 'bg-gray-100 text-gray-700', emoji: '💬' }
+  return CATEGORIES.find(c => c.key === key) ?? { label: key, color: 'bg-[var(--surface-2)] text-[var(--text-secondary)]', emoji: '💬' }
 }
 
 export default function CommunityPage() {
@@ -134,26 +134,26 @@ export default function CommunityPage() {
                 value={title}
                 onChange={e => setTitle(e.target.value)}
                 placeholder="Post title (e.g. 'Looking for a reliable Cape Town accountant')"
-                className="w-full text-sm rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent placeholder-gray-400"
+                className="w-full text-sm rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent placeholder-[var(--text-dim)]"
               />
               <textarea
                 value={body}
                 onChange={e => setBody(e.target.value)}
                 placeholder="Share the detail — the more context you give, the better the responses…"
                 rows={4}
-                className="w-full resize-none text-sm rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent placeholder-gray-400"
+                className="w-full resize-none text-sm rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent placeholder-[var(--text-dim)]"
               />
               <div className="flex items-center gap-3 flex-wrap">
                 <select
                   value={category}
                   onChange={e => setCategory(e.target.value)}
-                  className="text-xs border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="text-xs border border-[var(--border)] rounded-lg px-3 py-2 bg-[var(--surface-1)] text-[var(--text-secondary)] focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
                   {CATEGORIES.filter(c => c.key !== 'all').map(c => (
                     <option key={c.key} value={c.key}>{c.emoji} {c.label}</option>
                   ))}
                 </select>
-                <label className="flex items-center gap-2 text-xs text-gray-500 cursor-pointer">
+                <label className="flex items-center gap-2 text-xs text-[var(--text-muted)] cursor-pointer">
                   <input
                     type="checkbox"
                     checked={anonymous}
@@ -181,17 +181,17 @@ export default function CommunityPage() {
         {loading ? (
           <div className="space-y-3">
             {[1, 2, 3].map(i => (
-              <div key={i} className="h-28 rounded-2xl bg-gray-100 animate-pulse" />
+              <div key={i} className="h-28 rounded-2xl bg-[var(--surface-2)] animate-pulse" />
             ))}
           </div>
         ) : filtered.length === 0 ? (
           <Card>
             <div className="text-center py-14">
               <p className="text-4xl mb-3">🌱</p>
-              <p className="text-sm font-medium text-gray-500">
+              <p className="text-sm font-medium text-[var(--text-muted)]">
                 {filter === 'all' ? 'The community board is quiet' : `No ${catMeta(filter).label} posts yet`}
               </p>
-              <p className="text-xs text-gray-400 mt-1">Be the first to share something.</p>
+              <p className="text-xs text-[var(--text-dim)] mt-1">Be the first to share something.</p>
             </div>
           </Card>
         ) : (
@@ -210,17 +210,17 @@ export default function CommunityPage() {
                           {meta.label}
                         </span>
                         {post.anonymous && (
-                          <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">anonymous</span>
+                          <span className="text-xs text-[var(--text-dim)] bg-[var(--surface-2)] px-2 py-0.5 rounded-full">anonymous</span>
                         )}
-                        <span className="text-xs text-gray-400 ml-auto shrink-0">{timeAgo(post.created_at)}</span>
+                        <span className="text-xs text-[var(--text-dim)] ml-auto shrink-0">{timeAgo(post.created_at)}</span>
                       </div>
 
-                      <p className="text-sm font-semibold text-gray-900 mt-1">{post.title}</p>
-                      <p className="text-sm text-gray-600 mt-0.5 leading-relaxed">
+                      <p className="text-sm font-semibold text-[var(--text-primary)] mt-1">{post.title}</p>
+                      <p className="text-sm text-[var(--text-muted)] mt-0.5 leading-relaxed">
                         {post.body.length > 220 ? post.body.slice(0, 220).trimEnd() + '…' : post.body}
                       </p>
 
-                      <div className="flex items-center gap-5 mt-3 text-xs text-gray-400">
+                      <div className="flex items-center gap-5 mt-3 text-xs text-[var(--text-dim)]">
                         <span className="flex items-center gap-1.5">
                           <span>👍</span>
                           <span>{post.helpful_count} helpful</span>
@@ -230,7 +230,7 @@ export default function CommunityPage() {
                           <span>{post.replies_count} {post.replies_count === 1 ? 'reply' : 'replies'}</span>
                         </span>
                         {post.sector && (
-                          <span className="text-gray-300">· {post.sector}</span>
+                          <span className="text-[var(--text-dim)]">· {post.sector}</span>
                         )}
                       </div>
                     </div>

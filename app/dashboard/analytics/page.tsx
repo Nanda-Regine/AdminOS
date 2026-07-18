@@ -106,7 +106,7 @@ export default async function AnalyticsPage() {
 
   const sentimentColors: Record<string, string> = {
     positive: 'bg-green-500',
-    neutral:  'bg-gray-400',
+    neutral:  'bg-[var(--text-dim)]',
     negative: 'bg-red-500',
     urgent:   'bg-orange-500',
   }
@@ -161,7 +161,7 @@ export default async function AnalyticsPage() {
 
         {/* Daily volume chart */}
         <Card>
-          <h3 className="font-semibold text-gray-900 mb-5">Daily Conversation Volume — Last 14 Days</h3>
+          <h3 className="font-semibold text-[var(--text-primary)] mb-5">Daily Conversation Volume — Last 14 Days</h3>
           <div className="flex items-end gap-1.5 h-32">
             {days14.map((day) => {
               const count  = volumeByDay[day] || 0
@@ -180,14 +180,14 @@ export default async function AnalyticsPage() {
                       style={{ height: `${Math.max(height, count > 0 ? 4 : 1)}%` }}
                     />
                   </div>
-                  <p className="text-xs text-gray-400 truncate w-full text-center" title={label}>
+                  <p className="text-xs text-[var(--text-dim)] truncate w-full text-center" title={label}>
                     {label.split(' ')[0]}
                   </p>
                 </div>
               )
             })}
           </div>
-          <div className="mt-3 flex items-center gap-3 text-xs text-gray-400">
+          <div className="mt-3 flex items-center gap-3 text-xs text-[var(--text-dim)]">
             <span>Total: {conversations.length} conversations</span>
             <span>·</span>
             <span>Cache hit: {cacheHitRate}%</span>
@@ -199,15 +199,15 @@ export default async function AnalyticsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Top intents */}
           <Card>
-            <h3 className="font-semibold text-gray-900 mb-4">Top Request Types</h3>
+            <h3 className="font-semibold text-[var(--text-primary)] mb-4">Top Request Types</h3>
             <div className="space-y-3">
               {topIntents.length > 0 ? topIntents.map(([intent, count]) => (
                 <div key={intent}>
-                  <div className="flex justify-between text-xs text-gray-500 mb-1">
+                  <div className="flex justify-between text-xs text-[var(--text-muted)] mb-1">
                     <span className="capitalize">{intent.replace(/_/g, ' ')}</span>
-                    <span className="font-medium text-gray-700">{count}</span>
+                    <span className="font-medium text-[var(--text-secondary)]">{count}</span>
                   </div>
-                  <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                  <div className="h-1.5 bg-[var(--surface-2)] rounded-full overflow-hidden">
                     <div
                       className="h-full bg-blue-500 rounded-full transition-all duration-500"
                       style={{ width: `${(count / maxIntentCount) * 100}%` }}
@@ -215,27 +215,27 @@ export default async function AnalyticsPage() {
                   </div>
                 </div>
               )) : (
-                <p className="text-sm text-gray-400 text-center py-3">No conversations yet</p>
+                <p className="text-sm text-[var(--text-dim)] text-center py-3">No conversations yet</p>
               )}
             </div>
           </Card>
 
           {/* Sentiment breakdown */}
           <Card>
-            <h3 className="font-semibold text-gray-900 mb-4">Customer Sentiment</h3>
+            <h3 className="font-semibold text-[var(--text-primary)] mb-4">Customer Sentiment</h3>
             {Object.keys(sentimentBreakdown).length > 0 ? (
               <div className="space-y-3">
                 {Object.entries(sentimentBreakdown).map(([sentiment, count]) => (
                   <div key={sentiment}>
-                    <div className="flex justify-between text-xs text-gray-500 mb-1">
+                    <div className="flex justify-between text-xs text-[var(--text-muted)] mb-1">
                       <span className="capitalize">{sentiment}</span>
-                      <span className="font-medium text-gray-700">
+                      <span className="font-medium text-[var(--text-secondary)]">
                         {count} ({conversations.length > 0 ? Math.round((count / conversations.length) * 100) : 0}%)
                       </span>
                     </div>
-                    <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                    <div className="h-1.5 bg-[var(--surface-2)] rounded-full overflow-hidden">
                       <div
-                        className={`h-full rounded-full transition-all duration-500 ${sentimentColors[sentiment] || 'bg-gray-400'}`}
+                        className={`h-full rounded-full transition-all duration-500 ${sentimentColors[sentiment] || 'bg-[var(--text-dim)]'}`}
                         style={{ width: `${(count / conversations.length) * 100}%` }}
                       />
                     </div>
@@ -243,21 +243,21 @@ export default async function AnalyticsPage() {
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-gray-400 text-center py-3">No sentiment data yet</p>
+              <p className="text-sm text-[var(--text-dim)] text-center py-3">No sentiment data yet</p>
             )}
           </Card>
 
           {/* Debt aging */}
           <Card>
-            <h3 className="font-semibold text-gray-900 mb-4">Debt Aging</h3>
+            <h3 className="font-semibold text-[var(--text-primary)] mb-4">Debt Aging</h3>
             <div className="space-y-3">
               {Object.entries(aging).map(([bucket, count]) => (
                 <div key={bucket}>
-                  <div className="flex justify-between text-xs text-gray-500 mb-1">
+                  <div className="flex justify-between text-xs text-[var(--text-muted)] mb-1">
                     <span>{bucket === 'current' ? 'Current (not due)' : `${bucket} days`}</span>
-                    <span className="font-medium text-gray-700">{count} invoices</span>
+                    <span className="font-medium text-[var(--text-secondary)]">{count} invoices</span>
                   </div>
-                  <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                  <div className="h-1.5 bg-[var(--surface-2)] rounded-full overflow-hidden">
                     <div
                       className={`h-full rounded-full transition-all duration-500 ${
                         bucket === 'current' ? 'bg-emerald-500' :
@@ -270,11 +270,11 @@ export default async function AnalyticsPage() {
                 </div>
               ))}
             </div>
-            <div className="mt-4 pt-3 border-t border-gray-100">
-              <p className="text-xs text-gray-500">Revenue collected</p>
+            <div className="mt-4 pt-3 border-t border-[var(--border)]">
+              <p className="text-xs text-[var(--text-muted)]">Revenue collected</p>
               <p className="text-xl font-bold text-emerald-600 mt-0.5">
                 R{revenue.toLocaleString()}
-                <span className="text-sm font-normal text-gray-400 ml-1">
+                <span className="text-sm font-normal text-[var(--text-dim)] ml-1">
                   from {paidInvoices.length} invoices
                 </span>
               </p>

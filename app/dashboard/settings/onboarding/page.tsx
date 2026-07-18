@@ -120,15 +120,15 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+    <div className="min-h-screen bg-[var(--surface-2)] flex items-center justify-center p-6">
       <div className="w-full max-w-2xl">
         {/* Progress */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-2">
-            <p className="text-sm font-medium text-gray-600">Step {step} of 6</p>
-            <p className="text-sm text-gray-400">{STEPS[step - 1]?.label}</p>
+            <p className="text-sm font-medium text-[var(--text-muted)]">Step {step} of 6</p>
+            <p className="text-sm text-[var(--text-dim)]">{STEPS[step - 1]?.label}</p>
           </div>
-          <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+          <div className="h-2 bg-[var(--surface-2)] rounded-full overflow-hidden">
             <div
               className="h-full bg-emerald-500 rounded-full transition-all duration-500"
               style={{ width: `${(step / 6) * 100}%` }}
@@ -136,7 +136,7 @@ export default function OnboardingPage() {
           </div>
           <div className="flex justify-between mt-2">
             {STEPS.map((s) => (
-              <div key={s.id} className={`text-xs font-medium ${s.id <= step ? 'text-emerald-600' : 'text-gray-400'}`}>
+              <div key={s.id} className={`text-xs font-medium ${s.id <= step ? 'text-emerald-600' : 'text-[var(--text-dim)]'}`}>
                 {s.id < step ? '✓' : s.id}
               </div>
             ))}
@@ -149,24 +149,24 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8">
+        <div className="bg-[var(--surface-1)] rounded-2xl border border-[var(--border)] shadow-sm p-8">
 
           {/* Step 1: Business Profile */}
           {step === 1 && (
             <div className="space-y-4">
               <div>
-                <h2 className="text-xl font-bold text-gray-900">Business Profile</h2>
-                <p className="text-sm text-gray-400 mt-1">Tell us about your business so we can personalise your AI assistant.</p>
+                <h2 className="text-xl font-bold text-[var(--text-primary)]">Business Profile</h2>
+                <p className="text-sm text-[var(--text-dim)] mt-1">Tell us about your business so we can personalise your AI assistant.</p>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Business name *</label>
-                  <input className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Business name *</label>
+                  <input className="w-full border border-[var(--border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     value={formData.name} onChange={(e) => update('name', e.target.value)} placeholder="Sunshine Hardware" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Business type</label>
-                  <select className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Business type</label>
+                  <select className="w-full border border-[var(--border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     value={formData.businessType} onChange={(e) => update('businessType', e.target.value)}>
                     <option value="retail">Retail / Shop</option>
                     <option value="school">School / Education</option>
@@ -179,8 +179,8 @@ export default function OnboardingPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
-                  <select className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Country</label>
+                  <select className="w-full border border-[var(--border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     value={formData.country} onChange={(e) => update('country', e.target.value)}>
                     <option value="ZA">South Africa</option>
                     <option value="ZW">Zimbabwe</option>
@@ -193,13 +193,13 @@ export default function OnboardingPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">WhatsApp number</label>
-                  <input className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">WhatsApp number</label>
+                  <input className="w-full border border-[var(--border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     value={formData.whatsappNumber} onChange={(e) => update('whatsappNumber', e.target.value)} placeholder="+27 82 000 0000" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Primary language</label>
-                  <select className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Primary language</label>
+                  <select className="w-full border border-[var(--border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     value={formData.language} onChange={(e) => update('language', e.target.value)}>
                     <option value="en">English</option>
                     <option value="af">Afrikaans</option>
@@ -219,26 +219,26 @@ export default function OnboardingPage() {
           {step === 2 && (
             <div className="space-y-4">
               <div>
-                <h2 className="text-xl font-bold text-gray-900">Your Team</h2>
-                <p className="text-sm text-gray-400 mt-1">Add staff so AdminOS can send them wellness check-ins and process leave requests.</p>
+                <h2 className="text-xl font-bold text-[var(--text-primary)]">Your Team</h2>
+                <p className="text-sm text-[var(--text-dim)] mt-1">Add staff so AdminOS can send them wellness check-ins and process leave requests.</p>
               </div>
               <div className="space-y-3">
                 {staffRows.map((row, i) => (
                   <div key={i} className="grid grid-cols-12 gap-2 items-center">
                     <input
-                      className="col-span-5 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      className="col-span-5 border border-[var(--border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                       placeholder="Full name *"
                       value={row.full_name}
                       onChange={(e) => updateStaff(i, 'full_name', e.target.value)}
                     />
                     <input
-                      className="col-span-4 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      className="col-span-4 border border-[var(--border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                       placeholder="+27 82 000 0000"
                       value={row.phone}
                       onChange={(e) => updateStaff(i, 'phone', e.target.value)}
                     />
                     <select
-                      className="col-span-2 border border-gray-300 rounded-lg px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      className="col-span-2 border border-[var(--border)] rounded-lg px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                       value={row.role}
                       onChange={(e) => updateStaff(i, 'role', e.target.value)}
                     >
@@ -247,13 +247,13 @@ export default function OnboardingPage() {
                       <option value="admin">Admin</option>
                     </select>
                     {staffRows.length > 1 && (
-                      <button onClick={() => removeStaff(i)} className="col-span-1 text-gray-400 hover:text-red-500 text-lg leading-none">×</button>
+                      <button onClick={() => removeStaff(i)} className="col-span-1 text-[var(--text-dim)] hover:text-red-500 text-lg leading-none">×</button>
                     )}
                   </div>
                 ))}
               </div>
               <Button variant="secondary" size="sm" onClick={addStaffRow}>+ Add another</Button>
-              <p className="text-xs text-gray-400">You can also add staff later from the Staff page.</p>
+              <p className="text-xs text-[var(--text-dim)]">You can also add staff later from the Staff page.</p>
             </div>
           )}
 
@@ -261,30 +261,30 @@ export default function OnboardingPage() {
           {step === 3 && (
             <div className="space-y-4">
               <div>
-                <h2 className="text-xl font-bold text-gray-900">Knowledge Base</h2>
-                <p className="text-sm text-gray-400 mt-1">This is what your AI will know and say about your business.</p>
+                <h2 className="text-xl font-bold text-[var(--text-primary)]">Knowledge Base</h2>
+                <p className="text-sm text-[var(--text-dim)] mt-1">This is what your AI will know and say about your business.</p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Top FAQs</label>
-                <textarea className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none"
+                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Top FAQs</label>
+                <textarea className="w-full border border-[var(--border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none"
                   rows={4} value={formData.faqs} onChange={(e) => update('faqs', e.target.value)}
                   placeholder={'Q: What are your hours?\nA: Monday-Friday 8am-5pm\n\nQ: Do you offer credit?\nA: Yes, for accounts in good standing'} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Services & Products</label>
-                <textarea className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none"
+                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Services & Products</label>
+                <textarea className="w-full border border-[var(--border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none"
                   rows={3} value={formData.services} onChange={(e) => update('services', e.target.value)}
                   placeholder="List your main services and products..." />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Business policies</label>
-                <textarea className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none"
+                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Business policies</label>
+                <textarea className="w-full border border-[var(--border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none"
                   rows={2} value={formData.policies} onChange={(e) => update('policies', e.target.value)}
                   placeholder="Return policy, payment terms, booking rules..." />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Bot tone</label>
-                <select className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Bot tone</label>
+                <select className="w-full border border-[var(--border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   value={formData.tone} onChange={(e) => update('tone', e.target.value)}>
                   <option value="warm">Warm & Friendly</option>
                   <option value="formal">Formal & Professional</option>
@@ -298,8 +298,8 @@ export default function OnboardingPage() {
           {step === 4 && (
             <div className="space-y-4">
               <div>
-                <h2 className="text-xl font-bold text-gray-900">Strategy Document</h2>
-                <p className="text-sm text-gray-400 mt-1">Upload your business plan, strategic goals, or KPI doc. Claude extracts your goals automatically.</p>
+                <h2 className="text-xl font-bold text-[var(--text-primary)]">Strategy Document</h2>
+                <p className="text-sm text-[var(--text-dim)] mt-1">Upload your business plan, strategic goals, or KPI doc. Claude extracts your goals automatically.</p>
               </div>
               <div
                 className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors ${
@@ -320,23 +320,23 @@ export default function OnboardingPage() {
                     <p className="text-sm font-medium text-emerald-700">{uploadedDoc}</p>
                     <p className="text-xs text-emerald-600 mt-1">AI is processing your goals...</p>
                     <button onClick={(e) => { e.stopPropagation(); setUploadedDoc(null) }}
-                      className="text-xs text-gray-400 hover:text-gray-600 mt-2 underline">Upload a different file</button>
+                      className="text-xs text-[var(--text-dim)] hover:text-[var(--text-muted)] mt-2 underline">Upload a different file</button>
                   </>
                 ) : docUploading ? (
                   <>
                     <p className="text-3xl mb-2 animate-pulse">⏳</p>
-                    <p className="text-sm text-gray-600">Uploading and analysing...</p>
+                    <p className="text-sm text-[var(--text-muted)]">Uploading and analysing...</p>
                   </>
                 ) : (
                   <>
                     <p className="text-3xl mb-2">📎</p>
-                    <p className="text-sm font-medium text-gray-700 mb-1">Upload PDF, Word, Excel, or PowerPoint</p>
-                    <p className="text-xs text-gray-400 mb-4">Max 50MB · Encrypted & private</p>
+                    <p className="text-sm font-medium text-[var(--text-secondary)] mb-1">Upload PDF, Word, Excel, or PowerPoint</p>
+                    <p className="text-xs text-[var(--text-dim)] mb-4">Max 50MB · Encrypted & private</p>
                     <Button variant="secondary" size="sm" onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click() }}>Choose file</Button>
                   </>
                 )}
               </div>
-              <p className="text-xs text-gray-400 text-center">
+              <p className="text-xs text-[var(--text-dim)] text-center">
                 Optional but powerful — unlocks Goal Tracker and personalised AI advisor insights.
               </p>
             </div>
@@ -346,8 +346,8 @@ export default function OnboardingPage() {
           {step === 5 && (
             <div className="space-y-4">
               <div>
-                <h2 className="text-xl font-bold text-gray-900">Connect Integrations</h2>
-                <p className="text-sm text-gray-400 mt-1">Connect the tools your business already uses. You can skip and connect later.</p>
+                <h2 className="text-xl font-bold text-[var(--text-primary)]">Connect Integrations</h2>
+                <p className="text-sm text-[var(--text-dim)] mt-1">Connect the tools your business already uses. You can skip and connect later.</p>
               </div>
               <div className="space-y-2">
                 {[
@@ -357,15 +357,15 @@ export default function OnboardingPage() {
                   { label: 'Xero', icon: '📊', desc: 'Invoice & accounting sync', status: 'coming_soon' },
                   { label: 'Google Drive', icon: '📁', desc: 'Auto-sync uploaded documents', status: 'coming_soon' },
                 ].map((item) => (
-                  <div key={item.label} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                  <div key={item.label} className="flex items-center justify-between p-3 border border-[var(--border)] rounded-lg">
                     <div className="flex items-center gap-3">
                       <span className="text-xl">{item.icon}</span>
                       <div>
-                        <p className="text-sm font-medium text-gray-900">{item.label}</p>
-                        <p className="text-xs text-gray-400">{item.desc}</p>
+                        <p className="text-sm font-medium text-[var(--text-primary)]">{item.label}</p>
+                        <p className="text-xs text-[var(--text-dim)]">{item.desc}</p>
                       </div>
                     </div>
-                    <span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-full">Coming soon</span>
+                    <span className="text-xs text-[var(--text-dim)] bg-[var(--surface-2)] px-2 py-1 rounded-full">Coming soon</span>
                   </div>
                 ))}
               </div>
@@ -377,8 +377,8 @@ export default function OnboardingPage() {
             <div className="text-center space-y-4">
               <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center text-3xl mx-auto">🚀</div>
               <div>
-                <h2 className="text-xl font-bold text-gray-900">You&apos;re live!</h2>
-                <p className="text-sm text-gray-400 mt-1">AdminOS is now running your business in the background.</p>
+                <h2 className="text-xl font-bold text-[var(--text-primary)]">You&apos;re live!</h2>
+                <p className="text-sm text-[var(--text-dim)] mt-1">AdminOS is now running your business in the background.</p>
               </div>
               <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-left space-y-2">
                 {[
@@ -401,11 +401,11 @@ export default function OnboardingPage() {
 
           {/* Navigation */}
           {step < 6 && (
-            <div className="flex justify-between mt-6 pt-6 border-t border-gray-100">
+            <div className="flex justify-between mt-6 pt-6 border-t border-[var(--border)]">
               <Button variant="ghost" onClick={prev} disabled={step === 1}>← Back</Button>
               <div className="flex items-center gap-3">
                 {step >= 2 && step <= 4 && (
-                  <button onClick={next} className="text-sm text-gray-400 hover:text-gray-600">
+                  <button onClick={next} className="text-sm text-[var(--text-dim)] hover:text-[var(--text-muted)]">
                     Skip →
                   </button>
                 )}

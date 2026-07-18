@@ -1,63 +1,88 @@
 'use client'
 
 import Link from 'next/link'
-import { Lock, Zap } from 'lucide-react'
+import { Lock, Zap, Check } from 'lucide-react'
 import type { Addon, Plan } from '@/lib/billing/gates'
 
-const ADDON_LABELS: Record<Addon, { name: string; price: string }> = {
-  ring:          { name: 'Ring',          price: 'R999/mo' },
-  reach:         { name: 'Reach',         price: 'R499/mo' },
-  sage:          { name: 'Sage Sync',     price: 'R299/mo' },
-  languages:     { name: 'Languages',     price: 'R199/mo' },
-  client_portal: { name: 'Client Portal', price: 'R599/mo' },
+// Prices/benefits mirror the live addon_catalogue + plan_catalogue. Kept here
+// only for the pitch copy; entitlement itself is decided server-side and passed
+// in via `locked` — never inferred in this client component.
+const ADDON_INFO: Record<Addon, { name: string; price: string; benefits: string[]; includedFrom: string }> = {
+  ring:          { name: 'Ring',          price: 'R349/mo', includedFrom: 'Partner',
+    benefits: ['AI voice agent answers every call', 'Takes messages & transfers to staff', 'Full call log + recordings'] },
+  reach:         { name: 'Reach',         price: 'R199/mo', includedFrom: 'Operate',
+    benefits: ['Broadcast to all contacts on WhatsApp', 'Audience filters & delivery tracking', 'Campaign performance analytics'] },
+  sage:          { name: 'Sage Sync',     price: 'R199/mo', includedFrom: 'Partner',
+    benefits: ['Two-way Sage Accounting sync', 'Contacts, invoices & payments aligned', 'No double capture'] },
+  languages:     { name: 'Languages',     price: 'R99/mo',  includedFrom: 'Grow',
+    benefits: ['AI replies in all 11 SA languages', 'Auto-detected per contact', 'Meet customers in their language'] },
+  client_portal: { name: 'Client Portal', price: 'R299/mo', includedFrom: 'Scale',
+    benefits: ['Magic-link self-service portal', 'Clients view & pay invoices online', 'Submit documents securely'] },
 }
 
 const PLAN_LABELS: Record<Plan, string> = {
   trial:       'Trial',
-  starter:     'Starter — R2,500/mo',
-  growth:      'Growth — R4,500/mo',
-  enterprise:  'Enterprise — R8,500/mo',
-  white_label: 'White Label — R14,999/mo',
+  starter:     'Starter',
+  growth:      'Growth',
+  enterprise:  'Enterprise',
+  white_label: 'White Label',
 }
 
 interface BillingGateOverlayProps {
   requiredAddon?: Addon
   requiredPlan?: Plan
+  /** Decided server-side. When false, the feature is owned and children render freely. */
+  locked?: boolean
   children?: React.ReactNode
 }
 
-export function BillingGateOverlay({ requiredAddon, requiredPlan, children }: BillingGateOverlayProps) {
-  const title = requiredAddon
-    ? `${ADDON_LABELS[requiredAddon].name} add-on required`
-    : `${PLAN_LABELS[requiredPlan!]} required`
+export function BillingGateOverlay({ requiredAddon, requiredPlan, locked = true, children }: BillingGateOverlayProps) {
+  // Entitled: render the real feature with no obstruction.
+  if (!locked) return <>{children}</>
 
-  const description = requiredAddon
-    ? `Unlock this feature for ${ADDON_LABELS[requiredAddon].price}.`
-    : `Upgrade your plan to access this feature.`
+  const info = requiredAddon ? ADDON_INFO[requiredAddon] : null
+  const title = info ? info.name : `${PLAN_LABELS[requiredPlan!]} plan`
+  const price = info ? info.price : ''
+  const benefits = info?.benefits ?? []
 
   return (
     <div className="relative">
       {children && (
-        <div className="pointer-events-none select-none blur-sm opacity-40 saturate-0">
+        <div className="pointer-events-none select-none blur-sm opacity-30 saturate-50" aria-hidden="true">
           {children}
         </div>
       )}
-      <div className="absolute inset-0 flex flex-col items-center justify-center rounded-2xl"
-        style={{ background: 'rgba(10,15,44,0.85)', backdropFilter: 'blur(8px)' }}>
-        <div className="text-center px-6 max-w-sm">
-          <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-3"
+      <div className="absolute inset-0 flex flex-col items-center justify-center rounded-2xl p-6"
+        style={{ background: 'rgba(10,15,44,0.82)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}>
+        <div className="text-center max-w-sm w-full rounded-2xl p-6"
+          style={{ background: 'var(--surface-1)', border: '1px solid var(--border-hover)', backdropFilter: 'blur(20px)' }}>
+          <div className="w-11 h-11 rounded-2xl flex items-center justify-center mx-auto mb-3"
             style={{ background: 'var(--indigo-muted)' }}>
             <Lock className="w-5 h-5" style={{ color: 'var(--indigo-light)' }} />
           </div>
-          <h3 className="text-base font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>{title}</h3>
-          <p className="text-sm mb-4" style={{ color: 'var(--text-muted)' }}>{description}</p>
+          <h3 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>Unlock {title}</h3>
+          <p className="text-sm mt-1 mb-4" style={{ color: 'var(--text-muted)' }}>
+            {info ? `From ${price}` : 'Upgrade your plan'} · included free on {info?.includedFrom ?? 'higher'} plans
+          </p>
+
+          {benefits.length > 0 && (
+            <ul className="text-left space-y-2 mb-5 mx-auto inline-block">
+              {benefits.map((b) => (
+                <li key={b} className="flex items-start gap-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
+                  <Check className="w-4 h-4 mt-0.5 shrink-0" style={{ color: 'var(--success)' }} />
+                  <span>{b}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+
           <Link
             href="/dashboard/settings/billing"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all w-full hover:opacity-90"
             style={{ background: 'var(--indigo)', color: '#fff' }}
           >
-            <Zap className="w-3.5 h-3.5" />
-            Upgrade Now
+            <Zap className="w-4 h-4" />
+            {info ? `Add ${info.name}` : 'Upgrade'}
           </Link>
         </div>
       </div>

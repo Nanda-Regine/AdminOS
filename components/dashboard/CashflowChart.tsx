@@ -38,12 +38,12 @@ function CustomTooltip({ active, payload, label }: {
 }) {
   if (!active || !payload?.length) return null
   return (
-    <div className="bg-white border border-gray-200 rounded-xl shadow-lg px-4 py-3 text-sm min-w-[160px]">
-      <p className="font-semibold text-gray-700 mb-2">{label}</p>
+    <div className="bg-[var(--surface-1)] border border-[var(--border)] rounded-xl shadow-lg px-4 py-3 text-sm min-w-[160px]">
+      <p className="font-semibold text-[var(--text-secondary)] mb-2">{label}</p>
       {payload.map((p) => (
         <div key={p.name} className="flex justify-between gap-4">
           <span style={{ color: p.color }}>{p.name}</span>
-          <span className="font-medium text-gray-900">{formatK(p.value)}</span>
+          <span className="font-medium text-[var(--text-primary)]">{formatK(p.value)}</span>
         </div>
       ))}
     </div>
@@ -75,7 +75,7 @@ export function CashflowChart({ entries }: { entries: CashflowEntry[] }) {
 
   if (!hasData) {
     return (
-      <div className="flex items-center justify-center h-48 text-sm text-gray-400">
+      <div className="flex items-center justify-center h-48 text-sm text-[var(--text-dim)]">
         No cashflow entries to chart yet.
       </div>
     )

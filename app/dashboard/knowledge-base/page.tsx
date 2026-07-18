@@ -31,7 +31,7 @@ function categoryLabel(cat: string): string {
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
-  general: 'bg-gray-100 text-gray-700',
+  general: 'bg-[var(--surface-2)] text-[var(--text-secondary)]',
   policy: 'bg-blue-100 text-blue-700',
   hr: 'bg-violet-100 text-violet-700',
   finance: 'bg-emerald-100 text-emerald-700',
@@ -41,7 +41,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 }
 
 function categoryClass(cat: string): string {
-  return CATEGORY_COLORS[cat.toLowerCase()] ?? 'bg-gray-100 text-gray-700'
+  return CATEGORY_COLORS[cat.toLowerCase()] ?? 'bg-[var(--surface-2)] text-[var(--text-secondary)]'
 }
 
 export default async function KnowledgeBasePage() {
@@ -93,22 +93,22 @@ export default async function KnowledgeBasePage() {
         {/* Stats row */}
         <div className="grid grid-cols-3 gap-4">
           <Card>
-            <p className="text-xs text-gray-500">Total Articles</p>
-            <p className="text-2xl font-bold text-gray-900 mt-1">{articles.length}</p>
+            <p className="text-xs text-[var(--text-muted)]">Total Articles</p>
+            <p className="text-2xl font-bold text-[var(--text-primary)] mt-1">{articles.length}</p>
           </Card>
           <Card>
-            <p className="text-xs text-gray-500">Published</p>
+            <p className="text-xs text-[var(--text-muted)]">Published</p>
             <p className="text-2xl font-bold text-emerald-600 mt-1">{publishedCount}</p>
           </Card>
           <Card>
-            <p className="text-xs text-gray-500">Total Views</p>
+            <p className="text-xs text-[var(--text-muted)]">Total Views</p>
             <p className="text-2xl font-bold text-blue-600 mt-1">{totalViews.toLocaleString()}</p>
           </Card>
         </div>
 
         {articles.length === 0 ? (
           <Card>
-            <div className="text-center py-14 text-gray-400">
+            <div className="text-center py-14 text-[var(--text-dim)]">
               <p className="text-4xl mb-3">📚</p>
               <p className="text-sm">No knowledge base articles yet. Create your first article to help customers self-serve.</p>
             </div>
@@ -120,23 +120,23 @@ export default async function KnowledgeBasePage() {
                 <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${categoryClass(category)}`}>
                   {categoryLabel(category)}
                 </span>
-                <span className="text-xs text-gray-400">{grouped[category].length} articles</span>
+                <span className="text-xs text-[var(--text-dim)]">{grouped[category].length} articles</span>
               </div>
 
-              <div className="divide-y divide-gray-50">
+              <div className="divide-y divide-[var(--border)]">
                 {grouped[category].map((article) => (
                   <div key={article.id} className="py-3 first:pt-0 last:pb-0">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <p className="text-sm font-semibold text-gray-900 truncate">
+                          <p className="text-sm font-semibold text-[var(--text-primary)] truncate">
                             {article.title}
                           </p>
                           <Badge variant={article.published ? 'green' : 'gray'}>
                             {article.published ? 'Published' : 'Draft'}
                           </Badge>
                         </div>
-                        <p className="text-xs text-gray-400 mt-0.5">
+                        <p className="text-xs text-[var(--text-dim)] mt-0.5">
                           {formatDate(article.created_at)}
                           {article.published && (
                             <> · <a
@@ -150,7 +150,7 @@ export default async function KnowledgeBasePage() {
                           )}
                         </p>
                       </div>
-                      <div className="flex items-center gap-1 text-xs text-gray-400 shrink-0">
+                      <div className="flex items-center gap-1 text-xs text-[var(--text-dim)] shrink-0">
                         <span>👁</span>
                         <span>{(article.view_count || 0).toLocaleString()}</span>
                       </div>

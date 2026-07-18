@@ -46,15 +46,15 @@ export default async function StaffPage() {
         {/* Pending leave requests */}
         {pendingLeave.length > 0 && (
           <Card>
-            <h3 className="font-semibold text-gray-900 mb-4">Pending Leave Requests ({pendingLeave.length})</h3>
+            <h3 className="font-semibold text-[var(--text-primary)] mb-4">Pending Leave Requests ({pendingLeave.length})</h3>
             <div className="space-y-2">
               {pendingLeave.map((req) => (
                 <div key={req.id} className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg border border-yellow-200">
                   <div>
-                    <p className="text-sm font-medium text-gray-900">
+                    <p className="text-sm font-medium text-[var(--text-primary)]">
                       {(req.staff as { full_name: string } | null)?.full_name || 'Staff member'}
                     </p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-[var(--text-muted)]">
                       {req.start_date} → {req.end_date} ({req.days} days) · {req.reason}
                     </p>
                   </div>
@@ -79,8 +79,8 @@ export default async function StaffPage() {
         {/* Wellness heatmap */}
         {staff.length > 0 && (
           <Card>
-            <h3 className="font-semibold text-gray-900 mb-1">Team Wellness Heatmap</h3>
-            <p className="text-xs text-gray-400 mb-4">Last 8 check-in scores per staff member. Color = score (red ≤ 2, orange = 3, yellow = 4, green = 5)</p>
+            <h3 className="font-semibold text-[var(--text-primary)] mb-1">Team Wellness Heatmap</h3>
+            <p className="text-xs text-[var(--text-dim)] mb-4">Last 8 check-in scores per staff member. Color = score (red ≤ 2, orange = 3, yellow = 4, green = 5)</p>
             <div className="overflow-x-auto">
               <div className="min-w-max">
                 {staff.map((member) => {
@@ -93,13 +93,13 @@ export default async function StaffPage() {
 
                   return (
                     <div key={member.id} className="flex items-center gap-3 mb-2">
-                      <div className={`w-28 shrink-0 text-xs font-medium truncate ${isAtRisk ? 'text-red-600' : 'text-gray-700'}`}>
+                      <div className={`w-28 shrink-0 text-xs font-medium truncate ${isAtRisk ? 'text-red-600' : 'text-[var(--text-secondary)]'}`}>
                         {member.full_name.split(' ')[0]}
                         {isAtRisk && <span className="ml-1 text-red-500">⚠</span>}
                       </div>
                       <div className="flex gap-1">
                         {last8.length === 0 ? (
-                          <span className="text-xs text-gray-300">No check-ins recorded</span>
+                          <span className="text-xs text-[var(--text-dim)]">No check-ins recorded</span>
                         ) : (
                           last8.map((entry, i) => {
                             const color =
@@ -150,8 +150,8 @@ export default async function StaffPage() {
                       {member.full_name.charAt(0)}
                     </div>
                     <div>
-                      <p className="font-semibold text-gray-900 text-sm">{member.full_name}</p>
-                      <p className="text-xs text-gray-500">{member.role || 'Staff'} · {member.department || 'General'}</p>
+                      <p className="font-semibold text-[var(--text-primary)] text-sm">{member.full_name}</p>
+                      <p className="text-xs text-[var(--text-muted)]">{member.role || 'Staff'} · {member.department || 'General'}</p>
                     </div>
                   </div>
                   <div className="flex flex-col items-end gap-1">
@@ -163,27 +163,27 @@ export default async function StaffPage() {
                 </div>
 
                 <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                  <div className="bg-gray-50 rounded-lg p-2">
-                    <p className="text-gray-500">Leave balance</p>
-                    <p className="font-semibold text-gray-800">{member.leave_balance - member.leave_taken} days</p>
+                  <div className="bg-[var(--surface-2)] rounded-lg p-2">
+                    <p className="text-[var(--text-muted)]">Leave balance</p>
+                    <p className="font-semibold text-[var(--text-secondary)]">{member.leave_balance - member.leave_taken} days</p>
                   </div>
-                  <div className="bg-gray-50 rounded-lg p-2">
-                    <p className="text-gray-500">Wellness (7d avg)</p>
-                    <p className="font-semibold text-gray-800">
+                  <div className="bg-[var(--surface-2)] rounded-lg p-2">
+                    <p className="text-[var(--text-muted)]">Wellness (7d avg)</p>
+                    <p className="font-semibold text-[var(--text-secondary)]">
                       {recentAvg !== null ? `${recentAvg.toFixed(1)} / 5` : 'No data'}
                     </p>
                   </div>
                 </div>
 
                 {member.phone && (
-                  <p className="mt-2 text-xs text-gray-400">{member.phone}</p>
+                  <p className="mt-2 text-xs text-[var(--text-dim)]">{member.phone}</p>
                 )}
               </Card>
             )
           })}
 
           {staff.length === 0 && (
-            <div className="col-span-3 text-center py-12 text-gray-400">
+            <div className="col-span-3 text-center py-12 text-[var(--text-dim)]">
               <p className="text-3xl mb-2">👥</p>
               <p className="text-sm">No staff added yet. Add team members in Settings.</p>
             </div>

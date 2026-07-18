@@ -60,8 +60,8 @@ export default async function ExpensesPage() {
                 <Clock className="w-5 h-5 text-yellow-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-gray-900">{pending.length}</p>
-                <p className="text-xs text-gray-500">Pending Claims</p>
+                <p className="text-2xl font-bold text-[var(--text-primary)]">{pending.length}</p>
+                <p className="text-xs text-[var(--text-muted)]">Pending Claims</p>
               </div>
             </div>
           </Card>
@@ -71,10 +71,10 @@ export default async function ExpensesPage() {
                 <Receipt className="w-5 h-5 text-red-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-2xl font-bold text-[var(--text-primary)]">
                   R{totalPendingAmount.toLocaleString('en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </p>
-                <p className="text-xs text-gray-500">Total Amount Pending</p>
+                <p className="text-xs text-[var(--text-muted)]">Total Amount Pending</p>
               </div>
             </div>
           </Card>
@@ -84,8 +84,8 @@ export default async function ExpensesPage() {
                 <CheckCircle className="w-5 h-5 text-emerald-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-gray-900">{processed.length}</p>
-                <p className="text-xs text-gray-500">Processed (Recent 20)</p>
+                <p className="text-2xl font-bold text-[var(--text-primary)]">{processed.length}</p>
+                <p className="text-xs text-[var(--text-muted)]">Processed (Recent 20)</p>
               </div>
             </div>
           </Card>
@@ -93,17 +93,17 @@ export default async function ExpensesPage() {
 
         {/* Pending claims queue */}
         <Card>
-          <h3 className="font-semibold text-gray-900 mb-4">
+          <h3 className="font-semibold text-[var(--text-primary)] mb-4">
             Pending Approval Queue
             {pending.length > 0 && (
-              <span className="ml-2 text-xs font-normal text-gray-500">
+              <span className="ml-2 text-xs font-normal text-[var(--text-muted)]">
                 — {pending.length} claim{pending.length !== 1 ? 's' : ''}
               </span>
             )}
           </h3>
 
           {pending.length === 0 ? (
-            <div className="text-center py-10 text-gray-400">
+            <div className="text-center py-10 text-[var(--text-dim)]">
               <p className="text-3xl mb-2">✅</p>
               <p className="text-sm">No pending expense claims. All caught up!</p>
             </div>
@@ -123,19 +123,19 @@ export default async function ExpensesPage() {
                 return (
                   <div
                     key={claim.id}
-                    className="flex items-start justify-between gap-4 p-4 bg-gray-50 rounded-xl border border-gray-200"
+                    className="flex items-start justify-between gap-4 p-4 bg-[var(--surface-2)] rounded-xl border border-[var(--border)]"
                   >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap mb-1">
-                        <p className="text-sm font-semibold text-gray-900">{staffName}</p>
+                        <p className="text-sm font-semibold text-[var(--text-primary)]">{staffName}</p>
                         <Badge variant={catVariant} className="capitalize">
                           {claim.category || 'Other'}
                         </Badge>
                       </div>
-                      <p className="text-xs text-gray-600 mb-1 line-clamp-2">
+                      <p className="text-xs text-[var(--text-muted)] mb-1 line-clamp-2">
                         {claim.description || 'No description provided'}
                       </p>
-                      <p className="text-xs text-gray-400">Submitted {submittedDate}</p>
+                      <p className="text-xs text-[var(--text-dim)]">Submitted {submittedDate}</p>
                       {claim.receipt_url && (
                         <a
                           href={claim.receipt_url}
@@ -148,7 +148,7 @@ export default async function ExpensesPage() {
                       )}
                     </div>
                     <div className="flex flex-col items-end gap-3 shrink-0">
-                      <p className="text-base font-bold text-gray-900">
+                      <p className="text-base font-bold text-[var(--text-primary)]">
                         R{Number(claim.amount).toLocaleString('en-ZA', {
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 2,
@@ -179,11 +179,11 @@ export default async function ExpensesPage() {
         {/* Processed claims */}
         {processed.length > 0 && (
           <Card>
-            <h3 className="font-semibold text-gray-900 mb-4">Recently Processed</h3>
+            <h3 className="font-semibold text-[var(--text-primary)] mb-4">Recently Processed</h3>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-left text-xs text-gray-500 border-b border-gray-100">
+                  <tr className="text-left text-xs text-[var(--text-muted)] border-b border-[var(--border)]">
                     <th className="pb-2 font-medium">Staff</th>
                     <th className="pb-2 font-medium">Category</th>
                     <th className="pb-2 font-medium">Amount</th>
@@ -191,14 +191,14 @@ export default async function ExpensesPage() {
                     <th className="pb-2 font-medium">Submitted</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-50">
+                <tbody className="divide-y divide-[var(--border)]">
                   {processed.map((claim) => {
                     const staffName = (claim.staff as unknown as { full_name: string } | null)?.full_name || 'Staff'
                     return (
-                      <tr key={claim.id} className="hover:bg-gray-50">
-                        <td className="py-2 font-medium text-gray-900">{staffName}</td>
-                        <td className="py-2 capitalize text-gray-600">{claim.category || 'Other'}</td>
-                        <td className="py-2 font-medium text-gray-900">
+                      <tr key={claim.id} className="hover:bg-[var(--surface-hover)]">
+                        <td className="py-2 font-medium text-[var(--text-primary)]">{staffName}</td>
+                        <td className="py-2 capitalize text-[var(--text-muted)]">{claim.category || 'Other'}</td>
+                        <td className="py-2 font-medium text-[var(--text-primary)]">
                           R{Number(claim.amount).toLocaleString('en-ZA', {
                             minimumFractionDigits: 2,
                             maximumFractionDigits: 2,
@@ -209,7 +209,7 @@ export default async function ExpensesPage() {
                             {claim.status}
                           </Badge>
                         </td>
-                        <td className="py-2 text-gray-500 text-xs">
+                        <td className="py-2 text-[var(--text-muted)] text-xs">
                           {claim.submitted_at
                             ? new Date(claim.submitted_at).toLocaleDateString('en-ZA')
                             : '—'}

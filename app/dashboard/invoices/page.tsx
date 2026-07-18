@@ -67,16 +67,16 @@ export default async function InvoicesPage() {
         {/* Summary */}
         <div className="grid grid-cols-3 gap-4">
           <Card>
-            <p className="text-sm text-gray-500">Total outstanding</p>
-            <p className="text-2xl font-bold text-gray-900 mt-1">R{totalOwed.toLocaleString()}</p>
+            <p className="text-sm text-[var(--text-muted)]">Total outstanding</p>
+            <p className="text-2xl font-bold text-[var(--text-primary)] mt-1">R{totalOwed.toLocaleString()}</p>
           </Card>
           <Card>
-            <p className="text-sm text-gray-500">Overdue invoices</p>
+            <p className="text-sm text-[var(--text-muted)]">Overdue invoices</p>
             <p className="text-2xl font-bold text-red-600 mt-1">{overdueCount}</p>
           </Card>
           <Card>
-            <p className="text-sm text-gray-500">Total invoices</p>
-            <p className="text-2xl font-bold text-gray-900 mt-1">{allInvoices.length}</p>
+            <p className="text-sm text-[var(--text-muted)]">Total invoices</p>
+            <p className="text-2xl font-bold text-[var(--text-primary)] mt-1">{allInvoices.length}</p>
           </Card>
         </div>
 
@@ -85,40 +85,40 @@ export default async function InvoicesPage() {
 
         {/* Invoice table */}
         <Card padding="none">
-          <div className="p-5 border-b border-gray-100">
-            <h3 className="font-semibold text-gray-900">All Invoices</h3>
+          <div className="p-5 border-b border-[var(--border)]">
+            <h3 className="font-semibold text-[var(--text-primary)]">All Invoices</h3>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-100 bg-gray-50">
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Contact</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Amount</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Due Date</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Overdue</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Recovery</th>
+                <tr className="border-b border-[var(--border)] bg-[var(--surface-2)]">
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wide">Contact</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wide">Amount</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wide">Due Date</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wide">Overdue</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wide">Status</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wide">Recovery</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50">
+              <tbody className="divide-y divide-[var(--border)]">
                 {allInvoices.map((inv) => (
-                  <tr key={inv.id} className="hover:bg-gray-50 transition-colors">
+                  <tr key={inv.id} className="hover:bg-[var(--surface-hover)] transition-colors">
                     <td className="px-5 py-3">
-                      <p className="font-medium text-gray-900">{inv.contact_name || '(Unknown)'}</p>
-                      <p className="text-xs text-gray-400">{inv.contact_email || inv.contact_phone}</p>
+                      <p className="font-medium text-[var(--text-primary)]">{inv.contact_name || '(Unknown)'}</p>
+                      <p className="text-xs text-[var(--text-dim)]">{inv.contact_email || inv.contact_phone}</p>
                     </td>
                     <td className="px-5 py-3">
-                      <p className="font-semibold text-gray-900">R{Number(inv.amount).toLocaleString()}</p>
+                      <p className="font-semibold text-[var(--text-primary)]">R{Number(inv.amount).toLocaleString()}</p>
                       {Number(inv.amount_paid) > 0 && (
                         <p className="text-xs text-emerald-600">R{Number(inv.amount_paid).toLocaleString()} paid</p>
                       )}
                     </td>
-                    <td className="px-5 py-3 text-gray-600">{inv.due_date || '—'}</td>
+                    <td className="px-5 py-3 text-[var(--text-muted)]">{inv.due_date || '—'}</td>
                     <td className="px-5 py-3">
                       {(inv.days_overdue || 0) > 0 ? (
                         <span className="text-red-600 font-medium">{inv.days_overdue} days</span>
                       ) : (
-                        <span className="text-gray-400">—</span>
+                        <span className="text-[var(--text-dim)]">—</span>
                       )}
                     </td>
                     <td className="px-5 py-3">
@@ -126,14 +126,14 @@ export default async function InvoicesPage() {
                         {inv.status.replace('_', ' ')}
                       </Badge>
                     </td>
-                    <td className="px-5 py-3 text-xs text-gray-500">
+                    <td className="px-5 py-3 text-xs text-[var(--text-muted)]">
                       {recoveryLabel(inv)}
                     </td>
                   </tr>
                 ))}
                 {allInvoices.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-5 py-10 text-center text-gray-400">
+                    <td colSpan={6} className="px-5 py-10 text-center text-[var(--text-dim)]">
                       No invoices found. Upload an invoice document or add one manually.
                     </td>
                   </tr>

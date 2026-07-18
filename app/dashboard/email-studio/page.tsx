@@ -170,7 +170,7 @@ export default function EmailStudioPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Left: Form */}
             <div className="space-y-5">
-              <div className="bg-white rounded-xl border border-forest/10 p-5 shadow-sm">
+              <div className="bg-[var(--surface-1)] rounded-xl border border-forest/10 p-5 shadow-sm">
                 <h2 className="font-cormorant text-lg text-navy font-semibold mb-4">Email Details</h2>
 
                 {/* Tone selector */}
@@ -285,7 +285,7 @@ export default function EmailStudioPage() {
             </div>
 
             {/* Right: Generated email */}
-            <div className="bg-white rounded-xl border border-forest/10 p-5 shadow-sm">
+            <div className="bg-[var(--surface-1)] rounded-xl border border-forest/10 p-5 shadow-sm">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="font-cormorant text-lg text-navy font-semibold">Generated Email</h2>
                 {generatedEmail && (
@@ -321,7 +321,7 @@ export default function EmailStudioPage() {
           </div>
         ) : (
           /* Drafts view */
-          <div className="bg-white rounded-xl border border-forest/10 shadow-sm overflow-hidden">
+          <div className="bg-[var(--surface-1)] rounded-xl border border-forest/10 shadow-sm overflow-hidden">
             <div className="px-5 py-4 border-b border-forest/10 flex items-center justify-between">
               <h2 className="font-cormorant text-lg text-navy font-semibold">Saved Drafts</h2>
               <button onClick={loadDrafts} className="text-xs text-forest flex items-center gap-1 hover:text-forest/70">

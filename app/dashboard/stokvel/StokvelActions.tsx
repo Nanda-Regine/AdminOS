@@ -22,15 +22,15 @@ function Modal({
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-xl shadow-xl w-full max-w-md p-6"
+        className="bg-[var(--surface-1)] rounded-xl shadow-xl w-full max-w-md p-6"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
+          <h2 className="text-lg font-semibold text-[var(--text-primary)]">{title}</h2>
           <button
             type="button"
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 text-xl leading-none"
+            className="text-[var(--text-dim)] hover:text-[var(--text-muted)] text-xl leading-none"
           >
             ×
           </button>
@@ -112,7 +112,7 @@ export function CreateStokvelModal() {
       <Modal open={open} onClose={handleClose} title="Create Stokvel Group">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">
+            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
               Group Name <span className="text-red-500">*</span>
             </label>
             <input
@@ -121,29 +121,29 @@ export function CreateStokvelModal() {
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Langa Savings Circle"
               required
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-violet-500"
+              className="w-full border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-violet-500"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">
-              Description <span className="text-gray-400">(optional)</span>
+            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
+              Description <span className="text-[var(--text-dim)]">(optional)</span>
             </label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={2}
               placeholder="What is this group for?"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-violet-500 resize-none"
+              className="w-full border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-violet-500 resize-none"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">
+            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
               Contribution Amount (ZAR) <span className="text-red-500">*</span>
             </label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500 pointer-events-none">R</span>
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[var(--text-muted)] pointer-events-none">R</span>
               <input
                 type="number"
                 value={contributionAmount}
@@ -152,19 +152,19 @@ export function CreateStokvelModal() {
                 min="1"
                 step="0.01"
                 required
-                className="w-full border border-gray-300 rounded-lg pl-7 pr-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                className="w-full border border-[var(--border)] rounded-lg pl-7 pr-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-violet-500"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">
+            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
               Frequency
             </label>
             <select
               value={frequency}
               onChange={(e) => setFrequency(e.target.value as 'weekly' | 'fortnightly' | 'monthly')}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-violet-500 bg-white"
+              className="w-full border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-violet-500 bg-[var(--surface-1)]"
             >
               <option value="weekly">Weekly</option>
               <option value="fortnightly">Fortnightly (Bi-weekly)</option>
@@ -181,7 +181,7 @@ export function CreateStokvelModal() {
               type="button"
               onClick={handleClose}
               disabled={loading}
-              className="flex-1 px-4 py-2 text-sm font-medium rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+              className="flex-1 px-4 py-2 text-sm font-medium rounded-lg border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] transition-colors disabled:opacity-50"
             >
               Cancel
             </button>
@@ -264,7 +264,7 @@ export function AddMemberModal({ stokvelId }: { stokvelId: string }) {
       <Modal open={open} onClose={handleClose} title="Add Member">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">
+            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
               Member Name <span className="text-red-500">*</span>
             </label>
             <input
@@ -273,20 +273,20 @@ export function AddMemberModal({ stokvelId }: { stokvelId: string }) {
               onChange={(e) => setMemberName(e.target.value)}
               placeholder="Full name"
               required
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-violet-500"
+              className="w-full border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-violet-500"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">
-              Phone <span className="text-gray-400">(optional)</span>
+            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
+              Phone <span className="text-[var(--text-dim)]">(optional)</span>
             </label>
             <input
               type="text"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="e.g. 082 123 4567"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-violet-500"
+              className="w-full border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-violet-500"
             />
           </div>
 
@@ -299,7 +299,7 @@ export function AddMemberModal({ stokvelId }: { stokvelId: string }) {
               type="button"
               onClick={handleClose}
               disabled={loading}
-              className="flex-1 px-4 py-2 text-sm font-medium rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+              className="flex-1 px-4 py-2 text-sm font-medium rounded-lg border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] transition-colors disabled:opacity-50"
             >
               Cancel
             </button>

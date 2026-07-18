@@ -59,16 +59,16 @@ export function RecoveryReviewQueue() {
         {items.map(inv => {
           const owed = Number(inv.amount) - Number(inv.amount_paid ?? 0)
           return (
-            <div key={inv.id} className="flex flex-wrap items-center gap-3 rounded-xl bg-white border border-amber-100 p-4">
+            <div key={inv.id} className="flex flex-wrap items-center gap-3 rounded-xl bg-[var(--surface-1)] border border-amber-100 p-4">
               <div className="min-w-[180px]">
-                <p className="font-medium text-gray-900">{inv.contact_name || '(Unknown)'}</p>
-                <p className="text-xs text-gray-400">{inv.contact_phone || inv.contact_email || '—'}</p>
+                <p className="font-medium text-[var(--text-primary)]">{inv.contact_name || '(Unknown)'}</p>
+                <p className="text-xs text-[var(--text-dim)]">{inv.contact_phone || inv.contact_email || '—'}</p>
               </div>
               <div className="min-w-[120px]">
-                <p className="font-semibold text-gray-900">R{owed.toLocaleString('en-ZA')}</p>
+                <p className="font-semibold text-[var(--text-primary)]">R{owed.toLocaleString('en-ZA')}</p>
                 <p className="text-xs text-red-600">{inv.days_overdue ?? 0} days overdue</p>
               </div>
-              <div className="text-xs text-gray-500 min-w-[90px]">
+              <div className="text-xs text-[var(--text-muted)] min-w-[90px]">
                 Ref {inv.reference || inv.id.slice(0, 8)}
               </div>
               <div className="flex gap-2 ml-auto">
@@ -77,11 +77,11 @@ export function RecoveryReviewQueue() {
                   I&rsquo;ve contacted them
                 </button>
                 <button disabled={busy === inv.id} onClick={() => act(inv.id, 'pause')}
-                  className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+                  className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[var(--surface-1)] border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] disabled:opacity-50">
                   Pause
                 </button>
                 <button disabled={busy === inv.id} onClick={() => act(inv.id, 'resume')}
-                  className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+                  className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[var(--surface-1)] border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] disabled:opacity-50">
                   Resume reminders
                 </button>
               </div>

@@ -82,7 +82,7 @@ Reply *PAY* to get our banking details, or call us to chat. 🙏`
                 style={{ background: '#128C7E', animation: typed.length < message.length ? 'blink 0.7s step-end infinite' : 'none' }}
               />
               <div className="flex justify-end items-center gap-1 mt-1">
-                <span className="text-gray-400" style={{ fontSize: 10 }}>Chase · just now</span>
+                <span className="text-[var(--text-dim)]" style={{ fontSize: 10 }}>Chase · just now</span>
                 <svg width="14" height="10" viewBox="0 0 14 10" fill="none">
                   <path d="M1 5l3.5 3.5L13 1" stroke="#4FC3F7" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                   <path d="M4 5l3.5 3.5L13 1" stroke="#4FC3F7" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />

@@ -7,10 +7,10 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantClasses = {
-  primary: 'bg-emerald-600 text-white hover:bg-emerald-700 disabled:bg-emerald-400',
-  secondary: 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50',
-  danger: 'bg-red-600 text-white hover:bg-red-700',
-  ghost: 'text-gray-600 hover:bg-gray-100',
+  primary: 'bg-[var(--indigo)] text-white hover:bg-[var(--indigo-light)] disabled:opacity-50',
+  secondary: 'bg-[var(--surface-2)] text-[var(--text-primary)] border border-[var(--border)] hover:bg-[var(--surface-hover)]',
+  danger: 'bg-[var(--danger)] text-white hover:brightness-110',
+  ghost: 'text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]',
 }
 
 const sizeClasses = {
@@ -24,7 +24,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     <button
       ref={ref}
       disabled={disabled || loading}
-      className={`inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:cursor-not-allowed ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
+      className={`inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--indigo)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent disabled:cursor-not-allowed ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
       {...props}
     >
       {loading && (

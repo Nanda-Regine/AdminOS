@@ -98,26 +98,26 @@ export default async function StokvelPage() {
         {/* Summary row */}
         <div className="grid grid-cols-3 gap-4">
           <Card>
-            <p className="text-xs text-gray-500">Active Groups</p>
-            <p className="text-2xl font-bold text-gray-900 mt-1">{activeStorkvels.length}</p>
+            <p className="text-xs text-[var(--text-muted)]">Active Groups</p>
+            <p className="text-2xl font-bold text-[var(--text-primary)] mt-1">{activeStorkvels.length}</p>
           </Card>
           <Card>
-            <p className="text-xs text-gray-500">Total Members</p>
+            <p className="text-xs text-[var(--text-muted)]">Total Members</p>
             <p className="text-2xl font-bold text-violet-600 mt-1">
               {allMembers.length}
             </p>
           </Card>
           <Card>
-            <p className="text-xs text-gray-500">Combined Pool</p>
+            <p className="text-xs text-[var(--text-muted)]">Combined Pool</p>
             <p className="text-2xl font-bold text-emerald-600 mt-1">{formatZAR(totalPool)}</p>
           </Card>
         </div>
 
         {stokvels.length === 0 ? (
           <Card>
-            <div className="text-center py-14 text-gray-400">
+            <div className="text-center py-14 text-[var(--text-dim)]">
               <p className="text-4xl mb-3">🤝</p>
-              <p className="text-sm font-medium text-gray-500 mb-1">No stokvel groups yet</p>
+              <p className="text-sm font-medium text-[var(--text-muted)] mb-1">No stokvel groups yet</p>
               <p className="text-xs">Create a stokvel to start pooling resources with your community.</p>
             </div>
           </Card>
@@ -133,33 +133,33 @@ export default async function StokvelPage() {
                 <div className="flex items-start justify-between mb-4">
                   <div>
                     <div className="flex items-center gap-2">
-                      <h3 className="font-bold text-gray-900 text-lg">{stokvel.name}</h3>
+                      <h3 className="font-bold text-[var(--text-primary)] text-lg">{stokvel.name}</h3>
                       <Badge variant={stokvel.status === 'active' ? 'green' : 'gray'}>
                         {stokvel.status}
                       </Badge>
                     </div>
                     {stokvel.description && (
-                      <p className="text-xs text-gray-400 mt-0.5">{stokvel.description}</p>
+                      <p className="text-xs text-[var(--text-dim)] mt-0.5">{stokvel.description}</p>
                     )}
                   </div>
                   <div className="text-right">
                     <p className="text-xl font-bold text-emerald-600">{formatZAR(stokvel.total_pool)}</p>
-                    <p className="text-xs text-gray-400">Total pool</p>
+                    <p className="text-xs text-[var(--text-dim)]">Total pool</p>
                   </div>
                 </div>
 
                 {/* Stats */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
-                  <div className="bg-gray-50 rounded-lg p-3 text-center">
-                    <p className="text-xs text-gray-500">Contribution</p>
-                    <p className="font-bold text-gray-800 text-sm mt-0.5">{formatZAR(stokvel.contribution_amount)}</p>
+                  <div className="bg-[var(--surface-2)] rounded-lg p-3 text-center">
+                    <p className="text-xs text-[var(--text-muted)]">Contribution</p>
+                    <p className="font-bold text-[var(--text-secondary)] text-sm mt-0.5">{formatZAR(stokvel.contribution_amount)}</p>
                   </div>
-                  <div className="bg-gray-50 rounded-lg p-3 text-center">
-                    <p className="text-xs text-gray-500">Frequency</p>
-                    <p className="font-bold text-gray-800 text-sm mt-0.5">{frequencyLabel(stokvel.frequency)}</p>
+                  <div className="bg-[var(--surface-2)] rounded-lg p-3 text-center">
+                    <p className="text-xs text-[var(--text-muted)]">Frequency</p>
+                    <p className="font-bold text-[var(--text-secondary)] text-sm mt-0.5">{frequencyLabel(stokvel.frequency)}</p>
                   </div>
                   <div className="bg-emerald-50 rounded-lg p-3 text-center">
-                    <p className="text-xs text-gray-500">Paid</p>
+                    <p className="text-xs text-[var(--text-muted)]">Paid</p>
                     <p className="font-bold text-emerald-700 text-sm mt-0.5">{paidCount} / {members.length}</p>
                   </div>
                   {overdueCount > 0 && (
@@ -173,23 +173,23 @@ export default async function StokvelPage() {
                 {/* Members list */}
                 {members.length > 0 && (
                   <div>
-                    <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                    <h4 className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wide mb-2">
                       Members ({members.length})
                     </h4>
                     <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
                       {members.map((member) => (
                         <div
                           key={member.id}
-                          className="flex items-center justify-between px-3 py-2 bg-gray-50 rounded-lg"
+                          className="flex items-center justify-between px-3 py-2 bg-[var(--surface-2)] rounded-lg"
                         >
                           <div className="flex items-center gap-2">
                             <div className="w-7 h-7 bg-violet-100 rounded-full flex items-center justify-center text-xs font-bold text-violet-700">
                               {member.member_name.charAt(0).toUpperCase()}
                             </div>
                             <div>
-                              <p className="text-sm font-medium text-gray-800">{member.member_name}</p>
+                              <p className="text-sm font-medium text-[var(--text-secondary)]">{member.member_name}</p>
                               {(member.phone || member.email) && (
-                                <p className="text-xs text-gray-400">{member.phone || member.email}</p>
+                                <p className="text-xs text-[var(--text-dim)]">{member.phone || member.email}</p>
                               )}
                             </div>
                           </div>
@@ -203,7 +203,7 @@ export default async function StokvelPage() {
                 )}
 
                 {members.length === 0 && (
-                  <p className="text-xs text-gray-400 text-center py-3">No members added yet.</p>
+                  <p className="text-xs text-[var(--text-dim)] text-center py-3">No members added yet.</p>
                 )}
 
                 <AddMemberModal stokvelId={stokvel.id} />

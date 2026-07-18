@@ -78,11 +78,11 @@ export default async function IRLogPage() {
       : '—'
 
     return (
-      <div className="p-4 rounded-xl border border-gray-200 bg-gray-50 hover:bg-gray-100 transition-colors">
+      <div className="p-4 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] hover:bg-[var(--surface-hover)] transition-colors">
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap mb-1">
-              <p className="text-sm font-semibold text-gray-900">{staffName}</p>
+              <p className="text-sm font-semibold text-[var(--text-primary)]">{staffName}</p>
               {record.severity && (
                 <Badge variant={severityVariant(record.severity)} className="capitalize">
                   {record.severity}
@@ -92,19 +92,19 @@ export default async function IRLogPage() {
                 {record.status}
               </Badge>
             </div>
-            <p className="text-xs font-medium text-gray-700 mb-0.5 capitalize">
+            <p className="text-xs font-medium text-[var(--text-secondary)] mb-0.5 capitalize">
               {record.type || 'Incident'}
             </p>
             {record.description && (
-              <p className="text-xs text-gray-500 line-clamp-2 mb-1">{record.description}</p>
+              <p className="text-xs text-[var(--text-muted)] line-clamp-2 mb-1">{record.description}</p>
             )}
             {record.outcome && (
-              <p className="text-xs text-gray-400">
+              <p className="text-xs text-[var(--text-dim)]">
                 <span className="font-medium">Outcome:</span> {record.outcome}
               </p>
             )}
           </div>
-          <p className="text-xs text-gray-400 shrink-0 whitespace-nowrap">{recordDate}</p>
+          <p className="text-xs text-[var(--text-dim)] shrink-0 whitespace-nowrap">{recordDate}</p>
         </div>
       </div>
     )
@@ -127,8 +127,8 @@ export default async function IRLogPage() {
                 <AlertTriangle className="w-5 h-5 text-red-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-gray-900">{openCases.length}</p>
-                <p className="text-xs text-gray-500">Open Cases</p>
+                <p className="text-2xl font-bold text-[var(--text-primary)]">{openCases.length}</p>
+                <p className="text-xs text-[var(--text-muted)]">Open Cases</p>
               </div>
             </div>
           </Card>
@@ -138,8 +138,8 @@ export default async function IRLogPage() {
                 <Clock className="w-5 h-5 text-yellow-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-gray-900">{warningsThisMonth}</p>
-                <p className="text-xs text-gray-500">Warnings This Month</p>
+                <p className="text-2xl font-bold text-[var(--text-primary)]">{warningsThisMonth}</p>
+                <p className="text-xs text-[var(--text-muted)]">Warnings This Month</p>
               </div>
             </div>
           </Card>
@@ -149,8 +149,8 @@ export default async function IRLogPage() {
                 <CheckCircle className="w-5 h-5 text-emerald-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-gray-900">{closedCases.length}</p>
-                <p className="text-xs text-gray-500">Closed Cases</p>
+                <p className="text-2xl font-bold text-[var(--text-primary)]">{closedCases.length}</p>
+                <p className="text-xs text-[var(--text-muted)]">Closed Cases</p>
               </div>
             </div>
           </Card>
@@ -158,17 +158,17 @@ export default async function IRLogPage() {
 
         {/* Open / Pending cases */}
         <Card>
-          <h3 className="font-semibold text-gray-900 mb-4">
+          <h3 className="font-semibold text-[var(--text-primary)] mb-4">
             Open &amp; Pending Cases
             {openCases.length > 0 && (
-              <span className="ml-2 text-xs font-normal text-gray-500">
+              <span className="ml-2 text-xs font-normal text-[var(--text-muted)]">
                 — {openCases.length} case{openCases.length !== 1 ? 's' : ''}
               </span>
             )}
           </h3>
           {openCases.length === 0 ? (
-            <div className="text-center py-8 text-gray-400">
-              <CheckCircle className="w-8 h-8 mx-auto text-gray-300 mb-2" />
+            <div className="text-center py-8 text-[var(--text-dim)]">
+              <CheckCircle className="w-8 h-8 mx-auto text-[var(--text-dim)] mb-2" />
               <p className="text-sm">No open IR cases.</p>
             </div>
           ) : (
@@ -183,9 +183,9 @@ export default async function IRLogPage() {
         {/* Closed cases */}
         {closedCases.length > 0 && (
           <Card>
-            <h3 className="font-semibold text-gray-900 mb-4">
+            <h3 className="font-semibold text-[var(--text-primary)] mb-4">
               Closed Cases
-              <span className="ml-2 text-xs font-normal text-gray-500">
+              <span className="ml-2 text-xs font-normal text-[var(--text-muted)]">
                 — {closedCases.length} record{closedCases.length !== 1 ? 's' : ''}
               </span>
             </h3>
@@ -199,7 +199,7 @@ export default async function IRLogPage() {
 
         {allRecords.length === 0 && (
           <Card>
-            <div className="text-center py-12 text-gray-400">
+            <div className="text-center py-12 text-[var(--text-dim)]">
               <p className="text-3xl mb-2">📋</p>
               <p className="text-sm">No disciplinary records found.</p>
             </div>

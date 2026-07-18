@@ -105,7 +105,7 @@ export function RealtimeNotificationBar() {
               ? 'bg-amber-50 border-amber-200 text-amber-900'
               : n.type === 'success'
               ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
-              : 'bg-white border-gray-200 text-gray-800'
+              : 'bg-[var(--surface-1)] border-[var(--border)] text-[var(--text-secondary)]'
           }`}
         >
           <Bell className="w-4 h-4 shrink-0 mt-0.5 opacity-70" />

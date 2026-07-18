@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { TopBar } from '@/components/dashboard/TopBar'
 import { BillingGateOverlay } from '@/components/ui/BillingGateOverlay'
+import { hasAddon } from '@/lib/billing/gates'
 import { SendCampaignButton } from '@/components/reach/SendCampaignButton'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
@@ -46,6 +47,7 @@ export default async function ReachPage() {
   if (!user) redirect('/login')
 
   const tenantId = user.app_metadata?.tenant_id as string
+  const reachActive = await hasAddon('reach')
 
   const { data: campaigns = [] } = await supabaseAdmin
     .from('broadcast_campaigns')
@@ -66,7 +68,7 @@ export default async function ReachPage() {
       <TopBar title="Reach" subtitle="Broadcast campaigns — send WhatsApp messages to your entire audience" />
       <div className="p-6 space-y-6">
 
-        <BillingGateOverlay requiredAddon="reach">
+        <BillingGateOverlay requiredAddon="reach" locked={!reachActive}>
           <div className="space-y-6">
 
             {/* Stats */}

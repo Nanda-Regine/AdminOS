@@ -70,9 +70,9 @@ export default async function BoardPackPage() {
 
         {boardPacks.length === 0 ? (
           <Card>
-            <div className="text-center py-14 text-gray-400">
+            <div className="text-center py-14 text-[var(--text-dim)]">
               <p className="text-4xl mb-3">📁</p>
-              <p className="text-sm font-medium text-gray-500 mb-1">No board packs generated yet</p>
+              <p className="text-sm font-medium text-[var(--text-muted)] mb-1">No board packs generated yet</p>
               <p className="text-xs">Board packs are auto-generated at month end.</p>
             </div>
           </Card>
@@ -80,7 +80,7 @@ export default async function BoardPackPage() {
           <>
             {/* Pack list */}
             <Card>
-              <h3 className="font-semibold text-gray-900 mb-4">Generated Packs</h3>
+              <h3 className="font-semibold text-[var(--text-primary)] mb-4">Generated Packs</h3>
               <div className="space-y-2">
                 {boardPacks.map((pack, idx) => (
                   <div
@@ -88,16 +88,16 @@ export default async function BoardPackPage() {
                     className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
                       idx === 0
                         ? 'bg-emerald-50 border-emerald-200'
-                        : 'bg-gray-50 border-gray-100 hover:bg-gray-100'
+                        : 'bg-[var(--surface-2)] border-[var(--border)] hover:bg-[var(--surface-hover)]'
                     }`}
                   >
                     <div className="flex items-center gap-3">
                       <span className="text-2xl">📋</span>
                       <div>
-                        <p className="text-sm font-semibold text-gray-900">
+                        <p className="text-sm font-semibold text-[var(--text-primary)]">
                           {formatMonth(pack.month)}
                         </p>
-                        <p className="text-xs text-gray-400">
+                        <p className="text-xs text-[var(--text-dim)]">
                           Generated {formatDateTime(pack.generated_at)}
                         </p>
                       </div>
@@ -107,7 +107,7 @@ export default async function BoardPackPage() {
                       {/* Download placeholder — will wire to PDF export */}
                       <button
                         disabled
-                        className="text-xs text-gray-400 border border-gray-200 px-3 py-1.5 rounded-lg cursor-not-allowed"
+                        className="text-xs text-[var(--text-dim)] border border-[var(--border)] px-3 py-1.5 rounded-lg cursor-not-allowed"
                         title="PDF download coming soon"
                       >
                         Download PDF
@@ -122,7 +122,7 @@ export default async function BoardPackPage() {
             {latest && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="font-semibold text-gray-700">
+                  <h3 className="font-semibold text-[var(--text-secondary)]">
                     Viewing: {formatMonth(latest.month)}
                   </h3>
                 </div>
@@ -134,9 +134,9 @@ export default async function BoardPackPage() {
                     <Card key={key}>
                       <div className="flex items-center gap-2 mb-3">
                         <span className="text-xl">{icon}</span>
-                        <h4 className="font-semibold text-gray-900">{label}</h4>
+                        <h4 className="font-semibold text-[var(--text-primary)]">{label}</h4>
                       </div>
-                      <div className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+                      <div className="text-sm text-[var(--text-secondary)] leading-relaxed whitespace-pre-wrap">
                         {content}
                       </div>
                     </Card>
@@ -146,7 +146,7 @@ export default async function BoardPackPage() {
                 {/* Check if all sections are empty */}
                 {SECTIONS.every(({ key }) => !latest.data?.[key]) && (
                   <Card>
-                    <p className="text-sm text-gray-400 text-center py-6">
+                    <p className="text-sm text-[var(--text-dim)] text-center py-6">
                       This board pack has no content sections.
                     </p>
                   </Card>

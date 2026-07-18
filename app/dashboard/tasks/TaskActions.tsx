@@ -108,13 +108,13 @@ export function CreateTaskModal({ staff }: { staff: StaffMember[] }) {
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
           onClick={(e) => { if (e.target === e.currentTarget) { resetForm(); setOpen(false) } }}
         >
-          <div className="w-full max-w-md rounded-2xl bg-white shadow-xl ring-1 ring-gray-200 overflow-hidden">
+          <div className="w-full max-w-md rounded-2xl bg-[var(--surface-1)] shadow-xl ring-1 ring-gray-200 overflow-hidden">
             {/* Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-              <h2 className="text-base font-semibold text-gray-900">New Task</h2>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]">
+              <h2 className="text-base font-semibold text-[var(--text-primary)]">New Task</h2>
               <button
                 onClick={() => { resetForm(); setOpen(false) }}
-                className="text-gray-400 hover:text-gray-600 text-xl leading-none"
+                className="text-[var(--text-dim)] hover:text-[var(--text-muted)] text-xl leading-none"
                 aria-label="Close"
               >
                 &times;
@@ -125,7 +125,7 @@ export function CreateTaskModal({ staff }: { staff: StaffMember[] }) {
             <form onSubmit={handleSubmit} className="px-5 py-4 space-y-4">
               {/* Title */}
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">
+                <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
                   Title <span className="text-red-400">*</span>
                 </label>
                 <input
@@ -134,13 +134,13 @@ export function CreateTaskModal({ staff }: { staff: StaffMember[] }) {
                   onChange={(e) => setTitle(e.target.value)}
                   required
                   placeholder="What needs to be done?"
-                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  className="w-full rounded-lg border border-[var(--border)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-dim)] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 />
               </div>
 
               {/* Description */}
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">
+                <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
                   Description
                 </label>
                 <textarea
@@ -148,20 +148,20 @@ export function CreateTaskModal({ staff }: { staff: StaffMember[] }) {
                   onChange={(e) => setDescription(e.target.value)}
                   rows={3}
                   placeholder="Optional details..."
-                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
+                  className="w-full rounded-lg border border-[var(--border)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-dim)] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
                 />
               </div>
 
               {/* Priority + Due Date (side by side) */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                  <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
                     Priority
                   </label>
                   <select
                     value={priority}
                     onChange={(e) => setPriority(e.target.value as typeof priority)}
-                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    className="w-full rounded-lg border border-[var(--border)] px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                   >
                     <option value="urgent">Urgent</option>
                     <option value="high">High</option>
@@ -171,27 +171,27 @@ export function CreateTaskModal({ staff }: { staff: StaffMember[] }) {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                  <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
                     Due Date
                   </label>
                   <input
                     type="date"
                     value={dueDate}
                     onChange={(e) => setDueDate(e.target.value)}
-                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    className="w-full rounded-lg border border-[var(--border)] px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                   />
                 </div>
               </div>
 
               {/* Assign To */}
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">
+                <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
                   Assign To
                 </label>
                 <select
                   value={assignedTo}
                   onChange={(e) => setAssignedTo(e.target.value)}
-                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  className="w-full rounded-lg border border-[var(--border)] px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 >
                   <option value="">(Unassigned)</option>
                   {staff.map((s) => (
@@ -214,7 +214,7 @@ export function CreateTaskModal({ staff }: { staff: StaffMember[] }) {
                 <button
                   type="button"
                   onClick={() => { resetForm(); setOpen(false) }}
-                  className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+                  className="rounded-lg border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--text-muted)] hover:bg-[var(--surface-hover)] transition-colors"
                 >
                   Cancel
                 </button>
@@ -270,7 +270,7 @@ export function MoveTaskButton({
       onClick={handleMove}
       disabled={busy}
       title={`Move to ${STATUS_LABEL[nextStatus] ?? nextStatus}`}
-      className="inline-flex items-center gap-1 text-xs py-1 px-2 rounded-md border border-gray-200 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 hover:bg-indigo-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+      className="inline-flex items-center gap-1 text-xs py-1 px-2 rounded-md border border-[var(--border)] text-[var(--text-muted)] hover:border-indigo-300 hover:text-indigo-600 hover:bg-indigo-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
     >
       <span>{STATUS_LABEL[currentStatus] ?? currentStatus}</span>
       <span className="text-[10px]">&#8594;</span>

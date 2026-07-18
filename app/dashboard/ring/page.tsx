@@ -80,7 +80,7 @@ export default async function RingPage() {
       <TopBar title="Ring" subtitle="AI voice agent — answers calls, takes messages, transfers to staff" />
       <div className="p-6 space-y-6">
 
-        <BillingGateOverlay requiredAddon="ring">
+        <BillingGateOverlay requiredAddon="ring" locked={!ringActive}>
           <div className="space-y-6">
 
             {/* Stats */}

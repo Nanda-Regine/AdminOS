@@ -205,7 +205,7 @@ export default function InboxPage() {
   }
 
   const sentimentColor: Record<string, string> = {
-    positive: 'text-green-600', neutral: 'text-gray-400',
+    positive: 'text-green-600', neutral: 'text-[var(--text-dim)]',
     negative: 'text-red-500', urgent: 'text-orange-500',
   }
 
@@ -316,12 +316,12 @@ export default function InboxPage() {
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-5 space-y-3 bg-gray-50">
+            <div className="flex-1 overflow-y-auto p-5 space-y-3 bg-[var(--surface-2)]">
               {messages.map((msg) => (
                 <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-start' : 'justify-end'}`}>
                   <div className={`max-w-xs lg:max-w-md rounded-xl px-4 py-2.5 text-sm shadow-sm ${
                     msg.role === 'user'
-                      ? 'bg-white border border-gray-200 text-gray-800'
+                      ? 'bg-[var(--surface-1)] border border-[var(--border)] text-[var(--text-secondary)]'
                       : msg.role === 'system'
                       ? 'bg-yellow-50 border border-yellow-200 text-yellow-800 text-xs italic'
                       : 'bg-emerald-600 text-white'
@@ -348,7 +348,7 @@ export default function InboxPage() {
                   }}
                 />
                 <div className="flex items-center justify-between mt-2">
-                  <p className="text-xs text-gray-400">Ctrl+Enter to send</p>
+                  <p className="text-xs text-[var(--text-dim)]">Ctrl+Enter to send</p>
                   <div className="flex gap-2">
                     {agentResponse && (
                       <Button variant="ghost" size="sm" onClick={useAgentDraft}>
@@ -380,7 +380,7 @@ export default function InboxPage() {
                   ))}
                 </div>
                 {agentResponse && (
-                  <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 text-sm text-gray-800 leading-relaxed">
+                  <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 text-sm text-[var(--text-secondary)] leading-relaxed">
                     <div className="flex items-start justify-between gap-2">
                       <p className="whitespace-pre-wrap">{agentResponse}</p>
                       <button
@@ -397,7 +397,7 @@ export default function InboxPage() {
             </div>
           </div>
         ) : (
-          <div className="flex-1 flex items-center justify-center text-gray-400">
+          <div className="flex-1 flex items-center justify-center text-[var(--text-dim)]">
             <div className="text-center">
               <p className="text-4xl mb-3">💬</p>
               <p className="text-sm">Select a conversation to view messages</p>

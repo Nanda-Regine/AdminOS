@@ -61,7 +61,7 @@ export function AlexConversation({ faqs, businessName }: AlexConversationProps) 
           {shownCount >= 1 && (
             <div className="flex justify-start" style={{ animation: 'fadeUp 0.3s ease' }}>
               <div
-                className="rounded-2xl rounded-tl-sm px-3 py-2 text-xs leading-relaxed shadow-sm bg-white"
+                className="rounded-2xl rounded-tl-sm px-3 py-2 text-xs leading-relaxed shadow-sm bg-[var(--surface-1)]"
                 style={{ maxWidth: '88%' }}
               >
                 <div className="font-semibold mb-1" style={{ color: '#1565C0', fontSize: 10 }}>Alex</div>
@@ -102,7 +102,7 @@ export function AlexConversation({ faqs, businessName }: AlexConversationProps) 
           {showAnswer && selectedFaq !== null && (
             <div className="flex justify-start" style={{ animation: 'fadeUp 0.3s ease' }}>
               <div
-                className="rounded-2xl rounded-tl-sm px-3 py-2 text-xs leading-relaxed shadow-sm bg-white"
+                className="rounded-2xl rounded-tl-sm px-3 py-2 text-xs leading-relaxed shadow-sm bg-[var(--surface-1)]"
                 style={{ maxWidth: '88%', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
               >
                 <div className="font-semibold mb-1" style={{ color: '#1565C0', fontSize: 10 }}>Alex</div>
@@ -114,7 +114,7 @@ export function AlexConversation({ faqs, businessName }: AlexConversationProps) 
           {/* Typing indicator */}
           {selectedFaq !== null && !showAnswer && (
             <div className="flex justify-start">
-              <div className="rounded-2xl rounded-tl-sm px-3 py-2 bg-white shadow-sm flex gap-1 items-center">
+              <div className="rounded-2xl rounded-tl-sm px-3 py-2 bg-[var(--surface-1)] shadow-sm flex gap-1 items-center">
                 {[0, 1, 2].map(d => (
                   <span
                     key={d}

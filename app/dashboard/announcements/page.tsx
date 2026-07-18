@@ -35,46 +35,46 @@ export default async function AnnouncementsPage() {
 
         {/* Create form */}
         <Card>
-          <h3 className="font-semibold text-gray-900 mb-4">Create Announcement</h3>
+          <h3 className="font-semibold text-[var(--text-primary)] mb-4">Create Announcement</h3>
           <form action="/api/announcements" method="POST" className="space-y-4">
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Title</label>
+              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Title</label>
               <input
                 type="text"
                 name="title"
                 required
                 placeholder="Announcement title..."
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Message</label>
+              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Message</label>
               <textarea
                 name="body"
                 required
                 rows={4}
                 placeholder="Write your announcement here..."
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
+                className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
               />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Priority</label>
+                <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Priority</label>
                 <select
                   name="priority"
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
                   <option value="normal">Normal</option>
                   <option value="urgent">Urgent</option>
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Target Roles</label>
+                <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Target Roles</label>
                 <input
                   type="text"
                   name="target_roles"
                   placeholder="e.g. all, manager, cashier"
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 />
               </div>
             </div>
@@ -91,12 +91,12 @@ export default async function AnnouncementsPage() {
 
         {/* Announcements list */}
         <Card>
-          <h3 className="font-semibold text-gray-900 mb-4">All Announcements</h3>
+          <h3 className="font-semibold text-[var(--text-primary)] mb-4">All Announcements</h3>
 
           {items.length === 0 ? (
-            <div className="text-center py-10 text-gray-400">
+            <div className="text-center py-10 text-[var(--text-dim)]">
               <p className="text-3xl mb-2">
-                <Megaphone className="w-8 h-8 mx-auto text-gray-300" />
+                <Megaphone className="w-8 h-8 mx-auto text-[var(--text-dim)]" />
               </p>
               <p className="text-sm">No announcements yet. Create one above to notify your team.</p>
             </div>
@@ -129,19 +129,19 @@ export default async function AnnouncementsPage() {
                     className={`p-4 rounded-xl border ${
                       item.priority === 'urgent'
                         ? 'bg-red-50 border-red-200'
-                        : 'bg-gray-50 border-gray-200'
+                        : 'bg-[var(--surface-2)] border-[var(--border)]'
                     }`}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap mb-1">
-                          <p className="text-sm font-semibold text-gray-900">{item.title}</p>
+                          <p className="text-sm font-semibold text-[var(--text-primary)]">{item.title}</p>
                           <Badge variant={item.priority === 'urgent' ? 'red' : 'gray'} className="capitalize">
                             {item.priority || 'normal'}
                           </Badge>
                         </div>
-                        <p className="text-xs text-gray-600 mb-2 line-clamp-3">{item.body}</p>
-                        <div className="flex items-center gap-4 text-xs text-gray-400 flex-wrap">
+                        <p className="text-xs text-[var(--text-muted)] mb-2 line-clamp-3">{item.body}</p>
+                        <div className="flex items-center gap-4 text-xs text-[var(--text-dim)] flex-wrap">
                           <span>{createdDate}</span>
                           {channels.length > 0 && (
                             <span>Channels: {channels.join(', ')}</span>
@@ -151,7 +151,7 @@ export default async function AnnouncementsPage() {
                           )}
                         </div>
                       </div>
-                      <div className="flex items-center gap-1.5 shrink-0 text-xs text-gray-500">
+                      <div className="flex items-center gap-1.5 shrink-0 text-xs text-[var(--text-muted)]">
                         <Eye className="w-3.5 h-3.5" />
                         <span>{item.read_count ?? 0}</span>
                       </div>
