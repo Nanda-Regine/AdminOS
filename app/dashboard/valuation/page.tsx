@@ -64,9 +64,11 @@ export default async function ValuationPage() {
 
   const tenantId = user.app_metadata?.tenant_id as string
 
+  // Real columns: estimated_value / exit_details / sector — aliased so the
+  // render (valuation_estimate / drivers / methodology) is unchanged.
   const { data: snapshots } = await supabaseAdmin
     .from('valuation_snapshots')
-    .select('id, tenant_id, valuation_estimate, drivers, methodology, created_at')
+    .select('id, tenant_id, valuation_estimate:estimated_value, drivers:exit_details, methodology:sector, created_at')
     .eq('tenant_id', tenantId)
     .order('created_at', { ascending: false })
     .limit(5)

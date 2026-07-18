@@ -16,11 +16,11 @@ const bookingSchema = z.object({
 export async function GET(_request: Request, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
 
-  // Resolve tenant by booking_slug
+  // Resolve tenant by slug (there is no booking_slug / logo_url column).
   const { data: tenant, error: tenantError } = await supabaseAdmin
     .from('tenants')
-    .select('id, name, logo_url')
-    .eq('booking_slug', slug)
+    .select('id, name')
+    .eq('slug', slug)
     .single()
 
   if (tenantError || !tenant) {

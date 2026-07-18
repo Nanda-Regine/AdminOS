@@ -34,14 +34,14 @@ export async function DELETE(_req: Request, { params }: Params) {
 
   const { data: doc } = await supabase
     .from('documents')
-    .select('storage_url, storage_path')
+    .select('storage_url')
     .eq('id', id)
     .eq('tenant_id', tenantId)
     .single()
 
   if (!doc) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-  const storagePath = doc.storage_path ?? doc.storage_url
+  const storagePath = doc.storage_url
   if (storagePath) {
     await supabaseAdmin.storage.from('documents').remove([storagePath]).catch(() => {})
     await supabaseAdmin.storage.from('tenant-documents').remove([storagePath]).catch(() => {})

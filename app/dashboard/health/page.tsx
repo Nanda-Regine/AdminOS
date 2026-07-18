@@ -93,9 +93,10 @@ export default async function HealthPage() {
 
   const tenantId = user.app_metadata?.tenant_id as string
 
+  // Real column is dimension_details — aliased so render (latest.dimensions) holds.
   const { data: snapshots } = await supabaseAdmin
     .from('business_health_snapshots')
-    .select('id, overall_score, dimensions, created_at')
+    .select('id, overall_score, dimensions:dimension_details, created_at')
     .eq('tenant_id', tenantId)
     .order('created_at', { ascending: false })
     .limit(12)

@@ -53,11 +53,13 @@ export default async function BoardPackPage() {
 
   const tenantId = user.app_metadata?.tenant_id as string
 
+  // Real columns are period_start / pack_data / created_at — aliased so the
+  // render (pack.month / pack.data / pack.generated_at) is unchanged.
   const { data: packs } = await supabaseAdmin
     .from('board_packs')
-    .select('id, tenant_id, month, data, generated_at')
+    .select('id, tenant_id, month:period_start, data:pack_data, generated_at:created_at')
     .eq('tenant_id', tenantId)
-    .order('month', { ascending: false })
+    .order('period_start', { ascending: false })
     .limit(6)
 
   const boardPacks = (packs || []) as BoardPack[]

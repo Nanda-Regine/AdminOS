@@ -21,9 +21,11 @@ export async function POST(
   const { id: payrollRunId } = await params
 
   // Fetch the payroll run and verify tenant ownership
+  // Only status is used below; period_start/period_end/staff_count don't exist
+  // on payroll_runs (the select errored → distribution always 404'd).
   const { data: run, error: runErr } = await supabaseAdmin
     .from('payroll_runs')
-    .select('id, tenant_id, status, period_start, period_end, staff_count')
+    .select('id, tenant_id, status')
     .eq('id', payrollRunId)
     .eq('tenant_id', tenantId)
     .single()

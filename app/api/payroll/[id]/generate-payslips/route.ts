@@ -22,7 +22,7 @@ export async function POST(
   // Fetch the payroll run and verify tenant ownership
   const { data: run, error: runErr } = await supabaseAdmin
     .from('payroll_runs')
-    .select('id, tenant_id, status, period_start, period_end, staff_count')
+    .select('id, tenant_id, status')
     .eq('id', payrollRunId)
     .eq('tenant_id', tenantId)
     .single()
