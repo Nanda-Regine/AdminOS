@@ -2,6 +2,7 @@ import { inngest } from '@/inngest/client'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { writeAuditLog } from '@/lib/security/audit'
 import { getModelForFeature } from '@/lib/ai/costControls'
+import { setDailyBrief } from '@/lib/signals/brief'
 import Anthropic from '@anthropic-ai/sdk'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
@@ -97,6 +98,8 @@ Today is ${new Date().toLocaleDateString('en-ZA', { weekday: 'long', day: 'numer
     })
 
     await step.run('store-brief', async () => {
+      // Surface it (Command Center reads this) + keep the audit trail.
+      await setDailyBrief(tenant_id, brief)
       await writeAuditLog({
         tenantId: tenant_id,
         actor: 'insight',

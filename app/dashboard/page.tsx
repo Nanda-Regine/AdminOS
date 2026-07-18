@@ -4,6 +4,9 @@ import { TopBar } from '@/components/dashboard/TopBar'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { formatZAR } from '@/lib/format'
+import { publishSignal, financeMode } from '@/lib/signals/bus'
+import { getDailyBrief } from '@/lib/signals/brief'
+import { BriefCard } from './BriefCard'
 import {
   ArrowRight, AlertTriangle, CheckCircle2, Sparkles, Wallet, Users, Package,
   MessageSquare, ClipboardList, CalendarClock, PenLine, Target, ShieldCheck,
@@ -91,6 +94,31 @@ export default async function CommandCenter() {
   const contractsAwaiting = contracts.filter(c => c.status === 'sent').length
   const contractsExpiring = contracts.filter(c => { const d = daysUntil(c.end_date); return d !== null && d >= 0 && d <= 30 }).length
   const complianceDue = compliance.filter(c => { const d = daysUntil(c.due_date); return d !== null && d <= 14 })
+
+  // ── PUBLISH SIGNALS to the nervous system (Law 2: computed once, read everywhere)
+  const arOverdueSig = invoices.filter(i => (i.days_overdue || 0) > 0).reduce((s, i) => s + outstanding(i), 0)
+  const mode = financeMode({ netPosition, runwayMonths, arStuck })
+  const brief = await getDailyBrief(tenantId)
+  void publishSignal('money', tenantId, {
+    mode, arTotal, arOverdue: arOverdueSig, arStuck, apTotal, netPosition, runwayMonths, recoveryReview,
+    health: netPosition < 0 || arStuck > 0 ? 'bad' : arOverdueSig > 0 ? 'watch' : 'good',
+  })
+  void publishSignal('sales', tenantId, {
+    openConversations: conversations.length, needAttention,
+    pipelineValue: arTotal, health: needAttention > 0 ? 'bad' : 'good',
+  })
+  void publishSignal('ops', tenantId, {
+    lowStock: lowStock.length, stockoutRisk: lowStock.slice(0, 5).map(p => p.name),
+    bookingsToday, pendingBookings, overdueTasks, health: lowStock.length > 0 || overdueTasks > 0 ? 'watch' : 'good',
+  })
+  void publishSignal('people', tenantId, {
+    activeStaff: staffCount, pendingLeave, pendingExpenses, wellnessAvg: null,
+    health: pendingLeave > 0 || pendingExpenses > 0 ? 'watch' : 'good',
+  })
+  void publishSignal('governance', tenantId, {
+    complianceDue: complianceDue.length, contractsExpiring, contractsAwaiting,
+    health: complianceDue.length > 0 ? 'bad' : contractsExpiring > 0 ? 'watch' : 'good',
+  })
 
   // ── NEEDS YOU NOW (the decision queue — OODA "act") ───────────────────────
   const decisions = [
@@ -213,6 +241,12 @@ export default async function CommandCenter() {
                 {constraint.action} <ArrowRight className="w-4 h-4" />
               </Link>
             )}
+            {mode === 'PROTECT' && (
+              <p className="mt-3 text-xs inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg" style={{ background: 'rgba(245,158,11,0.12)', color: '#FBBF24' }}>
+                <ShieldCheck className="w-3.5 h-3.5" /> Cash-protect mode — hold discretionary spend until collections recover.
+              </p>
+            )}
+            {brief && <BriefCard text={brief.text} generatedAt={brief.generatedAt} />}
           </div>
         </div>
 
