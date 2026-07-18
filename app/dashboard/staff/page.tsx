@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { TopBar } from '@/components/dashboard/TopBar'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { ConfirmSubmit } from '@/components/ui/ConfirmSubmit'
 import { redirect } from 'next/navigation'
 import { AddStaffModal } from './AddStaffModal'
 
@@ -60,14 +61,23 @@ export default async function StaffPage() {
                   </div>
                   <div className="flex gap-2">
                     <form action={`/api/leave/${req.id}/approve`} method="POST">
-                      <button className="text-xs bg-emerald-600 text-white px-3 py-1.5 rounded-lg hover:bg-emerald-700">
-                        Approve
-                      </button>
+                      <ConfirmSubmit
+                        label="Approve"
+                        title="Approve this leave request?"
+                        description="This approves the leave and updates the staff member's leave balance."
+                        confirmLabel="Approve leave"
+                        className="text-xs bg-emerald-600 text-white px-3 py-1.5 rounded-lg hover:bg-emerald-700"
+                      />
                     </form>
                     <form action={`/api/leave/${req.id}/decline`} method="POST">
-                      <button className="text-xs bg-red-50 text-red-700 border border-red-200 px-3 py-1.5 rounded-lg hover:bg-red-100">
-                        Decline
-                      </button>
+                      <ConfirmSubmit
+                        label="Decline"
+                        variant="danger"
+                        title="Decline this leave request?"
+                        description="This declines the request. The staff member will be notified and can reapply."
+                        confirmLabel="Decline leave"
+                        className="text-xs bg-[rgba(239,68,68,0.12)] text-[#F87171] border border-[rgba(239,68,68,0.3)] px-3 py-1.5 rounded-lg hover:bg-[rgba(239,68,68,0.2)]"
+                      />
                     </form>
                   </div>
                 </div>

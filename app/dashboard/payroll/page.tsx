@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { TopBar } from '@/components/dashboard/TopBar'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { ConfirmSubmit } from '@/components/ui/ConfirmSubmit'
 import { redirect } from 'next/navigation'
 
 const statusVariant: Record<string, 'gray' | 'yellow' | 'green' | 'blue'> = {
@@ -70,12 +71,13 @@ export default async function PayrollPage() {
                 </button>
               </form>
               <form action={`/api/payroll/${latestRun.id}/distribute`} method="POST">
-                <button
-                  type="submit"
-                  className="text-sm bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  Distribute
-                </button>
+                <ConfirmSubmit
+                  label="Distribute"
+                  title="Distribute payslips?"
+                  description="This sends payslips to every staff member on this run and marks it distributed. This can't be undone."
+                  confirmLabel="Yes, distribute"
+                  className="text-sm bg-[var(--indigo)] text-white px-4 py-2 rounded-lg hover:opacity-90 transition-colors"
+                />
               </form>
               <a
                 href="/api/payroll/emp201"
@@ -163,9 +165,13 @@ export default async function PayrollPage() {
                           </button>
                         </form>
                         <form action={`/api/payroll/${run.id}/distribute`} method="POST">
-                          <button type="submit" className="text-xs text-blue-700 hover:underline">
-                            Distribute
-                          </button>
+                          <ConfirmSubmit
+                            label="Distribute"
+                            title="Distribute payslips?"
+                            description="This sends payslips to every staff member on this run and marks it distributed. This can't be undone."
+                            confirmLabel="Yes, distribute"
+                            className="text-xs text-[var(--indigo-light)] hover:underline"
+                          />
                         </form>
                       </div>
                     </td>

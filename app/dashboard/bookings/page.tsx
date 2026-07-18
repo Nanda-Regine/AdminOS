@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { TopBar } from '@/components/dashboard/TopBar'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { ConfirmSubmit } from '@/components/ui/ConfirmSubmit'
 import { redirect } from 'next/navigation'
 
 const statusVariant: Record<string, 'green' | 'yellow' | 'red' | 'gray' | 'blue'> = {
@@ -183,9 +184,14 @@ export default async function BookingsPage() {
                           )}
                           {booking.status !== 'cancelled' && booking.status !== 'completed' && (
                             <form action={`/api/bookings/${booking.id}/cancel`} method="POST">
-                              <button type="submit" className="text-xs text-red-500 hover:underline">
-                                Cancel
-                              </button>
+                              <ConfirmSubmit
+                                label="Cancel"
+                                variant="danger"
+                                title="Cancel this booking?"
+                                description="This cancels the booking. The customer should be notified separately."
+                                confirmLabel="Cancel booking"
+                                className="text-xs text-[#F87171] hover:underline"
+                              />
                             </form>
                           )}
                         </div>

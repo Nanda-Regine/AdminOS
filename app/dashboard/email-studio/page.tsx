@@ -56,6 +56,8 @@ export default function EmailStudioPage() {
   const [loadingDrafts, setLoadingDrafts] = useState(false)
   const [view, setView] = useState<'compose' | 'drafts'>('compose')
   const [sendingId, setSendingId] = useState<string | null>(null)
+  const [pendingAction, setPendingAction] = useState<{ kind: 'send' | 'delete'; id: string; subject: string } | null>(null)
+  const [actionError, setActionError] = useState('')
   const abortRef = useRef<AbortController | null>(null)
 
   async function generate() {
@@ -117,21 +119,39 @@ export default function EmailStudioPage() {
 
   async function sendDraft(id: string) {
     setSendingId(id)
+    setActionError('')
     try {
-      await fetch(`/api/email-drafts/${id}`, {
+      const res = await fetch(`/api/email-drafts/${id}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'send' }),
       })
+      if (!res.ok) throw new Error('send failed')
       setDrafts((prev) => prev.map((d) => d.id === id ? { ...d, status: 'sent' } : d))
+    } catch {
+      setActionError("Couldn't send that email. Check the recipient address and try again.")
     } finally {
       setSendingId(null)
     }
   }
 
   async function deleteDraft(id: string) {
-    await fetch(`/api/email-drafts/${id}`, { method: 'DELETE' })
-    setDrafts((prev) => prev.filter((d) => d.id !== id))
+    setActionError('')
+    try {
+      const res = await fetch(`/api/email-drafts/${id}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('delete failed')
+      setDrafts((prev) => prev.filter((d) => d.id !== id))
+    } catch {
+      setActionError("Couldn't delete that draft. Please try again.")
+    }
+  }
+
+  async function runPendingAction() {
+    if (!pendingAction) return
+    const { kind, id } = pendingAction
+    setPendingAction(null)
+    if (kind === 'send') await sendDraft(id)
+    else await deleteDraft(id)
   }
 
   return (
@@ -361,7 +381,7 @@ export default function EmailStudioPage() {
                       <div className="flex items-center gap-2 shrink-0">
                         {draft.status === 'draft' && (
                           <button
-                            onClick={() => sendDraft(draft.id)}
+                            onClick={() => setPendingAction({ kind: 'send', id: draft.id, subject: draft.subject })}
                             disabled={sendingId === draft.id}
                             className="flex items-center gap-1.5 px-3 py-1.5 bg-forest text-cream text-xs font-medium rounded-lg hover:bg-forest/90 disabled:opacity-50 transition-colors"
                           >
@@ -370,7 +390,7 @@ export default function EmailStudioPage() {
                           </button>
                         )}
                         <button
-                          onClick={() => deleteDraft(draft.id)}
+                          onClick={() => setPendingAction({ kind: 'delete', id: draft.id, subject: draft.subject })}
                           className="p-1.5 text-navy/30 hover:text-cherry transition-colors"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -384,6 +404,47 @@ export default function EmailStudioPage() {
           </div>
         )}
       </div>
+
+      {/* Error toast */}
+      {actionError && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg"
+          style={{ background: 'var(--surface-1)', border: '1px solid var(--border-hover)', backdropFilter: 'blur(20px)' }}
+          role="alert">
+          <span className="text-sm" style={{ color: 'var(--text-primary)' }}>{actionError}</span>
+          <button onClick={() => setActionError('')} className="text-xs font-medium" style={{ color: 'var(--indigo-light)' }}>Dismiss</button>
+        </div>
+      )}
+
+      {/* Send / delete confirmation */}
+      {pendingAction && (
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(4,6,20,0.7)', backdropFilter: 'blur(4px)' }}
+          onClick={(e) => { if (e.target === e.currentTarget) setPendingAction(null) }}>
+          <div className="w-full max-w-sm rounded-2xl p-6"
+            style={{ background: 'var(--surface-1)', border: '1px solid var(--border-hover)', backdropFilter: 'blur(24px)' }}>
+            <h3 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
+              {pendingAction.kind === 'send' ? 'Send this email?' : 'Delete this draft?'}
+            </h3>
+            <p className="text-sm mt-1 mb-5" style={{ color: 'var(--text-muted)' }}>
+              {pendingAction.kind === 'send'
+                ? `"${pendingAction.subject}" will be emailed to the recipient now. This can't be undone.`
+                : `"${pendingAction.subject}" will be permanently removed.`}
+            </p>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setPendingAction(null)}
+                className="px-4 py-2 rounded-lg text-sm font-medium"
+                style={{ background: 'var(--surface-2)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}>
+                Cancel
+              </button>
+              <button onClick={runPendingAction}
+                className="px-4 py-2 rounded-lg text-sm font-semibold text-white hover:opacity-90"
+                style={{ background: pendingAction.kind === 'delete' ? 'var(--danger)' : 'var(--indigo)' }}>
+                {pendingAction.kind === 'send' ? 'Send email' : 'Delete draft'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

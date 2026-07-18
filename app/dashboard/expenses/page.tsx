@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { TopBar } from '@/components/dashboard/TopBar'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { ConfirmSubmit } from '@/components/ui/ConfirmSubmit'
 import { redirect } from 'next/navigation'
 import { Receipt, Clock, CheckCircle } from 'lucide-react'
 
@@ -157,15 +158,24 @@ export default async function ExpensesPage() {
                       <div className="flex gap-2">
                         <form action={`/api/expenses/${claim.id}/approve`} method="POST">
                           <input type="hidden" name="action" value="approve" />
-                          <button className="text-xs bg-emerald-600 text-white px-3 py-1.5 rounded-lg hover:bg-emerald-700 font-medium">
-                            Approve
-                          </button>
+                          <ConfirmSubmit
+                            label="Approve"
+                            title="Approve this expense claim?"
+                            description="This approves the claim for reimbursement and is recorded in the audit trail."
+                            confirmLabel="Approve claim"
+                            className="text-xs bg-emerald-600 text-white px-3 py-1.5 rounded-lg hover:bg-emerald-700 font-medium"
+                          />
                         </form>
                         <form action={`/api/expenses/${claim.id}/approve`} method="POST">
                           <input type="hidden" name="action" value="reject" />
-                          <button className="text-xs bg-red-50 text-red-700 border border-red-200 px-3 py-1.5 rounded-lg hover:bg-red-100 font-medium">
-                            Reject
-                          </button>
+                          <ConfirmSubmit
+                            label="Reject"
+                            variant="danger"
+                            title="Reject this expense claim?"
+                            description="This rejects the claim. The staff member will need to resubmit if this was a mistake."
+                            confirmLabel="Reject claim"
+                            className="text-xs bg-[rgba(239,68,68,0.12)] text-[#F87171] border border-[rgba(239,68,68,0.3)] px-3 py-1.5 rounded-lg hover:bg-[rgba(239,68,68,0.2)] font-medium"
+                          />
                         </form>
                       </div>
                     </div>

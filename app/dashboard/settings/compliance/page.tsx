@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { TopBar } from '@/components/dashboard/TopBar'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { ConfirmSubmit } from '@/components/ui/ConfirmSubmit'
 import { redirect } from 'next/navigation'
 
 const DATA_REGISTER = [
@@ -199,12 +200,14 @@ export default async function CompliancePage() {
               placeholder="Phone number or contact identifier (e.g. 27821234567)"
               className="flex-1 border border-[var(--border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
             />
-            <button
-              type="submit"
-              className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors"
-            >
-              Delete data
-            </button>
+            <ConfirmSubmit
+              label="Delete data"
+              title="Permanently erase this contact's data?"
+              description="This deletes all conversations, messages and wellness records for the given identifier across this business. It is irreversible and is written to the audit trail."
+              confirmLabel="Erase permanently"
+              variant="danger"
+              className="px-4 py-2 bg-[var(--danger)] text-white rounded-lg text-sm font-medium hover:brightness-110 transition-colors whitespace-nowrap"
+            />
           </form>
           <p className="text-xs text-[var(--text-dim)] mt-2">
             This action is irreversible and will be logged in the audit trail.
