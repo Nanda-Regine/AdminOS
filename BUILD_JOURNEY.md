@@ -513,5 +513,36 @@ All issues identified by the Explore-agent audit were fixed:
 
 ---
 
+## Session 12 — 2026-07-18 · Security P0 shipped + billing unified
+
+**Context:** Two undeployed, company-ending risks were sitting in unmerged branches. Deployed both, then hardened payments/security and unified the revenue model. Production stayed live throughout (deploy-first; a failed build never promotes).
+
+### P0 — the two risks, closed & verified in prod
+- **Tenant isolation** — `current_tenant_id()` now reads `app_metadata` (service-role only) instead of user-writable `user_metadata`. Migrations applied to prod; verified live: users backfilled, stale copies stripped, and a real cross-tenant read attempt returns `[]`.
+- **Debt-recovery false legal threats** — the safe engine is live on Inngest (tier-3 auto-send cap, multilingual content guard, owner-review gate); templates de-fanged; `invoices.recovery_status` applied. Cron computes `days_overdue` from `due_date` (schema-drift-proof).
+- Fixed en route: Paystack billing routes reading spoofable `user_metadata`; a **free plan-upgrade** hole (`/api/billing/plan` trusted a client token → free Scale features); a **CRITICAL langa** cross-tenant upsert; 3 FK-join data leaks (performance-reviews/safety/projects); removed 3 fabricated testimonials + an unsubstantiated savings claim from the landing page.
+- Route audit: ~95 routes verified correctly tenant-scoped.
+
+### Billing — one data-driven model (single source of truth)
+- Collapsed a three-way add-on drift (paid flow vs display catalogue vs gate table) onto the **5 Paystack-backed add-ons** (ring/reach/sage/languages/client_portal). `addon_catalogue` + `plan_catalogue` are now the only source for price/name/bundling; dropped the orphan `addon_subscriptions`.
+- `lib/billing/addons.ts` + `addonLogic.ts`: one entitlement resolver — **paid OR bundled by plan**. Every gate routes through it.
+- **Bundling ladder drives upgrades:** Grow=Languages, Operate=+Reach, Scale=+Client Portal, Partner=all five.
+- **Operator price editor** (`/operator/billing`, super-admin gated, audited) — prices & bundling are editable live, no deploy. Flags add-ons lacking a Paystack plan.
+- Billing page fully data-driven; PayFast→Paystack copy corrected.
+
+### Testing discipline (new)
+- No prior test harness. Added `node:test` + Node type-stripping unit tests (laptop-safe, no vitest/webpack): `tests/` covers addon entitlement, debt legal-guard (EN/AF/ZU), overdue math — **17/17 pass** (`npm test`).
+- `scripts/verify_prod.mjs` — rerunnable runtime suite (homepage, health, login, RLS isolation, catalogue state) — **10/10 pass**.
+
+### Test account (for us)
+- `founder@adminos-demo.co.za` / `AdminOS-Test-2026!` — tenant "Mzansi Test Traders" (operate). Login + RLS verified end-to-end.
+
+### Known follow-ups (tracked in memory `session12-findings`)
+- **Infra:** prod `/api/health` degraded — Upstash Redis erroring (rate-limiting fails open) and Inngest keys read as missing despite being set. Needs the Upstash/Inngest dashboards.
+- **Security mediums:** Twilio voice webhooks lack signature verification; `sops`/`announcements` acknowledge upserts unscoped; add tenant constraint to expenses/invoices PATCH.
+- Debt owner-review UI (tiers 4–6 flag but nothing surfaces them).
+
+---
+
 *Built by Nandawula Regine Kabali-Kagwa · Mirembe Muse (Pty) Ltd · South Africa*  
 *"African-built, African-first."*

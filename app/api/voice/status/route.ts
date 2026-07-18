@@ -1,12 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { sendWhatsApp } from '@/lib/whatsapp/send'
+import { verifyTwilioSignature, twilioWebhookUrl } from '@/lib/security/twilio'
 
 export const runtime = 'nodejs'
 
 export async function POST(request: NextRequest) {
   const body   = await request.text()
   const fields = Object.fromEntries(new URLSearchParams(body))
+
+  // This webhook mutates call logs and sends WhatsApp on the tenant's behalf.
+  // Reject anything not signed by Twilio (fails closed if TWILIO_AUTH_TOKEN unset).
+  if (!verifyTwilioSignature(twilioWebhookUrl('/api/voice/status'), fields, request.headers.get('x-twilio-signature'))) {
+    return new NextResponse('Forbidden', { status: 403 })
+  }
 
   const callSid      = fields.CallSid      || ''
   const callStatus   = fields.CallStatus   || ''

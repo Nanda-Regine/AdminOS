@@ -66,6 +66,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       .from('invoices')
       .select('total, amount_due')
       .eq('id', id)
+      .eq('tenant_id', tenantId)   // scope the read to the caller's tenant
       .single()
 
     if (inv) {

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { callClaudeAgent } from '@/lib/ai/callClaude'
 import { sanitizeForAI } from '@/lib/security/sanitize'
+import { verifyTwilioSignature, twilioWebhookUrl } from '@/lib/security/twilio'
+import { tenantHasAddon } from '@/lib/billing/addons'
 
 export const runtime = 'nodejs'
 
@@ -45,6 +47,12 @@ export async function POST(request: NextRequest) {
   const body   = await request.text()
   const params = Object.fromEntries(new URLSearchParams(body))
 
+  // Runs the AI agent + can <Dial> a transfer — reject anything not signed by
+  // Twilio (fails closed if TWILIO_AUTH_TOKEN unset) to stop AI-cost/toll abuse.
+  if (!verifyTwilioSignature(twilioWebhookUrl('/api/voice/inbound'), params, request.headers.get('x-twilio-signature'))) {
+    return new NextResponse('Forbidden', { status: 403 })
+  }
+
   const callSid   = params.CallSid   || ''
   const from      = params.From      || ''
   const to        = params.To        || ''
@@ -60,6 +68,13 @@ export async function POST(request: NextRequest) {
   if (!tenant) {
     return twiml(`<?xml version="1.0" encoding="UTF-8"?>
 <Response><Say>Thank you for calling. Goodbye.</Say><Hangup/></Response>`)
+  }
+
+  // Ring is a paid add-on. A tenant whose number routes here but who is not
+  // entitled (paid or bundled) gets a polite hangup — no AI spend on their behalf.
+  if (!(await tenantHasAddon(tenant.id, 'ring'))) {
+    return twiml(`<?xml version="1.0" encoding="UTF-8"?>
+<Response><Say voice="Polly.Ayanda-Neural">Thank you for calling ${tenant.name}. Please reach us on WhatsApp or email. Goodbye.</Say><Hangup/></Response>`)
   }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://adminos.co.za'

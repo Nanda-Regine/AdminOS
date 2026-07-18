@@ -70,7 +70,21 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new NextResponse('Unauthorized', { status: 401 })
 
+  const tenantId = user.app_metadata?.tenant_id as string
+  if (!tenantId) return new NextResponse('No tenant', { status: 400 })
+
   const { id } = await params
+
+  // Confirm the SOP belongs to the caller's tenant before recording an
+  // acknowledgement — the sop_id is caller-supplied, so an unchecked id would let
+  // a user write an ack row referencing another tenant's SOP.
+  const { data: sop } = await supabaseAdmin
+    .from('sop_documents')
+    .select('id')
+    .eq('id', id)
+    .eq('tenant_id', tenantId)
+    .maybeSingle()
+  if (!sop) return NextResponse.json({ error: 'SOP not found' }, { status: 404 })
 
   const { data, error } = await supabaseAdmin
     .from('sop_acknowledgements')

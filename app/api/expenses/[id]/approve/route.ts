@@ -48,6 +48,7 @@ export async function PATCH(
       approved_at: new Date().toISOString(),
     })
     .eq('id', id)
+    .eq('tenant_id', tenantId)   // defence-in-depth: also constrain the mutation, not just the prior fetch
     .select()
     .single()
 
