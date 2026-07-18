@@ -59,16 +59,20 @@ export async function GET(request: Request) {
     special_pricing: pricing ?? null,
     plan_catalogue:  planCatalogueRes.data ?? [],
     features: {
-      // Feature flags derived from plan + addons
-      has_payroll:       ['grow','operate','scale','partner'].includes(tenant.plan) || addons.includes('payroll_module'),
-      has_booking:       ['operate','scale','partner'].includes(tenant.plan) || addons.includes('booking_engine'),
-      has_esignature:    ['operate','scale','partner'].includes(tenant.plan) || addons.includes('esignature'),
-      has_social_inbox:  ['scale','partner'].includes(tenant.plan) || addons.includes('social_inbox'),
-      has_valuation:     ['scale','partner'].includes(tenant.plan),
-      has_board_pack:    ['scale','partner'].includes(tenant.plan),
-      has_white_label:   tenant.plan === 'partner' || addons.includes('white_label'),
-      has_ai_languages:  addons.includes('ai_languages'),
-      has_extra_whatsapp: addons.includes('whatsapp_extra'),
+      // Plan-tier features (included by tier, not sold as add-ons)
+      has_payroll:      ['grow','operate','scale','partner'].includes(tenant.plan),
+      has_booking:      ['operate','scale','partner'].includes(tenant.plan),
+      has_esignature:   ['operate','scale','partner'].includes(tenant.plan),
+      has_social_inbox: ['scale','partner'].includes(tenant.plan),
+      has_valuation:    ['scale','partner'].includes(tenant.plan),
+      has_board_pack:   ['scale','partner'].includes(tenant.plan),
+      has_white_label:  tenant.plan === 'partner',
+      // Add-on entitlements — canonical five, paid OR bundled by plan
+      has_ring:          addons.includes('ring'),
+      has_reach:         addons.includes('reach'),
+      has_sage:          addons.includes('sage'),
+      has_languages:     addons.includes('languages'),
+      has_client_portal: addons.includes('client_portal'),
     },
   })
 }

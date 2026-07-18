@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { tenantHasAddon } from '@/lib/billing/addons'
 
 export type Plan = 'trial' | 'starter' | 'growth' | 'enterprise' | 'white_label'
 export type Addon = 'ring' | 'reach' | 'sage' | 'languages' | 'client_portal'
@@ -53,26 +54,12 @@ export async function requireAddon(addon: Addon): Promise<void> {
   const tenantId = user.app_metadata?.tenant_id as string
   if (!tenantId) throw new BillingError('No tenant', 'addon_required', undefined, addon)
 
-  const { data: sub } = await supabase
-    .from('subscriptions')
-    .select('*')
-    .eq('tenant_id', tenantId)
-    .eq('status', 'active')
-    .maybeSingle()
-
-  const addonKey = `addon_${addon}` as keyof typeof sub
-  const hasAddon = sub?.[addonKey] === true
-
-  if (!hasAddon) {
-    const addonPrices: Record<Addon, string> = {
-      ring:          'R999/mo',
-      reach:         'R499/mo',
-      sage:          'R299/mo',
-      languages:     'R199/mo',
-      client_portal: 'R599/mo',
-    }
+  // Entitlement = paid for it OR the plan bundles it. tenantHasAddon is the one
+  // resolver (lib/billing/addons); do not re-derive it here. This is what makes
+  // the tier ladder work: a Scale tenant passes the client_portal gate for free.
+  if (!(await tenantHasAddon(tenantId, addon))) {
     throw new BillingError(
-      `The ${addon} add-on (${addonPrices[addon]}) is required for this feature.`,
+      `The ${addon} add-on is required for this feature.`,
       'addon_required',
       undefined,
       addon,

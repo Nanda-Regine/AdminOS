@@ -25,9 +25,15 @@ export default async function OperatorPage() {
   return (
     <div className="min-h-screen bg-slate-950 text-white p-8">
       <div className="max-w-6xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold">Operator Dashboard</h1>
-          <p className="text-white/40 text-sm mt-1">{tenants?.length ?? 0} tenants total</p>
+        <div className="mb-8 flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold">Operator Dashboard</h1>
+            <p className="text-white/40 text-sm mt-1">{tenants?.length ?? 0} tenants total</p>
+          </div>
+          <Link href="/operator/billing"
+            className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 transition-colors">
+            Billing catalogue →
+          </Link>
         </div>
 
         <div className="rounded-2xl border border-white/10 overflow-hidden">

@@ -20,17 +20,11 @@ export async function GET(request: Request, { params }: { params: Promise<{ tena
 
   if (!tenant) return new NextResponse('Not found', { status: 404 })
 
-  // Check addon entitlement
-  const { data: addon } = await supabaseAdmin
-    .from('addon_subscriptions')
-    .select('id')
-    .eq('tenant_id', tenantId)
-    .eq('addon_slug', 'social_inbox')
-    .eq('status', 'active')
-    .maybeSingle()
-
-  // Allow scale/partner plans without explicit addon too
-  const isPaidUp = addon || ['scale', 'partner'].includes(tenant.plan ?? '')
+  // The chat widget (Social Inbox) is a plan-tier feature — included on Scale and
+  // Partner. It is not one of the five à-la-carte add-ons, so entitlement is the
+  // tenant's plan, not subscriptions.addon_* (see lib/billing/addons + tenant/me
+  // features.has_social_inbox).
+  const isPaidUp = ['scale', 'partner'].includes(tenant.plan ?? '')
   if (!isPaidUp) {
     return new NextResponse('/* Upgrade to activate the chat widget */', {
       headers: { 'Content-Type': 'application/javascript' },

@@ -9,18 +9,13 @@
 
 import { createClient }  from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { getEffectiveAddons, tenantHasAddon, type AddonSlug } from '@/lib/billing/addons'
 
 export type AdminOSPlan = 'solo' | 'grow' | 'operate' | 'scale' | 'partner'
 
-export type AdminOSAddon =
-  | 'whatsapp_extra'
-  | 'ai_languages'
-  | 'payroll_module'
-  | 'booking_engine'
-  | 'esignature'
-  | 'social_inbox'
-  | 'white_label'
-  | 'extra_staff_5'
+// Add-ons are the canonical five (lib/billing/addons). This alias is kept so
+// existing imports keep working; entitlement resolution lives in one place.
+export type AdminOSAddon = AddonSlug
 
 const PLAN_RANK: Record<AdminOSPlan, number> = {
   solo: 0, grow: 1, operate: 2, scale: 3, partner: 4,
@@ -86,15 +81,8 @@ export async function requireAdminOSAddon(addon: AdminOSAddon): Promise<void> {
   const tenantId = user.app_metadata?.tenant_id as string
   if (!tenantId) throw new PlanGateError('No tenant', 'addon_required', undefined, addon)
 
-  const { data } = await supabaseAdmin
-    .from('addon_subscriptions')
-    .select('id')
-    .eq('tenant_id', tenantId)
-    .eq('addon_slug', addon)
-    .eq('status', 'active')
-    .maybeSingle()
-
-  if (!data) {
+  // One resolver: paid OR bundled by plan (lib/billing/addons).
+  if (!(await tenantHasAddon(tenantId, addon))) {
     throw new PlanGateError(
       `The ${addon} add-on is required for this feature. Visit Settings > Billing to subscribe.`,
       'addon_required',
@@ -114,13 +102,8 @@ export async function hasAdminOSAddon(addon: AdminOSAddon): Promise<boolean> {
  * Used for feature availability checks in the frontend.
  */
 export async function getTenantAddons(tenantId: string): Promise<AdminOSAddon[]> {
-  const { data } = await supabaseAdmin
-    .from('addon_subscriptions')
-    .select('addon_slug')
-    .eq('tenant_id', tenantId)
-    .eq('status', 'active')
-
-  return (data ?? []).map(r => r.addon_slug as AdminOSAddon)
+  // Paid + plan-bundled, resolved in one place (lib/billing/addons).
+  return getEffectiveAddons(tenantId)
 }
 
 /** Convert PlanGateError to a standard API response */
