@@ -52,6 +52,7 @@ export const FEATURES: Feature[] = [
   { href: '/dashboard/analytics',        label: 'Analytics',      icon: BarChart3,       category: 'Command' },
 
   // ── Get Paid (Money) ──────────────────────────────────────────────────────
+  { href: '/dashboard/money',    label: 'Cash Cockpit',  icon: Wallet,   category: 'Get Paid' },
   { href: '/dashboard/invoices', label: 'Invoices & AR', icon: Receipt,  category: 'Get Paid' },
   { href: '/dashboard/cashflow', label: 'Cashflow',      icon: TrendingUp, category: 'Get Paid' },
   { href: '/dashboard/expenses', label: 'Expenses & AP', icon: Wallet,   category: 'Get Paid' },
