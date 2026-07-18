@@ -2,36 +2,20 @@ import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { TopBar } from '@/components/dashboard/TopBar'
 import { Card } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { redirect } from 'next/navigation'
 import { CreateSOPModal } from './CreateSOPModal'
+import { HandbookTable, type SopRow } from './HandbookTable'
 
-// Assign a stable badge colour per category name
-function categoryVariant(category: string): 'blue' | 'green' | 'yellow' | 'red' | 'purple' | 'gray' {
-  const map: Record<string, 'blue' | 'green' | 'yellow' | 'red' | 'purple' | 'gray'> = {
-    hr: 'blue',
-    operations: 'green',
-    finance: 'yellow',
-    safety: 'red',
-    compliance: 'purple',
-  }
-  return map[category?.toLowerCase()] ?? 'gray'
-}
-
-interface Sop {
-  id: string
-  tenant_id: string
-  title: string
-  content: string | null
-  category: string
-  version: number
-  acknowledgement_required: boolean
-  created_at: string
-}
-
-interface AckStat {
-  sop_id: string
-  ack_count: number
+type SopWithAcks = {
+  id:                       string
+  title:                    string
+  category:                 string | null
+  content:                  unknown
+  version:                  number
+  status:                   string
+  requires_acknowledgement: boolean
+  created_at:               string
+  acks:                     { user_id: string }[] | null
 }
 
 export default async function HandbookPage() {
@@ -41,10 +25,13 @@ export default async function HandbookPage() {
 
   const tenantId = user.app_metadata?.tenant_id as string
 
-  const [sopsResult, staffCountResult, acksResult] = await Promise.all([
+  // Reads sop_documents (the real table + the one the /api/sops routes write to);
+  // acks embed via the sop_acknowledgements FK (acks are keyed by sop_id, which is
+  // already tenant-scoped — the ack table has no tenant_id column).
+  const [sopsResult, staffCountResult] = await Promise.all([
     supabaseAdmin
-      .from('sops')
-      .select('id, tenant_id, title, content, category, version, acknowledgement_required, created_at')
+      .from('sop_documents')
+      .select('id, title, category, content, version, status, requires_acknowledgement, created_at, acks:sop_acknowledgements(user_id)')
       .eq('tenant_id', tenantId)
       .order('category')
       .order('title'),
@@ -52,31 +39,25 @@ export default async function HandbookPage() {
       .from('staff')
       .select('id', { count: 'exact', head: true })
       .eq('tenant_id', tenantId),
-    supabaseAdmin
-      .from('sop_acknowledgements')
-      .select('sop_id')
-      .eq('tenant_id', tenantId),
   ])
 
-  const sops: Sop[] = sopsResult.data || []
+  const raw = (sopsResult.data || []) as SopWithAcks[]
   const totalStaff = staffCountResult.count || 0
-  const acks = acksResult.data || []
 
-  // Build ack count per sop_id
-  const ackMap: Record<string, number> = {}
-  for (const a of acks) {
-    ackMap[a.sop_id] = (ackMap[a.sop_id] || 0) + 1
-  }
+  const sops: SopRow[] = raw.map(s => ({
+    id:                       s.id,
+    title:                    s.title,
+    category:                 s.category,
+    content:                  s.content,
+    version:                  s.version,
+    status:                   s.status,
+    requires_acknowledgement: s.requires_acknowledgement,
+    ack_count:                s.acks?.length ?? 0,
+    created_at:               s.created_at,
+  }))
 
-  // Group SOPs by category
-  const grouped: Record<string, Sop[]> = {}
-  for (const sop of sops) {
-    const cat = sop.category || 'General'
-    if (!grouped[cat]) grouped[cat] = []
-    grouped[cat].push(sop)
-  }
-
-  const categories = Object.keys(grouped).sort()
+  const categoryCount = new Set(sops.map(s => s.category || 'General')).size
+  const ackRequiredCount = sops.filter(s => s.requires_acknowledgement).length
 
   return (
     <div>
@@ -91,13 +72,11 @@ export default async function HandbookPage() {
           </Card>
           <Card>
             <p className="text-xs text-[var(--text-muted)]">Categories</p>
-            <p className="text-2xl font-bold text-[var(--text-primary)] mt-1">{categories.length}</p>
+            <p className="text-2xl font-bold text-[var(--text-primary)] mt-1">{categoryCount}</p>
           </Card>
           <Card>
             <p className="text-xs text-[var(--text-muted)]">Require Acknowledgement</p>
-            <p className="text-2xl font-bold text-yellow-600 mt-1">
-              {sops.filter(s => s.acknowledgement_required).length}
-            </p>
+            <p className="text-2xl font-bold text-yellow-400 mt-1">{ackRequiredCount}</p>
           </Card>
           <Card>
             <p className="text-xs text-[var(--text-muted)]">Staff Members</p>
@@ -105,56 +84,8 @@ export default async function HandbookPage() {
           </Card>
         </div>
 
-        {/* SOPs grouped by category */}
-        {categories.length === 0 ? (
-          <div className="text-center py-12 text-[var(--text-dim)] text-sm">
-            No SOPs found. Upload your first procedure to build your handbook.
-          </div>
-        ) : (
-          categories.map((category) => (
-            <Card key={category} padding="none">
-              <div className="p-5 border-b border-[var(--border)] flex items-center gap-3">
-                <Badge variant={categoryVariant(category)}>
-                  {category}
-                </Badge>
-                <h3 className="font-semibold text-[var(--text-primary)] capitalize">{category}</h3>
-                <span className="text-xs text-[var(--text-dim)] ml-auto">{grouped[category].length} procedures</span>
-              </div>
-              <div className="divide-y divide-[var(--border)]">
-                {grouped[category].map((sop) => {
-                  const ackCount = ackMap[sop.id] || 0
-                  return (
-                    <div key={sop.id} className="flex items-center justify-between px-5 py-4 hover:bg-[var(--surface-hover)] transition-colors">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="text-sm font-medium text-[var(--text-primary)] truncate">{sop.title}</p>
-                          {sop.acknowledgement_required && (
-                            <Badge variant="yellow">Ack required</Badge>
-                          )}
-                        </div>
-                        <p className="text-xs text-[var(--text-dim)] mt-0.5">Version {sop.version}</p>
-                      </div>
-                      <div className="text-right ml-4 shrink-0">
-                        {sop.acknowledgement_required && totalStaff > 0 ? (
-                          <>
-                            <p className={`text-sm font-semibold ${
-                              ackCount >= totalStaff ? 'text-emerald-600' : 'text-orange-500'
-                            }`}>
-                              {ackCount} / {totalStaff}
-                            </p>
-                            <p className="text-xs text-[var(--text-dim)]">staff ack&apos;d</p>
-                          </>
-                        ) : (
-                          <span className="text-xs text-[var(--text-dim)]">—</span>
-                        )}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </Card>
-          ))
-        )}
+        {/* SOPs table (searchable, filterable, openable) */}
+        <HandbookTable rows={sops} totalStaff={totalStaff} />
       </div>
     </div>
   )
