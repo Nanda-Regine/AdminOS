@@ -6,6 +6,8 @@ import { checkRecoveryMessage } from '@/lib/debt/recoveryGuard'
 import { daysOverdue } from '@/lib/debt/overdue'
 import { writeAuditLog } from '@/lib/security/audit'
 import { notifyTenant } from '@/lib/notifications/notify'
+import { getTenantAutonomy } from '@/lib/autonomy/config'
+import { resolveTier } from '@/lib/autonomy/tiers'
 import Anthropic from '@anthropic-ai/sdk'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
@@ -64,7 +66,17 @@ export const debtRecoveryEngine = inngest.createFunction(
       return 6  // manual review escalation
     })
 
-    if (tier > AUTO_SEND_MAX_TIER) {
+    // Autonomy gate: the tenant decides whether AdminOS may auto-send gentle
+    // reminders at all. Default (unconfigured) is 'A' — preserves current
+    // behaviour. 'B'/'C' hold the reminder for the owner instead of sending.
+    const autonomy = await step.run('resolve-autonomy', async () => {
+      const rows = await getTenantAutonomy(tenant_id)
+      return resolveTier(rows, 'money', 'invoice_reminder')
+    })
+
+    // Send automatically ONLY when the escalation is gentle (tiers 1–3) AND the
+    // tenant has left recovery on auto (tier A). Anything else is held.
+    if (tier > AUTO_SEND_MAX_TIER || autonomy !== 'A') {
       await step.run('flag-owner-review', async () => {
         await writeAuditLog({
           tenantId: tenant_id,
@@ -84,12 +96,15 @@ export const debtRecoveryEngine = inngest.createFunction(
       })
       // Surface it to the owner (in-app bell + WhatsApp if a notify phone is set).
       // Best-effort — never blocks the escalation flag above.
+      const heldByAutonomy = tier <= AUTO_SEND_MAX_TIER && autonomy !== 'A'
       await step.run('notify-owner-review', async () => {
         const inv = context.invoice!
         await notifyTenant(tenant_id, {
           type: 'recovery.escalation',
-          title: 'Invoice needs your review',
-          body: `${inv.contact_name ?? 'A customer'}'s invoice (R${inv.amount}) is past the gentle-reminder stage. Decide how to proceed — AdminOS won't chase harder on its own.`,
+          title: heldByAutonomy ? 'Reminder ready to send' : 'Invoice needs your review',
+          body: heldByAutonomy
+            ? `${inv.contact_name ?? 'A customer'}'s invoice (R${inv.amount}) is overdue. Auto-send is off for reminders, so it's waiting for you to send.`
+            : `${inv.contact_name ?? 'A customer'}'s invoice (R${inv.amount}) is past the gentle-reminder stage. Decide how to proceed — AdminOS won't chase harder on its own.`,
           actionUrl: '/dashboard/invoices',
           dedupeKey: `recovery-review-${invoice_id}`,
           dedupeHours: 72,
@@ -97,7 +112,7 @@ export const debtRecoveryEngine = inngest.createFunction(
         })
         return { notified: true }
       })
-      return { status: 'awaiting_owner_review', tier }
+      return { status: heldByAutonomy ? 'held_by_autonomy' : 'awaiting_owner_review', tier, autonomy }
     }
 
     const message = await step.run('generate-message', async () => {
