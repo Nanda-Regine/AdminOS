@@ -16,7 +16,7 @@ export interface PeopleIntel {
   pendingExpenses: number
   approvals: Approval[]
   wellnessAvg: number | null
-  lowWellness: WellnessRow[]
+  lowWellness: { name: string; score: number }[]   // score guaranteed non-null (filtered)
   openIr: number
 }
 
