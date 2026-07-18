@@ -1,5 +1,7 @@
 'use client'
 
+import { NotificationBell } from './NotificationBell'
+
 interface TopBarProps {
   title: string
   subtitle?: string
@@ -22,7 +24,10 @@ export function TopBar({ title, subtitle, actions }: TopBarProps) {
         <h1 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>{title}</h1>
         {subtitle && <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{subtitle}</p>}
       </div>
-      {actions && <div className="flex items-center gap-2">{actions}</div>}
+      <div className="flex items-center gap-2">
+        {actions}
+        <NotificationBell />
+      </div>
     </header>
   )
 }
