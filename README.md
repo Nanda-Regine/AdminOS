@@ -5,7 +5,7 @@
 [![Next.js](https://img.shields.io/badge/Next.js_16-black?style=for-the-badge&logo=next.js)](https://nextjs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS_4-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
-[![Anthropic Claude](https://img.shields.io/badge/Claude_claude--sonnet--4--6-D97706?style=for-the-badge)](https://anthropic.com)
+[![Anthropic Claude](https://img.shields.io/badge/Claude_Sonnet_+_Haiku-D97706?style=for-the-badge)](https://anthropic.com)
 [![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)](https://supabase.com)
 [![Vercel](https://img.shields.io/badge/Vercel-000000?style=for-the-badge&logo=vercel)](https://vercel.com)
 [![POPIA](https://img.shields.io/badge/POPIA_Compliant-🇿🇦-059669?style=for-the-badge)](#popia-compliance)
@@ -20,22 +20,23 @@ South African SMEs pay for 6–8 separate tools and still rely on WhatsApp group
 
 ## The Solution
 
-AdminOS replaces your entire toolstack with one AI-native platform. Five specialised agents handle your WhatsApp inbox, debt recovery, staff wellness, document intelligence, and daily business analytics — automatically, 24/7, in your customers' language.
+AdminOS replaces your entire toolstack with one AI-native platform. **Six specialised agents** handle your WhatsApp inbox, debt recovery, staff wellness, document intelligence, daily business analytics, and outbound email — automatically, 24/7, in your customers' language — plus **Langa**, an AI business mentor you can ask anything.
 
-**Average client saves R8,400/month** in replaced software and admin time.
+One WhatsApp-first platform replacing the **6–8 separate tools** most SA SMEs juggle to run their business.
 
 ---
 
-## The 5 AI Agents
+## The 6 AI Agents + Langa
 
 | Agent | Role | Model | What it does |
 |-------|------|-------|-------------|
 | 📥 **Alex** | Inbox Agent | Sonnet | Handles WhatsApp client conversations, FAQs, bookings, escalations |
-| 💰 **Chase** | Debt Recovery Agent | Haiku | Automated invoice follow-up with escalating professional messaging |
+| 💰 **Chase** | Debt Recovery Agent | Haiku | **5-tier** automated debt recovery — reminder → follow-up → firm → demand → final, each escalation professionally worded |
 | 🌿 **Care** | Wellness Agent | Sonnet | Daily staff check-ins via WhatsApp, burnout signal detection |
 | 📄 **Doc** | Document Intelligence | Haiku | Classifies, summarises, and extracts data from PDF/Word/Excel uploads |
-| 📊 **Insight** | Analytics Agent | Haiku | Daily 05:00 AI business brief with revenue trends, cash flow, debt aging |
-| ✉️ **Pen** | Email Composer | Sonnet | Drafts professional outbound emails in the tenant's brand voice |
+| 📊 **Insight** | Analytics Agent | Haiku | Daily AI business brief with revenue trends, cash flow, debt aging |
+| ✉️ **Pen** | Email Studio | Sonnet | Drafts professional outbound emails in the tenant's brand voice |
+| 🧭 **Langa** | AI Business Mentor | Sonnet | Ask-anything advisor — strategy, cashflow, pricing, growth, SA business reality |
 
 ---
 
@@ -64,12 +65,12 @@ AdminOS replaces your entire toolstack with one AI-native platform. Five special
 - **Row-Level Security** — every table partitioned by `tenant_id`, enforced at DB level
 - **Security headers** — HSTS, CSP, X-Frame-Options, Referrer-Policy on all responses
 - **Rate limiting** — per-tenant sliding windows via Upstash Redis (5 limiter types)
-- **Webhook verification** — HMAC-SHA256 x-hub-signature-256 validation on Meta WhatsApp and PayFast webhooks
+- **Webhook verification** — HMAC signature validation on Meta WhatsApp (`x-hub-signature-256`) and Paystack payment webhooks
 - **2FA enforcement** — Enterprise tier admin dashboard
 
 ### Integrations
-- 📱 **WhatsApp** via Meta Business API v19.0
-- 💳 **Payments** via PayFast (ZAR billing, monthly subscription)
+- 📱 **WhatsApp** via Meta Business API (Cloud API) — **40+ approved message templates**
+- 💳 **Payments** via **Paystack** (ZAR recurring subscriptions, billed through the Mirembe hub)
 - 📧 **Email** via Resend
 - 📊 **Accounting** via Xero API
 - 🔋 **Load-shedding widget** via EskomSePush API
@@ -87,7 +88,7 @@ AdminOS replaces your entire toolstack with one AI-native platform. Five special
 | **WhatsApp** | Meta Business API v19.0, inbound webhook, HMAC-SHA256 verification |
 | **Email** | Resend API |
 | **Accounting** | Xero OAuth 2.0 API |
-| **Payments** | PayFast subscription + ITN webhook |
+| **Payments** | Paystack recurring subscriptions (ZAR) + webhook verification |
 | **File Processing** | pdf-parse, mammoth (Word), xlsx (spreadsheets) |
 | **Automation** | Inngest (event-driven workflows), Vercel Cron |
 | **Hosting** | Vercel Edge + Serverless Functions |
@@ -200,14 +201,17 @@ AdminOS is a **Progressive Web App** — installable on Android and iOS home scr
 
 ## Pricing
 
-| Tier | Price | Best for |
-|------|-------|----------|
-| **Starter** | R2,500/month | 1–10 staff |
-| **Growth** ⭐ | R4,500/month | 11–50 staff |
-| **Enterprise** | R8,500/month | 50+ staff |
-| **White Label** | R14,999/month | Accountants & resellers |
+Simple, Rand-priced monthly plans on **Paystack**. **14-day free trial — no card required.**
 
-Annual billing: 15% discount. Optional onboarding: R5,000–R15,000.
+| Tier | Price / month | Best for |
+|------|------|----------|
+| **Solo** | **R349** | Owner-operators & side hustles |
+| **Grow** ⭐ | **R899** | Small teams finding their feet |
+| **Operate** | **R1,999** | Established SMEs running daily ops |
+| **Scale** | **R3,999** | Multi-staff businesses at volume |
+| **Partner** | **R9,999** | Agencies, resellers & multi-tenant partners |
+
+**Add-ons:** Ring (voice) R999 · Reach (extra WhatsApp reach) R499 · Client Portal R599 · Sage Sync R299 · Extra Languages R199.
 
 ---
 
