@@ -123,8 +123,8 @@ export default async function IRLogPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card>
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center">
-                <AlertTriangle className="w-5 h-5 text-red-600" />
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(239,68,68,0.15)' }}>
+                <AlertTriangle className="w-5 h-5" style={{ color: '#F87171' }} />
               </div>
               <div>
                 <p className="text-2xl font-bold text-[var(--text-primary)]">{openCases.length}</p>
@@ -134,8 +134,8 @@ export default async function IRLogPage() {
           </Card>
           <Card>
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-yellow-100 rounded-xl flex items-center justify-center">
-                <Clock className="w-5 h-5 text-yellow-600" />
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(245,158,11,0.15)' }}>
+                <Clock className="w-5 h-5" style={{ color: '#F59E0B' }} />
               </div>
               <div>
                 <p className="text-2xl font-bold text-[var(--text-primary)]">{warningsThisMonth}</p>
@@ -145,8 +145,8 @@ export default async function IRLogPage() {
           </Card>
           <Card>
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
-                <CheckCircle className="w-5 h-5 text-emerald-600" />
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(34,197,94,0.15)' }}>
+                <CheckCircle className="w-5 h-5" style={{ color: '#34D399' }} />
               </div>
               <div>
                 <p className="text-2xl font-bold text-[var(--text-primary)]">{closedCases.length}</p>
