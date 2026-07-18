@@ -105,5 +105,13 @@ Each is built to the **same vertical-slice contract**: Schema → pure services 
 ## 6. SHIPPED THIS SESSION
 - Command Center (proactive home): Pulse · Needs-You-Now decision queue · Constraint (Theory of Constraints) · Vital Signs (Balanced Scorecard) · Handled-For-You · rhythm.
 - Signal bus + brief surfacing + first cross-domain cascade (PROTECT mode).
+- Value-chain nav (feature registry) + living blue app ground.
+- **Cash Cockpit (`/dashboard/money`) — the FIRST domain built as a complete system; the template to copy.** Proves the domain contract:
+  - **Sense** — `lib/money/signal.ts` `buildMoneyIntel()`: AR + 5-bucket aging ladder, AP, net, runway, burn, top-overdue; publishes the money signal.
+  - **Lead** — "The Bookkeeper" opens pre-briefed (deterministic, fast, free) + one-click.
+  - **Act (arsenal)** — new invoice · **VAT201 working paper** + **Xero/Sage journal CSV** exports (`lib/money/exports.ts` + `/api/money/export`) · cashflow forecast.
+  - **Visual objects** — vital-sign tiles, the AR-aging collections pipeline (funnel), chase-first list.
+  - **THE REPLICATION RECIPE (copy per domain):** `lib/{domain}/signal.ts` (`build{Domain}Intel` + `refresh{Domain}Signal`) → a persona-led cockpit page (`/dashboard/{domain}`) → arsenal actions → publish signal. Next: **Ops** (inventory/bookings → no stockouts / no no-shows), **Sales** (pipeline/sentiment), **People**, **Governance**.
+- ⏭ Still to wire: signal-refresh cron (fan `refresh{Domain}Signal` over active tenants); the "Send reminders" one-click → the notification/WhatsApp spine (currently links to the recovery queue).
 
 *Cross-references: [[operating-system-vision]] · [[ux-excellence-roadmap]] · [[design-system-dark]]. Repos studied are the founder's own (JarvisOS public, BB-MotherShip-Deluxe private) — patterns adopted, not code lifted wholesale.*
