@@ -31,10 +31,14 @@ import { fanOutHealthScoreCron }                           from '@/inngest/funct
 import { fanOutDebtRecoveryCron }                          from '@/inngest/functions/fanOutDebtRecovery'
 import { sequencesCronFunction }                           from '@/inngest/functions/sequencesCron'
 import { licenseRemindersCronFunction }                    from '@/inngest/functions/licenseRemindersCron'
+import { signalRefreshCron, signalRefreshEngine }          from '@/inngest/functions/signalRefresh'
 
 export const { GET, POST, PUT } = serve({
   client: inngest,
   functions: [
+    // Signal bus — keeps every domain's vital signs warm
+    signalRefreshCron,
+    signalRefreshEngine,
     // Event-driven functions
     debtRecoveryEngine,
     docIntelligencePipeline,
