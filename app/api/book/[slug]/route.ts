@@ -39,8 +39,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ slu
 
   return NextResponse.json({
     tenant: {
-      name:     tenant.name,
-      logo_url: tenant.logo_url,
+      name: tenant.name,
     },
     services: services ?? [],
   })
@@ -49,11 +48,11 @@ export async function GET(_request: Request, { params }: { params: Promise<{ slu
 export async function POST(request: Request, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
 
-  // Resolve tenant by booking_slug
+  // Resolve tenant by slug
   const { data: tenant, error: tenantError } = await supabaseAdmin
     .from('tenants')
     .select('id')
-    .eq('booking_slug', slug)
+    .eq('slug', slug)
     .single()
 
   if (tenantError || !tenant) {
