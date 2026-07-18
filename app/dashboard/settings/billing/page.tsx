@@ -61,7 +61,9 @@ export default async function BillingPage({
 
   const [tenantRes, subRes, paymentRes, plansRes, addonsRes] = await Promise.all([
     supabaseAdmin.from('tenants').select('plan, name, created_at').eq('id', tenantId).single(),
-    supabaseAdmin.from('subscriptions').select('*').eq('tenant_id', tenantId).eq('status', 'active').maybeSingle(),
+    // Any-status row (one per tenant): add-on state is the addon_<slug> boolean,
+    // independent of subscription.status. Plan comes from tenants.plan below.
+    supabaseAdmin.from('subscriptions').select('*').eq('tenant_id', tenantId).maybeSingle(),
     supabaseAdmin.from('payment_events').select('id, event_type, amount, plan, created_at, processed')
       .eq('tenant_id', tenantId).order('created_at', { ascending: false }).limit(10),
     supabaseAdmin.from('plan_catalogue')
@@ -79,7 +81,11 @@ export default async function BillingPage({
   const payments    = paymentRes.data ?? []
   const plans       = (plansRes.data ?? []) as PlanRow[]
   const addons      = (addonsRes.data ?? []) as AddonRow[]
-  const currentPlan = (sub?.plan ?? tenant.plan ?? 'trial') as string
+  // tenants.plan is the source of truth (set by the webhook on activation and by
+  // downgrades); subscriptions.plan can lag it. Reading tenant.plan keeps the UI
+  // in step with the gates (getTenantPlan/getEffectiveAddons also read it).
+  const currentPlan = (tenant.plan ?? 'trial') as string
+  const hasActiveSub = sub?.status === 'active'
 
   // Add-ons the current plan bundles for free.
   const currentPlanRow  = plans.find(p => p.slug === currentPlan)
@@ -137,7 +143,7 @@ export default async function BillingPage({
               </div>
             )}
           </div>
-          {!isOnTrial && sub && (
+          {!isOnTrial && hasActiveSub && (
             <div className="mt-4 pt-4" style={{ borderTop: '1px solid var(--border)' }}>
               <CancelSubscriptionButton />
             </div>

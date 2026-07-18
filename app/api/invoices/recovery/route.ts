@@ -69,7 +69,7 @@ export async function PATCH(request: Request) {
     .eq('id', body.invoiceId)
     .eq('tenant_id', tenantId)   // scope the mutation to the caller's tenant
     .select('id, recovery_status')
-    .single()
+    .maybeSingle()   // no match (bad id / other tenant) → data null, not an error
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
   if (!data) return NextResponse.json({ error: 'Invoice not found' }, { status: 404 })

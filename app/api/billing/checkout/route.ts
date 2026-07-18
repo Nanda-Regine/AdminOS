@@ -11,12 +11,16 @@ const PLAN_AMOUNTS: Record<string, { amount: string; name: string }> = {
   partner:     { amount: '9999.00', name: 'AdminOS Partner' },
 }
 
+// Kept only for the dead PayFast fallback (canonical add-ons redirect to the
+// Paystack hub before reaching it). Amounts aligned to the DB catalogue
+// (20260718_billing_unify) so this is not a stale landmine if ever re-enabled;
+// the live source of truth for price is addon_catalogue, edited via /operator/billing.
 const ADDON_AMOUNTS: Record<string, { amount: string; name: string }> = {
-  ring:          { amount: '999.00',  name: 'AdminOS Ring Add-on'          },
-  reach:         { amount: '499.00',  name: 'AdminOS Reach Add-on'         },
-  sage:          { amount: '299.00',  name: 'AdminOS Sage Sync Add-on'     },
-  languages:     { amount: '199.00',  name: 'AdminOS Languages Add-on'     },
-  client_portal: { amount: '599.00',  name: 'AdminOS Client Portal Add-on' },
+  ring:          { amount: '349.00',  name: 'AdminOS Ring Add-on'          },
+  reach:         { amount: '199.00',  name: 'AdminOS Reach Add-on'         },
+  sage:          { amount: '199.00',  name: 'AdminOS Sage Sync Add-on'     },
+  languages:     { amount: '99.00',   name: 'AdminOS Languages Add-on'     },
+  client_portal: { amount: '299.00',  name: 'AdminOS Client Portal Add-on' },
 }
 
 const PF_URL = process.env.NODE_ENV === 'production'

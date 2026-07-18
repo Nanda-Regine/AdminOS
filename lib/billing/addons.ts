@@ -28,7 +28,13 @@ export { ADDON_SLUGS, isAddonSlug, addonColumn, addonPlanEnv, type AddonSlug } f
 export async function getEffectiveAddons(tenantId: string): Promise<AddonSlug[]> {
   const [tenantRes, subRes] = await Promise.all([
     supabaseAdmin.from('tenants').select('plan').eq('id', tenantId).maybeSingle(),
-    supabaseAdmin.from('subscriptions').select('*').eq('tenant_id', tenantId).eq('status', 'active').maybeSingle(),
+    // Read the tenant's single subscription row REGARDLESS of status. Add-on
+    // entitlement is the addon_<slug> boolean + its expiry (set by the Paystack
+    // webhook), NOT the overall subscription.status — a tenant can buy an add-on
+    // while still on the trial plan, whose row is status='trialing'. Filtering on
+    // status='active' here dropped those and denied access to paying customers.
+    // One row per tenant (all upserts use onConflict: 'tenant_id').
+    supabaseAdmin.from('subscriptions').select('*').eq('tenant_id', tenantId).maybeSingle(),
   ])
 
   let includedByPlan: string[] = []
