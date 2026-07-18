@@ -45,3 +45,6 @@ yarn-error.log*
 next-env.d.ts
 
 .vercel
+
+# Raw background source library (originals); app uses public/backgrounds/*
+public/dark-and-light-theme-backgrounds/

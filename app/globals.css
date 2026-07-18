@@ -80,6 +80,57 @@ body {
   overflow-x: hidden;
 }
 
+/* ── App shell background ───────────────────────────────────────────────────
+   Premium textured ground: a navy leather with a soft centre glow, muted under
+   a navy scrim so the texture is felt in the gaps between cards while data stays
+   fully legible. Swap --app-bg-image to change the texture (see /public/backgrounds).
+   ------------------------------------------------------------------------- */
+:root {
+  --app-bg-image: url('/backgrounds/bg-dark.jpg');
+  --app-bg-scrim: linear-gradient(180deg, rgba(9,12,32,0.86) 0%, rgba(9,12,32,0.92) 100%);
+}
+.app-shell {
+  background-color: var(--app-bg);
+  background-image: var(--app-bg-scrim), var(--app-bg-image);
+  background-repeat: no-repeat, no-repeat;
+  background-size: cover, cover;
+  background-position: center, center;
+  background-attachment: fixed, fixed;
+}
+
+/* Light textured ground for the auth screens (fluted warm-grey panel). */
+.auth-shell {
+  background-color: #ECECE6;
+  background-image:
+    linear-gradient(180deg, rgba(244,244,240,0.82) 0%, rgba(233,233,226,0.88) 100%),
+    url('/backgrounds/bg-light.jpg');
+  background-repeat: no-repeat, no-repeat;
+  background-size: cover, cover;
+  background-position: center, center;
+  background-attachment: fixed, fixed;
+}
+/* Paper variant for signup — subtly different light material. */
+.auth-shell-paper {
+  background-color: #EFEDE6;
+  background-image:
+    linear-gradient(180deg, rgba(245,243,236,0.80) 0%, rgba(236,233,224,0.86) 100%),
+    url('/backgrounds/bg-light-paper.jpg');
+  background-repeat: no-repeat, no-repeat;
+  background-size: cover, cover;
+  background-position: center, center;
+  background-attachment: fixed, fixed;
+}
+/* Premium gold-leather accent — reserved for billing / upgrade surfaces. Defined
+   after .glass so it wins the background on cards that carry both. */
+.tex-premium {
+  background-color: var(--navy-800);
+  background-image:
+    linear-gradient(180deg, rgba(16,13,20,0.68) 0%, rgba(12,10,18,0.80) 100%),
+    url('/backgrounds/bg-premium.jpg');
+  background-size: cover;
+  background-position: center;
+}
+
 /* ── Glass surfaces ─────────────────────────────────────────────────────── */
 .glass {
   background:     var(--surface-1);

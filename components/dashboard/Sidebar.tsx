@@ -41,7 +41,13 @@ export function Sidebar() {
 
   return (
     <aside className="w-60 flex flex-col h-screen fixed left-0 top-0 z-30 border-r"
-      style={{ background: 'var(--navy)', borderColor: 'var(--border)' }}>
+      style={{
+        backgroundColor: 'var(--navy)',
+        backgroundImage: "linear-gradient(180deg, rgba(7,10,26,0.80) 0%, rgba(6,9,24,0.88) 100%), url('/backgrounds/bg-nav.jpg')",
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        borderColor: 'var(--border-hover)',
+      }}>
 
       {/* Logo */}
       <div className="px-5 py-4 border-b" style={{ borderColor: 'var(--border)' }}>

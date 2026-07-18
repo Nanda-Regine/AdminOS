@@ -5,7 +5,7 @@ import { RealtimeNotificationBar } from '@/components/dashboard/RealtimeNotifica
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen" style={{ background: 'var(--app-bg)' }}>
+    <div className="flex min-h-screen app-shell">
       <Sidebar />
       <main className="flex-1 ml-60 flex flex-col min-h-screen">
         <RealtimeNotificationBar />

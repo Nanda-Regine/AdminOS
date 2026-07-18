@@ -34,7 +34,13 @@ export function Modal({ open, onClose, title, children, size = 'md' }: ModalProp
     <dialog
       ref={dialogRef}
       className={`${sizeClass} w-full rounded-2xl border shadow-2xl p-0 m-auto max-h-[90vh] overflow-y-auto`}
-      style={{ background: 'var(--surface-1)', borderColor: 'var(--border)' }}
+      style={{
+        backgroundColor: 'var(--navy-800)',
+        backgroundImage: "linear-gradient(180deg, rgba(14,18,40,0.90) 0%, rgba(10,13,32,0.94) 100%), url('/backgrounds/bg-modal.jpg')",
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        borderColor: 'var(--border-hover)',
+      }}
     >
       <style>{`dialog::backdrop { background: rgba(0,0,0,0.65); backdrop-filter: blur(4px); }`}</style>
       <div
