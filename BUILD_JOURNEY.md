@@ -587,5 +587,52 @@ All issues identified by the Explore-agent audit were fixed:
 
 ---
 
+## Session 14 — 2026-07-18 · Wave A DataTable + the great schema-drift sweep
+
+**Context:** Resumed the UX excellence roadmap (Wave A). Built the reusable table, then a single verification query uncovered a *pervasive* class of silently-broken pages — which became the session's real work.
+
+### Wave A — reusable `DataTable` (`components/ui/DataTable.tsx`)
+- One generic client table: client-side search (folds all column accessors + `searchExtra`), numeric-aware per-column sort, filter-chip `<select>`s, pagination, CSV export of the filtered view, keyboard-activatable row click-through, empty + no-match states, optional `renderFooter` totals row. Token-styled, dark/light. Adoption pattern: server `page.tsx` fetches → `'use client'` `XTable.tsx` wrapper owns the columns → `<DataTable>`.
+- Adopted on **9 list pages**: Contacts (killed a fake decorative search box + duplicate add-affordance), Invoices (right-aligned tabular money, Outstanding column, totals footer, `in_collections` now its own badge), Inventory, Contracts (**fixed a `sign_token` plaintext leak**), Ring (**surfaced the `sentiment` column that was fetched-but-never-shown** + webhook copy buttons), Reach, Sequences, Handbook, Knowledge Base. Plus IR-Log dark-mode chip fixes.
+
+### 🔴 The schema-drift sweep — the big find
+- A verification query showed the **Handbook read `.from('sops')` — a table that doesn't exist** (PGRST205); the error was swallowed by `data || []`, so the page *always rendered empty regardless of real SOPs*. That prompted a systematic audit.
+- **Built `scripts/audit_selects.mjs`** — extracts every literal `.from('t').select('cols')` across all ~220 files, resolves PostgREST aliases + embeds, validates each against prod via REST. It found **~25 silently-broken selects**.
+- **Fixed the read-path drift** across pages + API routes: Handbook (`sops`→`sop_documents`), **Expenses** (`expense_claims`→`expenses` — the approval queue was always empty & approve/reject unreachable), **Stokvel** (rebuilt on the real 3-table model), **Contracts** (`sign_token`/`signer_name` don't exist), **Knowledge Base** (`slug`/`body`/`category` don't exist), **Cashflow** (derived inflow from invoices + outflow from expenses — `cashflow_entries` never existed), IR-Log, bookings/invoices/nps/projects `contacts(name)` embeds (→`full_name`), payroll distribute/generate-payslips, book/[slug], and more.
+- **Contract signing rewritten** to use `contract_signatures` (per-signer token rows) — the whole e-signature flow was dead (read/wrote non-existent columns on `contracts`).
+- **Reconciled the last gaps via migration** (`20260718_drift_reconcile.sql`, applied): created `staff_documents`, added EEA2 demographic columns to `staff`, enabled PostgREST aggregates for the admin ai-costs route.
+- **Regression guard:** added `[page/api data contracts]` to `scripts/verify_prod.mjs` (36/36) so this bug class can't silently return. Final audit: **0 mismatched.**
+
+### Test posture
+- `npm test` 21/21 · `verify_prod` 36/36 · every fix diffed against live prod · deploy-first, all builds green. See `ux_excellence_roadmap` memory for the full itemised list.
+
+---
+
+## Session 15 — 2026-07-18/19 · The Operating System transformation
+
+**Context:** Founder's verdict after a full walkthrough — *"it feels like an app with various pages and logging, not a system with a story and loop."* The mission: make AdminOS a proactive business OS where every page is a complete system. Studied the founder's own sibling repos to reuse battle-tested patterns.
+
+### Repo study → blueprint (`ADMINOS_OS_ARCHITECTURE.md`)
+- Cloned + deep-analysed **JarvisOS** (personal intelligence OS) and **BB-MotherShip-Deluxe** (restaurant ops OS) — both Next.js+Supabase+Inngest, patterns port directly. Extracted 8 JarvisOS patterns (signal bus, morning-brief engine, tiered autonomy, cost governance, model routing, Inngest conventions, proactive-agent template, free-API wrappers) + 6 BB patterns (feature registry, notification/WhatsApp spine, AI receipt OCR, exceptions engine, finance exports, cross-linking triggers). Documented every adoption with source file + AdminOS mapping.
+- **Key discovery:** AdminOS *already had* ~30 Inngest workers, intelligence modules, an AI orchestrator + Langa, and coaching guardrails — the engine existed but was never connected to a nervous system or surfaced. Transformation = **connect + surface + lead**, not rebuild. (The nightly `dailyBrief` was generating a full Langa brief and *burying it in `audit_log`*.)
+
+### The three laws + the loop
+1. If it can decide, it decides (owner approves/vetoes). 2. If data exists, it's already been read (domains push signals). 3. If it can be pre-built, it's pre-built.
+
+### Shipped
+- **Command Center** (`app/dashboard/page.tsx`) — proactive home: the Pulse, a *Needs You Now* decision queue (OODA), the #1 Constraint (Theory of Constraints), Vital Signs (Balanced Scorecard), Handled-For-You (from audit_log), quarterly goals. Killed the old fake sparklines + always-green "agent" dots.
+- **The nervous system:** `lib/signals/bus.ts` (per-domain signal bus, Redis, `financeMode` cascade) + surfaced the buried Langa brief (`lib/signals/brief.ts` → collapsible BriefCard) + PROTECT-mode cascade banner.
+- **Value-chain navigation:** `lib/nav/features.ts` (BB feature-registry) — one typed array of all surfaces grouped Command · Get Paid · Win Work · Deliver · Team · Govern · Grow · Setup. The sidebar was a flat 16-item alphabet missing half the pages.
+- **Living blue app ground** (founder's new indigo watercolour textures — "not so seriously navy").
+- **All 6 domain cockpits** — every domain now a complete system: **Money** (The Bookkeeper — AR aging pipeline, VAT201 + journal exports), **Ops** (The Operator — stock readiness, schedule), **Sales** (The Closer — pipeline, going-cold), **People** (The People Lead — approvals, wellness, IR), **Governance** (The Advisor — health, deadlines, valuation). Each: `lib/{domain}/signal.ts` → persona-led page → arsenal → publishes its signal.
+- **Block 2A — signal-refresh cron** (`signalRefresh.ts`): hourly, fans over tenants, keeps every signal warm.
+- **Block 1 — notification + WhatsApp spine** (`lib/notifications/notify.ts`, never-throws, config-guarded, dedupe) + `NotificationBell` in the TopBar (every page) + `/api/notifications`. Wired: recovery escalation, **payment-received**, **approval-needed** → owner alerts (in-app + WhatsApp).
+- **Block 2B — tenant autonomy** (the trust backbone): `tenant_autonomy_config` (migration applied) + `lib/autonomy/tiers.ts` (pure `resolveTier` A/B/C, unit-tested) + **debtRecovery gated on the tenant's tier** + `/dashboard/settings/autonomy` control surface (Auto/Draft/Off per decision).
+
+### Docs + posture
+- `ADMINOS_OS_ARCHITECTURE.md` (blueprint) · `LAUNCH_TODO_SPINE_AUTONOMY.md` (Blocks 1-2 detailed TODO, shipped + remaining) · `operating_system_vision` memory. `npm test` 26/26 · audit 177/0 · all builds green. Remaining: Money "Send reminders" one-click, Meta template approval, per-tenant AI cost ceiling, durable signal mirror. **Monday = launch day.**
+
+---
+
 *Built by Nandawula Regine Kabali-Kagwa · Mirembe Muse (Pty) Ltd · South Africa*  
 *"African-built, African-first."*
