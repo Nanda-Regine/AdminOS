@@ -147,6 +147,11 @@ const apiContracts = [
   ['payment_events',          'tenant_id, event_type, amount, payfast_pf_id, m_payment_id, plan, payload'],  // billing/payfast-itn
   ['loyalty_points',          'tenant_id, contact_id, balance'],                                             // loyalty
   ['loyalty_programmes',      'tenant_id, name, point_value_zar, active'],                                   // loyalty
+  ['contract_signatures',     'id, contract_id, signer_name, signer_email, signed_at, token, expires_at'],   // contracts/[id]/sign
+  ['disciplinary_records',    'id, staff_id, record_type, incident_date, description, outcome, acknowledged_at'], // ir-log
+  ['announcements',           'id, title, body, audience, pinned, published_at'],                            // announcements
+  ['staff_documents',         'id, tenant_id, staff_id, title, file_url, file_type, expires_at'],            // staff/[id]/documents
+  ['staff',                   'id, tenant_id, full_name, active, employment_type, gender, race, job_level'], // team + ee/report
 ]
 for (const [table, cols] of apiContracts) {
   const res = await sqlRaw(`select ${cols} from public.${table} limit 0;`)

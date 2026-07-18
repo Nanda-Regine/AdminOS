@@ -40,7 +40,7 @@ export async function GET(request: Request) {
     .from('staff')
     .select('gender, race, job_level, employment_type')
     .eq('tenant_id', tenantId)
-    .eq('status', 'active')
+    .eq('active', true)
 
   // Aggregate staff by occupational level, race, and gender
   const occupationalLevels = [

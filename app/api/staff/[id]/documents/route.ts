@@ -36,7 +36,7 @@ export async function GET(
   if (!staff) return new NextResponse('Staff not found', { status: 404 })
 
   const { data, error } = await supabaseAdmin
-    .from('documents')
+    .from('staff_documents')
     .select('id, tenant_id, staff_id, title, file_url, file_type, expires_at, created_at')
     .eq('tenant_id', tenantId)
     .eq('staff_id', staffId)
@@ -80,7 +80,7 @@ export async function POST(
   }
 
   const { data, error } = await supabaseAdmin
-    .from('documents')
+    .from('staff_documents')
     .insert({
       tenant_id:  tenantId,
       staff_id:   staffId,
