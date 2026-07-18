@@ -40,7 +40,7 @@ export const fanOutDebtRecoveryCron = inngest.createFunction(
 
     await step.run('send-events', async () => {
       await inngest.send(
-        invoices.map((inv) => ({
+        invoices.map((inv: { id: string; tenant_id: string; amount: number; days_overdue: number }) => ({
           name: 'adminos/invoice.overdue' as const,
           data: {
             invoice_id: inv.id,
