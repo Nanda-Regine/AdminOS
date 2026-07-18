@@ -1,39 +1,29 @@
 /**
  * Add-ons — the single source of truth for what a tenant is entitled to.
  *
- * Canonical set = the five add-ons that have live Paystack plans. Everything
- * (checkout, the paystack webhook, feature gates, the billing page, the operator
- * editor) resolves entitlement through here so the three-way drift that used to
- * exist — paid flow vs display catalogue vs gate table — cannot come back.
+ * Canonical set = the five add-ons with live Paystack plans. Everything (checkout,
+ * the paystack webhook, feature gates, the billing page, the operator editor)
+ * resolves entitlement through here so the three-way drift that used to exist —
+ * paid flow vs display catalogue vs gate table — cannot come back.
  *
- * Two ways a tenant is entitled to an add-on:
- *   1. They paid for it       → subscriptions.addon_<slug> = true (set by the
- *      Paystack webhook), still within addon_<slug>_expires_at.
- *   2. Their plan bundles it  → plan_catalogue.included_addons contains the slug
- *      (the tier ladder that drives upgrades).
+ * Entitlement (pure rule in ./addonLogic, unit-tested):
+ *   1. Paid       → subscriptions.addon_<slug> = true (set by the Paystack
+ *      webhook), still within addon_<slug>_expires_at.
+ *   2. Bundled    → plan_catalogue.included_addons contains the slug (the tier
+ *      ladder that drives upgrades).
  *
  * Prices, names and the bundle map live in the DB (addon_catalogue /
- * plan_catalogue) and are editable from the operator console — never hardcode a
- * price in code again.
+ * plan_catalogue), editable from the operator console — never hardcode a price.
  */
 
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { ADDON_SLUGS, resolveEntitledAddons, type AddonSlug } from '@/lib/billing/addonLogic'
 
-export const ADDON_SLUGS = ['ring', 'reach', 'sage', 'languages', 'client_portal'] as const
-export type AddonSlug = (typeof ADDON_SLUGS)[number]
-
-export function isAddonSlug(s: string): s is AddonSlug {
-  return (ADDON_SLUGS as readonly string[]).includes(s)
-}
-
-/** The subscriptions boolean column that the Paystack webhook flips on payment. */
-export const addonColumn = (s: AddonSlug) => `addon_${s}` as const
-/** The env var holding this add-on's live Paystack plan code (hub-side). */
-export const addonPlanEnv = (s: AddonSlug) => `PAYSTACK_PLAN_ADMINOS_${s.toUpperCase()}`
+export { ADDON_SLUGS, isAddonSlug, addonColumn, addonPlanEnv, type AddonSlug } from '@/lib/billing/addonLogic'
 
 /**
  * Every add-on a tenant is currently entitled to — paid (active, unexpired) plus
- * whatever their plan bundles. This is the one function gates and UI should use.
+ * whatever their plan bundles. The one function gates and UI should use.
  */
 export async function getEffectiveAddons(tenantId: string): Promise<AddonSlug[]> {
   const [tenantRes, subRes] = await Promise.all([
@@ -41,9 +31,7 @@ export async function getEffectiveAddons(tenantId: string): Promise<AddonSlug[]>
     supabaseAdmin.from('subscriptions').select('*').eq('tenant_id', tenantId).eq('status', 'active').maybeSingle(),
   ])
 
-  const entitled = new Set<AddonSlug>()
-
-  // 1. Bundled by plan
+  let includedByPlan: string[] = []
   const plan = tenantRes.data?.plan as string | undefined
   if (plan) {
     const { data: pc } = await supabaseAdmin
@@ -51,24 +39,10 @@ export async function getEffectiveAddons(tenantId: string): Promise<AddonSlug[]>
       .select('included_addons')
       .eq('slug', plan)
       .maybeSingle()
-    for (const s of (pc?.included_addons ?? []) as string[]) {
-      if (isAddonSlug(s)) entitled.add(s)
-    }
+    includedByPlan = (pc?.included_addons ?? []) as string[]
   }
 
-  // 2. Paid, active and not expired
-  const sub = subRes.data as Record<string, unknown> | null
-  if (sub) {
-    const now = Date.now()
-    for (const s of ADDON_SLUGS) {
-      if (sub[`addon_${s}`] === true) {
-        const exp = sub[`addon_${s}_expires_at`] as string | null | undefined
-        if (!exp || new Date(exp).getTime() > now) entitled.add(s)
-      }
-    }
-  }
-
-  return [...entitled]
+  return resolveEntitledAddons(includedByPlan, subRes.data as Record<string, unknown> | null, Date.now())
 }
 
 /** Whether a tenant is entitled to one add-on (paid or bundled). */
