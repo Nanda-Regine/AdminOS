@@ -171,8 +171,11 @@ body {
    fully legible. Swap --app-bg-image to change the texture (see /public/backgrounds).
    ------------------------------------------------------------------------- */
 :root {
-  --app-bg-image: url('/backgrounds/bg-dark.jpg');
-  --app-bg-scrim: linear-gradient(180deg, rgba(9,12,32,0.86) 0%, rgba(9,12,32,0.92) 100%);
+  /* Living indigo-blue watercolour waves — alive and blue, not severe navy.
+     Scrim is lighter + blue-tinted so the texture breathes between cards while
+     data stays AA-legible (cards are frosted glass on top). */
+  --app-bg-image: url('/backgrounds/bg-blue-waves.jpg');
+  --app-bg-scrim: linear-gradient(180deg, rgba(12,18,50,0.78) 0%, rgba(10,15,42,0.87) 100%);
 }
 .app-shell {
   position: relative;
