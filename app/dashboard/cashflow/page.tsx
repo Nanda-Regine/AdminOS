@@ -55,9 +55,9 @@ export default async function CashflowPage() {
       .neq('status', 'rejected'),
     supabaseAdmin
       .from('cashflow_forecasts')
-      .select('forecast_data, calculated_at')
+      .select('generated_at')
       .eq('tenant_id', tenantId)
-      .order('calculated_at', { ascending: false })
+      .order('generated_at', { ascending: false })
       .limit(1)
       .maybeSingle(),
   ])
@@ -156,7 +156,7 @@ export default async function CashflowPage() {
             {forecast && (
               <p className="text-xs text-[var(--text-dim)] hidden sm:block">
                 Last recalculated{' '}
-                {new Date(forecast.calculated_at).toLocaleDateString('en-ZA', {
+                {new Date(forecast.generated_at).toLocaleDateString('en-ZA', {
                   day: 'numeric', month: 'short',
                 })}
               </p>
