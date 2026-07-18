@@ -13,7 +13,7 @@ import type { LucideIcon } from 'lucide-react'
 import {
   LayoutDashboard, Activity, Receipt, TrendingUp, Wallet, Banknote,
   MessageSquare, Users, Radio, Phone, Zap, PenLine,
-  CalendarDays, CalendarClock, Package, ClipboardList, FileText,
+  CalendarDays, CalendarClock, Package, Boxes, ClipboardList, FileText,
   UserCircle2, UsersRound, Scale, BookOpen,
   FileSignature, ShieldCheck, Gauge, HeartPulse, BarChart3, Landmark,
   GraduationCap, Library, HandHeart, PiggyBank, Megaphone,
@@ -67,6 +67,7 @@ export const FEATURES: Feature[] = [
   { href: '/dashboard/email-studio', label: 'Email Studio', icon: PenLine,       category: 'Win Work' },
 
   // ── Deliver (Ops) ─────────────────────────────────────────────────────────
+  { href: '/dashboard/ops',       label: 'Ops Cockpit', icon: Boxes,       category: 'Deliver' },
   { href: '/dashboard/bookings',  label: 'Bookings',  icon: CalendarClock, category: 'Deliver' },
   { href: '/dashboard/calendar',  label: 'Calendar',  icon: CalendarDays,  category: 'Deliver' },
   { href: '/dashboard/inventory', label: 'Inventory', icon: Package,       category: 'Deliver' },
