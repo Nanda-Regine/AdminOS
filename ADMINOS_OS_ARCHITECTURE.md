@@ -111,7 +111,14 @@ Each is built to the **same vertical-slice contract**: Schema → pure services 
   - **Lead** — "The Bookkeeper" opens pre-briefed (deterministic, fast, free) + one-click.
   - **Act (arsenal)** — new invoice · **VAT201 working paper** + **Xero/Sage journal CSV** exports (`lib/money/exports.ts` + `/api/money/export`) · cashflow forecast.
   - **Visual objects** — vital-sign tiles, the AR-aging collections pipeline (funnel), chase-first list.
-  - **THE REPLICATION RECIPE (copy per domain):** `lib/{domain}/signal.ts` (`build{Domain}Intel` + `refresh{Domain}Signal`) → a persona-led cockpit page (`/dashboard/{domain}`) → arsenal actions → publish signal. Next: **Ops** (inventory/bookings → no stockouts / no no-shows), **Sales** (pipeline/sentiment), **People**, **Governance**.
-- ⏭ Still to wire: signal-refresh cron (fan `refresh{Domain}Signal` over active tenants); the "Send reminders" one-click → the notification/WhatsApp spine (currently links to the recovery queue).
+  - **THE REPLICATION RECIPE (copy per domain):** `lib/{domain}/signal.ts` (`build{Domain}Intel` + `refresh{Domain}Signal`) → a persona-led cockpit page (`/dashboard/{domain}`) → arsenal actions → publish signal.
+- **ALL SIX DOMAIN COCKPITS SHIPPED** — every domain is now a complete system, persona-led, publishing to the signal bus:
+  - **Money** (`/dashboard/money`, The Bookkeeper) — AR aging pipeline, net/runway, VAT201 + journal exports.
+  - **Ops** (`/dashboard/ops`, The Operator) — stock readiness, today's schedule, work-in-flight. → no stockouts, zero no-shows.
+  - **Sales** (`/dashboard/sales`, The Closer) — pipeline, respond-first (negative sentiment), going-cold contacts. → win more, retain.
+  - **People** (`/dashboard/people`, The People Lead) — approvals waiting, wellness, open IR.
+  - **Governance** (`/dashboard/governance`, The Advisor) — health score, compliance deadlines, contracts, valuation.
+  - Each registered atop its value-chain nav category. `refresh{Domain}Signal()` ready to fan over tenants from a cron.
+- ⏭ Still to wire: signal-refresh cron (fan `refresh{Domain}Signal` over active tenants so cockpits/Command-Center signals stay warm without a page load); the "Send reminders"/approval one-click → the notification/WhatsApp spine + tenant autonomy config (currently link to the relevant page).
 
 *Cross-references: [[operating-system-vision]] · [[ux-excellence-roadmap]] · [[design-system-dark]]. Repos studied are the founder's own (JarvisOS public, BB-MotherShip-Deluxe private) — patterns adopted, not code lifted wholesale.*
