@@ -17,7 +17,7 @@ import {
   UserCircle2, UsersRound, Scale, BookOpen,
   FileSignature, ShieldCheck, Gauge, HeartPulse, BarChart3, Landmark,
   GraduationCap, Library, HandHeart, PiggyBank, Megaphone,
-  Puzzle, CreditCard, Settings,
+  Puzzle, CreditCard, Settings, Bot,
 } from 'lucide-react'
 
 export type FeatureCategory =
@@ -98,6 +98,7 @@ export const FEATURES: Feature[] = [
   { href: '/dashboard/stokvel',        label: 'Stokvel',           icon: PiggyBank,     category: 'Grow' },
 
   // ── Setup (footer) ────────────────────────────────────────────────────────
+  { href: '/dashboard/settings/autonomy', label: 'Autonomy',    icon: Bot,        category: 'Setup' },
   { href: '/dashboard/integrations',     label: 'Integrations', icon: Puzzle,     category: 'Setup' },
   { href: '/dashboard/settings/billing', label: 'Billing',      icon: CreditCard, category: 'Setup' },
   { href: '/dashboard/settings',         label: 'Settings',     icon: Settings,   category: 'Setup' },
