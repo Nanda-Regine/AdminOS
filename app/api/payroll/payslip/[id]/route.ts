@@ -11,7 +11,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new NextResponse('Unauthorized', { status: 401 })
 
-  const tenantId = user.user_metadata?.tenant_id as string
+  const tenantId = user.app_metadata?.tenant_id as string
   if (!tenantId) return new NextResponse('No tenant', { status: 400 })
 
   const { id } = await params
@@ -29,12 +29,27 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
   if (error || !payslip) return new NextResponse('Not found', { status: 404 })
 
-  // Employees can only view their own payslip
-  const isManager = ['admin', 'hr_manager', 'owner'].includes(user.user_metadata?.role ?? '')
+  // Employees can only view their own payslip.
+  //
+  // This used to compare against user_metadata.staff_id — a value the user owns
+  // and can rewrite, and which nothing in the codebase ever wrote. Any staff
+  // member could set it to a colleague's staff id and read that colleague's
+  // salary. The caller's staff record is now resolved from the DB via
+  // staff.user_id (unique per tenant), which they cannot forge.
+  const isManager = ['admin', 'hr_manager', 'owner'].includes(user.app_metadata?.role ?? '')
   const staffRecord = payslip.staff as Record<string, unknown> | null
 
-  if (!isManager && staffRecord?.id !== user.user_metadata?.staff_id) {
-    return new NextResponse('Forbidden', { status: 403 })
+  if (!isManager) {
+    const { data: ownStaff } = await supabaseAdmin
+      .from('staff')
+      .select('id')
+      .eq('tenant_id', tenantId)
+      .eq('user_id', user.id)
+      .maybeSingle()
+
+    if (!ownStaff || staffRecord?.id !== ownStaff.id) {
+      return new NextResponse('Forbidden', { status: 403 })
+    }
   }
 
   const { data: tenant } = await supabaseAdmin

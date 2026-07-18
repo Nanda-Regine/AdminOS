@@ -86,13 +86,21 @@ CREATE OR REPLACE FUNCTION set_updated_at()
 RETURNS TRIGGER LANGUAGE plpgsql AS $$
 BEGIN NEW.updated_at = NOW(); RETURN NEW; END $$;
 
--- Reads tenant_id from Supabase JWT — checks both user_metadata and top-level claim
+-- Reads tenant_id from the JWT's app_metadata — service-role writable only.
+-- NEVER read tenant_id from user_metadata: the user owns that object and can
+-- rewrite it via supabase.auth.updateUser(), which made every RLS policy below
+-- spoofable. See migrations/20260717_phase0_tenant_isolation.sql.
+-- Returns NULL when absent, which denies access by design. Do not add a fallback.
 CREATE OR REPLACE FUNCTION current_tenant_id()
 RETURNS uuid LANGUAGE sql STABLE SECURITY DEFINER AS $$
-  SELECT COALESCE(
-    (auth.jwt() -> 'user_metadata' ->> 'tenant_id')::uuid,
-    (auth.jwt() ->> 'tenant_id')::uuid
-  )
+  SELECT NULLIF(auth.jwt() -> 'app_metadata' ->> 'tenant_id', '')::uuid
+$$;
+
+-- Coarse role hint for RLS policies. The authoritative permission check is the
+-- user_roles table via lib/auth/context.ts — not this.
+CREATE OR REPLACE FUNCTION current_user_role()
+RETURNS text LANGUAGE sql STABLE SECURITY DEFINER AS $$
+  SELECT auth.jwt() -> 'app_metadata' ->> 'role'
 $$;
 
 

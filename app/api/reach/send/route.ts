@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Reach add-on required' }, { status: 402 })
   }
 
-  const tenantId = user.user_metadata?.tenant_id as string
+  const tenantId = user.app_metadata?.tenant_id as string
 
   let campaignId: string
   try {

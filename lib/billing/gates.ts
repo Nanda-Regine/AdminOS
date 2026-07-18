@@ -19,12 +19,23 @@ const PLAN_RANK: Record<Plan, number> = {
   trial: 0, starter: 1, growth: 2, enterprise: 3, white_label: 4,
 }
 
+/**
+ * NOTE (Phase 0, 2026-07-17): currently unused — nothing imports requirePlan or
+ * hasPlan; only requireAddon/hasAddon are live. Left in place but be aware the
+ * Plan union here (trial/starter/growth/enterprise) is the OLD pricing and no
+ * longer matches tenants.plan in the DB (solo/grow/operate/scale/partner). If
+ * you wire this up, PLAN_RANK[plan] will be undefined for every real tenant and
+ * the comparison below silently passes. Use planGates.requireAdminOSPlan()
+ * instead — it reads the plan from the tenants table.
+ */
 export async function requirePlan(minPlan: Plan): Promise<void> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new BillingError('Unauthorized', 'plan_required', minPlan)
 
-  const plan = (user.user_metadata?.plan ?? 'trial') as Plan
+  // app_metadata, not user_metadata: the user can rewrite user_metadata and
+  // would otherwise just grant themselves the top tier.
+  const plan = (user.app_metadata?.plan ?? 'trial') as Plan
   if (PLAN_RANK[plan] < PLAN_RANK[minPlan]) {
     throw new BillingError(
       `This feature requires the ${minPlan} plan or higher.`,
@@ -39,7 +50,7 @@ export async function requireAddon(addon: Addon): Promise<void> {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new BillingError('Unauthorized', 'addon_required', undefined, addon)
 
-  const tenantId = user.user_metadata?.tenant_id as string
+  const tenantId = user.app_metadata?.tenant_id as string
   if (!tenantId) throw new BillingError('No tenant', 'addon_required', undefined, addon)
 
   const { data: sub } = await supabase

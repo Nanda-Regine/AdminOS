@@ -1,18 +1,15 @@
 export const dynamic = 'force-dynamic'
 
-import { headers } from 'next/headers'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { supabaseAdmin } from '@/lib/supabase/admin'
-
-async function verifyOperatorAccess() {
-  const hdrs = await headers()
-  const secret = hdrs.get('x-operator-secret') ?? hdrs.get('X-Operator-Secret')
-  return secret === process.env.OPERATOR_SECRET && !!process.env.OPERATOR_SECRET
-}
+import { requireSuperAdmin } from '@/lib/auth/context'
 
 export default async function OperatorPage() {
-  if (!await verifyOperatorAccess()) notFound()
+  // Gated on the admins table via the one super-admin gate — was an
+  // x-operator-secret header no browser sends, which made this page 404 for
+  // everyone including operators. notFound() keeps the surface invisible.
+  if (!await requireSuperAdmin()) notFound()
 
   const { data: tenants } = await supabaseAdmin
     .from('tenants')

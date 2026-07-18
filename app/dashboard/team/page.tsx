@@ -13,7 +13,7 @@ export default async function TeamPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const tenantId = user.user_metadata?.tenant_id as string
+  const tenantId = user.app_metadata?.tenant_id as string
 
   // Use SAST (UTC+2) for date calculations — clocking happens in South African time
   const sast = new Date(Date.now() + 2 * 3600000)

@@ -13,7 +13,7 @@ export async function GET(_req: Request, { params }: Params) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new NextResponse('Unauthorized', { status: 401 })
 
-  const tenantId = user.user_metadata?.tenant_id as string
+  const tenantId = user.app_metadata?.tenant_id as string
   const { data, error } = await supabase
     .from('email_drafts')
     .select('*')
@@ -31,7 +31,7 @@ export async function PATCH(request: Request, { params }: Params) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new NextResponse('Unauthorized', { status: 401 })
 
-  const tenantId = user.user_metadata?.tenant_id as string
+  const tenantId = user.app_metadata?.tenant_id as string
   const body = await request.json()
 
   const { data, error } = await supabase
@@ -54,7 +54,7 @@ export async function POST(request: Request, { params }: Params) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new NextResponse('Unauthorized', { status: 401 })
 
-  const tenantId = user.user_metadata?.tenant_id as string
+  const tenantId = user.app_metadata?.tenant_id as string
   const body = await request.json()
 
   try { sendSchema.parse(body) } catch {
@@ -93,7 +93,7 @@ export async function DELETE(_req: Request, { params }: Params) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new NextResponse('Unauthorized', { status: 401 })
 
-  const tenantId = user.user_metadata?.tenant_id as string
+  const tenantId = user.app_metadata?.tenant_id as string
   await supabase.from('email_drafts').delete().eq('id', id).eq('tenant_id', tenantId)
   return new NextResponse(null, { status: 204 })
 }

@@ -16,7 +16,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Ring add-on required' }, { status: 402 })
   }
 
-  const tenantId = user.user_metadata?.tenant_id as string
+  const tenantId = user.app_metadata?.tenant_id as string
   const url      = new URL(request.url)
   const limit    = Math.min(Number(url.searchParams.get('limit') || '50'), 200)
   const page     = Number(url.searchParams.get('page') || '1')

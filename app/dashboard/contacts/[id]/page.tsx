@@ -105,7 +105,7 @@ export default async function ContactDetailPage({
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const tenantId = user.user_metadata?.tenant_id as string
+  const tenantId = user.app_metadata?.tenant_id as string
 
   const [contactRes, convsRes, invoicesRes] = await Promise.all([
     supabaseAdmin

@@ -11,7 +11,7 @@ export async function GET(_req: Request, { params }: Params) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new NextResponse('Unauthorized', { status: 401 })
 
-  const tenantId = user.user_metadata?.tenant_id as string
+  const tenantId = user.app_metadata?.tenant_id as string
 
   const { data, error } = await supabase
     .from('documents')
@@ -30,7 +30,7 @@ export async function DELETE(_req: Request, { params }: Params) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new NextResponse('Unauthorized', { status: 401 })
 
-  const tenantId = user.user_metadata?.tenant_id as string
+  const tenantId = user.app_metadata?.tenant_id as string
 
   const { data: doc } = await supabase
     .from('documents')

@@ -1,23 +1,18 @@
 export const dynamic = 'force-dynamic'
 
-import { headers } from 'next/headers'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { requireSuperAdmin } from '@/lib/auth/context'
 import { getUsage } from '@/lib/billing/usage'
 
 interface Props {
   params: Promise<{ tenantId: string }>
 }
 
-async function verifyOperatorAccess() {
-  const hdrs = await headers()
-  const secret = hdrs.get('x-operator-secret') ?? hdrs.get('X-Operator-Secret')
-  return secret === process.env.OPERATOR_SECRET && !!process.env.OPERATOR_SECRET
-}
-
 export default async function OperatorTenantPage({ params }: Props) {
-  if (!await verifyOperatorAccess()) notFound()
+  // Gated on the admins table via the one super-admin gate (see /operator).
+  if (!await requireSuperAdmin()) notFound()
 
   const { tenantId } = await params
 

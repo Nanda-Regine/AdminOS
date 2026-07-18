@@ -7,7 +7,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new NextResponse('Unauthorized', { status: 401 })
 
-  const tenantId = user.user_metadata?.tenant_id as string
+  const tenantId = user.app_metadata?.tenant_id as string
   if (!tenantId) return new NextResponse('No tenant', { status: 400 })
 
   const { id } = await params

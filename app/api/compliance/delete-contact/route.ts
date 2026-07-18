@@ -13,11 +13,11 @@ export async function POST(request: Request) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new NextResponse('Unauthorized', { status: 401 })
 
-  const tenantId = user.user_metadata?.tenant_id as string
+  const tenantId = user.app_metadata?.tenant_id as string
   if (!tenantId) return new NextResponse('Tenant not found', { status: 403 })
 
   // Only admin users should be able to delete contact data
-  const role = user.user_metadata?.role as string
+  const role = user.app_metadata?.role as string
   if (role !== 'admin' && role !== 'owner' && role !== 'super_admin') {
     return new NextResponse('Forbidden — admin access required', { status: 403 })
   }

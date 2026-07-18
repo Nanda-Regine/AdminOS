@@ -31,8 +31,8 @@ const addons = [
     tagBorder: 'rgba(139,92,246,.25)',
     cardBg: 'rgba(139,92,246,.05)',
     cardBorder: 'rgba(139,92,246,.18)',
-    desc: 'Full SA payroll inside AdminOS — PAYE, UIF, and SDL calculated to SARS spec. Payslips delivered to staff via WhatsApp. EMP201 summary generated monthly.',
-    bullets: ['PAYE / UIF / SDL auto-calculated', 'WhatsApp payslip delivery', 'EMP201 monthly summary', 'Audit-ready payroll runs'],
+    desc: 'Run payroll in one place — AdminOS works out PAYE, UIF and SDL from the SARS rates you confirm, you check the figures, and payslips go to staff on WhatsApp. Monthly EMP201 summary for you to file.',
+    bullets: ['PAYE / UIF / SDL worked out from rates you confirm', 'WhatsApp payslip delivery', 'EMP201 summary to file yourself', 'Every run kept on record'],
     price: 'R299/mo',
   },
   {
@@ -64,45 +64,15 @@ const addons = [
   {
     icon: '✍️',
     name: 'eSignature',
-    tag: 'ECTA Compliant',
+    tag: 'Signatures',
     tagColor: '#F97316',
     tagBg: 'rgba(249,115,22,.1)',
     tagBorder: 'rgba(249,115,22,.25)',
     cardBg: 'rgba(249,115,22,.05)',
     cardBorder: 'rgba(249,115,22,.18)',
-    desc: 'Legally binding digital signatures on contracts, proposals, and employment agreements — compliant with South Africa\'s Electronic Communications and Transactions Act.',
-    bullets: ['ECTA-compliant signatures', 'Sign via link (no account needed)', 'Immutable audit trail', 'Auto-archive to document store'],
+    desc: 'Send contracts, proposals and employment agreements for signature, and keep every signed copy with a full audit trail of who signed what, and when.',
+    bullets: ['Sign via link (no account needed)', 'Audit trail on every signature', 'Auto-archive to document store', 'Built around the ECT Act'],
     price: 'R149/mo',
-  },
-]
-
-const testimonials = [
-  {
-    quote: "Chase recovered R43,000 in outstanding invoices in our first month. I used to spend three days a week on follow-ups. Now I check a dashboard.",
-    name: 'Thabo Dlamini',
-    role: 'Director',
-    company: 'Dlamini Attorneys',
-    location: 'Johannesburg',
-    initials: 'TD',
-    color: '#F97316',
-  },
-  {
-    quote: "Our clinic was losing patients to slow WhatsApp responses. Alex now handles 80% of appointment queries overnight. Our booking rate doubled in six weeks.",
-    name: 'Dr. Zanele Khumalo',
-    role: 'Practice Owner',
-    company: 'Khumalo Family Clinic',
-    location: 'Durban',
-    initials: 'ZK',
-    color: '#06B6D4',
-  },
-  {
-    quote: "The morning brief at 5 AM changed how I run my business. I walk into the office knowing exactly which driver is overdue, which client needs attention, and what the rand did overnight.",
-    name: 'Sipho Nkosi',
-    role: 'MD',
-    company: 'Nkosi Logistics',
-    location: 'Cape Town',
-    initials: 'SN',
-    color: '#a78bfa',
   },
 ]
 
@@ -550,20 +520,20 @@ export default function HomePage() {
               <div>
                 <div className="fu" style={{ animationDelay: '.1s', display: 'inline-flex', alignItems: 'center', gap: 8, background: 'var(--orange-dim)', border: '1px solid var(--orange-border)', borderRadius: 100, padding: '6px 16px', fontSize: 13, color: 'var(--orange)', marginBottom: 28 }}>
                   <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--orange)', display: 'inline-block', animation: 'pulse 2s ease-in-out infinite' }} />
-                  Built for South African Business · POPIA Compliant
+                  Built for South African business
                 </div>
 
                 <h1 className="fu" style={{ animationDelay: '.2s', fontSize: 'clamp(42px, 5.5vw, 72px)', fontWeight: 900, lineHeight: 1.02, letterSpacing: '-2.5px', marginBottom: 22 }}>
-                  Your business<br />
-                  <span className="shimmer-text">runs itself.</span>
+                  Your whole business.<br />
+                  <span className="shimmer-text">One workspace.</span>
                 </h1>
 
                 <p className="fu" style={{ animationDelay: '.3s', fontSize: 18, lineHeight: 1.65, color: 'var(--dim)', marginBottom: 10, maxWidth: 490 }}>
-                  6 AI agents handle WhatsApp, debt recovery, staff wellness, documents, daily insights, and content — plus payroll, compliance, operations, and a business academy. From R349/month.
+                  Invoices, payroll, staff, contracts, bookings, documents and compliance dates — organised in one place, with AI that drafts the admin so you can check it and move on. From R349/month.
                 </p>
 
                 <p className="fu" style={{ animationDelay: '.35s', fontSize: 14, color: 'var(--orange)', fontWeight: 700, marginBottom: 32 }}>
-                  Average client replaces <strong>R15,000/month</strong> in tools and outsourced services.
+                  One workspace instead of a folder, a spreadsheet, a chat thread, and three apps.
                 </p>
 
                 <div className="fu hero-ctas" style={{ animationDelay: '.45s', display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
@@ -578,7 +548,7 @@ export default function HomePage() {
                 </div>
 
                 <p className="fu" style={{ animationDelay: '.5s', fontSize: 13, color: 'var(--dimmest)' }}>
-                  No credit card · Live in 15 minutes · Cancel anytime
+                  No credit card · Cancel anytime · Your data is yours to export
                 </p>
               </div>
 
@@ -662,10 +632,10 @@ export default function HomePage() {
           {/* ── ROI table ───────────────────────────────────────────────── */}
           <section className="max-w-5xl mx-auto px-6 py-24">
             <div style={{ textAlign: 'center', marginBottom: 48 }}>
-              <p style={{ color: 'var(--orange)', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 12 }}>Return on investment</p>
-              <h2 style={{ fontSize: 'clamp(28px, 4vw, 46px)', fontWeight: 800, letterSpacing: '-1.5px', marginBottom: 16 }}>Replace R15,000/month<br />with one platform</h2>
+              <p style={{ color: 'var(--orange)', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 12 }}>What it replaces</p>
+              <h2 style={{ fontSize: 'clamp(28px, 4vw, 46px)', fontWeight: 800, letterSpacing: '-1.5px', marginBottom: 16 }}>One workspace<br />instead of eight subscriptions</h2>
               <p style={{ color: 'var(--dim)', maxWidth: 480, margin: '0 auto', lineHeight: 1.6 }}>
-                AdminOS Operate at <strong style={{ color: '#fff' }}>R1,999/month</strong> replaces over <strong style={{ color: 'var(--orange)' }}>R15,000/month</strong> in tools, services, and admin time.
+                Here is what South African businesses typically pay to cover the same ground, at each tool&rsquo;s advertised price. AdminOS Operate is <strong style={{ color: '#fff' }}>R1,999/month</strong>.
               </p>
             </div>
 
@@ -684,13 +654,15 @@ export default function HomePage() {
                 </div>
               ))}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', padding: '16px 24px', alignItems: 'center', background: 'rgba(249,115,22,.06)', borderTop: '1px solid rgba(249,115,22,.15)' }}>
-                <span style={{ fontWeight: 800 }}>Total saved</span>
+                <span style={{ fontWeight: 800 }}>Combined</span>
                 <span style={{ textAlign: 'center', fontWeight: 800, color: '#f87171', textDecoration: 'line-through' }}>R15,000/mo</span>
                 <span style={{ textAlign: 'right', fontWeight: 800, color: 'var(--orange)' }}>AdminOS Operate: R1,999/mo</span>
               </div>
             </div>
             </div>
-            <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--dimmest)', marginTop: 16 }}>ROI from month one. No setup cost on Grow, Operate, and Scale tiers.</p>
+            <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--dimmest)', marginTop: 16, maxWidth: 620, marginLeft: 'auto', marginRight: 'auto', lineHeight: 1.6 }}>
+              Based on the advertised list prices of comparable tools, not a measured client average. What you actually spend today depends on which of these you use. No setup cost on Grow, Operate, and Scale tiers.
+            </p>
           </section>
 
           {/* ── 6 Agents ────────────────────────────────────────────────── */}
@@ -1158,9 +1130,9 @@ export default function HomePage() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 32 }}>
                     {[
                       { icon: '📚', title: '200+ frameworks & books', desc: 'Built from African business classics + global playbooks. SA Labour Law, Ubuntu Leadership, Cash Flow Mastery.' },
-                      { icon: '🎯', title: 'Contextual advice', desc: 'Langa reads your health score, revenue trend, and team pulse before answering any question.' },
+                      { icon: '🎯', title: 'Knows your numbers', desc: 'Langa can see your own health score, revenue trend, and team pulse, so you are not re-explaining your business every time you ask something.' },
                       { icon: '🏆', title: 'Achievement system', desc: 'Earn badges as your business grows. Complete the Pricing Audit → unlock the Pitch Deck framework.' },
-                      { icon: '🛤️', title: 'SETA-aligned pathways', desc: 'For businesses ready to formalise — NQF-aligned learning tracks, CPD points, and accreditation guides.' },
+                      { icon: '🛤️', title: 'Formalisation reading', desc: 'For businesses getting ready to formalise — plain-language material on what registration and accreditation actually involve.' },
                     ].map(item => (
                       <div key={item.title} style={{ display: 'flex', gap: 14 }}>
                         <div style={{ fontSize: 20, flexShrink: 0, marginTop: 2 }}>{item.icon}</div>
@@ -1241,37 +1213,6 @@ export default function HomePage() {
             </div>
           </section>
 
-          {/* ── Testimonials ────────────────────────────────────────────── */}
-          <section style={{ background: 'rgba(255,255,255,.012)', borderTop: '1px solid rgba(255,255,255,.05)', borderBottom: '1px solid rgba(255,255,255,.05)', padding: '96px 24px' }}>
-            <div className="max-w-6xl mx-auto">
-              <div style={{ textAlign: 'center', marginBottom: 56 }}>
-                <p style={{ color: 'var(--teal)', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 12 }}>Client stories</p>
-                <h2 style={{ fontSize: 'clamp(26px, 3.5vw, 44px)', fontWeight: 900, letterSpacing: '-1.5px' }}>South African businesses, real results</h2>
-              </div>
-              <div style={{ display: 'grid', gap: 24 }} className="agents-grid testimonials-grid">
-                {testimonials.map((t, i) => (
-                  <div key={t.name} className="fu card" style={{ animationDelay: `${i * .1}s`, background: 'rgba(255,255,255,.025)', border: '1px solid rgba(255,255,255,.07)', borderRadius: 20, padding: 28, display: 'flex', flexDirection: 'column', gap: 20 }}>
-                    {/* Stars */}
-                    <div style={{ display: 'flex', gap: 3 }}>
-                      {[...Array(5)].map((_, si) => (
-                        <svg key={si} width="14" height="14" viewBox="0 0 24 24" fill={t.color}><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                      ))}
-                    </div>
-                    <p style={{ fontSize: 15, color: 'rgba(255,255,255,.75)', lineHeight: 1.7, fontStyle: 'italic', flex: 1 }}>&ldquo;{t.quote}&rdquo;</p>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <div style={{ width: 42, height: 42, borderRadius: '50%', background: `linear-gradient(135deg, ${t.color}, ${t.color}99)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 14, color: '#fff', flexShrink: 0 }}>{t.initials}</div>
-                      <div>
-                        <div style={{ fontWeight: 700, fontSize: 14 }}>{t.name}</div>
-                        <div style={{ fontSize: 12, color: 'var(--dimmer)' }}>{t.role}, {t.company}</div>
-                        <div style={{ fontSize: 11, color: 'var(--dimmest)', marginTop: 1 }}>{t.location}</div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-
           {/* ── Ubuntu & Economic Liberation ────────────────────────────── */}
           <section style={{ background: 'rgba(167,139,250,.04)', borderTop: '1px solid rgba(167,139,250,.1)', borderBottom: '1px solid rgba(167,139,250,.1)', padding: '96px 24px' }}>
             <div className="max-w-6xl mx-auto">
@@ -1288,7 +1229,7 @@ export default function HomePage() {
                   </p>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 32 }}>
                     {[
-                      { val: 'R76B', label: 'Informal stokvel economy — fully managed' },
+                      { val: 'R76B', label: 'Informal stokvel economy — built for how it already works' },
                       { val: '3.3M', label: 'Township businesses in SA needing tools built for them' },
                       { val: '68%', label: 'Women-owned businesses in AdminOS\'s target market' },
                       { val: '15min', label: 'Time to go live, even without IT support' },
@@ -1303,9 +1244,9 @@ export default function HomePage() {
                 {/* Right: Ubuntu features list */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                   {[
-                    { icon: '🤝', title: 'Stokvel group management', desc: 'Track contributions, rotations, payouts, and member standings for informal savings groups.' },
-                    { icon: '📋', title: 'Formalization pathway', desc: 'Step-by-step guide from unregistered business → CIPC registration → B-BBEE Level 2 → SARS compliant.' },
-                    { icon: '📊', title: 'B-BBEE scorecard automation', desc: 'Capture qualifying spend, employment equity data, and ownership automatically. Board pack ready.' },
+                    { icon: '🤝', title: 'Stokvel group records', desc: 'Keep track of who contributed what, whose turn is next, and where each member stands. Members handle the money between themselves — AdminOS keeps the book.' },
+                    { icon: '📋', title: 'Formalisation checklist', desc: 'Work through the steps from unregistered business → CIPC registration → B-BBEE → SARS, and tick off what you have done.' },
+                    { icon: '📊', title: 'B-BBEE evidence in one place', desc: 'Capture qualifying spend, employment equity data, and ownership as you go, so your verification agency is not a scramble.' },
                     { icon: '🌐', title: 'Community knowledge board', desc: 'Share supplier wins, client red flags, and pricing benchmarks with vetted local peers.' },
                     { icon: '👥', title: 'Peer mentorship network', desc: 'Match with experienced business owners in your sector through the AdminOS community.' },
                     { icon: '🔆', title: 'Load-shedding resilience', desc: 'Offline mode, SMS fallback for WhatsApp, and auto-reschedule reminders around Eskom schedules.' },
@@ -1326,7 +1267,7 @@ export default function HomePage() {
           {/* ── How it works ────────────────────────────────────────────── */}
           <section className="max-w-4xl mx-auto px-6 py-24 text-center">
             <p style={{ color: 'var(--orange)', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 12 }}>Getting started</p>
-            <h2 style={{ fontSize: 'clamp(26px, 3vw, 42px)', fontWeight: 800, letterSpacing: '-1px', marginBottom: 56 }}>Live in 15 minutes</h2>
+            <h2 style={{ fontSize: 'clamp(26px, 3vw, 42px)', fontWeight: 800, letterSpacing: '-1px', marginBottom: 56 }}>Three steps to your workspace</h2>
             <div className="steps-grid">
               {[
                 { step: '01', title: 'Connect your WhatsApp', desc: 'Link your existing number via Meta WhatsApp Cloud API. 3 minutes. No new SIM or number needed.' },
@@ -1353,7 +1294,7 @@ export default function HomePage() {
                 {[
                   { icon: '🔋', title: 'Load-shedding resilient', desc: "PWA with offline capability. Queued actions retry when power returns. WhatsApp bot stays live on Meta's infrastructure during outages." },
                   { icon: '🗣️', title: '11 SA languages', desc: "English, Zulu, Xhosa, Afrikaans, Setswana, Sesotho, and more. AI detects your customer's language and responds in kind — automatically." },
-                  { icon: '🔒', title: 'POPIA compliant', desc: "Built to South Africa's Protection of Personal Information Act. Right-to-erasure, immutable audit trail, RLS enforcement, full compliance centre." },
+                  { icon: '🔒', title: 'Built for POPIA', desc: "Designed around South Africa's Protection of Personal Information Act — right-to-erasure, audit trail, per-tenant data isolation, and a compliance centre. Compliance is yours to determine; we build the tooling for it." },
                 ].map((item) => (
                   <div key={item.title} className="card" style={{ background: 'rgba(255,255,255,.02)', border: '1px solid rgba(255,255,255,.07)', borderRadius: 20, padding: 24 }}>
                     <div style={{ fontSize: 32, marginBottom: 12 }}>{item.icon}</div>
@@ -1368,7 +1309,7 @@ export default function HomePage() {
           {/* ── Industries ──────────────────────────────────────────────── */}
           <section style={{ borderBottom: '1px solid rgba(255,255,255,.05)', padding: '64px 24px' }}>
             <div className="max-w-5xl mx-auto text-center">
-              <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--dimmer)', marginBottom: 28 }}>Trusted across South African industries</h2>
+              <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--dimmer)', marginBottom: 28 }}>Built for South African industries</h2>
               <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 10 }}>
                 {industries.map((ind, i) => (
                   <div key={ind} className="fi card" style={{ animationDelay: `${i * .04}s`, background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.07)', borderRadius: 100, padding: '10px 20px', fontSize: 14, color: 'rgba(255,255,255,.55)', cursor: 'default' }}>
@@ -1488,7 +1429,7 @@ export default function HomePage() {
                   Start 14-day free trial →
                 </Link>
               </div>
-              <p style={{ fontSize: 13, color: 'var(--dimmest)', marginTop: 20, position: 'relative' }}>14-day free trial · Live in 15 minutes · POPIA compliant</p>
+              <p style={{ fontSize: 13, color: 'var(--dimmest)', marginTop: 20, position: 'relative' }}>14-day free trial · No credit card · Built for POPIA</p>
             </div>
           </section>
 
@@ -1542,7 +1483,7 @@ export default function HomePage() {
             <div style={{ borderTop: '1px solid rgba(255,255,255,.05)', paddingTop: 20 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--dimmest)', marginBottom: 12 }}>
                 <div style={{ width: 14, height: 14, borderRadius: '50%', background: 'var(--teal)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: 8, fontWeight: 800, flexShrink: 0 }}>✓</div>
-                <span>POPIA Compliant · Reg. No. 2026-005658 · Information Officer: N. Kabali-Kagwa ·</span>
+                <span>Built for POPIA · Reg. No. 2026-005658 · Information Officer: N. Kabali-Kagwa ·</span>
                 <Link href="/privacy" style={{ color: 'inherit', textDecoration: 'none' }} className="hover:text-white transition-colors">Privacy Policy</Link>
               </div>
               <div className="footer-bottom" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>

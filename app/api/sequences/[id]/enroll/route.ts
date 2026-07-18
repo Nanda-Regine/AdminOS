@@ -13,7 +13,7 @@ export async function POST(
   if (!user) return new NextResponse('Unauthorized', { status: 401 })
 
   const { id } = await params
-  const tenantId = user.user_metadata?.tenant_id as string
+  const tenantId = user.app_metadata?.tenant_id as string
 
   const body = await request.json() as { contact_identifier: string }
   if (!body.contact_identifier?.trim()) {

@@ -19,7 +19,7 @@ export default async function WorkflowMonitorPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const tenantId = user.user_metadata?.tenant_id as string
+  const tenantId = user.app_metadata?.tenant_id as string
 
   const [queueResult, auditResult, convResult] = await Promise.all([
     supabaseAdmin
@@ -29,7 +29,7 @@ export default async function WorkflowMonitorPage() {
       .order('created_at', { ascending: false })
       .limit(50),
     supabaseAdmin
-      .from('audit_logs')
+      .from('audit_log')
       .select('id, action, resource_type, resource_id, created_at, metadata')
       .eq('tenant_id', tenantId)
       .order('created_at', { ascending: false })

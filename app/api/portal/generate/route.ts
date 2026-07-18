@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Client Portal add-on required' }, { status: 402 })
   }
 
-  const tenantId = user.user_metadata?.tenant_id as string
+  const tenantId = user.app_metadata?.tenant_id as string
 
   const { success } = await checkRateLimit('api', `portal:generate:${tenantId}`)
   if (!success) return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 })

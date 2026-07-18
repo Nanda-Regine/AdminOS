@@ -45,7 +45,11 @@ export default function SignupPage() {
       email: form.email,
       password: form.password,
       options: {
-        data: { full_name: form.name },
+        // business_name is carried so /auth/callback can name the tenant
+        // correctly on the email-confirmation path, where this page never gets
+        // a session and cannot call create-tenant itself. Not a security claim
+        // — a user renaming their own business harms nobody.
+        data: { full_name: form.name, business_name: form.businessName || '' },
         emailRedirectTo: `${window.location.origin}/auth/callback?next=/dashboard/onboarding`,
       },
     })
@@ -66,19 +70,24 @@ export default function SignupPage() {
       return
     }
 
-    // Only create tenant if this user doesn't have one yet
-    const alreadyHasTenant = !!data.user.user_metadata?.tenant_id
-    if (!alreadyHasTenant) {
+    // Provision the tenant only when signUp returned a session (email
+    // confirmation disabled). With confirmation enabled there is no session yet,
+    // so create-tenant would 401 — /auth/callback provisions the tenant after
+    // the user confirms instead, using the business_name carried above.
+    //
+    // The route derives the user from the session and rejects a second tenant
+    // with 409, so userId/email are no longer sent — they were the mechanism
+    // that let an unauthenticated caller provision tenants against any account.
+    const alreadyHasTenant = !!data.user.app_metadata?.tenant_id
+    if (data.session && !alreadyHasTenant) {
       const res = await fetch('/api/onboarding/create-tenant', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: data.user.id,
           businessName: form.businessName || 'My Business',
-          email: form.email,
         }),
       })
-      if (!res.ok) {
+      if (!res.ok && res.status !== 409) {
         setError('Account created but business setup failed. Please contact support.')
         setLoading(false)
         return

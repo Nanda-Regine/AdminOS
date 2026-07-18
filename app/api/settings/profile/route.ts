@@ -11,7 +11,7 @@ export async function POST(request: Request) {
 
   if (!user) return new NextResponse('Unauthorized', { status: 401 })
 
-  const tenantId = user.user_metadata?.tenant_id as string
+  const tenantId = user.app_metadata?.tenant_id as string
   const body = await request.json()
 
   const { name, businessType, country, language, timezone, whatsappNumber, faqs, policies, tone, services } = body
