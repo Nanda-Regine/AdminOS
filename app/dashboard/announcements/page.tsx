@@ -4,9 +4,21 @@ import { TopBar } from '@/components/dashboard/TopBar'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { redirect } from 'next/navigation'
-import { Megaphone, Eye } from 'lucide-react'
+import { Megaphone, Eye, Pin } from 'lucide-react'
+import { CreateAnnouncementForm } from './CreateAnnouncementForm'
 
 export const dynamic = 'force-dynamic'
+
+type AnnouncementRow = {
+  id: string
+  title: string
+  body: string
+  audience: string | null
+  pinned: boolean
+  published_at: string | null
+  created_at: string
+  announcement_reads: { user_id: string }[] | null
+}
 
 export default async function AnnouncementsPage() {
   const supabase = await createClient()
@@ -15,78 +27,34 @@ export default async function AnnouncementsPage() {
 
   const tenantId = user.app_metadata?.tenant_id as string
 
+  // Real schema: pinned / audience / published_at (no priority/channels/
+  // target_roles/read_count). read count comes from the announcement_reads FK.
   const { data: announcements } = await supabaseAdmin
     .from('announcements')
-    .select('id, tenant_id, title, body, priority, channels, target_roles, read_count, created_at')
+    .select('id, title, body, audience, pinned, published_at, created_at, announcement_reads(user_id)')
     .eq('tenant_id', tenantId)
+    .order('pinned', { ascending: false })
     .order('created_at', { ascending: false })
     .limit(50)
 
-  const items = announcements || []
-  const urgentCount = items.filter((a) => a.priority === 'urgent').length
+  const items = (announcements || []) as AnnouncementRow[]
+  const pinnedCount = items.filter((a) => a.pinned).length
+
+  const audienceLabel = (a: string | null) =>
+    a === 'managers' ? 'Managers' : a === 'specific' ? 'Specific staff' : 'All staff'
 
   return (
     <div>
       <TopBar
         title="Announcements"
-        subtitle={`${items.length} total · ${urgentCount} urgent`}
+        subtitle={`${items.length} total · ${pinnedCount} pinned`}
       />
       <div className="p-6 space-y-6">
 
         {/* Create form */}
         <Card>
           <h3 className="font-semibold text-[var(--text-primary)] mb-4">Create Announcement</h3>
-          <form action="/api/announcements" method="POST" className="space-y-4">
-            <div>
-              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Title</label>
-              <input
-                type="text"
-                name="title"
-                required
-                placeholder="Announcement title..."
-                className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Message</label>
-              <textarea
-                name="body"
-                required
-                rows={4}
-                placeholder="Write your announcement here..."
-                className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
-              />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Priority</label>
-                <select
-                  name="priority"
-                  className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                >
-                  <option value="normal">Normal</option>
-                  <option value="urgent">Urgent</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Target Roles</label>
-                <input
-                  type="text"
-                  name="target_roles"
-                  placeholder="e.g. all, manager, cashier"
-                  className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                />
-              </div>
-            </div>
-            <div className="flex justify-end">
-              <button
-                type="submit"
-                className="bg-indigo-600 text-white text-sm font-semibold px-5 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
-              >
-                Publish Announcement
-              </button>
-            </div>
-          </form>
+          <CreateAnnouncementForm />
         </Card>
 
         {/* Announcements list */}
@@ -95,65 +63,42 @@ export default async function AnnouncementsPage() {
 
           {items.length === 0 ? (
             <div className="text-center py-10 text-[var(--text-dim)]">
-              <p className="text-3xl mb-2">
-                <Megaphone className="w-8 h-8 mx-auto text-[var(--text-dim)]" />
-              </p>
+              <Megaphone className="w-8 h-8 mx-auto text-[var(--text-dim)] mb-2" />
               <p className="text-sm">No announcements yet. Create one above to notify your team.</p>
             </div>
           ) : (
             <div className="space-y-3">
               {items.map((item) => {
-                const createdDate = item.created_at
-                  ? new Date(item.created_at).toLocaleDateString('en-ZA', {
-                      day: 'numeric',
-                      month: 'short',
-                      year: 'numeric',
-                    })
+                const when = item.published_at || item.created_at
+                const createdDate = when
+                  ? new Date(when).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' })
                   : '—'
-
-                const channels: string[] = Array.isArray(item.channels)
-                  ? item.channels
-                  : typeof item.channels === 'string'
-                  ? [item.channels]
-                  : []
-
-                const targetRoles: string[] = Array.isArray(item.target_roles)
-                  ? item.target_roles
-                  : typeof item.target_roles === 'string'
-                  ? [item.target_roles]
-                  : []
+                const readCount = item.announcement_reads?.length ?? 0
 
                 return (
                   <div
                     key={item.id}
-                    className={`p-4 rounded-xl border ${
-                      item.priority === 'urgent'
-                        ? 'bg-red-50 border-red-200'
-                        : 'bg-[var(--surface-2)] border-[var(--border)]'
-                    }`}
+                    className="p-4 rounded-xl border bg-[var(--surface-2)] border-[var(--border)]"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap mb-1">
                           <p className="text-sm font-semibold text-[var(--text-primary)]">{item.title}</p>
-                          <Badge variant={item.priority === 'urgent' ? 'red' : 'gray'} className="capitalize">
-                            {item.priority || 'normal'}
-                          </Badge>
+                          {item.pinned && (
+                            <Badge variant="blue">
+                              <Pin className="w-3 h-3 mr-1 inline" />Pinned
+                            </Badge>
+                          )}
                         </div>
                         <p className="text-xs text-[var(--text-muted)] mb-2 line-clamp-3">{item.body}</p>
                         <div className="flex items-center gap-4 text-xs text-[var(--text-dim)] flex-wrap">
                           <span>{createdDate}</span>
-                          {channels.length > 0 && (
-                            <span>Channels: {channels.join(', ')}</span>
-                          )}
-                          {targetRoles.length > 0 && (
-                            <span>Roles: {targetRoles.join(', ')}</span>
-                          )}
+                          <span>{audienceLabel(item.audience)}</span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-1.5 shrink-0 text-xs text-[var(--text-muted)]">
+                      <div className="flex items-center gap-1.5 shrink-0 text-xs text-[var(--text-muted)]" title="Staff who have read this">
                         <Eye className="w-3.5 h-3.5" />
-                        <span>{item.read_count ?? 0}</span>
+                        <span>{readCount}</span>
                       </div>
                     </div>
                   </div>

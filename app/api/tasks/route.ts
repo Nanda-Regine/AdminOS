@@ -28,9 +28,12 @@ export async function GET(request: Request) {
   const assignedTo = url.searchParams.get('assignedTo')
   const projectId  = url.searchParams.get('projectId')
 
+  // Note: auth.users can't be embedded through PostgREST (parse error), so the
+  // assignee is returned as the assigned_to uuid; resolve the email client-side
+  // or via a public profile join if needed.
   let query = supabaseAdmin
     .from('tasks')
-    .select('*, assigned_user:auth.users!assigned_to(email)')
+    .select('*')
     .eq('tenant_id', tenantId)
     .order('priority', { ascending: true })
     .order('due_date',  { ascending: true, nullsFirst: false })

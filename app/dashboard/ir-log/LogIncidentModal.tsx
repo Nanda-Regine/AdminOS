@@ -19,7 +19,6 @@ export function LogIncidentModal({ staff }: Props) {
   const [form, setForm] = useState({
     staffId: '',
     recordType: 'verbal_warning' as string,
-    severity: 'minor' as string,
     incidentDate: today,
     description: '',
     outcome: '',
@@ -33,7 +32,6 @@ export function LogIncidentModal({ staff }: Props) {
     setForm({
       staffId: staff[0]?.id ?? '',
       recordType: 'verbal_warning',
-      severity: 'minor',
       incidentDate: today,
       description: '',
       outcome: '',
@@ -58,7 +56,6 @@ export function LogIncidentModal({ staff }: Props) {
         body: JSON.stringify({
           staffId: form.staffId,
           recordType: form.recordType,
-          severity: form.severity,
           incidentDate: form.incidentDate,
           description: form.description.trim(),
           outcome: form.outcome.trim() || undefined,
@@ -125,20 +122,6 @@ export function LogIncidentModal({ staff }: Props) {
             </select>
           </FormField>
 
-          <FormField label="Severity">
-            <select
-              className={inputCls}
-              style={inputSty}
-              value={form.severity}
-              onChange={(e) => set('severity', e.target.value)}
-              required
-            >
-              <option value="minor">Minor</option>
-              <option value="major">Major</option>
-              <option value="gross">Gross</option>
-            </select>
-          </FormField>
-
           <FormField label="Incident Date">
             <input
               type="date"
@@ -174,7 +157,7 @@ export function LogIncidentModal({ staff }: Props) {
           </FormField>
 
           {error && (
-            <p className="text-sm text-red-500 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+            <p className="text-sm rounded-lg px-3 py-2" style={{ color: '#F87171', background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)' }}>
               {error}
             </p>
           )}

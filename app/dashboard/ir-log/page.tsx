@@ -26,49 +26,32 @@ export default async function IRLogPage() {
     .eq('tenant_id', tenantId)
     .order('full_name')
 
+  // Real disciplinary_records schema: record_type / incident_date /
+  // acknowledged_at (no severity or status columns). type:record_type and
+  // date:incident_date are aliased so the render reads naturally; a case is
+  // "open" until the staff member has acknowledged it.
   const { data: records } = await supabaseAdmin
     .from('disciplinary_records')
-    .select('id, staff_id, type, severity, description, date, outcome, status, created_at, staff(full_name)')
+    .select('id, staff_id, type:record_type, description, date:incident_date, outcome, acknowledged_at, created_at, staff(full_name)')
     .eq('tenant_id', tenantId)
-    .order('date', { ascending: false })
+    .order('incident_date', { ascending: false })
     .limit(100)
 
   const allRecords = records || []
 
-  const openCases = allRecords.filter((r) =>
-    r.status === 'open' || r.status === 'pending'
-  )
-  const closedCases = allRecords.filter((r) =>
-    r.status !== 'open' && r.status !== 'pending'
-  )
+  const openCases = allRecords.filter((r) => !r.acknowledged_at)
+  const closedCases = allRecords.filter((r) => r.acknowledged_at)
 
-  // Warnings issued this month (severity = warning or type includes 'warning')
+  // Warnings issued this month (record_type mentions 'warning')
   const warningsThisMonth = allRecords.filter((r) => {
     const recordDate = r.date ? new Date(r.date) : null
     const isThisMonth = recordDate && recordDate >= monthStart
-    const isWarning =
-      r.type?.toLowerCase().includes('warning') ||
-      r.severity?.toLowerCase() === 'minor'
-    return isThisMonth && isWarning
+    return isThisMonth && r.type?.toLowerCase().includes('warning')
   }).length
-
-  const severityVariant = (severity: string): 'red' | 'yellow' | 'gray' => {
-    const s = severity?.toLowerCase()
-    if (s === 'gross') return 'red'
-    if (s === 'major') return 'yellow'
-    return 'gray'
-  }
-
-  const statusVariant = (status: string): 'red' | 'yellow' | 'green' | 'gray' => {
-    const s = status?.toLowerCase()
-    if (s === 'open') return 'red'
-    if (s === 'pending') return 'yellow'
-    if (s === 'closed' || s === 'resolved') return 'green'
-    return 'gray'
-  }
 
   function RecordRow({ record }: { record: typeof allRecords[number] }) {
     const staffName = (record.staff as unknown as { full_name: string } | null)?.full_name || 'Staff member'
+    const acknowledged = Boolean(record.acknowledged_at)
     const recordDate = record.date
       ? new Date(record.date).toLocaleDateString('en-ZA', {
           day: 'numeric',
@@ -83,17 +66,12 @@ export default async function IRLogPage() {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap mb-1">
               <p className="text-sm font-semibold text-[var(--text-primary)]">{staffName}</p>
-              {record.severity && (
-                <Badge variant={severityVariant(record.severity)} className="capitalize">
-                  {record.severity}
-                </Badge>
-              )}
-              <Badge variant={statusVariant(record.status)} className="capitalize">
-                {record.status}
+              <Badge variant={acknowledged ? 'green' : 'yellow'} className="capitalize">
+                {acknowledged ? 'Acknowledged' : 'Pending acknowledgement'}
               </Badge>
             </div>
             <p className="text-xs font-medium text-[var(--text-secondary)] mb-0.5 capitalize">
-              {record.type || 'Incident'}
+              {(record.type || 'Incident').replace(/_/g, ' ')}
             </p>
             {record.description && (
               <p className="text-xs text-[var(--text-muted)] line-clamp-2 mb-1">{record.description}</p>
