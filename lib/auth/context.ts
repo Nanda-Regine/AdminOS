@@ -108,7 +108,9 @@ export async function getContext(): Promise<Context | null> {
       return isSuperAdmin || permissions.includes(permission)
     },
     require(permission) {
-      if (!this.has(permission)) throw new PermissionError(permission)
+      // Do not call this.has() — inside an object-literal method `this` widens to
+      // Context | PromiseLike<Context>, which won't type. Close over the locals.
+      if (!(isSuperAdmin || permissions.includes(permission))) throw new PermissionError(permission)
     },
   }
 }

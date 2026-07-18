@@ -52,8 +52,23 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: response.text, code: 'budget_exceeded' }, { status: 429 })
   }
 
-  // Store conversation in Supabase for history
+  // Store conversation in Supabase for history.
+  // SECURITY: upsert matches on `id` alone (the PK), so a caller-supplied
+  // conversationId that collides with another tenant's row would otherwise
+  // overwrite it — reassigning tenant_id/user_id and clobbering their messages.
+  // Guard by confirming any existing row belongs to this caller first; a foreign
+  // id is treated as not-found (never confirm another tenant's row exists).
   if (body.conversationId) {
+    const { data: existing } = await supabaseAdmin
+      .from('langa_conversations')
+      .select('tenant_id, user_id')
+      .eq('id', body.conversationId)
+      .maybeSingle()
+
+    if (existing && (existing.tenant_id !== tenantId || existing.user_id !== user.id)) {
+      return NextResponse.json({ error: 'Conversation not found' }, { status: 404 })
+    }
+
     await supabaseAdmin.from('langa_conversations').upsert({
       id:           body.conversationId,
       tenant_id:    tenantId,
