@@ -4,6 +4,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
 import { fireBusinessEvent } from '@/lib/academy/knowledgeGraph'
 import { checkPermission } from '@/lib/auth/permissions'
+import { notifyTenant } from '@/lib/notifications/notify'
 
 const updateSchema = z.object({
   status:   z.enum(['draft','sent','unpaid','partial','paid','overdue','cancelled']).optional(),
@@ -92,6 +93,15 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (body.status === 'sent') fireBusinessEvent('invoice.sent', tenantId, user.id)
   if (body.status === 'paid' || (body.amountPaid !== undefined && data.status === 'paid')) {
     fireBusinessEvent('invoice.paid', tenantId, user.id)
+    // Celebrate the win — the owner gets pushed the moment money lands.
+    await notifyTenant(tenantId, {
+      type: 'payment.received',
+      title: 'Payment received 🎉',
+      body: `${data.contact_name ?? 'A customer'} paid ${data.amount ? 'R' + Number(data.amount).toLocaleString('en-ZA') : 'their invoice'}.`,
+      actionUrl: '/dashboard/money',
+      dedupeKey: `paid-${id}`,
+      whatsapp: true,
+    })
     // Update formalization progress
     await supabaseAdmin
       .from('formalization_progress')

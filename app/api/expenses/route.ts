@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { notifyTenant } from '@/lib/notifications/notify'
 import { z } from 'zod'
 
 const createSchema = z.object({
@@ -76,6 +77,16 @@ export async function POST(request: Request) {
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+
+  // Push the owner: an approval is waiting (People cockpit surfaces it too).
+  await notifyTenant(tenantId, {
+    type: 'approval.needed',
+    title: 'Expense to approve',
+    body: `A new expense claim for R${Number(body.amount).toLocaleString('en-ZA')}${body.category ? ` (${body.category})` : ''} is waiting for your approval.`,
+    actionUrl: '/dashboard/expenses',
+    dedupeKey: `expense-${data.id}`,
+    whatsapp: true,
+  })
 
   return NextResponse.json(data, { status: 201 })
 }
