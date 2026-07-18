@@ -42,10 +42,95 @@
   --sidebar-w: 240px;
   --topbar-h:  56px;
 
+  /* Chrome backgrounds (theme-aware; textures in /public/backgrounds) */
+  --topbar-bg:   rgba(9,12,32,0.68);
+  --nav-scrim:   linear-gradient(180deg, rgba(7,10,26,0.80) 0%, rgba(6,9,24,0.88) 100%);
+  --nav-image:   url('/backgrounds/bg-nav.jpg');
+  --modal-scrim: linear-gradient(180deg, rgba(14,18,40,0.90) 0%, rgba(10,13,32,0.94) 100%);
+  --modal-image: url('/backgrounds/bg-modal.jpg');
+
+  /* Semantic chips (bg + fg, tuned per theme) */
+  --chip-green-bg: rgba(34,197,94,0.15);  --chip-green-fg: #4ADE80;
+  --chip-amber-bg: rgba(245,158,11,0.15); --chip-amber-fg: #FBBF24;
+  --chip-red-bg:   rgba(239,68,68,0.15);  --chip-red-fg:   #F87171;
+  --chip-blue-bg:  rgba(99,102,241,0.15); --chip-blue-fg:  #A5B4FC;
+  --chip-purple-bg:rgba(168,85,247,0.15); --chip-purple-fg:#C084FC;
+  --chip-gray-bg:  rgba(255,255,255,0.08); --chip-gray-fg:  rgba(248,250,252,0.6);
+
+  /* Per-section warm accent ground */
+  --sec-warm-scrim: linear-gradient(180deg, rgba(20,14,8,0.82) 0%, rgba(12,9,5,0.90) 100%);
+  --sec-warm-image: url('/backgrounds/bg-dark-wood.jpg');
+
   /* Compat */
   --background: var(--navy);
   --foreground: var(--text-primary);
 }
+
+/* ── Light theme ─────────────────────────────────────────────────────────────
+   Everything is token-driven, so the whole app flips from these overrides.
+   Dark stays the default (no data-theme). Toggle sets data-theme on <html>. */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --navy:          #E9E7DF;
+  --navy-800:      #F4F2EC;
+  --surface-0:     #EDECE6;
+  --surface-1:     rgba(255,255,255,0.74);
+  --surface-2:     rgba(20,23,43,0.05);
+  --surface-hover: rgba(20,23,43,0.06);
+  --app-bg:        #E9E7DF;
+
+  --text-primary:   #14172B;
+  --text-secondary: rgba(20,23,43,0.74);
+  --text-muted:     rgba(20,23,43,0.56);
+  --text-dim:       rgba(20,23,43,0.42);
+
+  --border:        rgba(20,23,43,0.10);
+  --border-hover:  rgba(20,23,43,0.18);
+
+  --topbar-bg:     rgba(255,255,255,0.72);
+  --nav-scrim:     linear-gradient(180deg, rgba(240,238,231,0.86) 0%, rgba(232,229,220,0.92) 100%);
+  --nav-image:     url('/backgrounds/bg-light-beige.jpg');
+  --modal-scrim:   linear-gradient(180deg, rgba(248,247,242,0.93) 0%, rgba(240,238,231,0.96) 100%);
+  --modal-image:   url('/backgrounds/bg-light-paper.jpg');
+
+  --app-bg-image:  url('/backgrounds/bg-light.jpg');
+  --app-bg-scrim:  linear-gradient(180deg, rgba(240,238,231,0.85) 0%, rgba(231,228,219,0.91) 100%);
+
+  --chip-green-bg: rgba(34,197,94,0.14);  --chip-green-fg: #15803D;
+  --chip-amber-bg: rgba(245,158,11,0.16); --chip-amber-fg: #B45309;
+  --chip-red-bg:   rgba(239,68,68,0.12);  --chip-red-fg:   #B91C1C;
+  --chip-blue-bg:  rgba(99,102,241,0.13); --chip-blue-fg:  #4338CA;
+  --chip-purple-bg:rgba(168,85,247,0.13); --chip-purple-fg:#7E22CE;
+  --chip-gray-bg:  rgba(20,23,43,0.06);    --chip-gray-fg:  rgba(20,23,43,0.62);
+
+  --sec-warm-scrim: linear-gradient(180deg, rgba(244,240,232,0.82) 0%, rgba(236,231,222,0.90) 100%);
+  --sec-warm-image: url('/backgrounds/bg-light-stucco.jpg');
+
+  --background: var(--app-bg);
+}
+
+/* Force light text locally on surfaces that stay dark in BOTH themes
+   (premium gold-leather cards, the overview hero). No-op in dark mode. */
+.on-dark {
+  --text-primary:   #F8FAFC;
+  --text-secondary: rgba(248,250,252,0.76);
+  --text-muted:     rgba(248,250,252,0.58);
+  --text-dim:       rgba(248,250,252,0.42);
+  --border:         rgba(255,255,255,0.12);
+  --surface-2:      rgba(255,255,255,0.10);
+  color: var(--text-primary);
+}
+
+/* Per-section accent ground (fixed layer behind a section's content). */
+.section-bg {
+  position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background-image: var(--sec-scrim), var(--sec-image);
+  background-repeat: no-repeat, no-repeat;
+  background-size: cover, cover;
+  background-position: center, center;
+  background-attachment: fixed, fixed;
+}
+.section-warm { --sec-scrim: var(--sec-warm-scrim); --sec-image: var(--sec-warm-image); }
 
 @theme inline {
   --color-background:    var(--background);
@@ -90,6 +175,8 @@ body {
   --app-bg-scrim: linear-gradient(180deg, rgba(9,12,32,0.86) 0%, rgba(9,12,32,0.92) 100%);
 }
 .app-shell {
+  position: relative;
+  z-index: 0;
   background-color: var(--app-bg);
   background-image: var(--app-bg-scrim), var(--app-bg-image);
   background-repeat: no-repeat, no-repeat;

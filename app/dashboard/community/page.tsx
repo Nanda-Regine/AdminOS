@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { TopBar } from '@/components/dashboard/TopBar'
+import { SectionBackground } from '@/components/dashboard/SectionBackground'
 import { Card } from '@/components/ui/card'
 
 type Post = {
@@ -97,6 +98,7 @@ export default function CommunityPage() {
 
   return (
     <div>
+      <SectionBackground />
       <TopBar title="Community" subtitle="Peer network — learn, share, grow together" />
       <div className="p-6 space-y-5 max-w-3xl mx-auto">
 

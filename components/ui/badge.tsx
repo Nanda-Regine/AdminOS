@@ -5,12 +5,12 @@ interface BadgeProps {
 }
 
 const variantClasses = {
-  green:  'bg-[rgba(34,197,94,0.15)] text-[#4ADE80]',
-  yellow: 'bg-[rgba(245,158,11,0.15)] text-[#FBBF24]',
-  red:    'bg-[rgba(239,68,68,0.15)] text-[#F87171]',
-  blue:   'bg-[rgba(99,102,241,0.15)] text-[var(--indigo-light)]',
-  gray:   'bg-[var(--surface-2)] text-[var(--text-muted)]',
-  purple: 'bg-[rgba(168,85,247,0.15)] text-[#C084FC]',
+  green:  'bg-[var(--chip-green-bg)] text-[var(--chip-green-fg)]',
+  yellow: 'bg-[var(--chip-amber-bg)] text-[var(--chip-amber-fg)]',
+  red:    'bg-[var(--chip-red-bg)] text-[var(--chip-red-fg)]',
+  blue:   'bg-[var(--chip-blue-bg)] text-[var(--chip-blue-fg)]',
+  gray:   'bg-[var(--chip-gray-bg)] text-[var(--chip-gray-fg)]',
+  purple: 'bg-[var(--chip-purple-bg)] text-[var(--chip-purple-fg)]',
 }
 
 export function Badge({ variant = 'gray', children, className = '' }: BadgeProps) {

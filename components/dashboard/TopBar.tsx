@@ -12,7 +12,7 @@ export function TopBar({ title, subtitle, actions }: TopBarProps) {
       className="flex items-center justify-between px-6 border-b shrink-0"
       style={{
         height: 'var(--topbar-h)',
-        background: 'rgba(9,12,32,0.68)',
+        background: 'var(--topbar-bg)',
         borderColor: 'var(--border)',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',

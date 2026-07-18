@@ -107,6 +107,8 @@ export default function RootLayout({
   return (
     <html lang="en-ZA" dir="ltr">
       <head>
+        {/* Apply the saved theme before paint to avoid a flash. Default: dark. */}
+        <script dangerouslySetInnerHTML={{ __html: `try{document.documentElement.setAttribute('data-theme',localStorage.getItem('adminos-theme')||'dark')}catch(e){document.documentElement.setAttribute('data-theme','dark')}` }} />
         <link rel="manifest" href="/manifest.json" />
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />

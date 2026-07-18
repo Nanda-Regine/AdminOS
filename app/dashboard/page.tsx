@@ -99,7 +99,7 @@ export default async function DashboardPage() {
 
         {/* Morning brief */}
         <div
-          className="rounded-2xl px-6 py-5 relative overflow-hidden border"
+          className="rounded-2xl px-6 py-5 relative overflow-hidden border on-dark"
           style={{
             background: 'linear-gradient(135deg, #111936 0%, #1a2347 100%)',
             borderColor: 'var(--border)',

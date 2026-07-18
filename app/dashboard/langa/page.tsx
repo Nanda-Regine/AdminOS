@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Send, Bot, User, Loader2 } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import { SectionBackground } from '@/components/dashboard/SectionBackground'
 
 type Message = {
   role: 'user' | 'assistant'
@@ -77,6 +78,7 @@ export default function LangaPage() {
       className="flex flex-col"
       style={{ height: 'calc(100vh - var(--topbar-h, 56px))' }}
     >
+      <SectionBackground />
       {/* Header */}
       <header
         className="flex items-center justify-between px-6 border-b shrink-0"

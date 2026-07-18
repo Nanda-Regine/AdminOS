@@ -36,7 +36,7 @@ export function Modal({ open, onClose, title, children, size = 'md' }: ModalProp
       className={`${sizeClass} w-full rounded-2xl border shadow-2xl p-0 m-auto max-h-[90vh] overflow-y-auto`}
       style={{
         backgroundColor: 'var(--navy-800)',
-        backgroundImage: "linear-gradient(180deg, rgba(14,18,40,0.90) 0%, rgba(10,13,32,0.94) 100%), url('/backgrounds/bg-modal.jpg')",
+        backgroundImage: 'var(--modal-scrim), var(--modal-image)',
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         borderColor: 'var(--border-hover)',

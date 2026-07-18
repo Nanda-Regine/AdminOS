@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { ThemeToggle } from './ThemeToggle'
 import {
   LayoutDashboard, MessageSquare, Users, UserCircle2, FileText,
   BarChart3, Settings, CalendarDays, Receipt, PenLine, Activity,
@@ -43,7 +44,7 @@ export function Sidebar() {
     <aside className="w-60 flex flex-col h-screen fixed left-0 top-0 z-30 border-r"
       style={{
         backgroundColor: 'var(--navy)',
-        backgroundImage: "linear-gradient(180deg, rgba(7,10,26,0.80) 0%, rgba(6,9,24,0.88) 100%), url('/backgrounds/bg-nav.jpg')",
+        backgroundImage: 'var(--nav-scrim), var(--nav-image)',
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         borderColor: 'var(--border-hover)',
@@ -119,6 +120,11 @@ export function Sidebar() {
             </span>
           ))}
         </div>
+      </div>
+
+      {/* Theme toggle */}
+      <div className="px-4 py-3 border-t" style={{ borderColor: 'var(--border)' }}>
+        <ThemeToggle />
       </div>
 
       {/* Sign out */}

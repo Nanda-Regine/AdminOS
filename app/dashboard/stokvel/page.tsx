@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { TopBar } from '@/components/dashboard/TopBar'
+import { SectionBackground } from '@/components/dashboard/SectionBackground'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { redirect } from 'next/navigation'
@@ -88,6 +89,7 @@ export default async function StokvelPage() {
 
   return (
     <div>
+      <SectionBackground />
       <TopBar
         title="Stokvel"
         subtitle={`${activeStorkvels.length} active group${activeStorkvels.length !== 1 ? 's' : ''}`}

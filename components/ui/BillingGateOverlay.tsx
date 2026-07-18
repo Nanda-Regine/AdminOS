@@ -54,7 +54,7 @@ export function BillingGateOverlay({ requiredAddon, requiredPlan, locked = true,
       )}
       <div className="absolute inset-0 flex flex-col items-center justify-center rounded-2xl p-6"
         style={{ background: 'rgba(10,15,44,0.82)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}>
-        <div className="text-center max-w-sm w-full rounded-2xl p-6 tex-premium"
+        <div className="text-center max-w-sm w-full rounded-2xl p-6 tex-premium on-dark"
           style={{ border: '1px solid var(--border-hover)' }}>
           <div className="w-11 h-11 rounded-2xl flex items-center justify-center mx-auto mb-3"
             style={{ background: 'var(--indigo-muted)' }}>
