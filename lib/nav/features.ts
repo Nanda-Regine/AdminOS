@@ -59,6 +59,7 @@ export const FEATURES: Feature[] = [
   { href: '/dashboard/payroll',  label: 'Payroll',       icon: Banknote, category: 'Get Paid' },
 
   // ── Win Work (Sales) ──────────────────────────────────────────────────────
+  { href: '/dashboard/sales',        label: 'Sales Cockpit', icon: TrendingUp,   category: 'Win Work' },
   { href: '/dashboard/inbox',        label: 'Inbox',        icon: MessageSquare, category: 'Win Work' },
   { href: '/dashboard/contacts',     label: 'Contacts',     icon: Users,         category: 'Win Work' },
   { href: '/dashboard/reach',        label: 'Reach',        icon: Radio,         category: 'Win Work', requiresAddon: 'reach' },
@@ -75,12 +76,14 @@ export const FEATURES: Feature[] = [
   { href: '/dashboard/documents', label: 'Documents', icon: FileText,      category: 'Deliver' },
 
   // ── Team (People) ─────────────────────────────────────────────────────────
+  { href: '/dashboard/people',   label: 'People Cockpit', icon: UsersRound, category: 'Team' },
   { href: '/dashboard/staff',    label: 'Staff',        icon: UserCircle2, category: 'Team' },
   { href: '/dashboard/team',     label: 'Team Ops',     icon: UsersRound,  category: 'Team' },
   { href: '/dashboard/ir-log',   label: 'IR & Discipline', icon: Scale,    category: 'Team' },
   { href: '/dashboard/handbook', label: 'Handbook & SOPs', icon: BookOpen, category: 'Team' },
 
   // ── Govern (Governance) ───────────────────────────────────────────────────
+  { href: '/dashboard/governance',          label: 'Governance Cockpit', icon: ShieldCheck, category: 'Govern' },
   { href: '/dashboard/contracts',           label: 'Contracts',  icon: FileSignature, category: 'Govern' },
   { href: '/dashboard/settings/compliance', label: 'Compliance', icon: ShieldCheck,   category: 'Govern' },
   { href: '/dashboard/valuation',           label: 'Valuation',  icon: Gauge,         category: 'Govern' },
