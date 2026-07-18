@@ -139,21 +139,25 @@ export async function POST(request: NextRequest) {
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : 'unknown error'
       inserts.push({
-        tenant_id:   tenantId,
-        campaign_id: campaignId,
-        contact_id:  contact.id,
+        tenant_id:     tenantId,
+        campaign_id:   campaignId,
+        contact_id:    contact.id,
         phone,
-        status:      'failed',
-        error:       errMsg.slice(0, 500),
+        status:        'failed',
+        error_message: errMsg.slice(0, 500),
       })
       failedCount++
     }
   }
 
-  // Bulk-insert send records (ignore errors — campaign update is the source of truth)
+  // Bulk-insert per-recipient send records into broadcast_recipients — the table
+  // delivery/read webhooks update, so this is what backs the campaign's
+  // delivered/read stats. (Was writing to a non-existent `campaign_sends`, so
+  // per-recipient tracking was silently dropped.) Still non-fatal: the campaign
+  // counter update below is the source of truth for sent/failed totals.
   if (inserts.length > 0) {
     await supabaseAdmin
-      .from('campaign_sends')
+      .from('broadcast_recipients')
       .insert(inserts)
       .then(() => {}, () => {})
   }

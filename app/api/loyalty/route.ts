@@ -33,16 +33,25 @@ export async function GET(_request: Request) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
 
-  // Fetch account summary: total members + total points outstanding
-  const { data: summary, error: summaryError } = await supabaseAdmin
-    .from('loyalty_accounts')
-    .select('id, points_balance')
+  // Account summary derived from the loyalty_points ledger (there is no
+  // loyalty_accounts table). Each row carries a running `balance`; a member's
+  // current outstanding is their most recent row's balance.
+  const { data: ledger, error: summaryError } = await supabaseAdmin
+    .from('loyalty_points')
+    .select('contact_id, balance, created_at')
     .eq('tenant_id', tenantId)
+    .order('created_at', { ascending: false })
 
   if (summaryError) return NextResponse.json({ error: summaryError.message }, { status: 400 })
 
-  const totalMembers        = summary?.length ?? 0
-  const totalPointsOutstanding = summary?.reduce((sum, a) => sum + (a.points_balance ?? 0), 0) ?? 0
+  const latestBalance = new Map<string, number>()
+  for (const row of ledger ?? []) {
+    if (row.contact_id && !latestBalance.has(row.contact_id)) {
+      latestBalance.set(row.contact_id, Number(row.balance ?? 0))
+    }
+  }
+  const totalMembers           = latestBalance.size
+  const totalPointsOutstanding = [...latestBalance.values()].reduce((sum, b) => sum + b, 0)
 
   return NextResponse.json({
     programme: programme ?? null,

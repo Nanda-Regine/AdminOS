@@ -18,13 +18,14 @@ export async function GET(request: Request) {
   const url  = new URL(request.url)
   const year = parseInt(url.searchParams.get('year') ?? String(new Date().getFullYear()))
 
-  // Fetch EE data for this year
+  // Fetch EE data for this year. Table is `employment_equity_data`
+  // (the page/route previously read a non-existent `employment_equity`).
   const { data: eeData } = await supabaseAdmin
-    .from('employment_equity')
+    .from('employment_equity_data')
     .select('*')
     .eq('tenant_id', tenantId)
     .eq('reporting_year', year)
-    .single()
+    .maybeSingle()
 
   const { data: tenant } = await supabaseAdmin
     .from('tenants')

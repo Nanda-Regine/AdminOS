@@ -67,15 +67,19 @@ export async function POST(request: Request) {
     return new NextResponse('Missing tenant', { status: 400 })
   }
 
-  // 4. Log the billing event (non-fatal if table not yet migrated)
+  // 4. Log the billing event into payment_events (non-fatal). Was writing to a
+  //    non-existent `billing_events` table with columns that don't match, so the
+  //    PayFast billing audit log was silently never recorded.
   await supabaseAdmin
-    .from('billing_events')
+    .from('payment_events')
     .insert({
-      tenant_id:        tenantId,
-      event_type:       `payfast.${paymentStatus?.toLowerCase() ?? 'unknown'}`,
-      amount:           Number(params.amount_gross || 0),
-      payfast_reference: params.pf_payment_id ?? null,
-      metadata:         params,
+      tenant_id:     tenantId,
+      event_type:    `payfast.${paymentStatus?.toLowerCase() ?? 'unknown'}`,
+      amount:        Number(params.amount_gross || 0),
+      payfast_pf_id: params.pf_payment_id ?? null,
+      m_payment_id:  params.m_payment_id ?? null,
+      plan:          plan || null,
+      payload:       params,
     })
     .then(() => {}, () => {})
 

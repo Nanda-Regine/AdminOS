@@ -135,5 +135,33 @@ for (const [table, cols] of contracts) {
     : bad(`page contract: ${table} — ${res.message?.split('\n')[0] ?? 'error'}`)
 }
 
+// 7. API-route data contracts — tables/columns read or written by API routes.
+// Session 14's sweep of app/api found five routes hitting non-existent tables
+// (billing_events, campaign_sends, employment_equity, loyalty_accounts,
+// task_comments); these assert the corrected targets. task_comments is
+// intentionally absent (no table, no consumer — a dormant unbuilt feature).
+console.log('\n[api-route data contracts]')
+const apiContracts = [
+  ['broadcast_recipients',    'tenant_id, campaign_id, contact_id, phone, status, sent_at, error_message'], // reach/send
+  ['employment_equity_data',  'tenant_id, reporting_year, total_workforce, demographics'],                  // ee/report
+  ['payment_events',          'tenant_id, event_type, amount, payfast_pf_id, m_payment_id, plan, payload'],  // billing/payfast-itn
+  ['loyalty_points',          'tenant_id, contact_id, balance'],                                             // loyalty
+  ['loyalty_programmes',      'tenant_id, name, point_value_zar, active'],                                   // loyalty
+]
+for (const [table, cols] of apiContracts) {
+  const res = await sqlRaw(`select ${cols} from public.${table} limit 0;`)
+  Array.isArray(res)
+    ? ok(`api contract: ${table}`)
+    : bad(`api contract: ${table} — ${res.message?.split('\n')[0] ?? 'error'}`)
+}
+// Dormant/unbuilt: task_comments has no table and no consumer. Assert it's still
+// absent so the guard flags it the day someone wires a UI (needs a migration).
+{
+  const t = (await sql(`select to_regclass('public.task_comments') as t;`))[0]?.t
+  t === null
+    ? wrn('task_comments still absent (dormant route; migrate before wiring UI)')
+    : ok('task_comments table now exists')
+}
+
 console.log(`\n== ${pass} passed, ${fail} failed, ${warn} warnings ==`)
 process.exit(fail > 0 ? 1 : 0)
