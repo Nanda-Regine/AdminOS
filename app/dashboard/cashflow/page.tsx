@@ -35,14 +35,24 @@ export default async function CashflowPage() {
   const in90Days  = new Date(today); in90Days.setDate(today.getDate() + 90)
   const in90Str   = in90Days.toISOString().slice(0, 10)
 
-  const [entriesResult, forecastResult] = await Promise.all([
+  // Cashflow is DERIVED from real ledgers (there is no cashflow_entries table):
+  //   inflow  = outstanding on unpaid/partial invoices, positioned at due_date
+  //   outflow = unpaid (non-rejected) expenses
+  // Overdue receivables and already-incurred payables are money still moving now,
+  // so anything dated on/before today is clamped to today to sit at the front of
+  // the forward window (we have no real future payment schedule for them).
+  const [invoiceResult, expenseResult, forecastResult] = await Promise.all([
     supabaseAdmin
-      .from('cashflow_entries')
-      .select('id, type, amount, description, category, date, recurring')
+      .from('invoices')
+      .select('id, contact_name, amount, amount_paid, due_date, status')
       .eq('tenant_id', tenantId)
-      .gte('date', todayStr)
-      .lte('date', in90Str)
-      .order('date', { ascending: true }),
+      .neq('status', 'paid'),
+    supabaseAdmin
+      .from('expenses')
+      .select('id, amount, category, description, status, submitted_at, approved_at, paid_at')
+      .eq('tenant_id', tenantId)
+      .is('paid_at', null)
+      .neq('status', 'rejected'),
     supabaseAdmin
       .from('cashflow_forecasts')
       .select('forecast_data, calculated_at')
@@ -52,7 +62,38 @@ export default async function CashflowPage() {
       .maybeSingle(),
   ])
 
-  const entries: CashflowEntry[] = (entriesResult.data || []) as CashflowEntry[]
+  const clampDate = (d: string | null | undefined) => {
+    const day = d ? d.slice(0, 10) : todayStr
+    return day >= todayStr ? day : todayStr
+  }
+
+  const invoiceEntries: CashflowEntry[] = (invoiceResult.data || [])
+    .map((inv) => ({ inv, outstanding: Number(inv.amount || 0) - Number(inv.amount_paid || 0) }))
+    .filter(({ outstanding }) => outstanding > 0.005)
+    .map(({ inv, outstanding }) => ({
+      id: `inv-${inv.id}`,
+      type: 'income' as const,
+      amount: outstanding,
+      description: inv.contact_name || 'Invoice',
+      category: 'Receivable',
+      date: clampDate(inv.due_date),
+      recurring: false,
+    }))
+
+  const expenseEntries: CashflowEntry[] = (expenseResult.data || []).map((e) => ({
+    id: `exp-${e.id}`,
+    type: 'expense' as const,
+    amount: Number(e.amount || 0),
+    description: e.description || e.category || 'Expense',
+    category: e.category || 'Expense',
+    date: clampDate(e.approved_at || e.submitted_at),
+    recurring: false,
+  }))
+
+  const entries: CashflowEntry[] = [...invoiceEntries, ...expenseEntries]
+    .filter((e) => e.date >= todayStr && e.date <= in90Str)
+    .sort((a, b) => a.date.localeCompare(b.date))
+
   const forecast = forecastResult.data
 
   const allInflow  = entries.filter(e => e.type === 'income').reduce((s, e) => s + Number(e.amount), 0)
@@ -84,20 +125,22 @@ export default async function CashflowPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card>
             <p className="text-xs text-[var(--text-dim)] uppercase tracking-wide font-medium">Inflow (90d)</p>
-            <p className="text-2xl font-bold text-emerald-600 mt-1">{formatCurrency(allInflow)}</p>
+            <p className="text-2xl font-bold text-emerald-400 mt-1">{formatCurrency(allInflow)}</p>
           </Card>
           <Card>
             <p className="text-xs text-[var(--text-dim)] uppercase tracking-wide font-medium">Outflow (90d)</p>
-            <p className="text-2xl font-bold text-red-500 mt-1">{formatCurrency(allOutflow)}</p>
+            <p className="text-2xl font-bold text-red-400 mt-1">{formatCurrency(allOutflow)}</p>
           </Card>
           <Card>
             <p className="text-xs text-[var(--text-dim)] uppercase tracking-wide font-medium">Net Position</p>
-            <p className={`text-2xl font-bold mt-1 ${net >= 0 ? 'text-[var(--text-primary)]' : 'text-red-600'}`}>
+            <p className={`text-2xl font-bold mt-1 ${net >= 0 ? 'text-[var(--text-primary)]' : 'text-red-400'}`}>
               {net >= 0 ? '' : '−'}{formatCurrency(Math.abs(net))}
             </p>
           </Card>
         </div>
 
+        {entries.length > 0 ? (
+        <>
         {/* Chart */}
         <Card>
           <div className="flex items-center justify-between mb-4">
@@ -217,15 +260,16 @@ export default async function CashflowPage() {
             </div>
           </Card>
         )}
-
-        {entries.length === 0 && (
+        </>
+        ) : (
           <div className="text-center py-16">
             <div className="w-12 h-12 rounded-2xl bg-[var(--surface-2)] flex items-center justify-center mx-auto mb-3 text-2xl">
               📊
             </div>
-            <p className="text-sm font-medium text-[var(--text-muted)]">No cashflow entries yet</p>
+            <p className="text-sm font-medium text-[var(--text-muted)]">Nothing to forecast yet</p>
             <p className="text-xs text-[var(--text-dim)] mt-1 max-w-xs mx-auto">
-              Add income and expense entries to build your 90-day forecast and see your runway.
+              Cashflow is projected from your unpaid invoices (money in) and outstanding expenses
+              (money out). Add invoices and expense claims to build your 90-day forecast and runway.
             </p>
           </div>
         )}

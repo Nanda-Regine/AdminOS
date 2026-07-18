@@ -126,6 +126,7 @@ const contracts = [
   ['stokvel_groups', 'id, name, rules, contribution_amount, frequency, status'],
   ['stokvel_members','id, group_id, name, phone, payout_position, joined_at'],
   ['stokvel_contributions', 'group_id, member_id, amount, status, period_month, period_year'],
+  ['cashflow_forecasts', 'forecast_data, calculated_at'],
 ]
 for (const [table, cols] of contracts) {
   const res = await sqlRaw(`select ${cols} from public.${table} limit 0;`)
