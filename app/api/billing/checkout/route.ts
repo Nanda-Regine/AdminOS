@@ -70,7 +70,7 @@ export async function GET(request: Request) {
     }
     const planKey = PLAN_MAP[plan]
     if (planKey) {
-      const tid = (user.user_metadata?.tenant_id as string) || ''
+      const tid = (user.app_metadata?.tenant_id as string) || ''
       const base = (process.env.NEXT_PUBLIC_APP_URL || 'https://adminos.co.za').replace(/\/$/, '')
       const url =
         `https://jarvis.mirembemuse.co.za/api/paystack/checkout?plan=${planKey}` +
@@ -91,7 +91,7 @@ export async function GET(request: Request) {
     }
     const planKey = ADDON_MAP[addon]
     if (planKey) {
-      const tid = (user.user_metadata?.tenant_id as string) || ''
+      const tid = (user.app_metadata?.tenant_id as string) || ''
       const base = (process.env.NEXT_PUBLIC_APP_URL || 'https://adminos.co.za').replace(/\/$/, '')
       const url =
         `https://jarvis.mirembemuse.co.za/api/paystack/checkout?plan=${planKey}` +

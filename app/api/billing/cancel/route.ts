@@ -6,7 +6,8 @@ import { checkPermission } from '@/lib/auth/permissions'
 //
 // POST /api/billing/cancel — a tenant with `manage_billing` cancels their plan.
 // We NEVER trust a client-supplied email: identity comes from the Supabase session
-// (user.email = the billing email, user_metadata.tenant_id = the tenant). We ask the
+// (user.email = the billing email, app_metadata.tenant_id = the tenant — service-role
+// writable only, never the spoofable user_metadata). We ask the
 // Mirembe hub to disable the Paystack subscription for that email:
 //     POST https://jarvis.mirembemuse.co.za/api/paystack/cancel
 //     headers: x-hub-secret: HUB_INTERNAL_SECRET
@@ -21,7 +22,7 @@ export async function POST() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new NextResponse('Unauthorized', { status: 401 })
 
-  const tenantId = user.user_metadata?.tenant_id as string
+  const tenantId = user.app_metadata?.tenant_id as string
   if (!tenantId) return new NextResponse('No tenant', { status: 400 })
 
   if (!(await checkPermission('manage_billing'))) return new NextResponse('Forbidden', { status: 403 })
