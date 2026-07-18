@@ -16,16 +16,20 @@ export default async function ExpensesPage() {
 
   const tenantId = user.app_metadata?.tenant_id as string
 
+  // Reads `expenses` — the table the /api/expenses routes write to. (The page
+  // previously read a non-existent `expense_claims` table, so the approval queue
+  // was always empty and approve/reject was unreachable.) `expenses` has no
+  // `currency` column; amounts are ZAR.
   const [pendingResult, allResult] = await Promise.all([
     supabaseAdmin
-      .from('expense_claims')
-      .select('id, staff_id, amount, currency, category, description, receipt_url, status, submitted_at, staff(full_name)')
+      .from('expenses')
+      .select('id, staff_id, amount, category, description, receipt_url, status, submitted_at, staff(full_name)')
       .eq('tenant_id', tenantId)
       .eq('status', 'pending')
       .order('submitted_at', { ascending: false }),
     supabaseAdmin
-      .from('expense_claims')
-      .select('id, staff_id, amount, currency, category, description, status, submitted_at, approved_at, approved_by, staff(full_name)')
+      .from('expenses')
+      .select('id, staff_id, amount, category, description, status, submitted_at, approved_at, approved_by, staff(full_name)')
       .eq('tenant_id', tenantId)
       .neq('status', 'pending')
       .order('submitted_at', { ascending: false })
@@ -57,8 +61,8 @@ export default async function ExpensesPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card>
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-yellow-100 rounded-xl flex items-center justify-center">
-                <Clock className="w-5 h-5 text-yellow-600" />
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(245,158,11,0.15)' }}>
+                <Clock className="w-5 h-5" style={{ color: '#F59E0B' }} />
               </div>
               <div>
                 <p className="text-2xl font-bold text-[var(--text-primary)]">{pending.length}</p>
@@ -68,8 +72,8 @@ export default async function ExpensesPage() {
           </Card>
           <Card>
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center">
-                <Receipt className="w-5 h-5 text-red-600" />
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(239,68,68,0.15)' }}>
+                <Receipt className="w-5 h-5" style={{ color: '#F87171' }} />
               </div>
               <div>
                 <p className="text-2xl font-bold text-[var(--text-primary)]">
@@ -81,8 +85,8 @@ export default async function ExpensesPage() {
           </Card>
           <Card>
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
-                <CheckCircle className="w-5 h-5 text-emerald-600" />
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(34,197,94,0.15)' }}>
+                <CheckCircle className="w-5 h-5" style={{ color: '#34D399' }} />
               </div>
               <div>
                 <p className="text-2xl font-bold text-[var(--text-primary)]">{processed.length}</p>

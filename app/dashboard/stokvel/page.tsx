@@ -7,35 +7,50 @@ import { Badge } from '@/components/ui/badge'
 import { redirect } from 'next/navigation'
 import { CreateStokvelModal, AddMemberModal } from './StokvelActions'
 
-type Stokvel = {
+// Real schema (verified against prod):
+//   stokvel_groups(id, name, rules, contribution_amount, frequency, status, created_at)
+//   stokvel_members(id, group_id, name, phone, payout_position, joined_at)
+//   stokvel_contributions(group_id, member_id, amount, status, period_month, period_year)
+// The page previously read a non-existent `stokvels` table + `stokvel_members`
+// columns that don't exist (stokvel_id/member_name/email/contribution_status), so
+// it always rendered empty. member contribution status + pool are derived from
+// stokvel_contributions.
+
+type Group = {
   id: string
-  tenant_id: string
   name: string
-  description: string | null
+  rules: string | null
   contribution_amount: number
   frequency: string
-  member_count: number
-  total_pool: number
   status: string
   created_at: string
 }
 
-type StokvelMember = {
+type MemberRow = {
   id: string
-  stokvel_id: string
-  tenant_id: string
-  member_name: string
+  group_id: string
+  name: string
   phone: string | null
-  email: string | null
-  contribution_status: string
+  payout_position: number | null
   joined_at: string
 }
+
+type ContributionRow = {
+  group_id: string
+  member_id: string
+  amount: number
+  status: string
+  period_month: number
+  period_year: number
+}
+
+type EnrichedMember = MemberRow & { contribution_status: string }
 
 function formatZAR(amount: number): string {
   return `R${amount.toLocaleString('en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
-function contributionStatusColor(status: string): string {
+function contributionStatusColor(status: string): 'green' | 'yellow' | 'red' | 'gray' {
   switch (status) {
     case 'paid': return 'green'
     case 'pending': return 'yellow'
@@ -46,10 +61,7 @@ function contributionStatusColor(status: string): string {
 
 function frequencyLabel(freq: string): string {
   const map: Record<string, string> = {
-    weekly: 'Weekly',
-    monthly: 'Monthly',
-    biweekly: 'Bi-weekly',
-    quarterly: 'Quarterly',
+    weekly: 'Weekly', monthly: 'Monthly', biweekly: 'Bi-weekly', quarterly: 'Quarterly',
   }
   return map[freq] ?? freq
 }
@@ -61,38 +73,65 @@ export default async function StokvelPage() {
 
   const tenantId = user.app_metadata?.tenant_id as string
 
-  const [stokvelResult, memberResult] = await Promise.all([
+  const [groupResult, memberResult] = await Promise.all([
     supabaseAdmin
-      .from('stokvels')
-      .select('id, tenant_id, name, description, contribution_amount, frequency, member_count, total_pool, status, created_at')
+      .from('stokvel_groups')
+      .select('id, name, rules, contribution_amount, frequency, status, created_at')
       .eq('tenant_id', tenantId)
       .order('created_at', { ascending: false }),
     supabaseAdmin
       .from('stokvel_members')
-      .select('id, stokvel_id, tenant_id, member_name, phone, email, contribution_status, joined_at')
+      .select('id, group_id, name, phone, payout_position, joined_at')
       .eq('tenant_id', tenantId)
       .order('joined_at', { ascending: false }),
   ])
 
-  const stokvels = (stokvelResult.data || []) as Stokvel[]
-  const allMembers = (memberResult.data || []) as StokvelMember[]
+  const groups = (groupResult.data || []) as Group[]
+  const members = (memberResult.data || []) as MemberRow[]
 
-  const activeStorkvels = stokvels.filter((s) => s.status === 'active')
-  const totalPool = stokvels.reduce((sum, s) => sum + (s.total_pool || 0), 0)
+  // stokvel_contributions has no tenant_id column — scope it by the tenant's
+  // group ids instead (groups are already tenant-filtered above).
+  const groupIds = groups.map(g => g.id)
+  const { data: contribData } = groupIds.length
+    ? await supabaseAdmin
+        .from('stokvel_contributions')
+        .select('group_id, member_id, amount, status, period_month, period_year')
+        .in('group_id', groupIds)
+    : { data: [] }
+  const contributions = (contribData || []) as ContributionRow[]
 
-  // Group members by stokvel
-  const membersByStokvel: Record<string, StokvelMember[]> = {}
-  for (const m of allMembers) {
-    if (!membersByStokvel[m.stokvel_id]) membersByStokvel[m.stokvel_id] = []
-    membersByStokvel[m.stokvel_id].push(m)
+  // Latest contribution per member → their current status.
+  const latestByMember: Record<string, ContributionRow> = {}
+  for (const c of contributions) {
+    const prev = latestByMember[c.member_id]
+    if (!prev || c.period_year > prev.period_year || (c.period_year === prev.period_year && c.period_month > prev.period_month)) {
+      latestByMember[c.member_id] = c
+    }
   }
+
+  // Paid pool per group = sum of all paid contributions.
+  const poolByGroup: Record<string, number> = {}
+  for (const c of contributions) {
+    if (c.status === 'paid') poolByGroup[c.group_id] = (poolByGroup[c.group_id] ?? 0) + Number(c.amount || 0)
+  }
+
+  const membersByGroup: Record<string, EnrichedMember[]> = {}
+  for (const m of members) {
+    ;(membersByGroup[m.group_id] ??= []).push({
+      ...m,
+      contribution_status: latestByMember[m.id]?.status ?? 'pending',
+    })
+  }
+
+  const activeGroups = groups.filter(g => g.status === 'active')
+  const totalPool = groups.reduce((sum, g) => sum + (poolByGroup[g.id] ?? 0), 0)
 
   return (
     <div>
       <SectionBackground />
       <TopBar
         title="Stokvel"
-        subtitle={`${activeStorkvels.length} active group${activeStorkvels.length !== 1 ? 's' : ''}`}
+        subtitle={`${activeGroups.length} active group${activeGroups.length !== 1 ? 's' : ''}`}
         actions={<CreateStokvelModal />}
       />
       <div className="p-6 space-y-6">
@@ -101,21 +140,19 @@ export default async function StokvelPage() {
         <div className="grid grid-cols-3 gap-4">
           <Card>
             <p className="text-xs text-[var(--text-muted)]">Active Groups</p>
-            <p className="text-2xl font-bold text-[var(--text-primary)] mt-1">{activeStorkvels.length}</p>
+            <p className="text-2xl font-bold text-[var(--text-primary)] mt-1">{activeGroups.length}</p>
           </Card>
           <Card>
             <p className="text-xs text-[var(--text-muted)]">Total Members</p>
-            <p className="text-2xl font-bold text-violet-600 mt-1">
-              {allMembers.length}
-            </p>
+            <p className="text-2xl font-bold text-violet-400 mt-1">{members.length}</p>
           </Card>
           <Card>
             <p className="text-xs text-[var(--text-muted)]">Combined Pool</p>
-            <p className="text-2xl font-bold text-emerald-600 mt-1">{formatZAR(totalPool)}</p>
+            <p className="text-2xl font-bold text-emerald-400 mt-1">{formatZAR(totalPool)}</p>
           </Card>
         </div>
 
-        {stokvels.length === 0 ? (
+        {groups.length === 0 ? (
           <Card>
             <div className="text-center py-14 text-[var(--text-dim)]">
               <p className="text-4xl mb-3">🤝</p>
@@ -124,28 +161,27 @@ export default async function StokvelPage() {
             </div>
           </Card>
         ) : (
-          stokvels.map((stokvel) => {
-            const members = membersByStokvel[stokvel.id] || []
-            const paidCount = members.filter((m) => m.contribution_status === 'paid').length
-            const overdueCount = members.filter((m) => m.contribution_status === 'overdue').length
+          groups.map((group) => {
+            const groupMembers = membersByGroup[group.id] || []
+            const paidCount = groupMembers.filter(m => m.contribution_status === 'paid').length
+            const overdueCount = groupMembers.filter(m => m.contribution_status === 'overdue').length
+            const pool = poolByGroup[group.id] ?? 0
 
             return (
-              <Card key={stokvel.id}>
-                {/* Stokvel header */}
+              <Card key={group.id}>
+                {/* Group header */}
                 <div className="flex items-start justify-between mb-4">
                   <div>
                     <div className="flex items-center gap-2">
-                      <h3 className="font-bold text-[var(--text-primary)] text-lg">{stokvel.name}</h3>
-                      <Badge variant={stokvel.status === 'active' ? 'green' : 'gray'}>
-                        {stokvel.status}
-                      </Badge>
+                      <h3 className="font-bold text-[var(--text-primary)] text-lg">{group.name}</h3>
+                      <Badge variant={group.status === 'active' ? 'green' : 'gray'}>{group.status}</Badge>
                     </div>
-                    {stokvel.description && (
-                      <p className="text-xs text-[var(--text-dim)] mt-0.5">{stokvel.description}</p>
+                    {group.rules && (
+                      <p className="text-xs text-[var(--text-dim)] mt-0.5">{group.rules}</p>
                     )}
                   </div>
                   <div className="text-right">
-                    <p className="text-xl font-bold text-emerald-600">{formatZAR(stokvel.total_pool)}</p>
+                    <p className="text-xl font-bold text-emerald-400">{formatZAR(pool)}</p>
                     <p className="text-xs text-[var(--text-dim)]">Total pool</p>
                   </div>
                 </div>
@@ -154,48 +190,44 @@ export default async function StokvelPage() {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
                   <div className="bg-[var(--surface-2)] rounded-lg p-3 text-center">
                     <p className="text-xs text-[var(--text-muted)]">Contribution</p>
-                    <p className="font-bold text-[var(--text-secondary)] text-sm mt-0.5">{formatZAR(stokvel.contribution_amount)}</p>
+                    <p className="font-bold text-[var(--text-secondary)] text-sm mt-0.5">{formatZAR(group.contribution_amount)}</p>
                   </div>
                   <div className="bg-[var(--surface-2)] rounded-lg p-3 text-center">
                     <p className="text-xs text-[var(--text-muted)]">Frequency</p>
-                    <p className="font-bold text-[var(--text-secondary)] text-sm mt-0.5">{frequencyLabel(stokvel.frequency)}</p>
+                    <p className="font-bold text-[var(--text-secondary)] text-sm mt-0.5">{frequencyLabel(group.frequency)}</p>
                   </div>
-                  <div className="bg-emerald-50 rounded-lg p-3 text-center">
+                  <div className="rounded-lg p-3 text-center" style={{ background: 'rgba(34,197,94,0.10)' }}>
                     <p className="text-xs text-[var(--text-muted)]">Paid</p>
-                    <p className="font-bold text-emerald-700 text-sm mt-0.5">{paidCount} / {members.length}</p>
+                    <p className="font-bold text-sm mt-0.5" style={{ color: '#34D399' }}>{paidCount} / {groupMembers.length}</p>
                   </div>
                   {overdueCount > 0 && (
-                    <div className="bg-red-50 rounded-lg p-3 text-center">
-                      <p className="text-xs text-red-500">Overdue</p>
-                      <p className="font-bold text-red-700 text-sm mt-0.5">{overdueCount}</p>
+                    <div className="rounded-lg p-3 text-center" style={{ background: 'rgba(239,68,68,0.10)' }}>
+                      <p className="text-xs" style={{ color: '#F87171' }}>Overdue</p>
+                      <p className="font-bold text-sm mt-0.5" style={{ color: '#F87171' }}>{overdueCount}</p>
                     </div>
                   )}
                 </div>
 
                 {/* Members list */}
-                {members.length > 0 && (
+                {groupMembers.length > 0 && (
                   <div>
                     <h4 className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wide mb-2">
-                      Members ({members.length})
+                      Members ({groupMembers.length})
                     </h4>
                     <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
-                      {members.map((member) => (
-                        <div
-                          key={member.id}
-                          className="flex items-center justify-between px-3 py-2 bg-[var(--surface-2)] rounded-lg"
-                        >
+                      {groupMembers.map((member) => (
+                        <div key={member.id} className="flex items-center justify-between px-3 py-2 bg-[var(--surface-2)] rounded-lg">
                           <div className="flex items-center gap-2">
-                            <div className="w-7 h-7 bg-violet-100 rounded-full flex items-center justify-center text-xs font-bold text-violet-700">
-                              {member.member_name.charAt(0).toUpperCase()}
+                            <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold"
+                              style={{ background: 'rgba(139,92,246,0.20)', color: '#C4B5FD' }}>
+                              {member.name.charAt(0).toUpperCase()}
                             </div>
                             <div>
-                              <p className="text-sm font-medium text-[var(--text-secondary)]">{member.member_name}</p>
-                              {(member.phone || member.email) && (
-                                <p className="text-xs text-[var(--text-dim)]">{member.phone || member.email}</p>
-                              )}
+                              <p className="text-sm font-medium text-[var(--text-secondary)]">{member.name}</p>
+                              {member.phone && <p className="text-xs text-[var(--text-dim)]">{member.phone}</p>}
                             </div>
                           </div>
-                          <Badge variant={contributionStatusColor(member.contribution_status) as 'green' | 'yellow' | 'red' | 'gray'}>
+                          <Badge variant={contributionStatusColor(member.contribution_status)}>
                             {member.contribution_status}
                           </Badge>
                         </div>
@@ -204,11 +236,11 @@ export default async function StokvelPage() {
                   </div>
                 )}
 
-                {members.length === 0 && (
+                {groupMembers.length === 0 && (
                   <p className="text-xs text-[var(--text-dim)] text-center py-3">No members added yet.</p>
                 )}
 
-                <AddMemberModal stokvelId={stokvel.id} />
+                <AddMemberModal stokvelId={group.id} />
               </Card>
             )
           })
