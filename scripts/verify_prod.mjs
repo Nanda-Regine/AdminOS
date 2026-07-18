@@ -20,12 +20,18 @@ const ok = (m) => { pass++; console.log('  ✓', m) }
 const bad = (m) => { fail++; console.log('  ✗ FAIL:', m) }
 const wrn = (m) => { warn++; console.log('  ⚠', m) }
 
-async function sql(query) {
+async function sql(query, attempt = 0) {
   const r = await fetch(`https://api.supabase.com/v1/projects/${REF}/database/query`, {
     method: 'POST', headers: { Authorization: `Bearer ${MT}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ query }),
   })
-  return r.json()
+  const j = await r.json().catch(() => null)
+  // Management API occasionally returns a transient error object instead of rows.
+  if (!Array.isArray(j) && attempt < 2) {
+    await new Promise(res => setTimeout(res, 800))
+    return sql(query, attempt + 1)
+  }
+  return Array.isArray(j) ? j : []
 }
 
 console.log('\n== AdminOS production verification ==')

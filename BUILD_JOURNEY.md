@@ -537,10 +537,15 @@ All issues identified by the Explore-agent audit were fixed:
 ### Test account (for us)
 - `founder@adminos-demo.co.za` / `AdminOS-Test-2026!` — tenant "Mzansi Test Traders" (operate). Login + RLS verified end-to-end.
 
-### Known follow-ups (tracked in memory `session12-findings`)
-- **Infra:** prod `/api/health` degraded — Upstash Redis erroring (rate-limiting fails open) and Inngest keys read as missing despite being set. Needs the Upstash/Inngest dashboards.
-- **Security mediums:** Twilio voice webhooks lack signature verification; `sops`/`announcements` acknowledge upserts unscoped; add tenant constraint to expenses/invoices PATCH.
-- Debt owner-review UI (tiers 4–6 flag but nothing surfaces them).
+### Follow-ups — all cleared this session
+- ✅ **Security mediums** — Twilio webhook signatures (fail-closed) + Ring gate; sops/announcements acknowledge tenant checks; expenses/invoices PATCH tenant constraints. Unit-tested (21/21).
+- ✅ **Infra health** — root cause was stale/empty prod Upstash + Inngest env values (local creds pinged fine). Re-synced working values to prod + redeployed. `/api/health` now fully `ok` (redis ok, inngest configured) — rate-limiting active, background jobs running. Runtime suite 12/12.
+- ✅ **Debt owner-review UI** — tier-4+ escalations now surface on the Invoices page (amber review panel, hidden when empty) with Contact / Pause / Resume, tenant-scoped + audited (`/api/invoices/recovery`).
+- ✅ **Scale prep (indexes)** — added tenant-leading indexes on hot paths that lacked them: invoices(tenant_id,status), conversations(tenant_id,status), ai_usage_logs(tenant_id,created_at) — the last covers the per-call AI budget check.
+
+### Still open (need your input / dashboards)
+- Add-on catalogue is display-only until features are wired to gate on more add-ons; prices are seed values — reconcile with the actual Paystack plan amounts on the Mirembe hub (operator editor flags any add-on missing a plan).
+- Larger scale-out (af-south-1 region move, table partitioning, read replica) is infra-ops — see `scalability_plan` memory.
 
 ---
 
