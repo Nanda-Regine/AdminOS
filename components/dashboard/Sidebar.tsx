@@ -4,30 +4,10 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { ThemeToggle } from './ThemeToggle'
-import {
-  LayoutDashboard, MessageSquare, Users, UserCircle2, FileText,
-  BarChart3, Settings, CalendarDays, Receipt, PenLine, Activity,
-  LogOut, Phone, Radio, Zap, CreditCard, Puzzle,
-} from 'lucide-react'
+import { LogOut } from 'lucide-react'
+import { featuresByCategory } from '@/lib/nav/features'
 
-const navItems = [
-  { href: '/dashboard',                    label: 'Overview',     icon: LayoutDashboard, exact: true },
-  { href: '/dashboard/inbox',              label: 'Inbox',        icon: MessageSquare },
-  { href: '/dashboard/contacts',           label: 'Contacts',     icon: Users },
-  { href: '/dashboard/sequences',          label: 'Sequences',    icon: Zap },
-  { href: '/dashboard/reach',              label: 'Reach',        icon: Radio },
-  { href: '/dashboard/ring',               label: 'Ring',         icon: Phone },
-  { href: '/dashboard/invoices',           label: 'Invoices',     icon: Receipt },
-  { href: '/dashboard/documents',          label: 'Documents',    icon: FileText },
-  { href: '/dashboard/staff',              label: 'Staff',        icon: UserCircle2 },
-  { href: '/dashboard/email-studio',       label: 'Email Studio', icon: PenLine },
-  { href: '/dashboard/calendar',           label: 'Calendar',     icon: CalendarDays },
-  { href: '/dashboard/analytics',          label: 'Analytics',    icon: BarChart3 },
-  { href: '/dashboard/integrations',        label: 'Integrations', icon: Puzzle },
-  { href: '/dashboard/workflow-monitor',   label: 'Workflows',    icon: Activity },
-  { href: '/dashboard/settings/billing',   label: 'Billing',      icon: CreditCard },
-  { href: '/dashboard/settings',           label: 'Settings',     icon: Settings },
-]
+const NAV_GROUPS = featuresByCategory()
 
 export function Sidebar() {
   const pathname = usePathname()
@@ -65,43 +45,52 @@ export function Sidebar() {
         </div>
       </div>
 
-      {/* Nav */}
-      <nav className="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto scrollbar-hide">
-        {navItems.map((item) => {
-          const Icon = item.icon
-          const isActive = item.exact
-            ? pathname === item.href
-            : pathname === item.href || pathname.startsWith(item.href + '/')
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all"
-              style={isActive ? {
-                background: 'var(--indigo-muted)',
-                color: 'var(--indigo-light)',
-                fontWeight: 500,
-              } : {
-                color: 'var(--text-muted)',
-              }}
-              onMouseEnter={e => {
-                if (!isActive) {
-                  (e.currentTarget as HTMLElement).style.color = 'var(--text-secondary)'
-                  ;(e.currentTarget as HTMLElement).style.background = 'var(--surface-hover)'
-                }
-              }}
-              onMouseLeave={e => {
-                if (!isActive) {
-                  (e.currentTarget as HTMLElement).style.color = 'var(--text-muted)'
-                  ;(e.currentTarget as HTMLElement).style.background = 'transparent'
-                }
-              }}
-            >
-              <Icon className="w-4 h-4 shrink-0" />
-              {item.label}
-            </Link>
-          )
-        })}
+      {/* Nav — grouped by the value chain (one OS, not an alphabet of pages) */}
+      <nav className="flex-1 px-3 py-3 space-y-3 overflow-y-auto scrollbar-hide">
+        {NAV_GROUPS.map((group) => (
+          <div key={group.key}>
+            <p className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-dim)' }}>
+              {group.key}
+            </p>
+            <div className="space-y-0.5">
+              {group.items.map((item) => {
+                const Icon = item.icon
+                const isActive = item.exact
+                  ? pathname === item.href
+                  : pathname === item.href || pathname.startsWith(item.href + '/')
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all"
+                    style={isActive ? {
+                      background: 'var(--indigo-muted)',
+                      color: 'var(--indigo-light)',
+                      fontWeight: 500,
+                    } : {
+                      color: 'var(--text-muted)',
+                    }}
+                    onMouseEnter={e => {
+                      if (!isActive) {
+                        (e.currentTarget as HTMLElement).style.color = 'var(--text-secondary)'
+                        ;(e.currentTarget as HTMLElement).style.background = 'var(--surface-hover)'
+                      }
+                    }}
+                    onMouseLeave={e => {
+                      if (!isActive) {
+                        (e.currentTarget as HTMLElement).style.color = 'var(--text-muted)'
+                        ;(e.currentTarget as HTMLElement).style.background = 'transparent'
+                      }
+                    }}
+                  >
+                    <Icon className="w-4 h-4 shrink-0" />
+                    {item.label}
+                  </Link>
+                )
+              })}
+            </div>
+          </div>
+        ))}
       </nav>
 
       {/* Agent status */}
