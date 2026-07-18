@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { redirect } from 'next/navigation'
 import { CreateInvoiceModal } from './CreateInvoiceModal'
+import { RecoveryReviewQueue } from '@/components/invoices/RecoveryReviewQueue'
 
 const statusVariant: Record<string, 'green' | 'yellow' | 'red' | 'gray' | 'blue'> = {
   paid: 'green',
@@ -13,13 +14,23 @@ const statusVariant: Record<string, 'green' | 'yellow' | 'red' | 'gray' | 'blue'
   in_collections: 'purple' as 'gray',
 }
 
-const escalationLabel: Record<number, string> = {
+// Recovery tier the engine last evaluated (recovery_tier). Tiers 1–3 auto-send;
+// 4+ stop for owner review (surfaced in RecoveryReviewQueue).
+const tierLabel: Record<number, string> = {
   0: 'No reminder',
-  1: 'Day 1 sent',
-  2: 'Day 3 sent',
-  3: 'Day 7 sent',
-  4: 'Day 14 sent',
-  5: 'Demand letter',
+  1: 'Reminder sent',
+  2: 'Follow-up sent',
+  3: 'Firm notice sent',
+  4: 'Awaiting your review',
+  5: 'Awaiting your review',
+  6: 'Awaiting your review',
+}
+
+function recoveryLabel(inv: { recovery_tier?: number | null; recovery_status?: string | null; escalation_level?: number | null }): string {
+  if (inv.recovery_status === 'paused') return 'Paused'
+  if (inv.recovery_status === 'owner_approved') return 'Handled by you'
+  const tier = inv.recovery_tier ?? inv.escalation_level ?? 0
+  return tierLabel[tier] ?? '—'
 }
 
 export default async function InvoicesPage() {
@@ -69,6 +80,9 @@ export default async function InvoicesPage() {
           </Card>
         </div>
 
+        {/* Debt-recovery escalations awaiting the owner's decision (hidden when empty) */}
+        <RecoveryReviewQueue />
+
         {/* Invoice table */}
         <Card padding="none">
           <div className="p-5 border-b border-gray-100">
@@ -113,7 +127,7 @@ export default async function InvoicesPage() {
                       </Badge>
                     </td>
                     <td className="px-5 py-3 text-xs text-gray-500">
-                      {escalationLabel[inv.escalation_level] || '—'}
+                      {recoveryLabel(inv)}
                     </td>
                   </tr>
                 ))}
