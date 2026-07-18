@@ -63,6 +63,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid request', detail: e }, { status: 400 })
   }
 
+  // staffId is caller-supplied. Confirm it belongs to this tenant before writing
+  // a review that references it — the GET handler embeds staff(full_name,
+  // job_title) via an RLS-bypassing join, so an unvalidated foreign id would
+  // leak another tenant's staff details.
+  const { data: staffRow } = await supabaseAdmin
+    .from('staff')
+    .select('id')
+    .eq('id', body.staffId)
+    .eq('tenant_id', tenantId)
+    .maybeSingle()
+  if (!staffRow) return NextResponse.json({ error: 'Staff member not found' }, { status: 404 })
+
   const { data, error } = await supabaseAdmin
     .from('performance_reviews')
     .insert({

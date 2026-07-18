@@ -55,6 +55,19 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid request', detail: e }, { status: 400 })
   }
 
+  // contactId is caller-supplied. Confirm it belongs to this tenant before
+  // linking it — GET embeds contact:contacts(name) via an RLS-bypassing join, so
+  // an unvalidated foreign id would leak another tenant's contact name/email.
+  if (body.contactId) {
+    const { data: contactRow } = await supabaseAdmin
+      .from('contacts')
+      .select('id')
+      .eq('id', body.contactId)
+      .eq('tenant_id', tenantId)
+      .maybeSingle()
+    if (!contactRow) return NextResponse.json({ error: 'Contact not found' }, { status: 404 })
+  }
+
   const { data, error } = await supabaseAdmin
     .from('projects')
     .insert({

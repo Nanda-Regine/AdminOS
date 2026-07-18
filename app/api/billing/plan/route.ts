@@ -74,12 +74,17 @@ export async function POST(request: Request) {
     effective_date: new Date().toISOString().split('T')[0],
   })
 
-  // Update tenant plan (in production, this is only finalised after PayFast confirms payment)
-  // For downgrade: immediate; for upgrade: require PayFast confirmation via webhook
+  // Plan activation on UPGRADE comes ONLY from the verified payment webhook
+  // (/api/paystack/webhook on charge.success). This route must never flip the
+  // plan on an upgrade just because the client supplied a token string — the
+  // token is unverified request input, so trusting it let any manage_billing
+  // user upgrade to any tier for free. Downgrades take effect immediately (no
+  // payment needed); the upgrade path is: this record → checkout → Paystack →
+  // webhook activates the tenant.
   const PLAN_RANK: Record<string, number> = { solo: 0, grow: 1, operate: 2, scale: 3, partner: 4 }
   const isDowngrade = (PLAN_RANK[body.newPlan] ?? 0) < (PLAN_RANK[previousPlan] ?? 0)
 
-  if (isDowngrade || body.payfastToken) {
+  if (isDowngrade) {
     await supabaseAdmin
       .from('tenants')
       .update({ plan: body.newPlan })
