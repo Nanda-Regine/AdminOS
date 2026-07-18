@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { formatZAR } from '@/lib/format'
 import { buildMoneyIntel } from '@/lib/money/signal'
 import { publishSignal } from '@/lib/signals/bus'
+import { SendRemindersButton } from '@/components/dashboard/SendRemindersButton'
 import {
   Wallet, ArrowRight, TrendingUp, TrendingDown, Landmark, FileSpreadsheet,
   Receipt, AlertTriangle, ChevronRight, PiggyBank,
@@ -27,11 +28,11 @@ export default async function CashCockpit() {
   const { signal: s, aging, overdue } = intel
 
   // ── The Bookkeeper leads (deterministic, pre-briefed) ──────────────────────
-  let lead: { line: string; action: string; href: string }
+  let lead: { line: string; action: string; href: string; remind?: boolean }
   if (s.arStuck > 0) {
     lead = { line: `You're owed ${formatZAR(s.arTotal)}, and ${formatZAR(s.arStuck)} of it is 60+ days overdue — cash you've earned but haven't collected. Chase the oldest first.`, action: 'Review recovery queue', href: '/dashboard/invoices' }
   } else if (s.arOverdue > 0) {
-    lead = { line: `You're owed ${formatZAR(s.arTotal)}, with ${formatZAR(s.arOverdue)} overdue. A reminder today is the cheapest way to bring it in.`, action: 'Send reminders', href: '/dashboard/invoices' }
+    lead = { line: `You're owed ${formatZAR(s.arTotal)}, with ${formatZAR(s.arOverdue)} overdue. A reminder today is the cheapest way to bring it in.`, action: 'Send reminders', href: '/dashboard/invoices', remind: true }
   } else if (s.apTotal > s.arTotal && s.apTotal > 0) {
     lead = { line: `You owe ${formatZAR(s.apTotal)} but are only owed ${formatZAR(s.arTotal)} — net ${formatZAR(s.netPosition)}. Stage payments and keep invoicing.`, action: 'Review what you owe', href: '/dashboard/expenses' }
   } else {
@@ -63,8 +64,12 @@ export default async function CashCockpit() {
               <p className="text-sm" style={{ color: 'var(--text-muted)' }}>The Bookkeeper · cash mode <span style={{ color: modeColor, fontWeight: 600 }}>{s.mode}</span></p>
             </div>
             <p className="text-lg font-semibold mt-1.5 max-w-3xl" style={{ color: 'var(--text-primary)' }}>{lead.line}</p>
-            <Link href={lead.href} className="inline-flex items-center gap-2 mt-3 px-4 py-2 rounded-xl text-sm font-semibold hover:opacity-90"
-              style={{ background: 'var(--indigo)', color: '#fff' }}>{lead.action} <ArrowRight className="w-4 h-4" /></Link>
+            {lead.remind ? (
+              <SendRemindersButton label={lead.action} />
+            ) : (
+              <Link href={lead.href} className="inline-flex items-center gap-2 mt-3 px-4 py-2 rounded-xl text-sm font-semibold hover:opacity-90"
+                style={{ background: 'var(--indigo)', color: '#fff' }}>{lead.action} <ArrowRight className="w-4 h-4" /></Link>
+            )}
           </div>
         </div>
 

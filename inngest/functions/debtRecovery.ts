@@ -23,7 +23,7 @@ export const debtRecoveryEngine = inngest.createFunction(
   { id: 'debt-recovery-engine', retries: 3, concurrency: { limit: 10 }, triggers: [{ event: 'adminos/invoice.overdue' }] },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async ({ event, step }: any) => {
-    const { invoice_id, tenant_id } = event.data as { invoice_id: string; tenant_id: string; amount: number; days_overdue: number }
+    const { invoice_id, tenant_id, manual } = event.data as { invoice_id: string; tenant_id: string; amount: number; days_overdue: number; manual?: boolean }
 
     const context = await step.run('load-context', async () => {
       const [invoiceRes, tenantRes] = await Promise.all([
@@ -76,7 +76,14 @@ export const debtRecoveryEngine = inngest.createFunction(
 
     // Send automatically ONLY when the escalation is gentle (tiers 1–3) AND the
     // tenant has left recovery on auto (tier A). Anything else is held.
-    if (tier > AUTO_SEND_MAX_TIER || autonomy !== 'A') {
+    //
+    // A `manual` run is the owner explicitly pressing "Send reminders": it is an
+    // attended action, so the unattended-autonomy setting no longer holds it
+    // (autonomy governs what the machine does on its own). The tier ≤ 3 legal
+    // boundary is NOT relaxed — a manual click still cannot auto-send a final
+    // demand; those always route to owner review.
+    const heldByAutonomy = tier <= AUTO_SEND_MAX_TIER && autonomy !== 'A' && !manual
+    if (tier > AUTO_SEND_MAX_TIER || heldByAutonomy) {
       await step.run('flag-owner-review', async () => {
         await writeAuditLog({
           tenantId: tenant_id,
@@ -96,7 +103,6 @@ export const debtRecoveryEngine = inngest.createFunction(
       })
       // Surface it to the owner (in-app bell + WhatsApp if a notify phone is set).
       // Best-effort — never blocks the escalation flag above.
-      const heldByAutonomy = tier <= AUTO_SEND_MAX_TIER && autonomy !== 'A'
       await step.run('notify-owner-review', async () => {
         const inv = context.invoice!
         await notifyTenant(tenant_id, {

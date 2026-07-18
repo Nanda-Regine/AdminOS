@@ -8,8 +8,8 @@ The connective tissue that makes the cockpits *act*, not just show. Grounded in 
 - **2B — autonomy backbone:** migration `tenant_autonomy_config` (applied) · `lib/autonomy/tiers.ts` (pure, unit-tested, `resolveTier`/quiet-hours) + `config.ts` · **debtRecovery gated on the tenant's autonomy** (auto-send only when tier≤3 AND autonomy=A, else hold+alert) · `/dashboard/settings/autonomy` control surface (Auto/Draft/Off per decision) + `/api/autonomy`. npm 26/26, audit 177/0.
 
 ### ⏭ Remaining (next):
-- **1.4** wire spine into more workers: `bookingReminder`→`notifyContact` (customer), payment-received→`notifyTenant`, expense/leave submit→`notifyTenant('approval.needed')`.
-- **1.5** `POST /api/money/remind` + Money cockpit "Send reminders" (gated by autonomy).
+- **1.4** wire spine into more workers: `bookingReminder`→`notifyContact` (customer) still hand-rolls its WhatsApp send; payment-received→`notifyTenant` ✅ and expense-submit→`notifyTenant('approval.needed')` ✅ done.
+- ~~**1.5** `POST /api/money/remind` + Money cockpit "Send reminders" (gated by autonomy).~~ ✅ **SHIPPED** — `app/api/money/remind/route.ts` fans the overdue book through the recovery engine with a `manual: true` flag; the engine now treats a manual click as an *attended* action (autonomy hold relaxed, but the tier ≤ 3 legal boundary + content guard stay). Money cockpit "Send reminders" is now a client `SendRemindersButton` with inline feedback; owner gets a `recovery.sent` bell confirmation.
 - **1.3** Meta template approval for customer-facing sends.
 - **2.9** gate customer-facing spine sends by autonomy · **2.10** per-tenant AI cost ceiling · **2.2** fold refreshers into the 06:00 brief · **2.3** durable `domain_signals` mirror · quiet-hours wiring · **1.7** notification preferences.
 
