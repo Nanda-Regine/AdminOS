@@ -9,6 +9,7 @@ import {
   Tooltip,
   ResponsiveContainer,
   ReferenceLine,
+  Legend,
 } from 'recharts'
 
 interface CashflowEntry {
@@ -83,24 +84,27 @@ export function CashflowChart({ entries }: { entries: CashflowEntry[] }) {
 
   return (
     <ResponsiveContainer width="100%" height={240}>
-      <BarChart data={buckets} barGap={2} barCategoryGap="30%">
-        <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" vertical={false} />
+      <BarChart data={buckets} barGap={2} barCategoryGap="30%" margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
+        {/* Theme-aware chrome: translucent white reads correctly on the dark navy
+            card and stays subtle in light mode. */}
+        <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.18)" vertical={false} />
         <XAxis
           dataKey="label"
-          tick={{ fontSize: 11, fill: '#9CA3AF' }}
+          tick={{ fontSize: 11, fill: 'var(--text-dim)' }}
           axisLine={false}
           tickLine={false}
         />
         <YAxis
           tickFormatter={formatK}
-          tick={{ fontSize: 11, fill: '#9CA3AF' }}
+          tick={{ fontSize: 11, fill: 'var(--text-dim)' }}
           axisLine={false}
           tickLine={false}
           width={52}
         />
-        <Tooltip content={<CustomTooltip />} cursor={{ fill: '#F9FAFB' }} />
-        <ReferenceLine y={0} stroke="#E5E7EB" />
-        <Bar dataKey="income"  name="Income"  fill="#22C55E" radius={[4, 4, 0, 0]} />
+        <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(148,163,184,0.12)' }} />
+        <ReferenceLine y={0} stroke="rgba(148,163,184,0.35)" />
+        <Legend wrapperStyle={{ fontSize: 11, color: 'var(--text-muted)' }} iconType="circle" iconSize={8} />
+        <Bar dataKey="income"  name="Income"  fill="#34D399" radius={[4, 4, 0, 0]} />
         <Bar dataKey="expense" name="Expense" fill="#F87171" radius={[4, 4, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>

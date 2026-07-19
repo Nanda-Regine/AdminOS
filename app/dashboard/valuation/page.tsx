@@ -91,7 +91,7 @@ export default async function ValuationPage() {
               <p className="text-sm text-[var(--text-muted)] mb-1">Estimated Valuation</p>
               {latest ? (
                 <>
-                  <p className="text-5xl font-extrabold text-emerald-600 tracking-tight">
+                  <p className="text-5xl font-extrabold text-emerald-400 tracking-tight">
                     {formatValuation(latest.valuation_estimate)}
                   </p>
                   <p className="text-xs text-[var(--text-dim)] mt-1">
@@ -140,7 +140,7 @@ export default async function ValuationPage() {
                       style={{ height: '60px' }}
                       title={`Latest: ${formatValuation(latest.valuation_estimate)}`}
                     />
-                    <p className="text-xs font-semibold text-emerald-600">Now</p>
+                    <p className="text-xs font-semibold text-emerald-400">Now</p>
                   </div>
                 )}
               </div>

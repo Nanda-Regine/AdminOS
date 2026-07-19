@@ -47,7 +47,7 @@ function ScoreRing({ score }: { score: number }) {
     <div className="flex flex-col items-center">
       <div className="relative w-36 h-36">
         <svg viewBox="0 0 128 128" className="w-full h-full -rotate-90">
-          <circle cx="64" cy="64" r={r} fill="none" stroke="#E5E7EB" strokeWidth="10" />
+          <circle cx="64" cy="64" r={r} fill="none" stroke="var(--surface-2)" strokeWidth="10" />
           <circle
             cx="64" cy="64" r={r}
             fill="none"
@@ -224,7 +224,7 @@ export default async function HealthPage() {
                         return (
                           <tr
                             key={snap.id}
-                            className={isLatest ? 'bg-indigo-50 font-semibold' : 'hover:bg-[var(--surface-hover)]'}
+                            className={isLatest ? 'bg-indigo-500/15 font-semibold' : 'hover:bg-[var(--surface-hover)]'}
                           >
                             <td className="py-2 text-[var(--text-secondary)]">
                               {new Date(snap.created_at).toLocaleDateString('en-ZA', {
@@ -233,7 +233,7 @@ export default async function HealthPage() {
                                 year: 'numeric',
                               })}
                               {isLatest && (
-                                <span className="ml-1.5 text-[10px] text-indigo-600 font-normal">
+                                <span className="ml-1.5 text-[10px] font-normal" style={{ color: 'var(--indigo-light)' }}>
                                   (latest)
                                 </span>
                               )}

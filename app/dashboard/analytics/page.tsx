@@ -272,7 +272,7 @@ export default async function AnalyticsPage() {
             </div>
             <div className="mt-4 pt-3 border-t border-[var(--border)]">
               <p className="text-xs text-[var(--text-muted)]">Revenue collected</p>
-              <p className="text-xl font-bold text-emerald-600 mt-0.5">
+              <p className="text-xl font-bold text-emerald-400 mt-0.5">
                 R{revenue.toLocaleString()}
                 <span className="text-sm font-normal text-[var(--text-dim)] ml-1">
                   from {paidInvoices.length} invoices
