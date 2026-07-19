@@ -221,6 +221,37 @@ body {
   background-position: center;
 }
 
+/* ── Per-domain grounds ─────────────────────────────────────────────────────
+   Each value-chain domain gets its own signature texture behind the app shell,
+   so entering a cockpit feels like walking into a different room of the same
+   building. <DomainGround> sets data-ground on <html> from the route's feature
+   category; the shared --app-bg-scrim keeps every ground AA-legible (cards are
+   frosted glass on top). Dark textures below; light overrides follow. Unknown
+   routes fall back to the default watercolour ground (bg-blue-waves).
+   Library: /public/backgrounds — every named texture now has a semantic home. */
+:root[data-ground="command"] { --app-bg-image: url('/backgrounds/bg-dark.jpg'); }               /* navy-teal leather glow — the bridge */
+:root[data-ground="money"]   { --app-bg-image: url('/backgrounds/bg-dark-brushed.jpg'); }        /* blue brushed steel — the vault */
+:root[data-ground="sales"]   { --app-bg-image: url('/backgrounds/bg-blue-glow.jpg'); }           /* blue watercolour — momentum */
+:root[data-ground="ops"]     { --app-bg-image: url('/backgrounds/bg-dark-carbon.jpg'); }          /* carbon fibre — the engine room */
+:root[data-ground="people"]  { --app-bg-image: url('/backgrounds/bg-dark-wood.jpg'); }            /* warm wood — human */
+:root[data-ground="govern"]  { --app-bg-image: url('/backgrounds/bg-dark-leather-black.jpg'); }   /* black leather — the boardroom ledger */
+:root[data-ground="grow"]    { --app-bg-image: url('/backgrounds/bg-dark-diagonal.jpg'); }        /* diagonal brushed — leveling up */
+:root[data-ground="setup"]   { --app-bg-image: url('/backgrounds/bg-dark-metal.jpg'); }           /* brushed metal — the workshop */
+
+/* Warm grounds (people/grow) get a warmer scrim so the wood/diagonal reads warm
+   rather than cold-navy in the gaps between cards. */
+:root[data-ground="people"] { --app-bg-scrim: linear-gradient(180deg, rgba(20,14,8,0.80) 0%, rgba(12,9,5,0.89) 100%); }
+
+/* Light-theme grounds — reuse the light material library, tuned per domain. */
+:root[data-theme="light"][data-ground="command"] { --app-bg-image: url('/backgrounds/bg-light.jpg'); }
+:root[data-theme="light"][data-ground="money"]    { --app-bg-image: url('/backgrounds/bg-light-plaster.jpg'); }
+:root[data-theme="light"][data-ground="sales"]    { --app-bg-image: url('/backgrounds/bg-light-beige.jpg'); }
+:root[data-theme="light"][data-ground="ops"]      { --app-bg-image: url('/backgrounds/bg-light-stucco.jpg'); }
+:root[data-theme="light"][data-ground="people"]   { --app-bg-image: url('/backgrounds/bg-light-stucco.jpg'); }
+:root[data-theme="light"][data-ground="govern"]   { --app-bg-image: url('/backgrounds/bg-light-paper.jpg'); }
+:root[data-theme="light"][data-ground="grow"]     { --app-bg-image: url('/backgrounds/bg-light-beige.jpg'); }
+:root[data-theme="light"][data-ground="setup"]    { --app-bg-image: url('/backgrounds/bg-light-plaster.jpg'); }
+
 /* ── Glass surfaces ─────────────────────────────────────────────────────── */
 .glass {
   background:     var(--surface-1);
