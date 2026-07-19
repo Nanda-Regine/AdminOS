@@ -471,7 +471,14 @@ export default function HomePage() {
         }
       `}</style>
 
-      <div style={{ background: 'var(--black)', minHeight: '100vh', color: '#fff' }}>
+      <div style={{
+        backgroundColor: 'var(--black)',
+        backgroundImage: "linear-gradient(180deg, rgba(5,11,26,0.90) 0%, rgba(5,11,26,0.94) 55%, rgba(5,11,26,0.90) 100%), url('/backgrounds/bg-blue-deep.jpg')",
+        backgroundSize: 'cover',
+        backgroundPosition: 'center top',
+        backgroundAttachment: 'fixed',
+        minHeight: '100vh', color: '#fff',
+      }}>
 
         {/* ── Nav ─────────────────────────────────────────────────────── */}
         <header className="sticky top-0 z-50 glass-nav">
@@ -505,7 +512,7 @@ export default function HomePage() {
         <main>
 
           {/* ── Hero ────────────────────────────────────────────────────── */}
-          <section className="hero-section relative overflow-hidden" style={{ padding: '96px 24px 80px' }}>
+          <section className="hero-section relative overflow-hidden" style={{ padding: '96px 24px 80px', backgroundColor: '#070B18', backgroundImage: "linear-gradient(180deg, rgba(6,10,24,0.80) 0%, rgba(6,10,24,0.90) 100%), url('/backgrounds/bg-blue-strata.jpg')", backgroundSize: 'cover', backgroundPosition: 'center' }}>
 
             {/* BG orbs */}
             <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden' }}>
@@ -618,7 +625,7 @@ export default function HomePage() {
           </div>
 
           {/* ── Stats ───────────────────────────────────────────────────── */}
-          <section style={{ borderBottom: '1px solid rgba(255,255,255,.05)', background: 'rgba(255,255,255,.015)', padding: '56px 24px' }}>
+          <section style={{ borderBottom: '1px solid rgba(255,255,255,.05)', backgroundColor: '#070B18', backgroundImage: "linear-gradient(180deg, rgba(6,10,24,0.88) 0%, rgba(6,10,24,0.93) 100%), url('/backgrounds/bg-dark-brushed.jpg')", backgroundSize: 'cover', backgroundPosition: 'center', padding: '56px 24px' }}>
             <div className="max-w-4xl mx-auto stats-grid">
               {stats.map((s, i) => (
                 <div key={s.label} className="ci" style={{ animationDelay: `${i * .1}s` }}>
@@ -666,7 +673,7 @@ export default function HomePage() {
           </section>
 
           {/* ── 6 Agents ────────────────────────────────────────────────── */}
-          <section id="agents" style={{ background: 'rgba(255,255,255,.012)', borderTop: '1px solid rgba(255,255,255,.05)', borderBottom: '1px solid rgba(255,255,255,.05)', padding: '96px 24px' }}>
+          <section id="agents" style={{ backgroundColor: '#070B18', backgroundImage: "linear-gradient(180deg, rgba(6,10,24,0.87) 0%, rgba(6,10,24,0.93) 100%), url('/backgrounds/bg-dark-carbon.jpg')", backgroundSize: 'cover', backgroundPosition: 'center', borderTop: '1px solid rgba(255,255,255,.05)', borderBottom: '1px solid rgba(255,255,255,.05)', padding: '96px 24px' }}>
             <div className="max-w-7xl mx-auto">
 
               <div style={{ textAlign: 'center', marginBottom: 60 }}>
@@ -928,7 +935,7 @@ export default function HomePage() {
           </section>
 
           {/* ── Platform Depth ──────────────────────────────────────────── */}
-          <section style={{ background: 'rgba(255,255,255,.012)', borderTop: '1px solid rgba(255,255,255,.05)', borderBottom: '1px solid rgba(255,255,255,.05)', padding: '96px 24px' }}>
+          <section style={{ backgroundColor: '#070B18', backgroundImage: "linear-gradient(180deg, rgba(6,10,24,0.87) 0%, rgba(6,10,24,0.93) 100%), url('/backgrounds/bg-dark-metal.jpg')", backgroundSize: 'cover', backgroundPosition: 'center', borderTop: '1px solid rgba(255,255,255,.05)', borderBottom: '1px solid rgba(255,255,255,.05)', padding: '96px 24px' }}>
             <div className="max-w-7xl mx-auto">
               <div style={{ textAlign: 'center', marginBottom: 60 }}>
                 <p style={{ color: 'var(--orange)', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 12 }}>Beyond the agents</p>
@@ -1009,7 +1016,7 @@ export default function HomePage() {
           </section>
 
           {/* ── Business Intelligence ───────────────────────────────────── */}
-          <section style={{ background: 'linear-gradient(180deg,#050B1A 0%,#071020 100%)', borderTop: '1px solid rgba(6,182,212,.12)', borderBottom: '1px solid rgba(6,182,212,.12)', padding: '96px 24px' }}>
+          <section style={{ backgroundColor: '#070B18', backgroundImage: "linear-gradient(180deg, rgba(6,10,24,0.86) 0%, rgba(6,10,24,0.92) 100%), url('/backgrounds/bg-dark.jpg')", backgroundSize: 'cover', backgroundPosition: 'center', borderTop: '1px solid rgba(6,182,212,.12)', borderBottom: '1px solid rgba(6,182,212,.12)', padding: '96px 24px' }}>
             <div className="max-w-6xl mx-auto">
               <div style={{ textAlign: 'center', marginBottom: 64 }}>
                 <p style={{ color: '#06B6D4', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 12 }}>Business Intelligence</p>
@@ -1214,7 +1221,7 @@ export default function HomePage() {
           </section>
 
           {/* ── Ubuntu & Economic Liberation ────────────────────────────── */}
-          <section style={{ background: 'rgba(167,139,250,.04)', borderTop: '1px solid rgba(167,139,250,.1)', borderBottom: '1px solid rgba(167,139,250,.1)', padding: '96px 24px' }}>
+          <section style={{ backgroundColor: '#070B18', backgroundImage: "linear-gradient(180deg, rgba(9,7,20,0.86) 0%, rgba(9,7,20,0.93) 100%), url('/backgrounds/bg-dark-leather-black.jpg')", backgroundSize: 'cover', backgroundPosition: 'center', borderTop: '1px solid rgba(167,139,250,.1)', borderBottom: '1px solid rgba(167,139,250,.1)', padding: '96px 24px' }}>
             <div className="max-w-6xl mx-auto">
               <div className="ubuntu-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 64, alignItems: 'center' }}>
                 {/* Left: stats + message */}
@@ -1284,7 +1291,7 @@ export default function HomePage() {
           </section>
 
           {/* ── Africa-first ────────────────────────────────────────────── */}
-          <section className="diagonal-top diagonal-btm" style={{ background: 'rgba(6,182,212,.04)', borderTop: '1px solid rgba(6,182,212,.08)', borderBottom: '1px solid rgba(6,182,212,.08)', padding: '96px 24px' }}>
+          <section className="diagonal-top diagonal-btm" style={{ backgroundColor: '#070B18', backgroundImage: "linear-gradient(180deg, rgba(6,10,24,0.84) 0%, rgba(6,10,24,0.91) 100%), url('/backgrounds/bg-blue-glow.jpg')", backgroundSize: 'cover', backgroundPosition: 'center', borderTop: '1px solid rgba(6,182,212,.08)', borderBottom: '1px solid rgba(6,182,212,.08)', padding: '96px 24px' }}>
             <div className="max-w-5xl mx-auto">
               <div style={{ textAlign: 'center', marginBottom: 48 }}>
                 <h2 style={{ fontSize: 'clamp(24px, 3vw, 38px)', fontWeight: 800, letterSpacing: '-.5px', marginBottom: 12 }}>Designed for African realities</h2>
@@ -1307,7 +1314,7 @@ export default function HomePage() {
           </section>
 
           {/* ── Industries ──────────────────────────────────────────────── */}
-          <section style={{ borderBottom: '1px solid rgba(255,255,255,.05)', padding: '64px 24px' }}>
+          <section style={{ borderBottom: '1px solid rgba(255,255,255,.05)', backgroundColor: '#070B18', backgroundImage: "linear-gradient(180deg, rgba(6,10,24,0.88) 0%, rgba(6,10,24,0.93) 100%), url('/backgrounds/bg-dark-diagonal.jpg')", backgroundSize: 'cover', backgroundPosition: 'center', padding: '64px 24px' }}>
             <div className="max-w-5xl mx-auto text-center">
               <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--dimmer)', marginBottom: 28 }}>Built for South African industries</h2>
               <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 10 }}>
@@ -1390,7 +1397,7 @@ export default function HomePage() {
           </section>
 
           {/* ── FAQ ─────────────────────────────────────────────────────── */}
-          <section id="faq" style={{ background: 'rgba(255,255,255,.012)', borderTop: '1px solid rgba(255,255,255,.05)', borderBottom: '1px solid rgba(255,255,255,.05)', padding: '96px 24px' }}>
+          <section id="faq" style={{ backgroundColor: '#070B18', backgroundImage: "linear-gradient(180deg, rgba(6,10,24,0.87) 0%, rgba(6,10,24,0.93) 100%), url('/backgrounds/bg-dark.jpg')", backgroundSize: 'cover', backgroundPosition: 'center', borderTop: '1px solid rgba(255,255,255,.05)', borderBottom: '1px solid rgba(255,255,255,.05)', padding: '96px 24px' }}>
             <div className="max-w-3xl mx-auto">
               <div style={{ textAlign: 'center', marginBottom: 48 }}>
                 <p style={{ color: 'var(--teal)', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 12 }}>FAQ</p>
@@ -1414,22 +1421,37 @@ export default function HomePage() {
 
           {/* ── Final CTA ───────────────────────────────────────────────── */}
           <section className="max-w-4xl mx-auto px-6 py-24 text-center">
-            <div className="cta-inner" style={{ borderRadius: 28, border: '1px solid rgba(249,115,22,.2)', padding: '72px 48px', background: 'linear-gradient(135deg, rgba(249,115,22,.07) 0%, rgba(6,182,212,.05) 60%)', position: 'relative', overflow: 'hidden' }}>
-              <div style={{ position: 'absolute', top: '-50%', left: '50%', transform: 'translateX(-50%)', width: 500, height: 300, borderRadius: '50%', background: 'radial-gradient(circle, rgba(249,115,22,.1) 0%, transparent 70%)', pointerEvents: 'none' }} />
-              <h2 style={{ fontSize: 'clamp(28px, 4vw, 50px)', fontWeight: 900, letterSpacing: '-2px', marginBottom: 16, position: 'relative' }}>Your business OS is ready.</h2>
-              <p style={{ color: 'var(--dim)', fontSize: 18, marginBottom: 36, lineHeight: 1.6, position: 'relative' }}>
-                Join South African businesses saving time and money with AdminOS.<br />Try the demo first — no account, no commitment.
-              </p>
-              <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap', position: 'relative' }}>
-                <Link href="/demo" className="btn-demo" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '16px 32px', borderRadius: 14, fontWeight: 800, fontSize: 17, color: 'white', textDecoration: 'none' }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><polygon points="5,3 19,12 5,21" fill="white"/></svg>
-                  Try interactive demo
-                </Link>
-                <Link href="/signup" className="btn-orange" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '16px 32px', borderRadius: 14, fontWeight: 800, fontSize: 17, color: 'white', textDecoration: 'none' }}>
-                  Start 14-day free trial →
-                </Link>
+            <div className="cta-inner" style={{
+              borderRadius: 28, border: '1px solid rgba(201,168,76,.35)', padding: '76px 48px',
+              position: 'relative', overflow: 'hidden',
+              backgroundColor: '#0A0F2C',
+              backgroundImage: "linear-gradient(115deg, rgba(7,10,26,0.92) 0%, rgba(7,10,26,0.74) 46%, rgba(7,10,26,0.42) 100%), url('/backgrounds/bg-hero-navygold.jpg')",
+              backgroundSize: 'cover', backgroundPosition: 'center right',
+              boxShadow: '0 40px 120px rgba(0,0,0,.55)',
+            }}>
+              <div style={{ position: 'relative' }}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(201,168,76,.12)', border: '1px solid rgba(201,168,76,.3)', borderRadius: 100, padding: '6px 16px', fontSize: 13, color: '#E7C766', marginBottom: 24, fontWeight: 600 }}>
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#E7C766', display: 'inline-block', animation: 'pulse 2s ease-in-out infinite' }} />
+                  Your whole business, one login
+                </div>
+                <h2 style={{ fontSize: 'clamp(30px, 4.4vw, 54px)', fontWeight: 900, letterSpacing: '-2px', marginBottom: 18, lineHeight: 1.05 }}>
+                  Stop stitching together<br />apps, folders &amp; spreadsheets.
+                </h2>
+                <p style={{ color: 'rgba(255,255,255,.72)', fontSize: 18, marginBottom: 36, lineHeight: 1.6, maxWidth: 520, marginLeft: 'auto', marginRight: 'auto' }}>
+                  See it working in the interactive demo — no account needed — then start your free trial and be live the same day.
+                </p>
+                <div className="hero-ctas" style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
+                  <Link href="/signup" className="btn-orange hero-cta-btn" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '16px 34px', borderRadius: 14, fontWeight: 800, fontSize: 17, color: 'white', textDecoration: 'none' }}>
+                    Start 14-day free trial
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  </Link>
+                  <Link href="/demo" className="btn-ghost hero-cta-btn" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '16px 32px', borderRadius: 14, fontWeight: 700, fontSize: 17, color: 'white', textDecoration: 'none' }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><polygon points="5,3 19,12 5,21" fill="white"/></svg>
+                    Try interactive demo
+                  </Link>
+                </div>
+                <p style={{ fontSize: 13, color: 'rgba(255,255,255,.5)', marginTop: 22 }}>14-day free trial · No credit card · POPIA-compliant · Cancel anytime</p>
               </div>
-              <p style={{ fontSize: 13, color: 'var(--dimmest)', marginTop: 20, position: 'relative' }}>14-day free trial · No credit card · Built for POPIA</p>
             </div>
           </section>
 
