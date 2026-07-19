@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { TopBar } from '@/components/dashboard/TopBar'
+import { CreateShiftModal } from './CreateShiftModal'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ConfirmSubmit } from '@/components/ui/ConfirmSubmit'
@@ -88,6 +89,7 @@ export default async function TeamPage() {
       <TopBar
         title="Team"
         subtitle={`${staff.length} team member${staff.length !== 1 ? 's' : ''}`}
+        actions={<CreateShiftModal staff={staff.map((s) => ({ id: s.id as string, full_name: (s.full_name as string) ?? null }))} />}
       />
       <div className="p-6 space-y-6">
 

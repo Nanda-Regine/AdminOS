@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { RunPayrollForm } from './RunPayrollForm'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { TopBar } from '@/components/dashboard/TopBar'
 import { Card } from '@/components/ui/card'
@@ -32,7 +33,8 @@ export default async function PayrollPage() {
 
   return (
     <div>
-      <TopBar title="Payroll" subtitle="Manage payroll runs and payslips" />
+      <TopBar title="Payroll" subtitle="Manage payroll runs and payslips"
+        actions={<RunPayrollForm defaultMonth={new Date().getMonth() + 1} defaultYear={new Date().getFullYear()} />} />
       <div className="p-6 space-y-6">
 
         {/* Latest run status */}
