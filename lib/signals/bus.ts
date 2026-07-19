@@ -16,6 +16,7 @@
  */
 
 import { Redis } from '@upstash/redis'
+import { supabaseAdmin } from '@/lib/supabase/admin'
 
 const redis = new Redis({
   url: process.env.UPSTASH_REDIS_REST_URL!,
@@ -93,6 +94,52 @@ export async function publishSignal<D extends Domain>(
   } catch {
     /* signal bus is a cache — never throw into the caller's path */
   }
+  // Durable mirror (JarvisOS dual-write) — a backstop against Redis eviction and
+  // an RLS-queryable copy. Best-effort and SILENT: until the domain_signals
+  // migration is applied this upsert simply no-ops, and it never throws into the
+  // caller. Redis stays the source for hot reads.
+  await mirrorSignalDurably(domain, tenantId, signal)
+}
+
+async function mirrorSignalDurably<D extends Domain>(
+  domain: D,
+  tenantId: string,
+  signal: SignalMap[D],
+): Promise<void> {
+  try {
+    await supabaseAdmin
+      .from('domain_signals')
+      .upsert(
+        {
+          tenant_id: tenantId,
+          domain,
+          payload: signal,
+          health: (signal as { health?: string }).health ?? null,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'tenant_id,domain' },
+      )
+  } catch {
+    /* durable mirror is a backstop — never throw, never spam if table absent */
+  }
+}
+
+/** Durable-store fallback read (RLS-safe) for when Redis is cold/evicted. */
+export async function readDurableSignal<D extends Domain>(
+  domain: D,
+  tenantId: string,
+): Promise<SignalMap[D] | null> {
+  try {
+    const { data } = await supabaseAdmin
+      .from('domain_signals')
+      .select('payload')
+      .eq('tenant_id', tenantId)
+      .eq('domain', domain)
+      .maybeSingle()
+    return (data?.payload as SignalMap[D]) ?? null
+  } catch {
+    return null
+  }
 }
 
 /** Read one domain's signal (null if never published / expired). */
@@ -114,7 +161,14 @@ export async function readAllSignals(tenantId: string): Promise<Partial<SignalMa
   await Promise.all(
     domains.map(async (d) => {
       const s = await readSignal(d, tenantId)
-      if (s) (out as Record<string, unknown>)[d] = s
+      if (s) {
+        (out as Record<string, unknown>)[d] = s
+        return
+      }
+      // Redis miss (cold/evicted) — fall back to the durable mirror so the
+      // Command Center still shows the last computed snapshot rather than blanks.
+      const durable = await readDurableSignal(d, tenantId)
+      if (durable) (out as Record<string, unknown>)[d] = durable
     }),
   )
   return out
