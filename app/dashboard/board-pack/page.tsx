@@ -86,6 +86,14 @@ export default async function BoardPackPage() {
   const boardPacks = (packs || []) as BoardPack[]
   const latest = boardPacks[0] ?? null
 
+  const { data: tenant } = await supabaseAdmin
+    .from('tenants')
+    .select('name, settings')
+    .eq('id', tenantId)
+    .maybeSingle()
+  const logoUrl = typeof tenant?.settings?.logo_url === 'string' ? tenant.settings.logo_url : null
+  const businessName = tenant?.name ?? 'Your Business'
+
   return (
     <div>
       <TopBar title="Board Pack" subtitle="Monthly governance reports" />
@@ -134,13 +142,31 @@ export default async function BoardPackPage() {
               </div>
             </Card>
 
-            {/* Latest pack content */}
+            {/* Latest pack content — the print-area is isolated for a clean PDF */}
             {latest && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-semibold text-[var(--text-secondary)]">
-                    Viewing: {formatMonth(latest.month)}
-                  </h3>
+              <div className="space-y-4 print-area">
+                {/* Print-only guard: hide the app chrome so window.print() yields
+                    just this branded document. */}
+                <style>{`
+                  @media print {
+                    body * { visibility: hidden !important; }
+                    .print-area, .print-area * { visibility: visible !important; }
+                    .print-area { position: absolute; top: 0; left: 0; width: 100%; padding: 0 8mm; }
+                    .print-hide { display: none !important; }
+                    @page { size: A4; margin: 14mm; }
+                  }
+                `}</style>
+
+                {/* Branded document header — logo + business name (screen + print) */}
+                <div className="flex items-center gap-3 pb-4 mb-2" style={{ borderBottom: '2px solid var(--indigo)' }}>
+                  {logoUrl && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={logoUrl} alt={`${businessName} logo`} style={{ maxHeight: 52, maxWidth: 180, objectFit: 'contain' }} />
+                  )}
+                  <div>
+                    <p className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{businessName}</p>
+                    <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Monthly Board Pack — {formatMonth(latest.month)}</p>
+                  </div>
                 </div>
 
                 {SECTIONS.map(({ key, label, icon }) => {

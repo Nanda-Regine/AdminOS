@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { BotTrainingForm } from './BotTrainingForm'
+import { LogoUpload } from './LogoUpload'
 
 const integrations = [
   { id: 'gmail', label: 'Gmail', icon: '✉️', description: 'Sync inbound emails' },
@@ -73,6 +74,13 @@ export default async function SettingsPage() {
               <p className="font-medium text-[var(--text-primary)] mt-0.5">{tenant.timezone}</p>
             </div>
           </div>
+        </Card>
+
+        {/* Business logo */}
+        <Card>
+          <h3 className="font-semibold text-[var(--text-primary)] mb-1">Business Logo</h3>
+          <p className="text-xs text-[var(--text-muted)] mb-4">Appears on payslips, board packs and other documents you export.</p>
+          <LogoUpload initialLogo={typeof tenant.settings?.logo_url === 'string' ? tenant.settings.logo_url : null} />
         </Card>
 
         {/* Bot training */}

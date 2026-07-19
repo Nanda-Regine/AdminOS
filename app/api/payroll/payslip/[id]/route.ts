@@ -66,6 +66,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   const deductions = components.filter(c => c.type === 'deduction')
 
   const html = generatePayslipHTML({
+    logoUrl:          (settings?.logo_url as string) ?? null,
     employeeName:     (staffRecord?.full_name    as string) ?? 'Employee',
     employeeNumber:   (staffRecord?.employee_number as string) ?? String(payslip.staff_id ?? '').slice(0, 8),
     idNumber:         (staffRecord?.id_number    as string) ?? null,
@@ -84,9 +85,11 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     netPay:           payslip.net_pay           ?? 0,
     ytdGross:         null,
     ytdTax:           null,
+    // Bank details live on the staff record but aren't in this select; YTD needs a
+    // period aggregation — both hide gracefully until wired. UIF ref is a tenant setting.
     bankName:         null,
     accountNumber:    null,
-    uifNumber:        null,
+    uifNumber:        (settings?.uif_number as string) ?? null,
   })
 
   const url      = new URL(request.url)

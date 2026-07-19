@@ -1,4 +1,5 @@
 interface PayslipData {
+  logoUrl?:        string | null
   employeeName:    string
   employeeNumber:  string
   idNumber:        string | null
@@ -46,6 +47,8 @@ export function generatePayslipHTML(data: PayslipData): string {
   body { font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #111; background: #fff; padding: 24px; }
   .payslip { max-width: 800px; margin: 0 auto; border: 1px solid #ccc; padding: 24px; }
   .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; border-bottom: 2px solid #1a56db; padding-bottom: 16px; }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand img { max-height: 48px; max-width: 160px; object-fit: contain; }
   .company-name { font-size: 18px; font-weight: bold; color: #1a56db; }
   .company-details { font-size: 10px; color: #555; margin-top: 4px; }
   .payslip-title { text-align: right; }
@@ -79,10 +82,13 @@ export function generatePayslipHTML(data: PayslipData): string {
 <div class="payslip">
 
   <div class="header">
-    <div>
-      <div class="company-name">${escHtml(data.companyName)}</div>
-      ${data.companyAddress ? `<div class="company-details">${escHtml(data.companyAddress)}</div>` : ''}
-      ${data.companyVatNumber ? `<div class="company-details">VAT: ${escHtml(data.companyVatNumber)}</div>` : ''}
+    <div class="brand">
+      ${data.logoUrl ? `<img src="${escHtml(data.logoUrl)}" alt="${escHtml(data.companyName)} logo">` : ''}
+      <div>
+        <div class="company-name">${escHtml(data.companyName)}</div>
+        ${data.companyAddress ? `<div class="company-details">${escHtml(data.companyAddress)}</div>` : ''}
+        ${data.companyVatNumber ? `<div class="company-details">VAT: ${escHtml(data.companyVatNumber)}</div>` : ''}
+      </div>
     </div>
     <div class="payslip-title">
       <h1>PAYSLIP</h1>
