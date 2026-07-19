@@ -40,7 +40,7 @@ export default async function InvoicesPage() {
       <div className="p-6 space-y-6">
 
         {/* Summary */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Card>
             <p className="text-sm text-[var(--text-muted)]">Total outstanding</p>
             <p className="text-2xl font-bold text-[var(--text-primary)] mt-1">{formatZAR(totalOwed)}</p>

@@ -277,6 +277,7 @@ export default async function BillingPage({
           <section>
             <h3 className="text-sm font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>Payment History</h3>
             <div className="glass rounded-2xl overflow-hidden">
+              <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr style={{ borderBottom: '1px solid var(--border)', background: 'rgba(255,255,255,0.02)' }}>
@@ -301,6 +302,7 @@ export default async function BillingPage({
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           </section>
         )}

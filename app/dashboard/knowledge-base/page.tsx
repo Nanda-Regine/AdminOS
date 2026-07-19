@@ -54,7 +54,7 @@ export default async function KnowledgeBasePage() {
       <div className="p-6 space-y-6">
 
         {/* Stats row */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Card>
             <p className="text-xs text-[var(--text-muted)]">Total Articles</p>
             <p className="text-2xl font-bold text-[var(--text-primary)] mt-1">{articles.length}</p>

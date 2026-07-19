@@ -224,7 +224,7 @@ export default function OnboardingPage() {
               </div>
               <div className="space-y-3">
                 {staffRows.map((row, i) => (
-                  <div key={i} className="grid grid-cols-12 gap-2 items-center">
+                  <div key={i} className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
                     <input
                       className="col-span-5 border border-[var(--border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                       placeholder="Full name *"

@@ -46,7 +46,7 @@ export default async function SettingsPage() {
         {/* Business profile */}
         <Card>
           <h3 className="font-semibold text-[var(--text-primary)] mb-4">Business Profile</h3>
-          <div className="grid grid-cols-2 gap-4 text-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
             <div>
               <p className="text-[var(--text-muted)]">Business name</p>
               <p className="font-medium text-[var(--text-primary)] mt-0.5">{tenant.name}</p>

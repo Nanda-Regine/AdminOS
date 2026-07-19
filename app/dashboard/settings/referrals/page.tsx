@@ -44,7 +44,7 @@ export default async function ReferralsPage() {
       <div className="p-6 space-y-6">
 
         {/* Reward summary */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Card>
             <p className="text-sm text-[var(--text-muted)]">Businesses referred</p>
             <p className="text-2xl font-bold text-[var(--text-primary)] mt-1">{referrals.length}</p>
