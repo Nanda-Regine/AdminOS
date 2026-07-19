@@ -37,7 +37,8 @@ export async function GET(request: Request) {
     filename = `adminos-vat201-${stamp}.csv`
   }
 
-  return new NextResponse(csv, {
+  // Prepend a UTF-8 BOM so Excel on Windows opens ZAR/accented text cleanly.
+  return new NextResponse('﻿' + csv, {
     status: 200,
     headers: {
       'Content-Type': 'text/csv; charset=utf-8',

@@ -80,7 +80,7 @@ export default async function PayrollPage() {
                 />
               </form>
               <a
-                href="/api/payroll/emp201"
+                href="/api/payroll/emp201?format=csv"
                 className="text-sm border border-[var(--border)] text-[var(--text-secondary)] px-4 py-2 rounded-lg hover:bg-[var(--surface-hover)] transition-colors"
               >
                 Download EMP201

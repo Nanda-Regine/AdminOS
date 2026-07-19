@@ -167,7 +167,8 @@ export function DataTable<T>({
           .join(','),
       )
       .join('\n')
-    const blob = new Blob([`${header}\n${body}`], { type: 'text/csv;charset=utf-8;' })
+    // Leading UTF-8 BOM so Excel opens ZAR/accented characters correctly.
+    const blob = new Blob([`﻿${header}\n${body}`], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url

@@ -17,51 +17,75 @@ export async function GET(request: Request) {
 
   if (!(await checkPermission('view_payroll'))) return new NextResponse('Forbidden', { status: 403 })
 
-  const url   = new URL(request.url)
-  const month = parseInt(url.searchParams.get('month') ?? String(new Date().getMonth() + 1))
-  const year  = parseInt(url.searchParams.get('year')  ?? String(new Date().getFullYear()))
+  const url        = new URL(request.url)
+  const monthParam = url.searchParams.get('month')
+  const yearParam  = url.searchParams.get('year')
+  const asCsv      = url.searchParams.get('format') === 'csv' || url.searchParams.get('download') === 'true'
 
-  if (isNaN(month) || month < 1 || month > 12 || isNaN(year)) {
-    return NextResponse.json({ error: 'Invalid month or year' }, { status: 400 })
-  }
-
-  // Fetch the payroll run for this period
-  const { data: run, error: runError } = await supabaseAdmin
+  // Resolve the run: an explicit period if given, otherwise the LATEST run (the
+  // old default of "current month" 404'd whenever this month hadn't been run yet).
+  let runQuery = supabaseAdmin
     .from('payroll_runs')
     .select('id, period_month, period_year, status, emp201_data')
     .eq('tenant_id', tenantId)
-    .eq('period_month', month)
-    .eq('period_year', year)
-    .maybeSingle()
 
+  if (monthParam && yearParam) {
+    const month = parseInt(monthParam), year = parseInt(yearParam)
+    if (isNaN(month) || month < 1 || month > 12 || isNaN(year)) {
+      return NextResponse.json({ error: 'Invalid month or year' }, { status: 400 })
+    }
+    runQuery = runQuery.eq('period_month', month).eq('period_year', year)
+  } else {
+    runQuery = runQuery.order('period_year', { ascending: false }).order('period_month', { ascending: false }).limit(1)
+  }
+
+  const { data: run, error: runError } = await runQuery.maybeSingle()
   if (runError) return NextResponse.json({ error: runError.message }, { status: 400 })
-
   if (!run) {
-    return NextResponse.json({
-      message: `No payroll run found for ${month}/${year}. Run payroll first via POST /api/payroll/run.`,
-    }, { status: 404 })
+    return NextResponse.json({ message: 'No payroll run found yet. Run payroll first.' }, { status: 404 })
+  }
+  const month = run.period_month as number
+  const year  = run.period_year  as number
+
+  // Use cached EMP201 data, or regenerate from payslips.
+  let emp201 = run.emp201_data as Record<string, unknown> | null
+  if (!emp201) {
+    const { data: payslips, error: psError } = await supabaseAdmin
+      .from('payslips').select('*').eq('payroll_run_id', run.id)
+    if (psError) return NextResponse.json({ error: psError.message }, { status: 400 })
+    emp201 = generateEMP201(payslips ?? [], month, year) as Record<string, unknown>
+    await supabaseAdmin.from('payroll_runs').update({ emp201_data: emp201 }).eq('id', run.id)
   }
 
-  // If EMP201 data was already generated, return it
-  if (run.emp201_data) {
-    return NextResponse.json({ run_id: run.id, period: { month, year }, emp201: run.emp201_data })
+  if (!asCsv) {
+    return NextResponse.json({ run_id: run.id, period: { month, year }, emp201 })
   }
 
-  // Regenerate from payslips
-  const { data: payslips, error: psError } = await supabaseAdmin
-    .from('payslips')
-    .select('*')
-    .eq('payroll_run_id', run.id)
-
-  if (psError) return NextResponse.json({ error: psError.message }, { status: 400 })
-
-  const emp201 = generateEMP201(payslips ?? [], month, year)
-
-  // Cache EMP201 data on the run
-  await supabaseAdmin
-    .from('payroll_runs')
-    .update({ emp201_data: emp201 })
-    .eq('id', run.id)
-
-  return NextResponse.json({ run_id: run.id, period: { month, year }, emp201 })
+  // ── Professional CSV (EMP201 working paper), Excel-friendly UTF-8 BOM ─────────
+  const { data: tenant } = await supabaseAdmin.from('tenants').select('name').eq('id', tenantId).maybeSingle()
+  const monthName = new Date(year, month - 1, 1).toLocaleDateString('en-ZA', { month: 'long', year: 'numeric' })
+  const humanize = (k: string) => k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+    .replace(/\bPaye\b/i, 'PAYE').replace(/\bUif\b/i, 'UIF').replace(/\bSdl\b/i, 'SDL')
+  const cell = (v: unknown) => {
+    const s = String(v ?? '')
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
+  }
+  const lines: string[] = [
+    ['EMP201 Working Paper'].map(cell).join(','),
+    ['Business', tenant?.name ?? ''].map(cell).join(','),
+    ['Period', monthName].map(cell).join(','),
+    ['Generated', new Date().toLocaleDateString('en-ZA')].map(cell).join(','),
+    '',
+    ['Item', 'Amount (ZAR)'].map(cell).join(','),
+    ...Object.entries(emp201).map(([k, v]) =>
+      [humanize(k), typeof v === 'number' ? v.toFixed(2) : String(v ?? '')].map(cell).join(',')),
+  ]
+  const csv = '﻿' + lines.join('\r\n')
+  return new NextResponse(csv, {
+    headers: {
+      'Content-Type': 'text/csv; charset=utf-8',
+      'Content-Disposition': `attachment; filename="adminos-emp201-${year}-${String(month).padStart(2, '0')}.csv"`,
+      'Cache-Control': 'private, no-store',
+    },
+  })
 }
