@@ -53,7 +53,7 @@ export async function GET(request: Request) {
     const { data: payslips, error: psError } = await supabaseAdmin
       .from('payslips').select('*').eq('payroll_run_id', run.id)
     if (psError) return NextResponse.json({ error: psError.message }, { status: 400 })
-    emp201 = generateEMP201(payslips ?? [], month, year) as Record<string, unknown>
+    emp201 = generateEMP201(payslips ?? [], month, year) as unknown as Record<string, unknown>
     await supabaseAdmin.from('payroll_runs').update({ emp201_data: emp201 }).eq('id', run.id)
   }
 
