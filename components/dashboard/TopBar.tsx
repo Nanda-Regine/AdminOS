@@ -1,6 +1,7 @@
 'use client'
 
 import { NotificationBell } from './NotificationBell'
+import { OfflineIndicator } from './OfflineIndicator'
 
 interface TopBarProps {
   title: string
@@ -25,6 +26,7 @@ export function TopBar({ title, subtitle, actions }: TopBarProps) {
         {subtitle && <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{subtitle}</p>}
       </div>
       <div className="flex items-center gap-2">
+        <OfflineIndicator />
         {actions}
         <NotificationBell />
       </div>
