@@ -15,6 +15,7 @@
 
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { sendWhatsApp } from '@/lib/whatsapp/send'
+import { whatsappAllowed, isQuietNow } from '@/lib/notifications/delivery'
 
 export interface NotifyInput {
   tenantId: string
@@ -76,8 +77,12 @@ export async function notifyTenant(
 ): Promise<boolean> {
   let whatsapp: NotifyInput['whatsapp']
   if (n.whatsapp) {
-    const phone = await ownerNotifyPhone(tenantId)
-    if (phone) whatsapp = { to: phone, text: `${n.title}\n${n.body}` }
+    // One settings read covers the phone AND the owner's delivery controls:
+    // a per-type WhatsApp opt-out and quiet hours both gate the mirror. The
+    // in-app bell below is always written regardless.
+    const settings = await tenantSettings(tenantId)
+    const phone = ownerPhoneFrom(settings)
+    if (phone && whatsappAllowed(settings, n.type)) whatsapp = { to: phone, text: `${n.title}\n${n.body}` }
   }
   return notify({ tenantId, userId: null, type: n.type, title: n.title, body: n.body, actionUrl: n.actionUrl, data: n.data, dedupeKey: n.dedupeKey, dedupeHours: n.dedupeHours, whatsapp })
 }
@@ -96,7 +101,9 @@ export async function notifyContact(
       .eq('id', contactId)
       .maybeSingle()
     const to = contact?.phone || (contact?.wa_id as string | undefined)
-    if (to && isSendableWhatsApp()) {
+    // Respect the tenant's quiet hours for customer sends too — no 2am pings.
+    const settings = await tenantSettings(tenantId)
+    if (to && isSendableWhatsApp() && !isQuietNow(settings)) {
       await sendWhatsApp({ to, message: n.text }).catch(() => {})
     }
     if (n.alsoInApp) {
@@ -114,13 +121,16 @@ function isSendableWhatsApp(): boolean {
   return Boolean(process.env.META_PHONE_NUMBER_ID && process.env.META_WHATSAPP_ACCESS_TOKEN)
 }
 
-async function ownerNotifyPhone(tenantId: string): Promise<string | null> {
+async function tenantSettings(tenantId: string): Promise<Record<string, unknown>> {
   try {
     const { data } = await supabaseAdmin.from('tenants').select('settings').eq('id', tenantId).maybeSingle()
-    const settings = (data?.settings ?? {}) as Record<string, unknown>
-    const phone = settings.notify_phone ?? settings.owner_phone
-    return typeof phone === 'string' && phone.trim() ? phone.trim() : null
+    return (data?.settings ?? {}) as Record<string, unknown>
   } catch {
-    return null
+    return {}
   }
+}
+
+function ownerPhoneFrom(settings: Record<string, unknown>): string | null {
+  const phone = settings.notify_phone ?? settings.owner_phone
+  return typeof phone === 'string' && phone.trim() ? phone.trim() : null
 }

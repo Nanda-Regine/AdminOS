@@ -3,7 +3,9 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { TopBar } from '@/components/dashboard/TopBar'
 import { redirect } from 'next/navigation'
 import { DECISION_CATALOGUE, DECISION_DEFAULTS, type Tier } from '@/lib/autonomy/tiers'
+import { NOTIFY_CATEGORIES } from '@/lib/notifications/delivery'
 import { AutonomyControls } from './AutonomyControls'
+import { NotificationPreferences } from './NotificationPreferences'
 import { Bot } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
@@ -24,6 +26,11 @@ export default async function AutonomySettings() {
     const key = `${d.domain}/${d.decision_type}`
     return { ...d, tier: overrides.get(key) ?? DECISION_DEFAULTS[key] ?? ('C' as Tier) }
   })
+
+  const { data: tenantRow } = await supabaseAdmin.from('tenants').select('settings').eq('id', tenantId).maybeSingle()
+  const settings = (tenantRow?.settings ?? {}) as Record<string, unknown>
+  const initialNotify = (settings.notify ?? {}) as Record<string, { whatsapp?: boolean }>
+  const initialQuiet = (settings.quiet_hours ?? null) as { start: number; end: number } | null
 
   return (
     <div>
@@ -46,6 +53,11 @@ export default async function AutonomySettings() {
         </div>
 
         <AutonomyControls initial={decisions} />
+
+        <div className="pt-2">
+          <h2 className="text-sm font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>Notifications</h2>
+          <NotificationPreferences categories={NOTIFY_CATEGORIES} initialNotify={initialNotify} initialQuiet={initialQuiet} />
+        </div>
       </div>
     </div>
   )
