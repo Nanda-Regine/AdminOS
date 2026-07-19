@@ -79,9 +79,27 @@ const securityHeaders = [
   },
 ]
 
+// PostHog reverse proxy — the browser talks to same-origin /ingest (allowed by
+// our tight CSP connect-src 'self') and Next proxies to PostHog. Also dodges
+// ad-blockers. Region-configurable: set POSTHOG_HOST=https://eu.i.posthog.com if
+// the project is on EU cloud (default is US).
+const PH_HOST   = process.env.POSTHOG_HOST        || 'https://us.i.posthog.com'
+const PH_ASSETS = process.env.POSTHOG_ASSETS_HOST || 'https://us-assets.i.posthog.com'
+
 const nextConfig: NextConfig = {
   compress: true,
   poweredByHeader: false,
+
+  // Required so PostHog's trailing-slash-sensitive endpoints (e.g. /decide) work
+  // through the /ingest rewrite.
+  skipTrailingSlashRedirect: true,
+
+  async rewrites() {
+    return [
+      { source: '/ingest/static/:path*', destination: `${PH_ASSETS}/static/:path*` },
+      { source: '/ingest/:path*',        destination: `${PH_HOST}/:path*` },
+    ]
+  },
 
   async headers() {
     return [

@@ -3,6 +3,7 @@ import { Geist } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/react'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import { CookieConsent } from '@/components/CookieConsent'
+import { PostHogAnalytics } from '@/components/providers/PostHogAnalytics'
 import './globals.css'
 
 const geistSans = Geist({
@@ -121,6 +122,7 @@ export default function RootLayout({
       <body className={`${geistSans.variable} antialiased`}>
         {children}
         <CookieConsent />
+        <PostHogAnalytics apiKey={process.env.POSTHOG_TOKEN} />
         <Analytics />
         <SpeedInsights />
         <script dangerouslySetInnerHTML={{ __html: `if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js')}` }} />
