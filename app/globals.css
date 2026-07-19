@@ -245,15 +245,10 @@ body {
 :root[data-ground="money"]   { --app-bg-image: url('/backgrounds/bg-dark-brushed.jpg'); }        /* blue brushed steel — the vault */
 :root[data-ground="sales"]   { --app-bg-image: url('/backgrounds/bg-blue-strata.jpg'); }         /* indigo strata — climbing the pipeline */
 :root[data-ground="ops"]     { --app-bg-image: url('/backgrounds/bg-dark-carbon.jpg'); }          /* carbon fibre — the engine room */
-:root[data-ground="people"]  { --app-bg-image: url('/backgrounds/bg-walnut.jpg'); }              /* warm walnut — human, the boardroom table */
+:root[data-ground="people"]  { --app-bg-image: url('/backgrounds/bg-dark.jpg'); }                 /* navy-teal leather with a soft glow — tactile but in-family */
 :root[data-ground="govern"]  { --app-bg-image: url('/backgrounds/bg-dark-leather-black.jpg'); }   /* black leather — the ledger */
-:root[data-ground="grow"]    { --app-bg-image: url('/backgrounds/bg-leather-ember.jpg'); }        /* leather with a warm ember glow — aspiration */
+:root[data-ground="grow"]    { --app-bg-image: url('/backgrounds/bg-blue-glow.jpg'); }            /* brighter blue watercolour — aspiration */
 :root[data-ground="setup"]   { --app-bg-image: url('/backgrounds/bg-dark-metal.jpg'); }           /* brushed metal — the workshop */
-
-/* Warm grounds (people/grow) get a warmer scrim so the walnut/ember reads warm
-   rather than cold-navy in the gaps between cards. */
-:root[data-ground="people"],
-:root[data-ground="grow"] { --app-bg-scrim: linear-gradient(180deg, rgba(20,14,8,0.80) 0%, rgba(12,9,5,0.89) 100%); }
 
 /* Light-theme grounds — the light material library, tuned per domain. */
 :root[data-theme="light"][data-ground="command"] { --app-bg-image: url('/backgrounds/bg-light-mist.jpg'); }
