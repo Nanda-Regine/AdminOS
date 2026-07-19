@@ -48,6 +48,7 @@ export interface Feature {
 export const FEATURES: Feature[] = [
   // ── Command ───────────────────────────────────────────────────────────────
   { href: '/dashboard',                  label: 'Command Center', icon: LayoutDashboard, category: 'Command', exact: true },
+  { href: '/dashboard/getting-started',  label: 'Getting Started', icon: GraduationCap,  category: 'Command' },
   { href: '/dashboard/workflow-monitor', label: 'Automations',    icon: Activity,        category: 'Command' },
   { href: '/dashboard/analytics',        label: 'Analytics',      icon: BarChart3,       category: 'Command' },
 

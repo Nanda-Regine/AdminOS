@@ -21,58 +21,73 @@ const replacements = [
   { tool: 'Copywriter / social media',  cost: 'R3,500', agent: 'Pen · Content Agent' },
 ]
 
+// The real, purchasable add-ons (source of truth: addon_catalogue). Kept in sync
+// with what a customer can actually buy through Paystack.
 const addons = [
   {
-    icon: '💰',
-    name: 'Payroll Module',
-    tag: 'PAYE / UIF / SDL',
+    icon: '📞',
+    name: 'Ring',
+    tag: 'AI Voice Agent',
     tagColor: '#a78bfa',
     tagBg: 'rgba(139,92,246,.1)',
     tagBorder: 'rgba(139,92,246,.25)',
     cardBg: 'rgba(139,92,246,.05)',
     cardBorder: 'rgba(139,92,246,.18)',
-    desc: 'Run payroll in one place — AdminOS works out PAYE, UIF and SDL from the SARS rates you confirm, you check the figures, and payslips go to staff on WhatsApp. Monthly EMP201 summary for you to file.',
-    bullets: ['PAYE / UIF / SDL worked out from rates you confirm', 'WhatsApp payslip delivery', 'EMP201 summary to file yourself', 'Every run kept on record'],
-    price: 'R299/mo',
+    desc: 'An AI voice agent (via Twilio) answers your calls, takes messages, and transfers to the right person — so no lead ever rings out.',
+    bullets: ['Answers inbound calls', 'Takes messages + call summaries', 'Transfers to staff', 'Every call logged in your inbox'],
+    price: 'R349/mo',
   },
   {
-    icon: '📱',
-    name: 'Social Inbox',
-    tag: 'Unified Channels',
+    icon: '📣',
+    name: 'Reach',
+    tag: 'WhatsApp Broadcasts',
     tagColor: '#34d399',
     tagBg: 'rgba(52,211,153,.1)',
     tagBorder: 'rgba(52,211,153,.25)',
     cardBg: 'rgba(52,211,153,.04)',
     cardBorder: 'rgba(52,211,153,.18)',
-    desc: 'Manage Facebook, Instagram, and Google Reviews alongside WhatsApp in one inbox. AI drafts replies, detects sentiment, and flags urgent messages for human review.',
-    bullets: ['Facebook + Instagram messages', 'Google Reviews management', 'AI-drafted replies', 'Unified sentiment view'],
-    price: 'R249/mo',
+    desc: 'Broadcast campaigns to your contacts on WhatsApp — filter your audience, send, and track delivery and reads.',
+    bullets: ['Segment your contacts', 'Send WhatsApp broadcasts', 'Delivery + read tracking', 'Reusable templates'],
+    price: 'R199/mo',
   },
   {
-    icon: '📅',
-    name: 'Booking Engine',
-    tag: 'Online Appointments',
+    icon: '📊',
+    name: 'Sage Sync',
+    tag: 'Accounting',
     tagColor: '#06B6D4',
     tagBg: 'rgba(6,182,212,.1)',
     tagBorder: 'rgba(6,182,212,.25)',
     cardBg: 'rgba(6,182,212,.04)',
     cardBorder: 'rgba(6,182,212,.18)',
-    desc: 'Embeddable online booking widget for your website. Clients self-book appointments; AdminOS sends WhatsApp confirmations, reminders, and follow-ups automatically.',
-    bullets: ['Embeddable on any website', 'WhatsApp confirmations + reminders', 'Staff calendar sync', 'No-show follow-up automation'],
+    desc: 'Two-way sync with Sage Accounting — contacts, invoices and payments stay aligned, so you and your accountant work off the same numbers.',
+    bullets: ['Sync contacts + invoices', 'Payments stay aligned', 'Less double-capture', 'Your accountant stays happy'],
     price: 'R199/mo',
   },
   {
-    icon: '✍️',
-    name: 'eSignature',
-    tag: 'Signatures',
+    icon: '🔗',
+    name: 'Client Portal',
+    tag: 'Self-service',
     tagColor: '#F97316',
     tagBg: 'rgba(249,115,22,.1)',
     tagBorder: 'rgba(249,115,22,.25)',
     cardBg: 'rgba(249,115,22,.05)',
     cardBorder: 'rgba(249,115,22,.18)',
-    desc: 'Send contracts, proposals and employment agreements for signature, and keep every signed copy with a full audit trail of who signed what, and when.',
-    bullets: ['Sign via link (no account needed)', 'Audit trail on every signature', 'Auto-archive to document store', 'Built around the ECT Act'],
-    price: 'R149/mo',
+    desc: 'A magic-link portal where your clients view invoices, pay online, and submit documents — no password to remember.',
+    bullets: ['Magic-link access (no login)', 'Clients view + pay invoices', 'Document submission', 'Branded to your business'],
+    price: 'R299/mo',
+  },
+  {
+    icon: '🗣️',
+    name: 'Languages',
+    tag: 'Multilingual',
+    tagColor: '#818CF8',
+    tagBg: 'rgba(129,140,248,.1)',
+    tagBorder: 'rgba(129,140,248,.25)',
+    cardBg: 'rgba(129,140,248,.05)',
+    cardBorder: 'rgba(129,140,248,.18)',
+    desc: 'Serve customers in English, Zulu, Xhosa and Afrikaans — auto-detected per contact, so replies come back in the language they wrote in.',
+    bullets: ['4 SA languages', 'Auto-detected per contact', 'Replies in kind', 'A warmer customer experience'],
+    price: 'R99/mo',
   },
 ]
 
@@ -417,10 +432,10 @@ export default function HomePage() {
         .pen-cursor { display:inline-block; width:2px; height:14px; background:var(--orange); margin-left:2px; animation: blink 1s 3s step-end infinite; opacity:0; animation-fill-mode:both; }
         .pen-action { font-size:11px; color:var(--orange); font-weight:600; margin-top:8px; animation: fadeIn .5s 3.5s both; opacity:0; }
 
-        /* ── Add-ons grid (4 cards, 2×2) ── */
+        /* ── Add-ons grid (5 real add-ons — flows responsively) ── */
         .addons-grid {
           display: grid;
-          grid-template-columns: repeat(4, 1fr);
+          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
           gap: 24px;
         }
 
