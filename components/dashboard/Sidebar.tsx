@@ -1,10 +1,11 @@
 'use client'
 
 import Link from 'next/link'
+import { useState, useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { ThemeToggle } from './ThemeToggle'
-import { LogOut } from 'lucide-react'
+import { LogOut, Menu, X } from 'lucide-react'
 import { featuresByCategory } from '@/lib/nav/features'
 
 const NAV_GROUPS = featuresByCategory()
@@ -12,6 +13,10 @@ const NAV_GROUPS = featuresByCategory()
 export function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
+  const [open, setOpen] = useState(false)
+
+  // Close the mobile drawer whenever the route changes.
+  useEffect(() => { setOpen(false) }, [pathname])
 
   async function handleSignOut() {
     const supabase = createClient()
@@ -21,7 +26,21 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="w-60 flex flex-col h-screen fixed left-0 top-0 z-30 border-r"
+    <>
+      {/* Mobile hamburger — only < md; floats over the TopBar's cleared left padding */}
+      <button type="button" onClick={() => setOpen(true)} aria-label="Open menu"
+        className="md:hidden fixed top-2.5 left-3 z-40 w-10 h-10 rounded-lg flex items-center justify-center"
+        style={{ background: 'var(--surface-1)', border: '1px solid var(--border)', color: 'var(--text-secondary)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}>
+        <Menu className="w-5 h-5" />
+      </button>
+
+      {/* Backdrop while the drawer is open (mobile) */}
+      {open && (
+        <div onClick={() => setOpen(false)} aria-hidden
+          className="md:hidden fixed inset-0 z-40" style={{ background: 'rgba(3,6,18,0.6)' }} />
+      )}
+
+    <aside className={`w-60 flex flex-col h-screen fixed left-0 top-0 border-r transition-transform duration-300 ease-out ${open ? 'translate-x-0 z-50' : '-translate-x-full z-30'} md:translate-x-0 md:z-30`}
       style={{
         backgroundColor: 'var(--navy)',
         backgroundImage: 'var(--nav-scrim), var(--nav-image)',
@@ -29,6 +48,13 @@ export function Sidebar() {
         backgroundPosition: 'center',
         borderColor: 'var(--border-hover)',
       }}>
+
+      {/* Close (mobile only) */}
+      <button type="button" onClick={() => setOpen(false)} aria-label="Close menu"
+        className="md:hidden absolute top-3 right-3 w-8 h-8 rounded-lg flex items-center justify-center"
+        style={{ color: 'var(--text-muted)' }}>
+        <X className="w-4 h-4" />
+      </button>
 
       {/* Logo */}
       <div className="px-5 py-4 border-b" style={{ borderColor: 'var(--border)' }}>
@@ -131,5 +157,6 @@ export function Sidebar() {
         </button>
       </div>
     </aside>
+    </>
   )
 }

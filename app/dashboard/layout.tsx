@@ -9,7 +9,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <div className="flex min-h-screen app-shell">
       <DomainGround />
       <Sidebar />
-      <main className="flex-1 ml-60 flex flex-col min-h-screen">
+      <main className="flex-1 md:ml-60 flex flex-col min-h-screen">
         <RealtimeNotificationBar />
         {children}
       </main>
