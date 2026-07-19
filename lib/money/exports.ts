@@ -91,3 +91,109 @@ export function buildJournalCsv(
 
   return lines.map(row).join('\n')
 }
+
+// ── Monthly accountant pack (task #13) — each a clean, categorised working paper ──
+const humanCat = (c: string | null) =>
+  (c || 'Uncategorised').replace(/[_-]/g, ' ').replace(/\b\w/g, ch => ch.toUpperCase())
+
+/** Income Statement (P&L): revenue net of VAT, expenses by category (net), net profit. */
+export function buildIncomeStatement(
+  invoices: ExportInvoice[],
+  expenses: ExportExpense[],
+  period: { from?: string; to?: string; label?: string } = {},
+): string {
+  const sales = invoices.filter(i => inWindow(i.created_at, period.from, period.to))
+  const purch = expenses.filter(e => e.status !== 'rejected' && inWindow(e.created_at, period.from, period.to))
+  const salesIncl = sales.reduce((s, i) => s + Number(i.amount || 0), 0)
+  const revenueNet = salesIncl - vatFromInclusive(salesIncl)
+
+  const byCat = new Map<string, number>()
+  for (const e of purch) {
+    const g = Number(e.amount || 0)
+    byCat.set(humanCat(e.category), (byCat.get(humanCat(e.category)) || 0) + (g - vatFromInclusive(g)))
+  }
+  const totalExpNet = [...byCat.values()].reduce((a, b) => a + b, 0)
+  const netProfit = revenueNet - totalExpNet
+
+  const lines: (string | number)[][] = [
+    ['AdminOS — INCOME STATEMENT (Profit & Loss) — working paper'],
+    ['Period', period.label ?? `${period.from ?? 'start'} to ${period.to ?? 'today'}`],
+    ['Basis', 'Amounts treated as VAT-inclusive at 15%; figures shown net of VAT'],
+    [],
+    ['REVENUE', 'Amount (ZAR)'],
+    ['Sales revenue (net of VAT)', zar(revenueNet)],
+    [],
+    ['EXPENSES', 'Amount (ZAR)'],
+    ...[...byCat.entries()].sort((a, b) => b[1] - a[1]).map(([cat, amt]) => [cat, zar(amt)] as (string | number)[]),
+    ['Total expenses', zar(totalExpNet)],
+    [],
+    ['NET PROFIT / (LOSS)', zar(netProfit)],
+  ]
+  return lines.map(l => (l.length === 0 ? '' : row(l))).join('\n')
+}
+
+/** Expenses grouped by category — count, VAT-inclusive total, VAT, net. */
+export function buildExpensesByCategory(
+  expenses: ExportExpense[],
+  period: { from?: string; to?: string } = {},
+): string {
+  const purch = expenses.filter(e => e.status !== 'rejected' && inWindow(e.created_at, period.from, period.to))
+  const map = new Map<string, { count: number; incl: number }>()
+  for (const e of purch) {
+    const k = humanCat(e.category)
+    const cur = map.get(k) ?? { count: 0, incl: 0 }
+    cur.count++; cur.incl += Number(e.amount || 0)
+    map.set(k, cur)
+  }
+  const lines: (string | number)[][] = [
+    ['Category', 'Count', 'Total (incl VAT)', 'VAT', 'Net'],
+    ...[...map.entries()].sort((a, b) => b[1].incl - a[1].incl).map(([cat, v]) =>
+      [cat, v.count, zar(v.incl), zar(vatFromInclusive(v.incl)), zar(v.incl - vatFromInclusive(v.incl))] as (string | number)[]),
+  ]
+  const totalIncl = [...map.values()].reduce((s, v) => s + v.incl, 0)
+  lines.push(['TOTAL', purch.length, zar(totalIncl), zar(vatFromInclusive(totalIncl)), zar(totalIncl - vatFromInclusive(totalIncl))])
+  return lines.map(row).join('\n')
+}
+
+/** Income by customer/source — invoices, billed, paid, outstanding. */
+export function buildIncomeBySource(
+  invoices: ExportInvoice[],
+  period: { from?: string; to?: string } = {},
+): string {
+  const sales = invoices.filter(i => inWindow(i.created_at, period.from, period.to))
+  const map = new Map<string, { count: number; billed: number; paid: number }>()
+  for (const i of sales) {
+    const k = i.contact_name || 'Unknown'
+    const cur = map.get(k) ?? { count: 0, billed: 0, paid: 0 }
+    cur.count++; cur.billed += Number(i.amount || 0); cur.paid += Number(i.amount_paid || 0)
+    map.set(k, cur)
+  }
+  const lines: (string | number)[][] = [
+    ['Customer', 'Invoices', 'Billed (incl VAT)', 'Paid', 'Outstanding'],
+    ...[...map.entries()].sort((a, b) => b[1].billed - a[1].billed).map(([name, v]) =>
+      [name, v.count, zar(v.billed), zar(v.paid), zar(v.billed - v.paid)] as (string | number)[]),
+  ]
+  const t = [...map.values()].reduce((s, v) => ({ c: s.c + v.count, b: s.b + v.billed, p: s.p + v.paid }), { c: 0, b: 0, p: 0 })
+  lines.push(['TOTAL', t.c, zar(t.b), zar(t.p), zar(t.b - t.p)])
+  return lines.map(row).join('\n')
+}
+
+/** Accounts-receivable aging — outstanding balances bucketed by days overdue. */
+export function buildArAging(invoices: ExportInvoice[], asOf: Date = new Date()): string {
+  const buckets = ['Current', '1–30', '31–60', '61–90', '90+']
+  const lines: (string | number)[][] = [['Customer', 'Outstanding', ...buckets]]
+  const totals = [0, 0, 0, 0, 0]
+  let grand = 0
+  const open = invoices.filter(i => i.status !== 'paid' && i.status !== 'cancelled')
+  for (const i of open) {
+    const outstanding = Number(i.amount || 0) - Number(i.amount_paid || 0)
+    if (outstanding <= 0) continue
+    const due = i.due_date ? new Date(i.due_date) : new Date(i.created_at)
+    const days = Math.floor((asOf.getTime() - due.getTime()) / 86_400_000)
+    const b = days <= 0 ? 0 : days <= 30 ? 1 : days <= 60 ? 2 : days <= 90 ? 3 : 4
+    const cells = [0, 0, 0, 0, 0]; cells[b] = outstanding; totals[b] += outstanding; grand += outstanding
+    lines.push([i.contact_name || 'Unknown', zar(outstanding), ...cells.map(zar)])
+  }
+  lines.push(['TOTAL', zar(grand), ...totals.map(zar)])
+  return lines.map(row).join('\n')
+}
