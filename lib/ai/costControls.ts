@@ -43,6 +43,13 @@ export function getDailyTokenLimit(plan: string): number {
   return DAILY_TOKEN_BUDGET[plan] ?? DAILY_TOKEN_BUDGET.trial
 }
 
+// ─── Global platform backstop ─────────────────────────────────────────────────
+// A launch-protection cap across ALL tenants combined. Even if per-tenant limits
+// are generous (or a bug fans a runaway across many tenants), total daily spend
+// can't exceed this. Env-configurable; set to 0 to disable. Default sized well
+// above realistic launch traffic but far below a runaway that could hurt.
+export const GLOBAL_DAILY_TOKEN_CAP = Number(process.env.AI_GLOBAL_DAILY_TOKEN_CAP ?? 50_000_000)
+
 // ─── Model routing by feature ─────────────────────────────────────────────────
 
 type FeatureRouter = (plan: string) => AIModel
@@ -105,6 +112,10 @@ export function budgetKey(tenantId: string): string {
   return `ai:budget:${tenantId}:${todayUTC()}`
 }
 
+export function globalBudgetKey(): string {
+  return `ai:budget:global:${todayUTC()}`
+}
+
 export function hourlyAbuseKey(tenantId: string): string {
   return `ai:abuse:${tenantId}:${thisHourUTC()}`
 }
@@ -124,12 +135,21 @@ export interface BudgetCheckResult {
   remaining: number
   used: number
   limit: number
-  reason?: 'abuse_flagged' | 'daily_budget_exceeded'
+  reason?: 'abuse_flagged' | 'daily_budget_exceeded' | 'global_cap_exceeded'
+  /** True when the check could not read Redis and allowed the call anyway. */
+  degraded?: boolean
 }
 
 /**
  * Check if a tenant has budget remaining before making an AI call.
  * Call this BEFORE the Claude API call. If `allowed` is false, do not proceed.
+ *
+ * Failure policy:
+ *  - fail-CLOSED on a genuine ceiling (per-tenant budget, global backstop, abuse
+ *    flag) — we only ever block on a *successful* read that shows the cap is hit.
+ *  - fail-OPEN on a Redis outage — a metering hiccup must not take AdminOS's AI
+ *    offline for every tenant. Better to under-meter for a few minutes than to
+ *    strand paying businesses because the counter store blinked.
  */
 export async function checkBudget(
   tenantId: string,
@@ -139,20 +159,37 @@ export async function checkBudget(
   const limit = getDailyTokenLimit(plan)
   const key   = budgetKey(tenantId)
 
-  // Abuse flag overrides everything
-  const abused = await redis.get<string>(abuseFlagKey(tenantId))
-  if (abused) {
-    return { allowed: false, remaining: 0, used: limit, limit, reason: 'abuse_flagged' }
+  try {
+    // Abuse flag overrides everything
+    const abused = await redis.get<string>(abuseFlagKey(tenantId))
+    if (abused) {
+      return { allowed: false, remaining: 0, used: limit, limit, reason: 'abuse_flagged' }
+    }
+
+    // Global platform backstop — the whole platform's daily spend, all tenants.
+    if (GLOBAL_DAILY_TOKEN_CAP > 0) {
+      const globalUsed = (await redis.get<number>(globalBudgetKey())) ?? 0
+      if (globalUsed + estimatedTokens > GLOBAL_DAILY_TOKEN_CAP) {
+        console.error(`[ai:budget] GLOBAL cap reached: ${globalUsed}/${GLOBAL_DAILY_TOKEN_CAP} tokens today`)
+        return { allowed: false, remaining: 0, used: 0, limit, reason: 'global_cap_exceeded' }
+      }
+    }
+
+    const used      = (await redis.get<number>(key)) ?? 0
+    const remaining = Math.max(0, limit - used)
+
+    if (remaining < estimatedTokens) {
+      return { allowed: false, remaining, used, limit, reason: 'daily_budget_exceeded' }
+    }
+
+    return { allowed: true, remaining, used, limit }
+  } catch (e) {
+    // Fail-open: the counter store is unreachable. Allow the call so a Redis
+    // outage doesn't cascade into an AI outage; recordUsage will resync once
+    // Redis recovers. The ceilings above only block on a successful read.
+    console.error('[ai:budget] check failed open (redis error)', e)
+    return { allowed: true, remaining: limit, used: 0, limit, degraded: true }
   }
-
-  const used      = (await redis.get<number>(key)) ?? 0
-  const remaining = Math.max(0, limit - used)
-
-  if (remaining < estimatedTokens) {
-    return { allowed: false, remaining, used, limit, reason: 'daily_budget_exceeded' }
-  }
-
-  return { allowed: true, remaining, used, limit }
 }
 
 // ─── Usage recording ──────────────────────────────────────────────────────────
@@ -176,22 +213,33 @@ export async function recordUsage(params: RecordUsageParams): Promise<void> {
   const { tenantId, plan, feature, model, tokensIn, tokensOut, durationMs } = params
   const totalTokens = tokensIn + tokensOut
 
-  // Increment daily budget (48h TTL covers midnight boundary)
-  await redis.incrby(budgetKey(tenantId), totalTokens)
-  await redis.expire(budgetKey(tenantId), 60 * 60 * 48)
+  // Metering is best-effort: if Redis is unreachable we lose a few counts rather
+  // than throw out of this fire-and-forget path (which would become an unhandled
+  // rejection). The DB usage log below is the durable record either way.
+  try {
+    // Increment daily budget (48h TTL covers midnight boundary)
+    await redis.incrby(budgetKey(tenantId), totalTokens)
+    await redis.expire(budgetKey(tenantId), 60 * 60 * 48)
 
-  // Hourly spike tracking
-  const hourlyCount = await redis.incrby(hourlyAbuseKey(tenantId), totalTokens)
-  await redis.expire(hourlyAbuseKey(tenantId), 60 * 60 * 2)
+    // Global platform-wide daily spend (feeds the backstop in checkBudget)
+    await redis.incrby(globalBudgetKey(), totalTokens)
+    await redis.expire(globalBudgetKey(), 60 * 60 * 48)
 
-  // Abuse detection: >50% of daily budget in a single hour
-  const limit = getDailyTokenLimit(plan)
-  if (hourlyCount > limit * 0.5) {
-    await redis.set(abuseFlagKey(tenantId), '1', { ex: 60 * 60 * 24 })
-    console.warn(
-      `[ABUSE ALERT] Tenant ${tenantId} consumed ${hourlyCount} tokens in 1 hour ` +
-      `(${Math.round((hourlyCount / limit) * 100)}% of daily ${plan} budget)`
-    )
+    // Hourly spike tracking
+    const hourlyCount = await redis.incrby(hourlyAbuseKey(tenantId), totalTokens)
+    await redis.expire(hourlyAbuseKey(tenantId), 60 * 60 * 2)
+
+    // Abuse detection: >50% of daily budget in a single hour
+    const limit = getDailyTokenLimit(plan)
+    if (hourlyCount > limit * 0.5) {
+      await redis.set(abuseFlagKey(tenantId), '1', { ex: 60 * 60 * 24 })
+      console.warn(
+        `[ABUSE ALERT] Tenant ${tenantId} consumed ${hourlyCount} tokens in 1 hour ` +
+        `(${Math.round((hourlyCount / limit) * 100)}% of daily ${plan} budget)`
+      )
+    }
+  } catch (e) {
+    console.error('[ai:usage] redis metering failed (non-fatal)', e)
   }
 
   const costUsd = estimateCost(model, tokensIn, tokensOut)
