@@ -57,9 +57,10 @@
   --chip-purple-bg:rgba(168,85,247,0.15); --chip-purple-fg:#C084FC;
   --chip-gray-bg:  rgba(255,255,255,0.08); --chip-gray-fg:  rgba(248,250,252,0.6);
 
-  /* Per-section warm accent ground */
-  --sec-warm-scrim: linear-gradient(180deg, rgba(20,14,8,0.82) 0%, rgba(12,9,5,0.90) 100%);
-  --sec-warm-image: url('/backgrounds/bg-dark-wood.jpg');
+  /* Per-section accent ground — kept in the navy family (was warm wood; the
+     brown read as random against the steady navy). Langa/Community/Stokvel use it. */
+  --sec-warm-scrim: linear-gradient(180deg, rgba(12,18,50,0.80) 0%, rgba(10,15,42,0.89) 100%);
+  --sec-warm-image: url('/backgrounds/bg-dark.jpg');
 
   /* Compat */
   --background: var(--navy);
