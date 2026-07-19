@@ -203,8 +203,8 @@ body {
 .auth-shell-paper {
   background-color: #EFEDE6;
   background-image:
-    linear-gradient(180deg, rgba(245,243,236,0.80) 0%, rgba(236,233,224,0.86) 100%),
-    url('/backgrounds/bg-light-paper.jpg');
+    linear-gradient(180deg, rgba(245,243,236,0.82) 0%, rgba(236,233,224,0.88) 100%),
+    url('/backgrounds/bg-light-goldleaf.jpg');
   background-repeat: no-repeat, no-repeat;
   background-size: cover, cover;
   background-position: center, center;
@@ -220,6 +220,18 @@ body {
   background-size: cover;
   background-position: center;
 }
+/* Navy + gold-leaf hero — the brand's own palette, for the highest-value moment
+   (the plan/upgrade card). Directional: a strong navy scrim keeps the left dark
+   for text while the gold breathes on the right. Stays dark in both themes (the
+   card carries .on-dark). */
+.tex-hero-navygold {
+  background-color: var(--navy-800);
+  background-image:
+    linear-gradient(100deg, rgba(8,11,26,0.95) 0%, rgba(8,11,26,0.82) 42%, rgba(8,11,26,0.34) 100%),
+    url('/backgrounds/bg-hero-navygold.jpg');
+  background-size: cover;
+  background-position: center right;
+}
 
 /* ── Per-domain grounds ─────────────────────────────────────────────────────
    Each value-chain domain gets its own signature texture behind the app shell,
@@ -229,28 +241,33 @@ body {
    frosted glass on top). Dark textures below; light overrides follow. Unknown
    routes fall back to the default watercolour ground (bg-blue-waves).
    Library: /public/backgrounds — every named texture now has a semantic home. */
-:root[data-ground="command"] { --app-bg-image: url('/backgrounds/bg-dark.jpg'); }               /* navy-teal leather glow — the bridge */
+:root[data-ground="command"] { --app-bg-image: url('/backgrounds/bg-blue-deep.jpg'); }           /* deep still water — the whole ocean, the overview */
 :root[data-ground="money"]   { --app-bg-image: url('/backgrounds/bg-dark-brushed.jpg'); }        /* blue brushed steel — the vault */
-:root[data-ground="sales"]   { --app-bg-image: url('/backgrounds/bg-blue-glow.jpg'); }           /* blue watercolour — momentum */
+:root[data-ground="sales"]   { --app-bg-image: url('/backgrounds/bg-blue-strata.jpg'); }         /* indigo strata — climbing the pipeline */
 :root[data-ground="ops"]     { --app-bg-image: url('/backgrounds/bg-dark-carbon.jpg'); }          /* carbon fibre — the engine room */
-:root[data-ground="people"]  { --app-bg-image: url('/backgrounds/bg-dark-wood.jpg'); }            /* warm wood — human */
-:root[data-ground="govern"]  { --app-bg-image: url('/backgrounds/bg-dark-leather-black.jpg'); }   /* black leather — the boardroom ledger */
-:root[data-ground="grow"]    { --app-bg-image: url('/backgrounds/bg-dark-diagonal.jpg'); }        /* diagonal brushed — leveling up */
+:root[data-ground="people"]  { --app-bg-image: url('/backgrounds/bg-walnut.jpg'); }              /* warm walnut — human, the boardroom table */
+:root[data-ground="govern"]  { --app-bg-image: url('/backgrounds/bg-dark-leather-black.jpg'); }   /* black leather — the ledger */
+:root[data-ground="grow"]    { --app-bg-image: url('/backgrounds/bg-leather-ember.jpg'); }        /* leather with a warm ember glow — aspiration */
 :root[data-ground="setup"]   { --app-bg-image: url('/backgrounds/bg-dark-metal.jpg'); }           /* brushed metal — the workshop */
 
-/* Warm grounds (people/grow) get a warmer scrim so the wood/diagonal reads warm
+/* Warm grounds (people/grow) get a warmer scrim so the walnut/ember reads warm
    rather than cold-navy in the gaps between cards. */
-:root[data-ground="people"] { --app-bg-scrim: linear-gradient(180deg, rgba(20,14,8,0.80) 0%, rgba(12,9,5,0.89) 100%); }
+:root[data-ground="people"],
+:root[data-ground="grow"] { --app-bg-scrim: linear-gradient(180deg, rgba(20,14,8,0.80) 0%, rgba(12,9,5,0.89) 100%); }
 
-/* Light-theme grounds — reuse the light material library, tuned per domain. */
-:root[data-theme="light"][data-ground="command"] { --app-bg-image: url('/backgrounds/bg-light.jpg'); }
-:root[data-theme="light"][data-ground="money"]    { --app-bg-image: url('/backgrounds/bg-light-plaster.jpg'); }
-:root[data-theme="light"][data-ground="sales"]    { --app-bg-image: url('/backgrounds/bg-light-beige.jpg'); }
-:root[data-theme="light"][data-ground="ops"]      { --app-bg-image: url('/backgrounds/bg-light-stucco.jpg'); }
-:root[data-theme="light"][data-ground="people"]   { --app-bg-image: url('/backgrounds/bg-light-stucco.jpg'); }
+/* Light-theme grounds — the light material library, tuned per domain. */
+:root[data-theme="light"][data-ground="command"] { --app-bg-image: url('/backgrounds/bg-light-mist.jpg'); }
+:root[data-theme="light"][data-ground="money"]    { --app-bg-image: url('/backgrounds/bg-light-fluted.jpg'); }
+:root[data-theme="light"][data-ground="sales"]    { --app-bg-image: url('/backgrounds/bg-light-impasto.jpg'); }
+:root[data-theme="light"][data-ground="ops"]      { --app-bg-image: url('/backgrounds/bg-light-slats.jpg'); }
+:root[data-theme="light"][data-ground="people"]   { --app-bg-image: url('/backgrounds/bg-light-reed.jpg'); }
 :root[data-theme="light"][data-ground="govern"]   { --app-bg-image: url('/backgrounds/bg-light-paper.jpg'); }
-:root[data-theme="light"][data-ground="grow"]     { --app-bg-image: url('/backgrounds/bg-light-beige.jpg'); }
+:root[data-theme="light"][data-ground="grow"]     { --app-bg-image: url('/backgrounds/bg-light-cream.jpg'); }
 :root[data-theme="light"][data-ground="setup"]    { --app-bg-image: url('/backgrounds/bg-light-plaster.jpg'); }
+
+/* Warm light grounds want a warm scrim too (people=reed, grow=cream). */
+:root[data-theme="light"][data-ground="people"],
+:root[data-theme="light"][data-ground="grow"] { --app-bg-scrim: linear-gradient(180deg, rgba(244,240,232,0.84) 0%, rgba(236,231,222,0.91) 100%); }
 
 /* ── Glass surfaces ─────────────────────────────────────────────────────── */
 .glass {

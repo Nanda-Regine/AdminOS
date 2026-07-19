@@ -119,7 +119,7 @@ export default async function BillingPage({
         )}
 
         {/* Current plan card */}
-        <div className="glass tex-premium on-dark rounded-2xl p-6">
+        <div className="glass tex-hero-navygold on-dark rounded-2xl p-6">
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: 'var(--text-muted)' }}>Current Plan</p>
