@@ -129,7 +129,7 @@ const stats = [
   { value: '< 3s',   label: 'WhatsApp response time' },
   { value: 'R349',   label: 'Starting price per month' },
   { value: '15 min', label: 'Time to go live' },
-  { value: '11',     label: 'SA languages supported' },
+  { value: '4',      label: 'SA languages supported' },
   { value: '6',      label: 'Core AI agents included' },
   { value: '95+',    label: 'Platform features & automations' },
 ]
@@ -1300,7 +1300,7 @@ export default function HomePage() {
               <div className="africa-grid">
                 {[
                   { icon: '🔋', title: 'Load-shedding resilient', desc: "PWA with offline capability. Queued actions retry when power returns. WhatsApp bot stays live on Meta's infrastructure during outages." },
-                  { icon: '🗣️', title: '11 SA languages', desc: "English, Zulu, Xhosa, Afrikaans, Setswana, Sesotho, and more. AI detects your customer's language and responds in kind — automatically." },
+                  { icon: '🗣️', title: '4 SA languages', desc: "English, Zulu, Xhosa and Afrikaans — Langa detects which one your customer is using and replies in kind, automatically." },
                   { icon: '🔒', title: 'Built for POPIA', desc: "Designed around South Africa's Protection of Personal Information Act — right-to-erasure, audit trail, per-tenant data isolation, and a compliance centre. Compliance is yours to determine; we build the tooling for it." },
                 ].map((item) => (
                   <div key={item.title} className="card" style={{ background: 'rgba(255,255,255,.02)', border: '1px solid rgba(255,255,255,.07)', borderRadius: 20, padding: 24 }}>
