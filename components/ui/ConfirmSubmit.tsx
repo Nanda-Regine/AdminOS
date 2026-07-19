@@ -72,7 +72,7 @@ export function ConfirmSubmit({
         >
           <div
             className="w-full max-w-sm rounded-2xl p-6 text-left"
-            style={{ background: 'var(--surface-1)', border: '1px solid var(--border-hover)', backdropFilter: 'blur(24px)' }}
+            style={{ backgroundColor: 'var(--navy-800)', backgroundImage: 'var(--modal-scrim), var(--modal-image)', backgroundSize: 'cover', backgroundPosition: 'center', border: '1px solid var(--border-hover)' }}
           >
             <div className="flex items-start gap-3 mb-4">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"

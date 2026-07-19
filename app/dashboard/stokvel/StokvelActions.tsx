@@ -22,7 +22,8 @@ function Modal({
       onClick={onClose}
     >
       <div
-        className="bg-[var(--surface-1)] rounded-xl shadow-xl w-full max-w-md p-6"
+        className="rounded-xl shadow-xl w-full max-w-md p-6 border"
+        style={{ backgroundColor: 'var(--navy-800)', backgroundImage: 'var(--modal-scrim), var(--modal-image)', backgroundSize: 'cover', backgroundPosition: 'center', borderColor: 'var(--border-hover)' }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-5">
