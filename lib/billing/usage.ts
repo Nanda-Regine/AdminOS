@@ -12,12 +12,18 @@ function getRedis(): Redis {
   return _redis
 }
 
+// Monthly AI-conversation limits. Keyed by the CANONICAL plan names the app
+// actually stores (solo/grow/operate/scale/partner) — these match the landing
+// page's advertised numbers. Legacy names are kept as aliases so old rows still
+// resolve. (Bug fixed: this map used only legacy names, so every real plan fell
+// through to trial=50 — including Scale, which is meant to be unlimited.)
 const PLAN_LIMITS: Record<string, number> = {
   trial:       50,
-  starter:     500,
-  growth:      2000,
-  enterprise:  Infinity,
-  white_label: Infinity,
+  solo:        100,      starter:     100,      // Solo — 100/mo
+  grow:        500,      growth:      500,      // Grow — 500/mo
+  operate:     2000,     business:    2000,     // Operate — 2,000/mo
+  scale:       Infinity, enterprise:  Infinity, // Scale — unlimited
+  partner:     Infinity, white_label: Infinity, // Partner — unlimited
 }
 
 function usageKey(tenantId: string): string {

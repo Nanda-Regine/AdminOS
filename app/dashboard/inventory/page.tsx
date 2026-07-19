@@ -4,6 +4,7 @@ import { TopBar } from '@/components/dashboard/TopBar'
 import { Card } from '@/components/ui/card'
 import { redirect } from 'next/navigation'
 import { InventoryTable, type ProductRow } from './InventoryTable'
+import { CreateProductModal } from './CreateProductModal'
 import { formatZAR } from '@/lib/format'
 
 const money = (v: number) => formatZAR(v, { cents: true })
@@ -40,7 +41,7 @@ export default async function InventoryPage() {
 
   return (
     <div>
-      <TopBar title="Inventory" subtitle={`${allItems.length} products`} />
+      <TopBar title="Inventory" subtitle={`${allItems.length} products`} actions={<CreateProductModal />} />
       <div className="p-6 space-y-6">
 
         {/* Summary */}

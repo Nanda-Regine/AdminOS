@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import { BotTrainingForm } from './BotTrainingForm'
 
 const integrations = [
   { id: 'gmail', label: 'Gmail', icon: '✉️', description: 'Sync inbound emails' },
@@ -77,39 +78,11 @@ export default async function SettingsPage() {
         {/* Bot training */}
         <Card>
           <h3 className="font-semibold text-[var(--text-primary)] mb-4">Bot Training</h3>
-          <div className="space-y-3">
-            <div>
-              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Business Policies</label>
-              <textarea
-                className="w-full text-sm border border-[var(--border)] rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none"
-                rows={3}
-                defaultValue={tenant.settings?.policies || ''}
-                placeholder="Enter your business policies, procedures, and rules..."
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">FAQs</label>
-              <textarea
-                className="w-full text-sm border border-[var(--border)] rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none"
-                rows={4}
-                defaultValue={tenant.settings?.faqs || ''}
-                placeholder="Q: What are your hours?\nA: Monday-Friday 8am-5pm&#10;&#10;Q: Do you offer delivery?&#10;A: Yes, within 30km..."
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Tone</label>
-              <select className="w-full text-sm border border-[var(--border)] rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500" defaultValue={tenant.settings?.tone || 'warm'}>
-                <option value="formal">Formal & Professional</option>
-                <option value="warm">Warm & Friendly</option>
-                <option value="casual">Casual</option>
-              </select>
-            </div>
-          </div>
-          <div className="mt-4">
-            <button className="bg-emerald-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors">
-              Save & Retrain Bot
-            </button>
-          </div>
+          <BotTrainingForm initial={{
+            policies: tenant.settings?.policies || '',
+            faqs: tenant.settings?.faqs || '',
+            tone: tenant.settings?.tone || 'warm',
+          }} />
         </Card>
 
         {/* Integrations */}

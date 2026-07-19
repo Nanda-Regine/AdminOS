@@ -57,8 +57,10 @@ export default function LangaPage() {
         const err = await res.json().catch(() => ({})) as { error?: string }
         throw new Error(err.error ?? `Request failed: ${res.status}`)
       }
-      const data = await res.json() as { reply?: string; message?: string }
-      setMessages(prev => [...prev, { role: 'assistant', content: data.reply ?? data.message ?? '' }])
+      // /api/agents/langa returns { text }; keep reply/message as fallbacks.
+      const data = await res.json() as { text?: string; reply?: string; message?: string }
+      const answer = data.text ?? data.reply ?? data.message ?? ''
+      setMessages(prev => [...prev, { role: 'assistant', content: answer || 'Sorry — I couldn’t generate a reply just now. Please try again.' }])
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong.')
     } finally {

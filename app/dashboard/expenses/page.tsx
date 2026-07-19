@@ -4,6 +4,7 @@ import { TopBar } from '@/components/dashboard/TopBar'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ConfirmSubmit } from '@/components/ui/ConfirmSubmit'
+import { CreateExpenseModal } from './CreateExpenseModal'
 import { redirect } from 'next/navigation'
 import { Receipt, Clock, CheckCircle } from 'lucide-react'
 
@@ -39,6 +40,15 @@ export default async function ExpensesPage() {
   const pending = pendingResult.data || []
   const processed = allResult.data || []
 
+  // Active staff for the "New claim" dropdown.
+  const { data: staffRows } = await supabaseAdmin
+    .from('staff')
+    .select('id, full_name')
+    .eq('tenant_id', tenantId)
+    .eq('active', true)
+    .order('full_name')
+  const staff = (staffRows || []) as { id: string; full_name: string | null }[]
+
   const totalPendingAmount = pending.reduce((sum, c) => sum + Number(c.amount), 0)
 
   const categoryColors: Record<string, 'blue' | 'green' | 'yellow' | 'purple' | 'gray'> = {
@@ -54,6 +64,7 @@ export default async function ExpensesPage() {
       <TopBar
         title="Expense Claims"
         subtitle={`${pending.length} pending approval`}
+        actions={<CreateExpenseModal staff={staff} />}
       />
       <div className="p-6 space-y-6">
 

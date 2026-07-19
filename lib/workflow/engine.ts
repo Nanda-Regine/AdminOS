@@ -24,12 +24,16 @@ interface WorkflowResult {
 
 type WorkflowStep = (ctx: WorkflowContext, result: WorkflowResult) => Promise<void>
 
-// Plan conversation limits (monthly)
+// Plan conversation limits (monthly). Canonical plan names (with legacy aliases),
+// matching lib/billing/usage.ts and the landing page. Previously keyed only by
+// legacy names, so real plans (solo/grow/operate/scale) hit the ?? default.
 const PLAN_LIMITS: Record<string, number> = {
-  starter:     500,
-  business:    5_000,
-  enterprise:  Infinity,
-  white_label: Infinity,
+  trial:       50,
+  solo:        100,      starter:     100,
+  grow:        500,      growth:      500,
+  operate:     2000,     business:    2000,
+  scale:       Infinity, enterprise:  Infinity,
+  partner:     Infinity, white_label: Infinity,
 }
 
 // Wrap any step in a timeout so a single slow step can't stall the whole flow
