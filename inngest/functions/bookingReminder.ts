@@ -1,6 +1,9 @@
 import { inngest } from '@/inngest/client'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { sendWhatsApp } from '@/lib/whatsapp/send'
+import { notifyTenant } from '@/lib/notifications/notify'
+import { getTenantAutonomy } from '@/lib/autonomy/config'
+import { resolveTier } from '@/lib/autonomy/tiers'
 
 // Listens for booking confirmations and sends a WhatsApp reminder 24h before start
 export const bookingReminderFunction = inngest.createFunction(
@@ -88,11 +91,39 @@ export const bookingReminderFunction = inngest.createFunction(
       minute: '2-digit',
     })
 
-    // Step 4: Send the WhatsApp reminder
-    await step.run('send-whatsapp-reminder', async () => {
-      const serviceName = service?.name ?? 'your appointment'
-      const message = `Hi ${contact.full_name ?? 'there'} 👋 Just a reminder that you have *${serviceName}* tomorrow, ${dateStr} at ${timeStr}. See you then! Reply CANCEL to cancel.`
+    const serviceName = service?.name ?? 'your appointment'
+    const message = `Hi ${contact.full_name ?? 'there'} 👋 Just a reminder that you have *${serviceName}* tomorrow, ${dateStr} at ${timeStr}. See you then! Reply CANCEL to cancel.`
 
+    // Autonomy gate: sending a reminder to the CUSTOMER is a proactive action, so
+    // it honours the tenant's ops/booking_reminder tier. Default is 'A' — sends
+    // automatically, preserving today's behaviour. 'B' drafts it for the owner;
+    // 'C' just surfaces that the booking is coming up. Owner-facing notifications
+    // are always allowed.
+    const tier = await step.run('resolve-autonomy', async () => {
+      const rows = await getTenantAutonomy(tenant_id)
+      return resolveTier(rows, 'ops', 'booking_reminder')
+    })
+
+    if (tier !== 'A') {
+      await step.run('surface-to-owner', async () => {
+        const who = contact.full_name ?? 'A customer'
+        await notifyTenant(tenant_id, {
+          type: 'booking.reminder',
+          title: tier === 'B' ? 'Booking reminder ready to send' : 'Booking coming up',
+          body: tier === 'B'
+            ? `Reminder drafted for ${who}'s ${serviceName} tomorrow (${dateStr} ${timeStr}). Auto-send is off — send it when you're ready.`
+            : `${who} has ${serviceName} tomorrow (${dateStr} ${timeStr}).`,
+          actionUrl: '/dashboard/bookings',
+          dedupeKey: `booking-reminder-${booking_id}`,
+          dedupeHours: 26,
+          whatsapp: tier === 'B',
+        })
+      })
+      return { booking_id, sent: false, held_by_autonomy: tier, to: phone, booking_start: freshBooking.start_at }
+    }
+
+    // Step 4: Send the WhatsApp reminder to the customer (tier A)
+    await step.run('send-whatsapp-reminder', async () => {
       await sendWhatsApp({ to: phone, message })
     })
 
