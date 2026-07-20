@@ -642,7 +642,7 @@ export default function HomePage() {
           <section className="max-w-5xl mx-auto px-6 py-24">
             <div style={{ textAlign: 'center', marginBottom: 48 }}>
               <p style={{ color: 'var(--orange)', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 12 }}>What it replaces</p>
-              <h2 style={{ fontSize: 'clamp(28px, 4vw, 46px)', fontWeight: 800, letterSpacing: '-1.5px', marginBottom: 16 }}>One workspace<br />instead of eight subscriptions</h2>
+              <h2 style={{ fontSize: 'clamp(28px, 4vw, 46px)', fontWeight: 800, letterSpacing: '-1.5px', marginBottom: 16 }}>One workspace<br />instead of seven subscriptions</h2>
               <p style={{ color: 'var(--dim)', maxWidth: 480, margin: '0 auto', lineHeight: 1.6 }}>
                 Here is what South African businesses typically pay to cover the same ground, at each tool&rsquo;s advertised price. AdminOS Operate is <strong style={{ color: '#fff' }}>R1,999/month</strong>.
               </p>
@@ -651,7 +651,7 @@ export default function HomePage() {
             <div className="roi-wrap" style={{ borderRadius: 20, border: '1px solid rgba(255,255,255,.07)' }}>
             <div className="roi-table" style={{ borderRadius: 20, overflow: 'hidden' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', background: 'rgba(255,255,255,.03)', padding: '12px 24px' }}>
-                {['What you pay for now', 'Monthly cost', 'Replaced by'].map((h, i) => (
+                {['Tool it replaces', 'Typical monthly cost', 'Handled by'].map((h, i) => (
                   <span key={h} style={{ fontSize: 11, color: 'var(--dimmest)', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 700, textAlign: i === 1 ? 'center' : i === 2 ? 'right' : 'left' }}>{h}</span>
                 ))}
               </div>
@@ -723,7 +723,7 @@ export default function HomePage() {
                     </div>
                   </div>
                   <div style={{ marginTop: 12, background: 'rgba(0,0,0,.2)', border: '1px solid rgba(249,115,22,.15)', borderRadius: 8, padding: '7px 10px', fontSize: 11, color: 'var(--orange)', fontWeight: 600 }}>
-                    📈 80% of messages handled without you
+                    📈 Handles up to 80% of routine messages
                   </div>
                 </article>
 
@@ -762,7 +762,7 @@ export default function HomePage() {
                     </div>
                   </div>
                   <div style={{ marginTop: 12, background: 'rgba(0,0,0,.2)', border: '1px solid rgba(6,182,212,.15)', borderRadius: 8, padding: '7px 10px', fontSize: 11, color: 'var(--teal)', fontWeight: 600 }}>
-                    📈 60% faster average invoice settlement
+                    📈 Built to get invoices paid faster
                   </div>
                 </article>
 
@@ -848,7 +848,7 @@ export default function HomePage() {
                     </div>
                   </div>
                   <div style={{ marginTop: 12, background: 'rgba(0,0,0,.2)', border: '1px solid rgba(139,92,246,.15)', borderRadius: 8, padding: '7px 10px', fontSize: 11, color: '#a78bfa', fontWeight: 600 }}>
-                    📈 90% faster document processing
+                    📈 Processes documents in seconds
                   </div>
                 </article>
 
