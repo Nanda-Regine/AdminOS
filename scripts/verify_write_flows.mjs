@@ -111,5 +111,43 @@ console.log('\n[portal link — schema fix]')
   ok('cleaned up')
 }
 
+// ── bookings ─────────────────────────────────────────────────────────────────
+console.log('\n[bookings]')
+{
+  // A fixed far-future slot so it can't collide with real bookings.
+  const start = '2099-12-01T09:00:00.000Z', end = '2099-12-01T10:00:00.000Z'
+  const r = await auth('/api/bookings', { method: 'POST', body: JSON.stringify({ startAt: start, endAt: end, notes: MK, source: 'manual' }) })
+  const j = await r.json().catch(() => ({}))
+  r.ok ? ok(`POST /api/bookings → ${r.status}`) : bad(`create ${r.status}: ${JSON.stringify(j)}`)
+  const row = (await sql(`select status, source, start_at from bookings where tenant_id='${TENANT}' and notes='${MK}' limit 1;`))[0]
+  row?.status === 'confirmed' ? ok(`row persisted (status=${row?.status}, source=${row?.source})`) : bad(`booking row wrong: ${JSON.stringify(row)}`)
+  await sql(`delete from bookings where tenant_id='${TENANT}' and notes='${MK}';`)
+  ok('cleaned up')
+}
+
+// ── payroll (seed a salaried staff member, run a throwaway future period) ─────
+console.log('\n[payroll]')
+{
+  const YEAR = 2099, MONTH = 12
+  const s = await sql(`insert into staff (tenant_id, full_name, salary, active) values ('${TENANT}','${MK} Payroll Staff', 30000, true) returning id;`)
+  const staffId = Array.isArray(s) ? s[0]?.id : null
+  if (!staffId) { bad('could not seed a salaried staff member'); }
+  else {
+    const r = await auth('/api/payroll/run', { method: 'POST', body: JSON.stringify({ periodMonth: MONTH, periodYear: YEAR }) })
+    const j = await r.json().catch(() => ({}))
+    r.ok ? ok(`POST /api/payroll/run → ${r.status}`) : bad(`run ${r.status}: ${JSON.stringify(j)}`)
+    const run = (await sql(`select id, status, period_month, period_year from payroll_runs where tenant_id='${TENANT}' and period_year=${YEAR} and period_month=${MONTH} limit 1;`))[0]
+    run ? ok(`payroll_runs row created (status=${run.status}, ${run.period_month}/${run.period_year})`) : bad('payroll_runs row missing')
+    const slips = (await sql(`select count(*)::int n, coalesce(sum(net_pay),0)::numeric total, coalesce(sum(paye),0)::numeric paye from payslips where tenant_id='${TENANT}' and payroll_run_id='${run?.id}';`))[0]
+    Number(slips?.n) >= 1 && Number(slips?.total) > 0
+      ? ok(`payslips generated (${slips.n} slip(s), net R${slips.total}, PAYE R${slips.paye}) — engine computed values`)
+      : bad(`payslips wrong: ${JSON.stringify(slips)}`)
+    // Cleanup: remove the whole fake period, then the temp staff member.
+    if (run?.id) { await sql(`delete from payslips where payroll_run_id='${run.id}';`); await sql(`delete from payroll_runs where id='${run.id}';`) }
+    await sql(`delete from staff where id='${staffId}';`)
+    ok('cleaned up')
+  }
+}
+
 console.log(`\n== ${pass} passed, ${fail} failed ==`)
 process.exit(fail ? 1 : 0)
