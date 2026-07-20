@@ -90,10 +90,16 @@ export default async function BillingPage({
   const currentPlanRow  = plans.find(p => p.slug === currentPlan)
   const bundledAddons   = new Set<string>(currentPlanRow?.included_addons ?? [])
 
+  // Trial state comes from the subscription (the auto_create_subscription trigger
+  // sets status='trialing' + trial_ends_at on signup). tenant.plan is 'solo' for
+  // trial users, so keying "on trial" off it was wrong — real trials never showed.
   const createdAt     = new Date(tenant.created_at)
-  const trialEndsAt   = new Date(createdAt.getTime() + 14 * 24 * 60 * 60 * 1000)
+  const trialEndsAt   = sub?.trial_ends_at
+    ? new Date(sub.trial_ends_at)
+    : new Date(createdAt.getTime() + 14 * 24 * 60 * 60 * 1000)
   const daysRemaining = Math.max(0, Math.ceil((trialEndsAt.getTime() - Date.now()) / 86_400_000))
-  const isOnTrial     = currentPlan === 'trial'
+  const isOnTrial     = sub?.status === 'trialing' && daysRemaining > 0
+  const trialExpired  = sub?.status === 'past_due' || (sub?.status === 'trialing' && daysRemaining === 0)
 
   const zar = (n: number) => `R${Number(n).toLocaleString('en-ZA')}`
 
@@ -124,21 +130,28 @@ export default async function BillingPage({
               <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: 'var(--text-muted)' }}>Current Plan</p>
               <div className="flex items-center gap-3 mb-2">
                 <h2 className="text-2xl font-bold capitalize" style={{ color: 'var(--text-primary)' }}>
-                  {currentPlan === 'trial' ? 'Free Trial' : currentPlan.replace('_', ' ')}
+                  {isOnTrial ? 'Free Trial' : trialExpired ? 'Trial ended' : currentPlan.replace('_', ' ')}
                 </h2>
                 <PlanBadge plan={currentPlan} />
               </div>
               <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
                 {isOnTrial
                   ? `Trial expires ${trialEndsAt.toLocaleDateString('en-ZA')} — ${daysRemaining} days remaining`
-                  : sub
-                    ? `Active since ${new Date(sub.created_at ?? tenant.created_at).toLocaleDateString('en-ZA')}`
-                    : `Member since ${createdAt.toLocaleDateString('en-ZA')}`}
+                  : trialExpired
+                    ? `Your free trial ended ${trialEndsAt.toLocaleDateString('en-ZA')} — choose a plan to keep AdminOS`
+                    : hasActiveSub
+                      ? `Active since ${new Date(sub.created_at ?? tenant.created_at).toLocaleDateString('en-ZA')}`
+                      : `Member since ${createdAt.toLocaleDateString('en-ZA')}`}
               </p>
             </div>
             {isOnTrial && (
               <div className="px-4 py-2 rounded-xl text-sm font-semibold" style={{ background: 'rgba(245,158,11,0.15)', color: '#F59E0B' }}>
                 {daysRemaining}d left
+              </div>
+            )}
+            {trialExpired && (
+              <div className="px-4 py-2 rounded-xl text-sm font-semibold" style={{ background: 'rgba(239,68,68,0.15)', color: '#EF4444' }}>
+                Expired
               </div>
             )}
           </div>
@@ -194,7 +207,7 @@ export default async function BillingPage({
                     <a href={`/api/billing/checkout?plan=${plan.slug}`}
                       className="py-2 text-center text-sm font-semibold rounded-xl block transition-all"
                       style={{ background: highlight ? 'var(--indigo)' : 'var(--surface-2)', color: highlight ? '#fff' : 'var(--text-primary)', border: highlight ? 'none' : '1px solid var(--border)' }}>
-                      {currentPlan === 'trial' ? 'Start plan' : 'Switch plan'}
+                      {isOnTrial || trialExpired ? 'Start plan' : 'Switch plan'}
                     </a>
                   )}
                 </div>

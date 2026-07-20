@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { Sidebar } from '@/components/dashboard/Sidebar'
 import { RealtimeNotificationBar } from '@/components/dashboard/RealtimeNotificationBar'
+import { TrialBanner } from '@/components/dashboard/TrialBanner'
 import { DomainGround } from '@/components/dashboard/DomainGround'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -10,6 +11,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <DomainGround />
       <Sidebar />
       <main className="flex-1 md:ml-60 flex flex-col min-h-screen">
+        <TrialBanner />
         <RealtimeNotificationBar />
         {children}
       </main>

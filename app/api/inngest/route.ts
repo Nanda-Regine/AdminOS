@@ -32,6 +32,7 @@ import { fanOutDebtRecoveryCron }                          from '@/inngest/funct
 import { sequencesCronFunction }                           from '@/inngest/functions/sequencesCron'
 import { licenseRemindersCronFunction }                    from '@/inngest/functions/licenseRemindersCron'
 import { signalRefreshCron, signalRefreshEngine }          from '@/inngest/functions/signalRefresh'
+import { trialExpiryCron }                                  from '@/inngest/functions/trialExpiry'
 
 export const { GET, POST, PUT } = serve({
   client: inngest,
@@ -74,6 +75,7 @@ export const { GET, POST, PUT } = serve({
     fanOutWellnessCron,
     fanOutHealthScoreCron,
     fanOutDebtRecoveryCron,
+    trialExpiryCron,
     sequencesCronFunction,
     licenseRemindersCronFunction,
   ],
