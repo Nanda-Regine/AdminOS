@@ -36,7 +36,14 @@ export interface LangaContext {
 export async function buildLangaContext(tenantId: string, userId: string): Promise<LangaContext> {
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
 
-  const [tenantRes, healthRes, goalsRes, invoicesRes, lessonsRes, triggersRes] = await Promise.all([
+  // All queries run in parallel; the set is kept lean to minimise the time-to-first
+  // -token (this whole build blocks the model call). The `goals` query previously
+  // filtered `status != 'completed'` and selected `target_date` — but goal_status is
+  // an enum of active/achieved/missed (no 'completed') and there is no target_date
+  // column, so the query 400'd and Langa never saw the tenant's goals. And the
+  // triggered_lessons JOIN (the most expensive query, ~2x the others) fed only a
+  // marginal "learning nudges" line, so it was dropped from the hot path.
+  const [tenantRes, healthRes, goalsRes, invoicesRes, lessonsRes] = await Promise.all([
     supabaseAdmin
       .from('tenants')
       .select('name, settings, plan')
@@ -51,9 +58,9 @@ export async function buildLangaContext(tenantId: string, userId: string): Promi
       .single(),
     supabaseAdmin
       .from('goals')
-      .select('title, status, target_date')
+      .select('title, status')
       .eq('tenant_id', tenantId)
-      .neq('status', 'completed')
+      .eq('status', 'active')
       .limit(5),
     supabaseAdmin
       .from('invoices')
@@ -67,13 +74,6 @@ export async function buildLangaContext(tenantId: string, userId: string): Promi
       .eq('tenant_id', tenantId)
       .eq('user_id', userId)
       .not('completed_at', 'is', null),
-    supabaseAdmin
-      .from('triggered_lessons')
-      .select('trigger_id, contextual_triggers(event_type, message_template)')
-      .eq('tenant_id', tenantId)
-      .is('dismissed_at', null)
-      .is('completed_at', null)
-      .limit(3),
   ])
 
   const tenant   = tenantRes.data
@@ -90,12 +90,6 @@ export async function buildLangaContext(tenantId: string, userId: string): Promi
   // Active goals
   const activeGoals = (goalsRes.data ?? []).map((g) => `${g.title} (${g.status})`)
 
-  // Pending learning triggers
-  const pendingTriggers = (triggersRes.data ?? []).map((t) => {
-    const trigger = t.contextual_triggers as unknown as { event_type: string; message_template?: string } | null
-    return trigger?.message_template ?? trigger?.event_type ?? ''
-  }).filter(Boolean)
-
   return {
     tenantName:       tenant?.name ?? 'your business',
     businessType:     settings?.business_type ?? 'general',
@@ -105,7 +99,7 @@ export async function buildLangaContext(tenantId: string, userId: string): Promi
     recentEvents,
     activeGoals,
     completedLessons: lessonsRes.data?.length ?? 0,
-    pendingTriggers,
+    pendingTriggers:  [],
     language:         settings?.preferred_language ?? 'en',
   }
 }
@@ -170,8 +164,12 @@ export async function chatWithLanga(
   message:   string,
   history:   LangaMessage[] = []
 ): Promise<LangaResponse> {
-  // Budget check
-  const budget = await checkBudget(tenantId, plan, 1500)
+  // Budget check and live-context build are independent — run in parallel.
+  const model = getModelForFeature('langa_mentor', plan)
+  const [budget, ctx] = await Promise.all([
+    checkBudget(tenantId, plan, 1500),
+    buildLangaContext(tenantId, userId),
+  ])
   if (!budget.allowed) {
     return {
       text:           'I\'m unable to respond right now — your daily AI usage limit has been reached. It resets at midnight.',
@@ -180,10 +178,6 @@ export async function chatWithLanga(
     }
   }
 
-  const model = getModelForFeature('langa_mentor', plan)
-
-  // Build context fresh before every response (live data)
-  const ctx          = await buildLangaContext(tenantId, userId)
   const systemPrompt = buildLangaSystemPrompt(ctx)
 
   const safeMessage = sanitizeForAI(message)
@@ -246,7 +240,13 @@ export async function streamLanga(
   message:   string,
   history:   LangaMessage[] = []
 ): Promise<LangaStream> {
-  const budget = await checkBudget(tenantId, plan, 1500)
+  // Budget check and context build are independent — run them together so the
+  // budget round-trip isn't in series ahead of the (heavier) context build.
+  const model = getModelForFeature('langa_mentor', plan)
+  const [budget, ctx] = await Promise.all([
+    checkBudget(tenantId, plan, 1500),
+    buildLangaContext(tenantId, userId),
+  ])
   if (!budget.allowed) {
     return {
       model:          '',
@@ -255,8 +255,6 @@ export async function streamLanga(
     }
   }
 
-  const model        = getModelForFeature('langa_mentor', plan)
-  const ctx          = await buildLangaContext(tenantId, userId)
   const systemPrompt = buildLangaSystemPrompt(ctx)
   const safeMessage  = sanitizeForAI(message)
   const recentHistory = history.slice(-20)
