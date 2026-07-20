@@ -70,7 +70,6 @@ export async function GET(request: Request) {
       // Add-on entitlements — canonical five, paid OR bundled by plan
       has_ring:          addons.includes('ring'),
       has_reach:         addons.includes('reach'),
-      has_sage:          addons.includes('sage'),
       has_languages:     addons.includes('languages'),
       has_client_portal: addons.includes('client_portal'),
     },

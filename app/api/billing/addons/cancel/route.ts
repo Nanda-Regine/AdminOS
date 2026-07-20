@@ -12,7 +12,7 @@ import { checkPermission } from '@/lib/auth/permissions'
 // the session, never the client. On success we flip subscriptions.addon_<slug> off (the
 // column the billing UI reads); the subscription.disable webhook reconciles it too.
 const ADDON_PLAN_ENV: Record<string, string> = {
-  ring: 'PAYSTACK_PLAN_ADMINOS_RING', reach: 'PAYSTACK_PLAN_ADMINOS_REACH', sage: 'PAYSTACK_PLAN_ADMINOS_SAGE',
+  ring: 'PAYSTACK_PLAN_ADMINOS_RING', reach: 'PAYSTACK_PLAN_ADMINOS_REACH',
   languages: 'PAYSTACK_PLAN_ADMINOS_LANGUAGES', client_portal: 'PAYSTACK_PLAN_ADMINOS_CLIENT_PORTAL',
 }
 const HUB_URL = (process.env.PAYSTACK_HUB_URL || 'https://jarvis.mirembemuse.co.za').replace(/\/$/, '')

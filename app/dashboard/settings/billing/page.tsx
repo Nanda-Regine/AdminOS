@@ -13,7 +13,6 @@ import { ADDON_SLUGS, type AddonSlug } from '@/lib/billing/addons'
 const ADDON_UI: Record<AddonSlug, { icon: typeof Phone; color: string }> = {
   ring:          { icon: Phone,     color: '#818CF8' },
   reach:         { icon: Radio,     color: '#22C55E' },
-  sage:          { icon: BookOpen,  color: '#F59E0B' },
   languages:     { icon: Languages, color: '#EC4899' },
   client_portal: { icon: Globe,     color: '#0EA5E9' },
 }

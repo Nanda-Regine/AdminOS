@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { tenantHasAddon } from '@/lib/billing/addons'
 
 export type Plan = 'trial' | 'starter' | 'growth' | 'enterprise' | 'white_label'
-export type Addon = 'ring' | 'reach' | 'sage' | 'languages' | 'client_portal'
+export type Addon = 'ring' | 'reach' | 'languages' | 'client_portal'
 
 export class BillingError extends Error {
   constructor(

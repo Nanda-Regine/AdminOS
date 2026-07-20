@@ -18,7 +18,6 @@ const PLAN_AMOUNTS: Record<string, { amount: string; name: string }> = {
 const ADDON_AMOUNTS: Record<string, { amount: string; name: string }> = {
   ring:          { amount: '349.00',  name: 'AdminOS Ring Add-on'          },
   reach:         { amount: '199.00',  name: 'AdminOS Reach Add-on'         },
-  sage:          { amount: '199.00',  name: 'AdminOS Sage Sync Add-on'     },
   languages:     { amount: '99.00',   name: 'AdminOS Languages Add-on'     },
   client_portal: { amount: '299.00',  name: 'AdminOS Client Portal Add-on' },
 }
@@ -90,7 +89,7 @@ export async function GET(request: Request) {
   // to that key so the receiver (/api/paystack/webhook) knows which add-on to switch on.
   if (addon) {
     const ADDON_MAP: Record<string, string> = {
-      ring: 'adminos_ring', reach: 'adminos_reach', sage: 'adminos_sage',
+      ring: 'adminos_ring', reach: 'adminos_reach',
       languages: 'adminos_languages', client_portal: 'adminos_client_portal',
     }
     const planKey = ADDON_MAP[addon]

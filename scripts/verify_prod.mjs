@@ -96,12 +96,12 @@ console.log('\n[billing catalogue]')
 try {
   const addons = await sql(`select slug from addon_catalogue where active order by slug;`)
   const slugs = addons.map(a => a.slug).sort().join(',')
-  slugs === 'client_portal,languages,reach,ring,sage' ? ok('addon_catalogue = canonical 5') : bad('addon_catalogue slugs = ' + slugs)
+  slugs === 'client_portal,languages,reach,ring' ? ok('addon_catalogue = canonical 4') : bad('addon_catalogue slugs = ' + slugs)
   const plans = await sql(`select slug, included_addons from plan_catalogue order by price_monthly;`)
   const grow = plans.find(p => p.slug === 'grow')?.included_addons || []
   const partner = plans.find(p => p.slug === 'partner')?.included_addons || []
   grow.includes('languages') ? ok('bundling: Grow includes languages') : bad('bundling: Grow ladder wrong')
-  partner.length === 5 ? ok('bundling: Partner includes all 5') : bad('bundling: Partner ladder = ' + partner.join(','))
+  partner.length === 4 ? ok('bundling: Partner includes all 4') : bad('bundling: Partner ladder = ' + partner.join(','))
   const orphan = (await sql(`select to_regclass('public.addon_subscriptions') as t;`))[0]?.t
   orphan === null ? ok('orphan addon_subscriptions dropped') : bad('addon_subscriptions still exists')
 } catch (e) { bad('catalogue check error: ' + e.message) }

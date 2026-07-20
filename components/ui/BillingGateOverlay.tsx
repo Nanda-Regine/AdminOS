@@ -12,8 +12,6 @@ const ADDON_INFO: Record<Addon, { name: string; price: string; benefits: string[
     benefits: ['AI voice agent answers every call', 'Takes messages & transfers to staff', 'Full call log + recordings'] },
   reach:         { name: 'Reach',         price: 'R199/mo', includedFrom: 'Operate',
     benefits: ['Broadcast to all contacts on WhatsApp', 'Audience filters & delivery tracking', 'Campaign performance analytics'] },
-  sage:          { name: 'Sage Sync',     price: 'R199/mo', includedFrom: 'Partner',
-    benefits: ['Two-way Sage Accounting sync', 'Contacts, invoices & payments aligned', 'No double capture'] },
   languages:     { name: 'Languages',     price: 'R99/mo',  includedFrom: 'Grow',
     benefits: ['AI replies in all 11 SA languages', 'Auto-detected per contact', 'Meet customers in their language'] },
   client_portal: { name: 'Client Portal', price: 'R299/mo', includedFrom: 'Scale',

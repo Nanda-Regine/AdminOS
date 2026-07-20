@@ -16,14 +16,14 @@ const TIER_PLAN: Record<string, string> = {
   adminos_solo: 'solo', adminos_grow: 'grow', adminos_operate: 'operate', adminos_scale: 'scale', adminos_partner: 'partner',
 }
 const TIER_ADDON: Record<string, string> = {
-  adminos_ring: 'ring', adminos_reach: 'reach', adminos_sage: 'sage',
+  adminos_ring: 'ring', adminos_reach: 'reach',
   adminos_languages: 'languages', adminos_client_portal: 'client_portal',
 }
 
 // Fallback add-on resolution by plan code — for events that don't carry our metadata
 // (e.g. subscription.disable), map the live Paystack plan code → add-on slug via env.
 const ADDON_PLAN_ENV: Record<string, string> = {
-  ring: 'PAYSTACK_PLAN_ADMINOS_RING', reach: 'PAYSTACK_PLAN_ADMINOS_REACH', sage: 'PAYSTACK_PLAN_ADMINOS_SAGE',
+  ring: 'PAYSTACK_PLAN_ADMINOS_RING', reach: 'PAYSTACK_PLAN_ADMINOS_REACH',
   languages: 'PAYSTACK_PLAN_ADMINOS_LANGUAGES', client_portal: 'PAYSTACK_PLAN_ADMINOS_CLIENT_PORTAL',
 }
 function addonByPlanCode(code: string | null): string | null {

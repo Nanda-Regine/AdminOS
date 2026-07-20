@@ -46,7 +46,6 @@ export default async function OperatorTenantPage({ params }: Props) {
     { key: 'addon_ring',          label: 'Ring' },
     { key: 'addon_reach',         label: 'Reach' },
     { key: 'addon_client_portal', label: 'Client Portal' },
-    { key: 'addon_sage',          label: 'Sage' },
     { key: 'addon_language_pack', label: 'Language Pack' },
   ]
 

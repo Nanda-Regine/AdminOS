@@ -4,7 +4,7 @@
  * The DB-querying wrappers live in ./addons.ts and call resolveEntitledAddons.
  */
 
-export const ADDON_SLUGS = ['ring', 'reach', 'sage', 'languages', 'client_portal'] as const
+export const ADDON_SLUGS = ['ring', 'reach', 'languages', 'client_portal'] as const
 export type AddonSlug = (typeof ADDON_SLUGS)[number]
 
 export function isAddonSlug(s: string): s is AddonSlug {
