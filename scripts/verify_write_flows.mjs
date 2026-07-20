@@ -396,12 +396,9 @@ try {
       const tcRow = (await sql(`select id, body from task_comments where tenant_id='${TENANT}' and body='${tcBody}' limit 1;`))[0]
       tcRow ? ok(`task_comment row persisted`) : bad(`task_comment row missing: ${JSON.stringify(tcRow)}`)
     } else {
-      // FINDING: task_comments table/route is dormant — report, do not mask
-      bad(`FINDING: task_comments POST failed ${tcRes.status} (table likely absent/dormant): ${JSON.stringify(tcJson)}`)
+      bad(`task_comments POST failed ${tcRes.status}: ${JSON.stringify(tcJson)}`)
     }
-    // cleanup — task_comments delete is harmless if the table is absent (sql returns an error object, no throw)
-    const tcDel = await sql(`delete from task_comments where tenant_id='${TENANT}' and body='${tcBody}';`)
-    if (tcDel && tcDel.message) console.log(`  (task_comments cleanup noop: ${tcDel.message})`)
+    await sql(`delete from task_comments where tenant_id='${TENANT}' and body='${tcBody}';`)
     await sql(`delete from tasks where tenant_id='${TENANT}' and id='${tcTaskId}';`)
     ok('tasks/[id]/comments cleaned up')
   }

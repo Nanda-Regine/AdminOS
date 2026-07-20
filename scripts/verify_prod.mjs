@@ -159,13 +159,13 @@ for (const [table, cols] of apiContracts) {
     ? ok(`api contract: ${table}`)
     : bad(`api contract: ${table} — ${res.message?.split('\n')[0] ?? 'error'}`)
 }
-// Dormant/unbuilt: task_comments has no table and no consumer. Assert it's still
-// absent so the guard flags it the day someone wires a UI (needs a migration).
+// task_comments now exists (migration 20260721) and the /api/tasks/[id]/comments
+// route reads+writes it. Assert the table is present — absence would be a regression.
 {
   const t = (await sql(`select to_regclass('public.task_comments') as t;`))[0]?.t
-  t === null
-    ? wrn('task_comments still absent (dormant route; migrate before wiring UI)')
-    : ok('task_comments table now exists')
+  t !== null
+    ? ok('task_comments table exists (route live)')
+    : bad('task_comments table missing — /api/tasks/[id]/comments would 400')
 }
 
 console.log(`\n== ${pass} passed, ${fail} failed, ${warn} warnings ==`)
