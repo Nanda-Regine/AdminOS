@@ -85,11 +85,12 @@ Include:
         body: result.response,
         recipient_email: body.recipientEmail,
         recipient_name: body.recipientName,
+        email_type: body.emailType,   // NOT NULL — was omitted, so every draft-save silently 400'd
         category: body.emailType,
         tone_used: body.tone,
         status: 'draft',
       })
-    }).catch(() => {})
+    }).catch((e) => { console.error('[Pen] draft save failed:', e?.message ?? e) })
   }
 
   return new Response(stream, {

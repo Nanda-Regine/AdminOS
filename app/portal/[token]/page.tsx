@@ -8,20 +8,20 @@ interface Props {
 }
 
 async function getPortalData(token: string) {
-  // Verify token — must exist, not revoked, not expired
+  // Verify token — must exist and not be expired (revocation is a hard delete;
+  // there is no revoked_at column).
   const { data: session } = await supabaseAdmin
     .from('portal_sessions')
     .select('*')
     .eq('token', token)
-    .is('revoked_at', null)
     .gt('expires_at', new Date().toISOString())
     .single()
 
   if (!session) return null
 
-  const { tenant_id: tenantId, contact_identifier: contactIdentifier } = session as {
+  const { tenant_id: tenantId, contact_id: contactId } = session as {
     tenant_id: string
-    contact_identifier: string
+    contact_id: string
   }
 
   // Fetch contact
@@ -29,7 +29,7 @@ async function getPortalData(token: string) {
     .from('contacts')
     .select('id, name:full_name, email, phone, tags, type:contact_type')
     .eq('tenant_id', tenantId)
-    .eq('id', contactIdentifier)
+    .eq('id', contactId)
     .maybeSingle()
 
   // Fetch open invoices
@@ -37,7 +37,7 @@ async function getPortalData(token: string) {
     .from('invoices')
     .select('id, invoice_number, amount, status, due_date, created_at')
     .eq('tenant_id', tenantId)
-    .eq('contact_id', contactIdentifier)
+    .eq('contact_id', contactId)
     .in('status', ['unpaid', 'partial', 'overdue'])
     .order('due_date', { ascending: true })
 
@@ -46,7 +46,7 @@ async function getPortalData(token: string) {
     .from('conversations')
     .select('id, summary, status, created_at, last_message_at:updated_at')
     .eq('tenant_id', tenantId)
-    .eq('contact_id', contactIdentifier)
+    .eq('contact_id', contactId)
     .order('updated_at', { ascending: false })
     .limit(5)
 

@@ -24,13 +24,11 @@ export async function POST(request: NextRequest) {
   if (!success) return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 })
 
   let contactId: string
-  let contactIdentifier: string
 
   try {
-    const body = await request.json() as { contactId?: string; contactIdentifier?: string }
+    const body = await request.json() as { contactId?: string }
     if (!body.contactId) throw new Error('missing')
-    contactId         = body.contactId
-    contactIdentifier = body.contactIdentifier ?? body.contactId
+    contactId = body.contactId
   } catch {
     return NextResponse.json({ error: 'contactId required' }, { status: 400 })
   }
@@ -47,13 +45,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Contact not found' }, { status: 404 })
   }
 
-  // Revoke any existing active tokens for this contact
+  // Revoke any existing links for this contact by removing them (the table has
+  // no revoked_at column — a fresh link supersedes the old one).
   await supabaseAdmin
     .from('portal_sessions')
-    .update({ revoked_at: new Date().toISOString() })
+    .delete()
     .eq('tenant_id', tenantId)
-    .eq('contact_identifier', contactIdentifier)
-    .is('revoked_at', null)
+    .eq('contact_id', contactId)
     .then(() => {}, () => {})
 
   const token     = randomBytes(32).toString('hex')
@@ -62,10 +60,10 @@ export async function POST(request: NextRequest) {
   const { error } = await supabaseAdmin
     .from('portal_sessions')
     .insert({
-      tenant_id:           tenantId,
-      contact_identifier:  contactIdentifier,
+      tenant_id:   tenantId,
+      contact_id:  contactId,   // NOT NULL — the route wrote a non-existent `contact_identifier` column before
       token,
-      expires_at:          expiresAt,
+      expires_at:  expiresAt,
     })
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
