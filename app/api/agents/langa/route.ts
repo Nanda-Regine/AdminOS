@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
-import { chatWithLanga, LangaMessage } from '@/lib/ai/agents/langa'
+import { streamLanga, LangaMessage } from '@/lib/ai/agents/langa'
 import { z } from 'zod'
 
 const schema = z.object({
@@ -40,7 +40,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid request', detail: e }, { status: 400 })
   }
 
-  const result = await chatWithLanga(
+  const result = await streamLanga(
     tenantId,
     user.id,
     plan,
@@ -48,16 +48,22 @@ export async function POST(request: Request) {
     body.history as LangaMessage[]
   )
 
-  if (result.budgetExceeded) {
+  // Budget check happens before the stream opens — return a plain 429 so the
+  // client can show the limit message without opening an SSE reader.
+  if (result.budgetExceeded || !result.stream) {
     return NextResponse.json({
-      text:           result.text,
+      text:           result.text ?? 'Langa is unavailable right now. Please try again.',
       budgetExceeded: true,
     }, { status: 429 })
   }
 
-  return NextResponse.json({
-    text:           result.text,
-    model:          result.model,
-    budgetExceeded: false,
+  // Stream tokens as Server-Sent Events: `data: {"text": "..."}` … `data: [DONE]`.
+  return new Response(result.stream, {
+    headers: {
+      'Content-Type':  'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection':    'keep-alive',
+      'X-Langa-Model': result.model,
+    },
   })
 }

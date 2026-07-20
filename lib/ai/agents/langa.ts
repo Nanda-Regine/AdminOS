@@ -223,3 +223,86 @@ export async function chatWithLanga(
 
   return { text, model, budgetExceeded: false }
 }
+
+export interface LangaStream {
+  /** SSE ReadableStream of `data: {"text": "..."}` deltas, ending with `data: [DONE]`. */
+  stream?:         ReadableStream
+  model:           string
+  budgetExceeded:  boolean
+  /** Set only when budgetExceeded — the message to show instead of a stream. */
+  text?:           string
+}
+
+/**
+ * Streaming twin of chatWithLanga — same live-context system prompt, budget check
+ * and usage accounting, but emits tokens as they arrive so the mentor chat feels
+ * instant instead of waiting ~15s for the whole reply. Usage is recorded once the
+ * stream finishes (from the final message's token counts).
+ */
+export async function streamLanga(
+  tenantId:  string,
+  userId:    string,
+  plan:      string,
+  message:   string,
+  history:   LangaMessage[] = []
+): Promise<LangaStream> {
+  const budget = await checkBudget(tenantId, plan, 1500)
+  if (!budget.allowed) {
+    return {
+      model:          '',
+      budgetExceeded: true,
+      text:           'I\'m unable to respond right now — your daily AI usage limit has been reached. It resets at midnight.',
+    }
+  }
+
+  const model        = getModelForFeature('langa_mentor', plan)
+  const ctx          = await buildLangaContext(tenantId, userId)
+  const systemPrompt = buildLangaSystemPrompt(ctx)
+  const safeMessage  = sanitizeForAI(message)
+  const recentHistory = history.slice(-20)
+  const t0 = Date.now()
+
+  const encoder = new TextEncoder()
+  const stream = new ReadableStream({
+    async start(controller) {
+      try {
+        const ms = anthropic.messages.stream({
+          model,
+          max_tokens: 800,
+          system: [
+            { type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } },
+          ],
+          messages: [
+            ...recentHistory,
+            { role: 'user', content: safeMessage },
+          ],
+        })
+
+        ms.on('text', (delta: string) => {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: delta })}\n\n`))
+        })
+
+        const final = await ms.finalMessage()
+        controller.enqueue(encoder.encode('data: [DONE]\n\n'))
+        controller.close()
+
+        void recordUsage({
+          tenantId,
+          plan,
+          feature:    'langa_mentor',
+          model,
+          tokensIn:   final.usage.input_tokens,
+          tokensOut:  final.usage.output_tokens,
+          durationMs: Date.now() - t0,
+        })
+      } catch (e) {
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: 'Stream failed. Please try again.' })}\n\n`))
+        controller.enqueue(encoder.encode('data: [DONE]\n\n'))
+        controller.close()
+        console.error('[Langa] stream error:', (e as Error)?.message ?? e)
+      }
+    },
+  })
+
+  return { stream, model, budgetExceeded: false }
+}

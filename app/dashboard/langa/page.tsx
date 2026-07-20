@@ -53,14 +53,52 @@ export default function LangaPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: msg, history: messages }),
       })
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({})) as { error?: string }
-        throw new Error(err.error ?? `Request failed: ${res.status}`)
+
+      // Budget/limit or error → non-streamed JSON.
+      if (!res.ok || !res.body) {
+        const err = await res.json().catch(() => ({})) as { error?: string; text?: string }
+        throw new Error(err.text ?? err.error ?? `Request failed: ${res.status}`)
       }
-      // /api/agents/langa returns { text }; keep reply/message as fallbacks.
-      const data = await res.json() as { text?: string; reply?: string; message?: string }
-      const answer = data.text ?? data.reply ?? data.message ?? ''
-      setMessages(prev => [...prev, { role: 'assistant', content: answer || 'Sorry — I couldn’t generate a reply just now. Please try again.' }])
+
+      // Add an empty assistant message, then fill it as SSE tokens arrive.
+      setMessages(prev => [...prev, { role: 'assistant', content: '' }])
+      const reader  = res.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+      let answer = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() ?? ''
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue
+          const data = line.slice(6)
+          if (data === '[DONE]') continue
+          try {
+            const parsed = JSON.parse(data) as { text?: string; error?: string }
+            if (parsed.error) throw new Error(parsed.error)
+            if (parsed.text) {
+              answer += parsed.text
+              setMessages(prev => {
+                const next = [...prev]
+                next[next.length - 1] = { role: 'assistant', content: answer }
+                return next
+              })
+            }
+          } catch { /* ignore malformed keep-alive lines */ }
+        }
+      }
+
+      if (!answer) {
+        setMessages(prev => {
+          const next = [...prev]
+          next[next.length - 1] = { role: 'assistant', content: 'Sorry — I couldn’t generate a reply just now. Please try again.' }
+          return next
+        })
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong.')
     } finally {
