@@ -5,7 +5,9 @@ import { TopBar } from '@/components/dashboard/TopBar'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ConfirmSubmit } from '@/components/ui/ConfirmSubmit'
+import { EmptyState } from '@/components/ui/EmptyState'
 import { redirect } from 'next/navigation'
+import { Wallet } from 'lucide-react'
 
 const statusVariant: Record<string, 'gray' | 'yellow' | 'green' | 'blue'> = {
   draft: 'gray',
@@ -91,9 +93,13 @@ export default async function PayrollPage() {
           </Card>
         ) : (
           <Card>
-            <p className="text-center text-[var(--text-dim)] py-6 text-sm">
-              No payroll runs found. Create your first payroll run to get started.
-            </p>
+            <EmptyState
+              icon={Wallet}
+              title="No payroll runs yet"
+              body="Run payroll to calculate PAYE, UIF and SDL for your active staff. Add team members first if you haven't — payslips are generated per active staff member."
+              action={{ label: 'Run your first payroll', href: '?new=1' }}
+              secondaryAction={{ label: 'Add staff', href: '/dashboard/staff' }}
+            />
           </Card>
         )}
 

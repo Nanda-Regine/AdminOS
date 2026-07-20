@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Modal, FormField, inputCls, inputSty, Btn } from '@/components/ui/modal'
+import { useOpenOnParam } from '@/lib/hooks/useOpenOnParam'
 
 interface Props {
   contacts: Array<{ id: string; full_name: string }>
@@ -11,6 +12,7 @@ interface Props {
 export function CreateContractModal({ contacts }: Props) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
+  useOpenOnParam('new', () => setOpen(true))
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 

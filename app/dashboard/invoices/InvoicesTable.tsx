@@ -1,7 +1,9 @@
 'use client'
 
+import { FileText } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { DataTable, type Column, type FilterDef } from '@/components/ui/DataTable'
+import { EmptyState } from '@/components/ui/EmptyState'
 import { formatZAR } from '@/lib/format'
 
 export type InvoiceRow = {
@@ -161,9 +163,13 @@ export function InvoicesTable({ rows }: { rows: InvoiceRow[] }) {
       csvFilename="invoices.csv"
       pageSize={25}
       emptyState={
-        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-          No invoices found. Upload an invoice document or add one manually.
-        </p>
+        <EmptyState
+          icon={FileText}
+          title="No invoices yet"
+          body="Raise your first invoice to start tracking who owes you — overdue ones flow straight into recovery."
+          action={{ label: 'New invoice', href: '?new=1' }}
+          compact
+        />
       }
       renderFooter={fr => {
         const totalAmount = fr.reduce((s, i) => s + Number(i.amount || 0), 0)

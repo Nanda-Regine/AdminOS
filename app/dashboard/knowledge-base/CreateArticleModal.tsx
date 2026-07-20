@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Modal, FormField, inputCls, inputSty, Btn } from '@/components/ui/modal'
+import { useOpenOnParam } from '@/lib/hooks/useOpenOnParam'
 
 const CATEGORIES = [
   { value: 'general',    label: 'General' },
@@ -21,6 +22,7 @@ function generateSlug(title: string): string {
 export function CreateArticleModal() {
   const router = useRouter()
   const [open, setOpen]         = useState(false)
+  useOpenOnParam('new', () => handleOpen())
   const [title, setTitle]       = useState('')
   const [category, setCategory] = useState('general')
   const [slug, setSlug]         = useState('')

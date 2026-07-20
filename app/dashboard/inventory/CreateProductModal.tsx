@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Modal, FormField, inputCls, inputSty, Btn } from '@/components/ui/modal'
+import { useOpenOnParam } from '@/lib/hooks/useOpenOnParam'
 import { Plus } from 'lucide-react'
 
 const EMPTY = {
@@ -15,6 +16,7 @@ export function CreateProductModal() {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState<FormState>(EMPTY)
+  useOpenOnParam('new', () => handleOpen())
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 

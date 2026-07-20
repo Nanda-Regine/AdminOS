@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ConfirmSubmit } from '@/components/ui/ConfirmSubmit'
 import { CreateExpenseModal } from './CreateExpenseModal'
+import { EmptyState } from '@/components/ui/EmptyState'
 import { redirect } from 'next/navigation'
 import { Receipt, Clock, CheckCircle } from 'lucide-react'
 
@@ -119,10 +120,19 @@ export default async function ExpensesPage() {
           </h3>
 
           {pending.length === 0 ? (
-            <div className="text-center py-10 text-[var(--text-dim)]">
-              <p className="text-3xl mb-2">✅</p>
-              <p className="text-sm">No pending expense claims. All caught up!</p>
-            </div>
+            processed.length === 0 ? (
+              <EmptyState
+                icon={Receipt}
+                title="No expense claims yet"
+                body="Log a claim when a staff member spends their own money — you approve it here and it lands in the audit trail for reimbursement."
+                action={{ label: 'Log the first claim', href: '?new=1' }}
+              />
+            ) : (
+              <div className="text-center py-10 text-[var(--text-dim)]">
+                <p className="text-3xl mb-2">✅</p>
+                <p className="text-sm">No pending expense claims. All caught up!</p>
+              </div>
+            )
           ) : (
             <div className="space-y-3">
               {pending.map((claim) => {

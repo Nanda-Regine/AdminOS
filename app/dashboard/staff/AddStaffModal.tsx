@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Modal, FormField, inputCls, inputSty, Btn } from '@/components/ui/modal'
+import { useOpenOnParam } from '@/lib/hooks/useOpenOnParam'
 
 export function AddStaffModal() {
   const router = useRouter()
@@ -24,6 +25,8 @@ export function AddStaffModal() {
   const set = (field: keyof typeof form) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
       setForm((prev) => ({ ...prev, [field]: e.target.value }))
+
+  useOpenOnParam('new', () => setOpen(true))
 
   const handleClose = useCallback(() => {
     setOpen(false)

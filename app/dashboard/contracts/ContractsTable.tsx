@@ -1,7 +1,9 @@
 'use client'
 
+import { FileSignature } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { DataTable, type Column, type FilterDef } from '@/components/ui/DataTable'
+import { EmptyState } from '@/components/ui/EmptyState'
 import { formatZAR } from '@/lib/format'
 
 export type ContractRow = {
@@ -124,9 +126,13 @@ export function ContractsTable({ rows }: { rows: ContractRow[] }) {
       csvFilename="contracts.csv"
       pageSize={25}
       emptyState={
-        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-          No contracts found. Create your first contract to get started.
-        </p>
+        <EmptyState
+          icon={FileSignature}
+          title="No contracts yet"
+          body="Draft, send, and track agreements so nothing sits unsigned. Create your first contract to get started."
+          action={{ label: 'New contract', href: '?new=1' }}
+          compact
+        />
       }
     />
   )

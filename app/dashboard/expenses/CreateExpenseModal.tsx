@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Modal, FormField, inputCls, inputSty, Btn } from '@/components/ui/modal'
+import { useOpenOnParam } from '@/lib/hooks/useOpenOnParam'
 import { Plus } from 'lucide-react'
 
 interface StaffOption { id: string; full_name: string | null }
@@ -22,6 +23,7 @@ export function CreateExpenseModal({ staff }: { staff: StaffOption[] }) {
   }
   function handleOpen() { setForm(EMPTY); setError(null); setOpen(true) }
   function handleClose() { if (!loading) setOpen(false) }
+  useOpenOnParam('new', handleOpen)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()

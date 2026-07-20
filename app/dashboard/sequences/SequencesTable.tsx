@@ -1,7 +1,8 @@
 'use client'
 
-import { Users } from 'lucide-react'
+import { Users, Zap } from 'lucide-react'
 import { DataTable, type Column, type FilterDef } from '@/components/ui/DataTable'
+import { EmptyState } from '@/components/ui/EmptyState'
 import { SequenceToggle } from '@/components/sequences/SequenceToggle'
 
 export type Step = { id: string; name: string; delay_hours: number; message: string }
@@ -123,9 +124,13 @@ export function SequencesTable({ rows }: { rows: Sequence[] }) {
       csvFilename="sequences.csv"
       pageSize={25}
       emptyState={
-        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-          No sequences yet. Build automated message flows that trigger on contact events.
-        </p>
+        <EmptyState
+          icon={Zap}
+          title="No sequences yet"
+          body="Build automated multi-step WhatsApp flows that trigger on contact events. Create your first sequence to start."
+          action={{ label: 'New sequence', href: '/dashboard/sequences/new' }}
+          compact
+        />
       }
     />
   )

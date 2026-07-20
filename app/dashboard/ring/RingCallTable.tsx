@@ -2,6 +2,7 @@
 
 import { Phone, PhoneIncoming, PhoneOutgoing, PhoneMissed, Mic, Bot, Users } from 'lucide-react'
 import { DataTable, type Column, type FilterDef } from '@/components/ui/DataTable'
+import { EmptyState } from '@/components/ui/EmptyState'
 
 export type CallLog = {
   id:              string
@@ -195,16 +196,13 @@ export function RingCallTable({ rows }: { rows: CallLog[] }) {
       csvFilename="call-log.csv"
       pageSize={25}
       emptyState={
-        <div>
-          <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4"
-            style={{ background: 'var(--indigo-muted)' }}>
-            <Phone className="w-6 h-6" style={{ color: 'var(--indigo-light)' }} />
-          </div>
-          <p className="font-medium mb-1" style={{ color: 'var(--text-primary)' }}>No calls yet</p>
-          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-            Calls will appear here once your Twilio number is configured.
-          </p>
-        </div>
+        <EmptyState
+          icon={Phone}
+          title="No calls yet"
+          body="Once your Twilio number is connected, the AI voice agent answers calls and logs every one here."
+          action={{ label: 'Set up your number', href: '/dashboard/settings' }}
+          compact
+        />
       }
     />
   )

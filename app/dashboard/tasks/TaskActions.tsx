@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useOpenOnParam } from '@/lib/hooks/useOpenOnParam'
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                               */
@@ -43,6 +44,8 @@ export function CreateTaskModal({ staff }: { staff: StaffMember[] }) {
   const [priority, setPriority]     = useState<'urgent' | 'high' | 'medium' | 'low'>('medium')
   const [dueDate, setDueDate]       = useState('')
   const [assignedTo, setAssignedTo] = useState('')
+
+  useOpenOnParam('new', () => setOpen(true))
 
   function resetForm() {
     setTitle('')

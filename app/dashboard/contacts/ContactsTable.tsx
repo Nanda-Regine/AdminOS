@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { ChevronRight, Users } from 'lucide-react'
 import { DataTable, type Column, type FilterDef } from '@/components/ui/DataTable'
+import { EmptyState } from '@/components/ui/EmptyState'
 import { formatZAR } from '@/lib/format'
 
 export type ContactRow = {
@@ -204,18 +205,13 @@ export function ContactsTable({ rows }: { rows: ContactRow[] }) {
       csvFilename="contacts.csv"
       pageSize={25}
       emptyState={
-        <div>
-          <div
-            className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4"
-            style={{ background: 'var(--indigo-muted)' }}
-          >
-            <Users className="w-6 h-6" style={{ color: 'var(--indigo-light)' }} />
-          </div>
-          <p className="font-medium mb-1" style={{ color: 'var(--text-primary)' }}>No contacts yet</p>
-          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-            Contacts are created automatically when someone messages you, or add one manually.
-          </p>
-        </div>
+        <EmptyState
+          icon={Users}
+          title="No contacts yet"
+          body="Contacts are created automatically when someone messages you — or add your first one now."
+          action={{ label: 'Add a contact', href: '?new=1' }}
+          compact
+        />
       }
     />
   )

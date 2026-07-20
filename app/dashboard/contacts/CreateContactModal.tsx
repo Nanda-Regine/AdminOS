@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Modal, FormField, inputCls, inputSty, Btn } from '@/components/ui/modal'
+import { useOpenOnParam } from '@/lib/hooks/useOpenOnParam'
 import { Plus } from 'lucide-react'
 
 const EMPTY = {
@@ -32,6 +33,9 @@ export function CreateContactModal() {
     setError(null)
     setOpen(true)
   }
+
+  // Lets an EmptyState CTA (`?new=1`) open this modal from elsewhere on the page.
+  useOpenOnParam('new', handleOpen)
 
   function handleClose() {
     if (loading) return

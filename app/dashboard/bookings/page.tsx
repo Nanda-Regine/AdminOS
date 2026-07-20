@@ -4,7 +4,9 @@ import { TopBar } from '@/components/dashboard/TopBar'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ConfirmSubmit } from '@/components/ui/ConfirmSubmit'
+import { EmptyState } from '@/components/ui/EmptyState'
 import { redirect } from 'next/navigation'
+import { Calendar } from 'lucide-react'
 
 const statusVariant: Record<string, 'green' | 'yellow' | 'red' | 'gray' | 'blue'> = {
   confirmed: 'green',
@@ -201,8 +203,14 @@ export default async function BookingsPage() {
                 })}
                 {bookings.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-5 py-10 text-center text-[var(--text-dim)]">
-                      No bookings this week.
+                    <td colSpan={6} className="px-5 py-6">
+                      <EmptyState
+                        compact
+                        icon={Calendar}
+                        title="No bookings this week"
+                        body="Bookings appear here once customers reserve a slot through your booking link or WhatsApp. Set up your services and share the link to start taking them."
+                        action={{ label: 'Set up bookings', href: '/dashboard/settings/onboarding' }}
+                      />
                     </td>
                   </tr>
                 )}

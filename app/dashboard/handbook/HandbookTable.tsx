@@ -1,10 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { Eye } from 'lucide-react'
+import { Eye, ClipboardList } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Modal } from '@/components/ui/modal'
 import { DataTable, type Column, type FilterDef } from '@/components/ui/DataTable'
+import { EmptyState } from '@/components/ui/EmptyState'
 
 export type SopRow = {
   id:                       string
@@ -140,9 +141,13 @@ export function HandbookTable({ rows, totalStaff }: { rows: SopRow[]; totalStaff
         csvFilename="sops.csv"
         pageSize={25}
         emptyState={
-          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-            No SOPs found. Add your first procedure to build your handbook.
-          </p>
+          <EmptyState
+            icon={ClipboardList}
+            title="No SOPs yet"
+            body="Document how your business runs so anyone can follow the same steps. Add your first procedure to build the handbook."
+            action={{ label: 'New SOP', href: '?new=1' }}
+            compact
+          />
         }
       />
 

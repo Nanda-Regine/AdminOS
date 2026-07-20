@@ -3,7 +3,9 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { TopBar } from '@/components/dashboard/TopBar'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { EmptyState } from '@/components/ui/EmptyState'
 import { redirect } from 'next/navigation'
+import { ListTodo } from 'lucide-react'
 import { CreateTaskModal, MoveTaskButton } from './TaskActions'
 
 export const dynamic = 'force-dynamic'
@@ -203,13 +205,12 @@ export default async function TasksPage() {
         </div>
 
         {allTasks.length === 0 && (
-          <div className="text-center py-16 text-[var(--text-dim)]">
-            <div className="w-12 h-12 rounded-2xl bg-[var(--surface-2)] flex items-center justify-center mx-auto mb-3">
-              <span className="text-2xl">✓</span>
-            </div>
-            <p className="text-sm font-medium text-[var(--text-muted)]">All clear</p>
-            <p className="text-xs mt-1">Tasks created by you or Langa will appear here.</p>
-          </div>
+          <EmptyState
+            icon={ListTodo}
+            title="No tasks yet"
+            body="Create a task to track what needs doing across your business. Tasks you add here — and ones Langa raises for you — show up on this board."
+            action={{ label: 'Create your first task', href: '?new=1' }}
+          />
         )}
       </div>
     </div>

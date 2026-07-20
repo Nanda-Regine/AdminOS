@@ -4,7 +4,9 @@ import { TopBar } from '@/components/dashboard/TopBar'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ConfirmSubmit } from '@/components/ui/ConfirmSubmit'
+import { EmptyState } from '@/components/ui/EmptyState'
 import { redirect } from 'next/navigation'
+import { Users } from 'lucide-react'
 import { AddStaffModal } from './AddStaffModal'
 
 function WellnessDot({ score }: { score: number }) {
@@ -193,9 +195,13 @@ export default async function StaffPage() {
           })}
 
           {staff.length === 0 && (
-            <div className="col-span-3 text-center py-12 text-[var(--text-dim)]">
-              <p className="text-3xl mb-2">👥</p>
-              <p className="text-sm">No staff added yet. Add team members in Settings.</p>
+            <div className="col-span-3">
+              <EmptyState
+                icon={Users}
+                title="No staff added yet"
+                body="Add your team members to run payroll, track leave and wellness, and assign tasks — everything else on this page builds on who works here."
+                action={{ label: 'Add your first staff member', href: '?new=1' }}
+              />
             </div>
           )}
         </div>

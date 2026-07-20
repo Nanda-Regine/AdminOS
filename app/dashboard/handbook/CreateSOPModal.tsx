@@ -3,12 +3,14 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Modal, FormField, inputCls, inputSty, Btn } from '@/components/ui/modal'
+import { useOpenOnParam } from '@/lib/hooks/useOpenOnParam'
 
 const CATEGORIES = ['HR', 'Operations', 'Finance', 'Safety', 'Compliance', 'General']
 
 export function CreateSOPModal() {
   const router = useRouter()
   const [open, setOpen] = useState(false)
+  useOpenOnParam('new', () => setOpen(true))
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 

@@ -1,10 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { Eye } from 'lucide-react'
+import { Eye, BookOpen } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Modal } from '@/components/ui/modal'
 import { DataTable, type Column, type FilterDef } from '@/components/ui/DataTable'
+import { EmptyState } from '@/components/ui/EmptyState'
 
 // kb_articles has no slug/body/category columns — body is `content`, category
 // comes from the kb_categories FK (resolved to a name string in the page).
@@ -118,12 +119,13 @@ export function KnowledgeBaseTable({ rows }: { rows: KbArticle[] }) {
         csvFilename="knowledge-base.csv"
         pageSize={25}
         emptyState={
-          <div>
-            <p className="text-4xl mb-3">📚</p>
-            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-              No knowledge base articles yet. Create your first article to help customers self-serve.
-            </p>
-          </div>
+          <EmptyState
+            icon={BookOpen}
+            title="No articles yet"
+            body="Write help articles so customers and staff can find answers on their own. Create your first article to get started."
+            action={{ label: 'New article', href: '?new=1' }}
+            compact
+          />
         }
       />
 

@@ -1,7 +1,9 @@
 'use client'
 
+import { Package } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { DataTable, type Column, type FilterDef } from '@/components/ui/DataTable'
+import { EmptyState } from '@/components/ui/EmptyState'
 import { formatZAR } from '@/lib/format'
 
 export type ProductRow = {
@@ -116,9 +118,13 @@ export function InventoryTable({ rows }: { rows: ProductRow[] }) {
       csvFilename="inventory.csv"
       pageSize={25}
       emptyState={
-        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-          No inventory items found. Add products to start tracking stock.
-        </p>
+        <EmptyState
+          icon={Package}
+          title="No products yet"
+          body="Track stock levels so a stockout never surprises you. Add your first product to start."
+          action={{ label: 'Add your first product', href: '?new=1' }}
+          compact
+        />
       }
       renderFooter={fr => {
         const cost = fr.reduce((s, p) => s + Number(p.current_stock) * Number(p.cost_price || 0), 0)

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Modal, FormField, inputCls, inputSty, Btn } from '@/components/ui/modal'
+import { useOpenOnParam } from '@/lib/hooks/useOpenOnParam'
 import { Play } from 'lucide-react'
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
@@ -14,6 +15,8 @@ export function RunPayrollForm({ defaultMonth, defaultYear }: { defaultMonth: nu
   const [year, setYear] = useState(defaultYear)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  useOpenOnParam('new', () => { setError(null); setOpen(true) })
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()

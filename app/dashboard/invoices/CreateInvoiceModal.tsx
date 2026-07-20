@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Modal, FormField, inputCls, inputSty, Btn } from '@/components/ui/modal'
+import { useOpenOnParam } from '@/lib/hooks/useOpenOnParam'
 
 interface Contact {
   id: string
@@ -18,6 +19,8 @@ export function CreateInvoiceModal({ contacts }: Props) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // Lets an EmptyState CTA (`?new=1`) open this modal from the table below.
+  useOpenOnParam('new', () => setOpen(true))
 
   // Form state
   const [contactId, setContactId] = useState('')

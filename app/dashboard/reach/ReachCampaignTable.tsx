@@ -3,6 +3,7 @@
 import { Radio, Users, CheckCheck, AlertCircle, Loader2, FileText, Clock, Plus } from 'lucide-react'
 import Link from 'next/link'
 import { DataTable, type Column, type FilterDef } from '@/components/ui/DataTable'
+import { EmptyState } from '@/components/ui/EmptyState'
 import { SendCampaignButton } from '@/components/reach/SendCampaignButton'
 
 export type Campaign = {
@@ -177,22 +178,13 @@ export function ReachCampaignTable({ rows }: { rows: Campaign[] }) {
         </Link>
       }
       emptyState={
-        <div>
-          <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4"
-            style={{ background: 'var(--indigo-muted)' }}>
-            <Radio className="w-6 h-6" style={{ color: 'var(--indigo-light)' }} />
-          </div>
-          <p className="font-medium mb-1" style={{ color: 'var(--text-primary)' }}>No campaigns yet</p>
-          <p className="text-sm mb-4" style={{ color: 'var(--text-muted)' }}>
-            Create your first broadcast campaign to reach your entire audience.
-          </p>
-          <Link href="/dashboard/reach/new"
-            className="inline-flex items-center gap-1.5 text-sm font-medium px-4 py-2 rounded-xl"
-            style={{ background: 'var(--indigo)', color: '#fff' }}>
-            <Plus className="w-4 h-4" />
-            Create Campaign
-          </Link>
-        </div>
+        <EmptyState
+          icon={Radio}
+          title="No campaigns yet"
+          body="Broadcast a WhatsApp or SMS message to your whole audience at once. Create your first campaign to reach them."
+          action={{ label: 'Create campaign', href: '/dashboard/reach/new' }}
+          compact
+        />
       }
     />
   )
