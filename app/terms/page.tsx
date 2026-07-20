@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   alternates: { canonical: 'https://adminos.co.za/terms' },
 }
 
-const LAST_UPDATED = '22 March 2026'
+const LAST_UPDATED = '21 July 2026'
 const COMPANY = 'Mirembe Muse (Pty) Ltd'
 const EMAIL = 'legal@mirembemuse.co.za'
 
@@ -68,15 +68,16 @@ export default function TermsPage() {
             <h3 className="text-lg font-semibold text-white mb-2">3.1 Free Trial</h3>
             <p className="text-sm">
               New accounts receive a 14-day free trial with full access to selected tier features.
-              No credit card is required to start the trial. At the end of the trial, your account
-              is downgraded unless you subscribe.
+              No credit card is required to start the trial, so no automatic charge occurs when it
+              ends. After the trial you will be prompted to choose a paid plan to continue; your
+              account and data remain accessible in the meantime.
             </p>
 
             <h3 className="text-lg font-semibold text-white mb-2 mt-5">3.2 Subscription Fees</h3>
             <p className="text-sm">
-              Subscriptions are billed monthly in South African Rand (ZAR) via PayFast. Prices are
-              as displayed on adminos.co.za at the time of subscription. We reserve the right to
-              change pricing with 30 days&apos; written notice.
+              Subscriptions are billed monthly in South African Rand (ZAR) via our payment providers,
+              PayFast and Paystack. Prices are as displayed on adminos.co.za at the time of
+              subscription. We reserve the right to change pricing with 30 days&apos; written notice.
             </p>
 
             <h3 className="text-lg font-semibold text-white mb-2 mt-5">3.3 Cancellation</h3>
@@ -155,8 +156,8 @@ export default function TermsPage() {
             <h2 id="sla" className="text-2xl font-bold text-white mb-4">8. Service Availability</h2>
             <div className="space-y-3 text-sm">
               {[
-                { tier: 'Starter & Growth', uptime: '99.5% monthly uptime target', support: 'Email support, 48-hour response' },
-                { tier: 'Enterprise', uptime: '99.9% monthly uptime SLA (contractual)', support: 'Priority support, 4-hour response' },
+                { tier: 'Solo, Grow & Operate', uptime: '99.5% monthly uptime target', support: 'Email support, 48-hour response' },
+                { tier: 'Scale & Partner', uptime: '99.9% monthly uptime SLA (contractual)', support: 'Priority support, 4-hour response' },
               ].map((row) => (
                 <div key={row.tier} className="bg-gray-900 border border-white/8 rounded-xl p-4">
                   <p className="font-semibold text-white">{row.tier}</p>

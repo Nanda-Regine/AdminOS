@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   alternates: { canonical: 'https://adminos.co.za/privacy' },
 }
 
-const LAST_UPDATED = '22 March 2026'
+const LAST_UPDATED = '21 July 2026'
 const COMPANY = 'Mirembe Muse (Pty) Ltd'
 const EMAIL = 'privacy@mirembemuse.co.za'
 const ADDRESS = 'South Africa'
@@ -74,7 +74,7 @@ export default function PrivacyPage() {
             <ul className="list-disc pl-5 space-y-1 text-sm">
               <li>Business name, contact name, email address, phone number</li>
               <li>Business registration details (for compliance and billing)</li>
-              <li>Payment information (processed by PayFast — we do not store card details)</li>
+              <li>Payment information (processed by PayFast and Paystack — we do not store card details)</li>
             </ul>
 
             <h3 className="text-lg font-semibold text-white mb-2 mt-5">2.2 Business Operations Data</h3>
@@ -99,7 +99,7 @@ export default function PrivacyPage() {
             <p>We process personal information only for the following purposes:</p>
             <ul className="list-disc pl-5 space-y-2 text-sm mt-3">
               <li><strong className="text-white">Service delivery:</strong> Providing AI agents, WhatsApp automation, document processing, and analytics features</li>
-              <li><strong className="text-white">Billing:</strong> Processing subscription payments via PayFast</li>
+              <li><strong className="text-white">Billing:</strong> Processing subscription payments via PayFast and Paystack</li>
               <li><strong className="text-white">Support:</strong> Responding to support requests and onboarding assistance</li>
               <li><strong className="text-white">Security:</strong> Fraud prevention, rate limiting, audit logging</li>
               <li><strong className="text-white">Legal compliance:</strong> Meeting our obligations under POPIA and other applicable South African law</li>
@@ -135,6 +135,16 @@ export default function PrivacyPage() {
                   name: 'PayFast',
                   purpose: 'Payment processing',
                   note: 'Card details are processed by PayFast and are never stored by AdminOS.',
+                },
+                {
+                  name: 'Paystack',
+                  purpose: 'Payment processing',
+                  note: 'Subscription and add-on payments may be processed by Paystack. Card details are processed by Paystack and are never stored by AdminOS. See paystack.com/privacy.',
+                },
+                {
+                  name: 'Twilio',
+                  purpose: 'AI voice agent (Ring add-on) — inbound and outbound calls',
+                  note: 'When the Ring voice add-on is enabled, phone numbers and call metadata are processed by Twilio to answer and route calls. See twilio.com/legal/privacy.',
                 },
                 {
                   name: 'Upstash Redis',
