@@ -1,7 +1,9 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { PenLine, Send, Save, RefreshCw, FileText, Trash2, ChevronDown } from 'lucide-react'
+import { PenLine, Send, Save, RefreshCw, FileText, Trash2, ChevronDown, Mail } from 'lucide-react'
+import { TopBar } from '@/components/dashboard/TopBar'
+import { EmptyState } from '@/components/ui/EmptyState'
 
 type Tone = 'formal' | 'friendly' | 'firm' | 'urgent'
 type EmailType = 'invoice' | 'follow_up' | 'proposal' | 'welcome' | 'notice' | 'custom'
@@ -19,11 +21,12 @@ interface Draft {
   created_at: string
 }
 
-const TONES: { value: Tone; label: string; color: string }[] = [
-  { value: 'formal', label: 'Formal', color: 'bg-navy/10 text-navy border-navy/20' },
-  { value: 'friendly', label: 'Friendly', color: 'bg-forest/10 text-forest border-forest/20' },
-  { value: 'firm', label: 'Firm', color: 'bg-gold/10 text-amber-800 border-gold/30' },
-  { value: 'urgent', label: 'Urgent', color: 'bg-cherry/10 text-cherry border-cherry/20' },
+// Token-styled tone chips — the active chip's colour is applied inline below.
+const TONES: { value: Tone; label: string; active: string }[] = [
+  { value: 'formal',   label: 'Formal',   active: 'bg-[var(--surface-2)] text-[var(--text-primary)] border-[var(--border-hover)]' },
+  { value: 'friendly', label: 'Friendly', active: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' },
+  { value: 'firm',     label: 'Firm',     active: 'bg-amber-500/15 text-amber-300 border-amber-500/30' },
+  { value: 'urgent',   label: 'Urgent',   active: 'bg-red-500/15 text-red-300 border-red-500/30' },
 ]
 
 const EMAIL_TYPES: { value: EmailType; label: string }[] = [
@@ -42,6 +45,10 @@ const LANGUAGES: { value: Language; label: string }[] = [
   { value: 'xh', label: 'Xhosa' },
   { value: 'st', label: 'Sotho' },
 ]
+
+const inputCls =
+  'w-full bg-[var(--surface-2)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-dim)] focus:outline-none focus:ring-1 focus:ring-[var(--indigo)]'
+const labelCls = 'text-xs font-medium text-[var(--text-muted)] uppercase tracking-wide mb-2 block'
 
 export default function EmailStudioPage() {
   const [tone, setTone] = useState<Tone>('formal')
@@ -154,55 +161,47 @@ export default function EmailStudioPage() {
     else await deleteDraft(id)
   }
 
-  return (
-    <div className="min-h-screen bg-cream">
-      {/* Header */}
-      <div className="bg-navy border-b border-navy/20 px-6 py-4">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-gold/20 flex items-center justify-center">
-              <PenLine className="w-5 h-5 text-gold" />
-            </div>
-            <div>
-              <h1 className="font-bebas text-xl text-cream tracking-wide">Pen — Email Studio</h1>
-              <p className="text-xs text-cream/50">AI-powered professional emails</p>
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() => { setView('compose'); }}
-              className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${view === 'compose' ? 'bg-gold text-navy' : 'text-cream/60 hover:text-cream'}`}
-            >
-              Compose
-            </button>
-            <button
-              onClick={() => { setView('drafts'); loadDrafts(); }}
-              className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${view === 'drafts' ? 'bg-gold text-navy' : 'text-cream/60 hover:text-cream'}`}
-            >
-              Drafts
-            </button>
-          </div>
-        </div>
-      </div>
+  const viewToggle = (
+    <div className="flex gap-1 p-1 rounded-xl" style={{ background: 'var(--surface-2)' }}>
+      {(['compose', 'drafts'] as const).map((v) => (
+        <button
+          key={v}
+          onClick={() => { setView(v); if (v === 'drafts') loadDrafts() }}
+          className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors capitalize ${
+            view === v ? 'text-white' : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+          }`}
+          style={view === v ? { background: 'var(--indigo)' } : undefined}
+        >
+          {v}
+        </button>
+      ))}
+    </div>
+  )
 
-      <div className="max-w-6xl mx-auto px-6 py-8">
+  return (
+    <div>
+      <TopBar title="Pen — Email Studio" subtitle="AI-powered professional emails" actions={viewToggle} />
+
+      <div className="p-6">
         {view === 'compose' ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Left: Form */}
             <div className="space-y-5">
-              <div className="bg-[var(--surface-1)] rounded-xl border border-forest/10 p-5 shadow-sm">
-                <h2 className="font-cormorant text-lg text-navy font-semibold mb-4">Email Details</h2>
+              <div className="glass rounded-2xl p-5">
+                <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Email Details</h2>
 
                 {/* Tone selector */}
                 <div className="mb-4">
-                  <label className="text-xs font-medium text-navy/60 uppercase tracking-wide mb-2 block">Tone</label>
+                  <label className={labelCls}>Tone</label>
                   <div className="flex gap-2 flex-wrap">
                     {TONES.map((t) => (
                       <button
                         key={t.value}
                         onClick={() => setTone(t.value)}
                         className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
-                          tone === t.value ? t.color + ' ring-1 ring-current' : 'bg-cream border-forest/10 text-navy/50 hover:border-forest/30'
+                          tone === t.value
+                            ? t.active
+                            : 'bg-transparent border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--border-hover)]'
                         }`}
                       >
                         {t.label}
@@ -213,24 +212,24 @@ export default function EmailStudioPage() {
 
                 {/* Email type */}
                 <div className="mb-4">
-                  <label className="text-xs font-medium text-navy/60 uppercase tracking-wide mb-2 block">Email Type</label>
+                  <label className={labelCls}>Email Type</label>
                   <div className="relative">
                     <select
                       value={emailType}
                       onChange={(e) => setEmailType(e.target.value as EmailType)}
-                      className="w-full appearance-none bg-cream border border-forest/20 rounded-lg px-3 py-2 text-sm text-navy pr-8 focus:outline-none focus:ring-1 focus:ring-forest"
+                      className={`${inputCls} appearance-none pr-8`}
                     >
                       {EMAIL_TYPES.map((et) => (
                         <option key={et.value} value={et.value}>{et.label}</option>
                       ))}
                     </select>
-                    <ChevronDown className="absolute right-2 top-2.5 w-4 h-4 text-navy/40 pointer-events-none" />
+                    <ChevronDown className="absolute right-2 top-2.5 w-4 h-4 text-[var(--text-muted)] pointer-events-none" />
                   </div>
                 </div>
 
                 {/* Language */}
                 <div className="mb-4">
-                  <label className="text-xs font-medium text-navy/60 uppercase tracking-wide mb-2 block">Language</label>
+                  <label className={labelCls}>Language</label>
                   <div className="flex gap-2 flex-wrap">
                     {LANGUAGES.map((l) => (
                       <button
@@ -238,9 +237,10 @@ export default function EmailStudioPage() {
                         onClick={() => setLanguage(l.value)}
                         className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
                           language === l.value
-                            ? 'bg-forest text-cream border-forest'
-                            : 'bg-cream border-forest/10 text-navy/50 hover:border-forest/30'
+                            ? 'text-white border-transparent'
+                            : 'bg-transparent border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--border-hover)]'
                         }`}
+                        style={language === l.value ? { background: 'var(--indigo)' } : undefined}
                       >
                         {l.label}
                       </button>
@@ -251,43 +251,44 @@ export default function EmailStudioPage() {
                 {/* Recipient */}
                 <div className="grid grid-cols-2 gap-3 mb-4">
                   <div>
-                    <label className="text-xs font-medium text-navy/60 uppercase tracking-wide mb-1 block">Recipient Name</label>
+                    <label className={labelCls.replace('mb-2', 'mb-1')}>Recipient Name</label>
                     <input
                       type="text"
                       value={recipientName}
                       onChange={(e) => setRecipientName(e.target.value)}
                       placeholder="e.g. Sipho Dlamini"
-                      className="w-full bg-cream border border-forest/20 rounded-lg px-3 py-2 text-sm text-navy placeholder-navy/30 focus:outline-none focus:ring-1 focus:ring-forest"
+                      className={inputCls}
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-medium text-navy/60 uppercase tracking-wide mb-1 block">Recipient Email</label>
+                    <label className={labelCls.replace('mb-2', 'mb-1')}>Recipient Email</label>
                     <input
                       type="email"
                       value={recipientEmail}
                       onChange={(e) => setRecipientEmail(e.target.value)}
                       placeholder="sipho@example.co.za"
-                      className="w-full bg-cream border border-forest/20 rounded-lg px-3 py-2 text-sm text-navy placeholder-navy/30 focus:outline-none focus:ring-1 focus:ring-forest"
+                      className={inputCls}
                     />
                   </div>
                 </div>
 
                 {/* Context */}
                 <div className="mb-4">
-                  <label className="text-xs font-medium text-navy/60 uppercase tracking-wide mb-1 block">Context & Instructions</label>
+                  <label className={labelCls.replace('mb-2', 'mb-1')}>Context &amp; Instructions</label>
                   <textarea
                     value={context}
                     onChange={(e) => setContext(e.target.value)}
                     placeholder="e.g. Invoice #INV-2024-089 for R12,500 is 14 days overdue. Client previously paid on time. Be firm but preserve the relationship."
                     rows={5}
-                    className="w-full bg-cream border border-forest/20 rounded-lg px-3 py-2 text-sm text-navy placeholder-navy/30 focus:outline-none focus:ring-1 focus:ring-forest resize-none"
+                    className={`${inputCls} resize-none`}
                   />
                 </div>
 
                 <button
                   onClick={generate}
                   disabled={generating || !recipientName || !recipientEmail || !context}
-                  className="w-full flex items-center justify-center gap-2 bg-forest text-cream py-2.5 rounded-lg font-medium text-sm hover:bg-forest/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg font-medium text-sm text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
+                  style={{ background: 'var(--indigo)' }}
                 >
                   {generating ? (
                     <>
@@ -305,19 +306,17 @@ export default function EmailStudioPage() {
             </div>
 
             {/* Right: Generated email */}
-            <div className="bg-[var(--surface-1)] rounded-xl border border-forest/10 p-5 shadow-sm">
+            <div className="glass rounded-2xl p-5">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="font-cormorant text-lg text-navy font-semibold">Generated Email</h2>
+                <h2 className="text-lg font-semibold text-[var(--text-primary)]">Generated Email</h2>
                 {generatedEmail && (
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => navigator.clipboard.writeText(generatedEmail)}
-                      className="text-xs text-forest hover:text-forest/80 flex items-center gap-1"
-                    >
-                      <Save className="w-3.5 h-3.5" />
-                      Copy
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => navigator.clipboard.writeText(generatedEmail)}
+                    className="text-xs text-[var(--indigo-light)] hover:opacity-80 flex items-center gap-1"
+                  >
+                    <Save className="w-3.5 h-3.5" />
+                    Copy
+                  </button>
                 )}
               </div>
 
@@ -326,64 +325,71 @@ export default function EmailStudioPage() {
                   <textarea
                     value={generatedEmail}
                     onChange={(e) => setGeneratedEmail(e.target.value)}
-                    className="w-full h-96 bg-cream border border-forest/10 rounded-lg px-4 py-3 text-sm text-navy font-mono resize-none focus:outline-none focus:ring-1 focus:ring-forest"
+                    className={`${inputCls} h-96 font-mono resize-none`}
                   />
-                  <p className="text-xs text-navy/40 mt-2">Auto-saved as draft. Edit freely above.</p>
+                  <p className="text-xs text-[var(--text-muted)] mt-2">Auto-saved as draft. Edit freely above.</p>
                 </div>
               ) : (
-                <div className="h-96 flex flex-col items-center justify-center text-center">
-                  <FileText className="w-12 h-12 text-navy/10 mb-3" />
-                  <p className="text-sm text-navy/40">Your email will appear here</p>
-                  <p className="text-xs text-navy/25 mt-1">Fill in the form and click Generate</p>
+                <div className="h-96 flex items-center justify-center">
+                  <EmptyState
+                    icon={Mail}
+                    title="Your email will appear here"
+                    body="Fill in the form and click Generate — Pen drafts it in your chosen tone and language."
+                    compact
+                  />
                 </div>
               )}
             </div>
           </div>
         ) : (
           /* Drafts view */
-          <div className="bg-[var(--surface-1)] rounded-xl border border-forest/10 shadow-sm overflow-hidden">
-            <div className="px-5 py-4 border-b border-forest/10 flex items-center justify-between">
-              <h2 className="font-cormorant text-lg text-navy font-semibold">Saved Drafts</h2>
-              <button onClick={loadDrafts} className="text-xs text-forest flex items-center gap-1 hover:text-forest/70">
+          <div className="glass rounded-2xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-[var(--border)] flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-[var(--text-primary)]">Saved Drafts</h2>
+              <button onClick={loadDrafts} className="text-xs text-[var(--indigo-light)] flex items-center gap-1 hover:opacity-80">
                 <RefreshCw className="w-3.5 h-3.5" />
                 Refresh
               </button>
             </div>
 
             {loadingDrafts ? (
-              <div className="p-10 text-center text-navy/40 text-sm">Loading drafts...</div>
+              <div className="p-10 text-center text-[var(--text-muted)] text-sm">Loading drafts...</div>
             ) : drafts.length === 0 ? (
-              <div className="p-10 text-center">
-                <FileText className="w-10 h-10 text-navy/10 mx-auto mb-3" />
-                <p className="text-sm text-navy/40">No drafts yet — generate your first email</p>
-              </div>
+              <EmptyState
+                icon={FileText}
+                title="No drafts yet"
+                body="Generate your first email in Compose — it's saved here automatically so you can review and send it."
+                action={{ label: 'Compose an email', onClick: () => setView('compose') }}
+                compact
+              />
             ) : (
-              <div className="divide-y divide-forest/5">
+              <div className="divide-y divide-[var(--border)]">
                 {drafts.map((draft) => (
-                  <div key={draft.id} className="px-5 py-4 hover:bg-cream/50 transition-colors">
+                  <div key={draft.id} className="px-5 py-4 hover:bg-[var(--surface-hover)] transition-colors">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           <span className={`px-2 py-0.5 rounded text-xs font-medium ${
                             draft.status === 'sent'
-                              ? 'bg-forest/10 text-forest'
-                              : 'bg-gold/10 text-amber-800'
+                              ? 'bg-emerald-500/15 text-emerald-300'
+                              : 'bg-amber-500/15 text-amber-300'
                           }`}>
                             {draft.status === 'sent' ? 'Sent' : 'Draft'}
                           </span>
-                          <span className="text-xs text-navy/40 capitalize">{draft.tone_used}</span>
-                          <span className="text-xs text-navy/40">·</span>
-                          <span className="text-xs text-navy/40">{new Date(draft.created_at).toLocaleDateString('en-ZA')}</span>
+                          <span className="text-xs text-[var(--text-muted)] capitalize">{draft.tone_used}</span>
+                          <span className="text-xs text-[var(--text-dim)]">·</span>
+                          <span className="text-xs text-[var(--text-muted)]">{new Date(draft.created_at).toLocaleDateString('en-ZA')}</span>
                         </div>
-                        <p className="text-sm font-medium text-navy truncate">{draft.subject}</p>
-                        <p className="text-xs text-navy/50 truncate">To: {draft.recipient_name} ({draft.recipient_email})</p>
+                        <p className="text-sm font-medium text-[var(--text-primary)] truncate">{draft.subject}</p>
+                        <p className="text-xs text-[var(--text-muted)] truncate">To: {draft.recipient_name} ({draft.recipient_email})</p>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
                         {draft.status === 'draft' && (
                           <button
                             onClick={() => setPendingAction({ kind: 'send', id: draft.id, subject: draft.subject })}
                             disabled={sendingId === draft.id}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-forest text-cream text-xs font-medium rounded-lg hover:bg-forest/90 disabled:opacity-50 transition-colors"
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-white text-xs font-medium rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity"
+                            style={{ background: 'var(--indigo)' }}
                           >
                             <Send className="w-3.5 h-3.5" />
                             {sendingId === draft.id ? 'Sending...' : 'Send'}
@@ -391,7 +397,7 @@ export default function EmailStudioPage() {
                         )}
                         <button
                           onClick={() => setPendingAction({ kind: 'delete', id: draft.id, subject: draft.subject })}
-                          className="p-1.5 text-navy/30 hover:text-cherry transition-colors"
+                          className="p-1.5 text-[var(--text-dim)] hover:text-[var(--danger)] transition-colors"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
