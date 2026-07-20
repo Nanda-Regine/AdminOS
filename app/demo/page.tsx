@@ -93,10 +93,10 @@ function AlexAgent() {
 
   if (!active) return (
     <div>
-      <div style={{ padding: '14px 20px', borderBottom: '1px solid #1e2a45', fontSize: 13, color: '#94a3b8' }}>4 active conversations · 3 unread</div>
+      <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(255,255,255,0.10)', fontSize: 13, color: '#94a3b8' }}>4 active conversations · 3 unread</div>
       {ALEX_CONTACTS.map(c => (
-        <button key={c.name} onClick={() => openChat(c.name)} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 20px', background: 'none', border: 'none', borderBottom: '1px solid #0f172a', cursor: 'pointer', textAlign: 'left', width: '100%', transition: 'background .15s' }}
-          onMouseEnter={e => (e.currentTarget.style.background = '#0f172a')}
+        <button key={c.name} onClick={() => openChat(c.name)} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 20px', background: 'none', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.06)', cursor: 'pointer', textAlign: 'left', width: '100%', transition: 'background .15s' }}
+          onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')}
           onMouseLeave={e => (e.currentTarget.style.background = 'none')}
         >
           <div style={{ width: 42, height: 42, borderRadius: '50%', background: '#1e3a5f', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0, position: 'relative' }}>
@@ -117,7 +117,7 @@ function AlexAgent() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px', borderBottom: '1px solid #1e2a45' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px', borderBottom: '1px solid rgba(255,255,255,0.10)' }}>
         <button onClick={() => setActive(null)} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: 18, padding: 0 }}>←</button>
         <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#1e3a5f', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{active[0]}</div>
         <div><div style={{ fontWeight: 600, fontSize: 14, color: '#f1f5f9' }}>{active}</div><div style={{ fontSize: 12, color: '#06B6D4' }}>● online</div></div>
@@ -131,7 +131,7 @@ function AlexAgent() {
         {typing && <div style={{ display: 'flex', gap: 4, padding: '10px 14px', background: '#1e3a5f', borderRadius: '14px 14px 14px 4px', width: 'fit-content' }}>{[0,1,2].map(i => <span key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: '#06B6D4', animation: `tdot 1.2s ${i*.2}s infinite` }} />)}</div>}
         <div ref={endRef} />
       </div>
-      <div style={{ padding: '8px 12px', borderTop: '1px solid #1e2a45' }}>
+      <div style={{ padding: '8px 12px', borderTop: '1px solid rgba(255,255,255,0.10)' }}>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
           {ALEX_QUICKREPLIES.map(r => (
             <button key={r} onClick={() => send(r)} style={{ padding: '5px 10px', borderRadius: 20, border: '1px solid #1e3a5f', background: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: 12, transition: 'all .15s' }}
@@ -141,8 +141,8 @@ function AlexAgent() {
           ))}
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && send()} placeholder="Type a message…" style={{ flex: 1, background: '#0f172a', border: '1px solid #1e2a45', borderRadius: 24, padding: '9px 16px', color: '#f1f5f9', fontSize: 13, outline: 'none' }} />
-          <button onClick={() => send()} style={{ background: '#F97316', border: 'none', borderRadius: '50%', width: 38, height: 38, cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>→</button>
+          <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && send()} placeholder="Type a message…" style={{ flex: 1, background: 'rgba(0,0,0,0.24)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 24, padding: '9px 16px', color: '#f1f5f9', fontSize: 13, outline: 'none' }} />
+          <button onClick={() => send()} style={{ background: 'linear-gradient(135deg,#F97316,#fb923c)', border: 'none', borderRadius: '50%', width: 38, height: 38, cursor: 'pointer', fontSize: 16, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 6px 18px -6px rgba(249,115,22,0.8)' }}>→</button>
         </div>
       </div>
     </div>
@@ -175,20 +175,20 @@ function ChaseAgent() {
 
   return (
     <div style={{ paddingBottom: 16 }}>
-      <div style={{ padding: '16px 20px', borderBottom: '1px solid #1e2a45', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.10)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div><div style={{ fontSize: 13, color: '#94a3b8' }}>Outstanding balance</div><div style={{ fontSize: 26, fontWeight: 700, color: '#F97316' }}>R 71,700</div></div>
         <div style={{ textAlign: 'right' }}><div style={{ fontSize: 13, color: '#94a3b8' }}>Avg collection after AI reminder</div><div style={{ fontSize: 20, fontWeight: 700, color: '#06B6D4' }}>3.2 days</div></div>
       </div>
       {selected.length > 0 && (
-        <div style={{ margin: '12px 20px', padding: '10px 14px', background: '#1a2540', borderRadius: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ margin: '12px 20px', padding: '10px 14px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span style={{ fontSize: 13, color: '#94a3b8' }}>{selected.length} selected</span>
-          <button onClick={sendBulk} style={{ background: '#F97316', border: 'none', borderRadius: 6, padding: '7px 14px', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>Send bulk reminders</button>
+          <button onClick={sendBulk} style={{ background: 'linear-gradient(135deg,#F97316,#fb923c)', border: 'none', borderRadius: 8, padding: '7px 14px', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer', boxShadow: '0 6px 18px -8px rgba(249,115,22,0.8)' }}>Send bulk reminders</button>
         </div>
       )}
       {bulkResult && <div style={{ margin: '0 20px 12px', padding: '12px 14px', background: 'rgba(6,182,212,0.1)', border: '1px solid rgba(6,182,212,0.3)', borderRadius: 8, fontSize: 13, color: '#06B6D4', lineHeight: 1.5 }}>{bulkResult}</div>}
       <div>
         {CHASE_INVOICES.map(inv => (
-          <div key={inv.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 20px', borderBottom: '1px solid #0f172a' }}>
+          <div key={inv.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
             <input type="checkbox" checked={selected.includes(inv.id)} onChange={e => setSelected(p => e.target.checked ? [...p, inv.id] : p.filter(x => x !== inv.id))} style={{ accentColor: '#F97316', width: 16, height: 16, cursor: 'pointer', flexShrink: 0 }} />
             <div style={{ flex: 1 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
@@ -201,7 +201,7 @@ function ChaseAgent() {
               </div>
             </div>
             {inv.status === 'overdue' && (
-              <button onClick={() => sendReminder(inv)} disabled={!!sent[inv.id]} style={{ padding: '6px 12px', borderRadius: 6, border: 'none', cursor: sent[inv.id] ? 'default' : 'pointer', background: sent[inv.id] === 'sent' ? 'rgba(6,182,212,0.2)' : sent[inv.id] === 'sending' ? '#1e2a45' : '#F97316', color: sent[inv.id] === 'sent' ? '#06B6D4' : '#fff', fontSize: 12, fontWeight: 600, transition: 'all .3s', whiteSpace: 'nowrap' }}>
+              <button onClick={() => sendReminder(inv)} disabled={!!sent[inv.id]} style={{ padding: '6px 12px', borderRadius: 6, border: 'none', cursor: sent[inv.id] ? 'default' : 'pointer', background: sent[inv.id] === 'sent' ? 'rgba(6,182,212,0.2)' : sent[inv.id] === 'sending' ? 'rgba(255,255,255,0.08)' : 'linear-gradient(135deg,#F97316,#fb923c)', color: sent[inv.id] === 'sent' ? '#06B6D4' : '#fff', fontSize: 12, fontWeight: 600, transition: 'all .3s', whiteSpace: 'nowrap' }}>
                 {sent[inv.id] === 'sent' ? '✓ Sent' : sent[inv.id] === 'sending' ? '…' : 'Remind'}
               </button>
             )}
@@ -239,12 +239,12 @@ function CareAgent() {
 
   return (
     <div>
-      <div style={{ padding: '16px 20px', borderBottom: '1px solid #1e2a45', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.10)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div><div style={{ fontSize: 13, color: '#94a3b8' }}>Team wellness score</div><div style={{ fontSize: 26, fontWeight: 700, color: '#22c55e' }}>71.75 <span style={{ fontSize: 14, color: '#64748b', fontWeight: 400 }}>/ 100</span></div></div>
         <div style={{ textAlign: 'right' }}><div style={{ fontSize: 12, color: '#ef4444', fontWeight: 600 }}>2 staff need support</div><div style={{ fontSize: 12, color: '#64748b' }}>Action recommended</div></div>
       </div>
       {CARE_STAFF.map(s => (
-        <div key={s.name} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 20px', borderBottom: '1px solid #0f172a', background: s.flag ? 'rgba(239,68,68,0.04)' : 'none' }}>
+        <div key={s.name} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)', background: s.flag ? 'rgba(239,68,68,0.04)' : 'none' }}>
           <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#1e3a5f', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>{s.name[0]}</div>
           <div style={{ flex: 1 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -312,9 +312,9 @@ function DocAgent() {
           </div>
           <div style={{ marginTop: 16, display: 'flex', gap: 8 }}>
             {['NDA', 'Lease', 'Invoice', 'Will'].map(t => (
-              <div key={t} onClick={scan} style={{ padding: '8px 14px', border: '1px solid #1e2a45', borderRadius: 8, fontSize: 12, color: '#64748b', cursor: 'pointer', transition: 'all .15s' }}
+              <div key={t} onClick={scan} style={{ padding: '8px 14px', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 8, fontSize: 12, color: '#64748b', cursor: 'pointer', transition: 'all .15s' }}
                 onMouseEnter={e => { e.currentTarget.style.borderColor = '#a78bfa'; e.currentTarget.style.color = '#a78bfa' }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = '#1e2a45'; e.currentTarget.style.color = '#64748b' }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)'; e.currentTarget.style.color = '#64748b' }}
               >{t}</div>
             ))}
           </div>
@@ -324,7 +324,7 @@ function DocAgent() {
         <div style={{ textAlign: 'center', padding: '40px 20px' }}>
           <div style={{ fontSize: 36, marginBottom: 16 }}>🔍</div>
           <div style={{ fontWeight: 600, color: '#f1f5f9', marginBottom: 20 }}>Doc AI is reading your document…</div>
-          <div style={{ background: '#0f172a', borderRadius: 99, height: 8, overflow: 'hidden', margin: '0 auto', maxWidth: 300 }}>
+          <div style={{ background: 'rgba(0,0,0,0.24)', borderRadius: 99, height: 8, overflow: 'hidden', margin: '0 auto', maxWidth: 300 }}>
             <div style={{ height: '100%', background: 'linear-gradient(90deg,#a78bfa,#06B6D4)', borderRadius: 99, width: `${progress}%`, transition: 'width .08s' }} />
           </div>
           <div style={{ marginTop: 12, fontSize: 13, color: '#64748b' }}>Extracting clauses, parties, dates, risk flags…</div>
@@ -388,9 +388,9 @@ function InsightAgent() {
 
   return (
     <div style={{ paddingBottom: 16 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, borderBottom: '1px solid #1e2a45' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, borderBottom: '1px solid rgba(255,255,255,0.10)' }}>
         {INSIGHT_METRICS.map(m => (
-          <div key={m.label} style={{ padding: '14px 20px', borderRight: '1px solid #1e2a45', borderBottom: '1px solid #0f172a' }}>
+          <div key={m.label} style={{ padding: '14px 20px', borderRight: '1px solid rgba(255,255,255,0.08)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
             <div style={{ fontSize: 12, color: '#64748b', marginBottom: 4 }}>{m.label}</div>
             <div style={{ fontSize: 18, fontWeight: 700, color: '#f1f5f9' }}>{m.value}</div>
             <div style={{ fontSize: 12, color: m.up ? '#22c55e' : '#ef4444', marginTop: 2 }}>{m.change}</div>
@@ -410,7 +410,7 @@ function InsightAgent() {
         <button onClick={generate} disabled={loading} style={{ background: 'linear-gradient(135deg,#F97316,#ea580c)', border: 'none', borderRadius: 8, padding: '11px 20px', color: '#fff', fontWeight: 700, fontSize: 14, cursor: loading ? 'wait' : 'pointer', width: '100%', opacity: loading ? .7 : 1 }}>
           {loading ? '🧠 Generating brief…' : '🧠 Generate daily AI brief'}
         </button>
-        {brief && <div style={{ marginTop: 14, padding: '14px 16px', background: '#0f172a', border: '1px solid #1e2a45', borderRadius: 10, fontSize: 13, color: '#cbd5e1', lineHeight: 1.7, whiteSpace: 'pre-line' }}>{brief}</div>}
+        {brief && <div style={{ marginTop: 14, padding: '14px 16px', background: 'rgba(0,0,0,0.24)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 10, fontSize: 13, color: '#cbd5e1', lineHeight: 1.7, whiteSpace: 'pre-line' }}>{brief}</div>}
       </div>
     </div>
   )
@@ -454,7 +454,7 @@ function PenAgent() {
         <div style={{ fontSize: 12, color: '#64748b', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 }}>Content type</div>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           {PEN_TEMPLATES.map(t => (
-            <button key={t.id} onClick={() => setTemplate(t.id)} style={{ padding: '7px 13px', borderRadius: 20, border: 'none', cursor: 'pointer', fontSize: 12, background: template === t.id ? '#F97316' : '#1e2a45', color: template === t.id ? '#fff' : '#94a3b8', transition: 'all .2s' }}>{t.label}</button>
+            <button key={t.id} onClick={() => setTemplate(t.id)} style={{ padding: '7px 13px', borderRadius: 20, border: '1px solid ' + (template === t.id ? 'transparent' : 'rgba(255,255,255,0.10)'), cursor: 'pointer', fontSize: 12, background: template === t.id ? 'linear-gradient(135deg,#F97316,#fb923c)' : 'rgba(255,255,255,0.05)', color: template === t.id ? '#fff' : '#94a3b8', boxShadow: template === t.id ? '0 6px 16px -8px rgba(249,115,22,0.8)' : 'none', transition: 'all .2s' }}>{t.label}</button>
           ))}
         </div>
       </div>
@@ -462,7 +462,7 @@ function PenAgent() {
         <div style={{ fontSize: 12, color: '#64748b', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 }}>Topic / reference (optional)</div>
         <input value={topic} onChange={e => setTopic(e.target.value)} onKeyDown={e => e.key === 'Enter' && generate()}
           placeholder={template === 'invoice' ? 'Invoice number…' : template === 'proposal' ? 'Client name…' : 'Topic or context…'}
-          style={{ width: '100%', background: '#0f172a', border: '1px solid #1e2a45', borderRadius: 8, padding: '10px 14px', color: '#f1f5f9', fontSize: 13, outline: 'none', boxSizing: 'border-box' }}
+          style={{ width: '100%', background: 'rgba(0,0,0,0.24)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 8, padding: '10px 14px', color: '#f1f5f9', fontSize: 13, outline: 'none', boxSizing: 'border-box' }}
         />
       </div>
       <button onClick={generate} disabled={loading} style={{ background: 'linear-gradient(135deg,#F97316,#ea580c)', border: 'none', borderRadius: 8, padding: 11, color: '#fff', fontWeight: 700, fontSize: 14, cursor: loading ? 'wait' : 'pointer', opacity: loading ? .7 : 1 }}>
@@ -470,7 +470,7 @@ function PenAgent() {
       </button>
       {output && (
         <div style={{ position: 'relative' }}>
-          <pre style={{ background: '#0f172a', border: '1px solid #1e2a45', borderRadius: 10, padding: 14, fontSize: 13, color: '#cbd5e1', lineHeight: 1.7, whiteSpace: 'pre-wrap', wordBreak: 'break-word', margin: 0, fontFamily: 'inherit' }}>{output}</pre>
+          <pre style={{ background: 'rgba(0,0,0,0.24)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 10, padding: 14, fontSize: 13, color: '#cbd5e1', lineHeight: 1.7, whiteSpace: 'pre-wrap', wordBreak: 'break-word', margin: 0, fontFamily: 'inherit' }}>{output}</pre>
           <button onClick={copy} style={{ position: 'absolute', top: 10, right: 10, background: copied ? '#22c55e' : '#1e3a5f', border: 'none', borderRadius: 6, padding: '5px 10px', fontSize: 12, color: '#fff', cursor: 'pointer', transition: 'background .3s' }}>{copied ? '✓ Copied' : 'Copy'}</button>
         </div>
       )}
@@ -542,7 +542,7 @@ function LangaAgent() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Frameworks strip */}
-      <div style={{ padding: '10px 16px', borderBottom: '1px solid #1e2a45', display: 'flex', gap: 8, overflowX: 'auto' }}>
+      <div style={{ padding: '10px 16px', borderBottom: '1px solid rgba(255,255,255,0.10)', display: 'flex', gap: 8, overflowX: 'auto' }}>
         {LANGA_FRAMEWORKS.map(f => (
           <button key={f.id} onClick={() => setActiveFramework(activeFramework === f.id ? null : f.id)} style={{ flexShrink: 0, padding: '5px 12px', borderRadius: 20, border: `1px solid ${activeFramework === f.id ? '#fbbf24' : '#1e3a5f'}`, background: activeFramework === f.id ? 'rgba(251,191,36,.1)' : 'none', color: activeFramework === f.id ? '#fbbf24' : '#64748b', fontSize: 12, cursor: 'pointer', transition: 'all .2s', whiteSpace: 'nowrap' }}>
             {f.label}
@@ -557,7 +557,7 @@ function LangaAgent() {
             <div><div style={{ fontWeight: 700, color: '#f1f5f9', fontSize: 14 }}>{fw.label}</div><div style={{ fontSize: 12, color: '#64748b' }}>{fw.level} level · {fw.modules} modules</div></div>
             <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, background: fw.completed === fw.modules ? 'rgba(34,197,94,.15)' : 'rgba(251,191,36,.15)', color: fw.completed === fw.modules ? '#22c55e' : '#fbbf24', fontWeight: 700 }}>{fw.completed === fw.modules ? '✓ Complete' : `${fw.completed}/${fw.modules} done`}</span>
           </div>
-          <div style={{ background: '#0f172a', borderRadius: 99, height: 6, overflow: 'hidden' }}>
+          <div style={{ background: 'rgba(0,0,0,0.24)', borderRadius: 99, height: 6, overflow: 'hidden' }}>
             <div style={{ height: '100%', background: 'linear-gradient(90deg,#fbbf24,#f59e0b)', borderRadius: 99, width: `${(fw.completed / fw.modules) * 100}%`, transition: 'width .5s' }} />
           </div>
           <button onClick={() => send(`Tell me more about the ${fw.label} framework`)} style={{ marginTop: 10, background: 'none', border: '1px solid rgba(251,191,36,0.3)', borderRadius: 8, padding: '6px 14px', color: '#fbbf24', fontSize: 12, cursor: 'pointer' }}>
@@ -597,10 +597,10 @@ function LangaAgent() {
         </div>
       )}
 
-      <div style={{ padding: '8px 12px', borderTop: '1px solid #1e2a45' }}>
+      <div style={{ padding: '8px 12px', borderTop: '1px solid rgba(255,255,255,0.10)' }}>
         <div style={{ display: 'flex', gap: 8 }}>
-          <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && send()} placeholder="Ask Langa anything about your business…" style={{ flex: 1, background: '#0f172a', border: '1px solid #1e2a45', borderRadius: 24, padding: '9px 16px', color: '#f1f5f9', fontSize: 13, outline: 'none' }} />
-          <button onClick={() => send()} style={{ background: '#fbbf24', border: 'none', borderRadius: '50%', width: 38, height: 38, cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>→</button>
+          <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && send()} placeholder="Ask Langa anything about your business…" style={{ flex: 1, background: 'rgba(0,0,0,0.24)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 24, padding: '9px 16px', color: '#f1f5f9', fontSize: 13, outline: 'none' }} />
+          <button onClick={() => send()} style={{ background: 'linear-gradient(135deg,#fbbf24,#f59e0b)', border: 'none', borderRadius: '50%', width: 38, height: 38, cursor: 'pointer', fontSize: 16, color: '#1a1206', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 6px 18px -6px rgba(251,191,36,0.8)' }}>→</button>
         </div>
       </div>
     </div>
@@ -669,24 +669,53 @@ export default function DemoPage() {
     <div className="demo-page">
       <style>{`
         * { box-sizing: border-box; }
-        body { background: #050B1A; margin: 0; font-family: 'Geist', system-ui, sans-serif; }
+        body { background: #05070f; margin: 0; font-family: 'Geist', system-ui, sans-serif; }
         @keyframes tdot { 0%,80%,100%{transform:scale(0.6);opacity:0.4} 40%{transform:scale(1);opacity:1} }
         @keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
         @keyframes slideIn { from{opacity:0;transform:translateX(-10px)} to{opacity:1;transform:translateX(0)} }
         @keyframes pulse2 { 0%,100%{opacity:1} 50%{opacity:.4} }
-        ::-webkit-scrollbar { width: 4px; height: 4px; }
-        ::-webkit-scrollbar-track { background: #0f172a; }
-        ::-webkit-scrollbar-thumb { background: #1e3a5f; border-radius: 2px; }
-        .agent-btn:hover { background: #0f172a !important; }
-        .agent-btn.active { background: rgba(249,115,22,0.12) !important; }
+        @keyframes orbDrift1 { 0%{transform:translate(0,0) scale(1)} 50%{transform:translate(7vw,6vh) scale(1.18)} 100%{transform:translate(0,0) scale(1)} }
+        @keyframes orbDrift2 { 0%{transform:translate(0,0) scale(1.1)} 50%{transform:translate(-8vw,-5vh) scale(0.92)} 100%{transform:translate(0,0) scale(1.1)} }
+        @keyframes orbDrift3 { 0%{transform:translate(-50%,-50%) scale(1)} 50%{transform:translate(-42%,-58%) scale(1.2)} 100%{transform:translate(-50%,-50%) scale(1)} }
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.22); }
         .notif-item { animation: slideIn .3s ease both; }
         .tour-hint { animation: fadeUp .4s ease both; }
-        .demo-page { height: 100dvh; overflow: hidden; display: flex; flex-direction: column; }
+        .demo-page {
+          position: relative; isolation: isolate;
+          height: 100dvh; overflow: hidden; display: flex; flex-direction: column;
+          background:
+            radial-gradient(1200px 820px at 12% -12%, rgba(249,115,22,0.12), transparent 60%),
+            radial-gradient(1050px 720px at 104% 112%, rgba(6,182,212,0.13), transparent 60%),
+            linear-gradient(158deg, #080d20 0%, #0a1026 46%, #060a18 100%);
+        }
+        .demo-page::before {
+          content: ''; position: absolute; z-index: -1; pointer-events: none;
+          width: 54vw; height: 54vw; left: -14vw; top: -18vh; border-radius: 50%;
+          background: radial-gradient(circle, rgba(249,115,22,0.16), transparent 70%);
+          filter: blur(64px); animation: orbDrift1 24s ease-in-out infinite;
+        }
+        .demo-page::after {
+          content: ''; position: absolute; z-index: -1; pointer-events: none;
+          width: 50vw; height: 50vw; right: -16vw; bottom: -20vh; border-radius: 50%;
+          background: radial-gradient(circle, rgba(6,182,212,0.16), transparent 70%);
+          filter: blur(64px); animation: orbDrift2 29s ease-in-out infinite;
+        }
+        .demo-orb3 {
+          position: absolute; z-index: -1; pointer-events: none;
+          width: 36vw; height: 36vw; left: 52%; top: 40%; border-radius: 50%;
+          background: radial-gradient(circle, rgba(251,191,36,0.10), transparent 70%);
+          filter: blur(72px); animation: orbDrift3 34s ease-in-out infinite;
+        }
+        .demo-agent-btn { transition: transform .16s ease, background .16s ease, box-shadow .2s ease; }
+        .demo-agent-btn:hover { transform: translateY(-1px); }
         .demo-shell { flex: 1; min-height: 0; }
         .demo-content-area { min-height: 0; }
         @media (max-width: 700px) {
           .demo-page { height: 100dvh; overflow: hidden; display: flex; flex-direction: column; }
-          .demo-shell { flex-direction: column-reverse !important; height: auto !important; flex: 1; min-height: 0; overflow: hidden; }
+          .demo-shell { flex-direction: column-reverse !important; height: auto !important; flex: 1; min-height: 0; overflow: hidden; padding: 8px !important; gap: 8px !important; }
           .demo-sidebar {
             flex-direction: row !important;
             width: 100% !important;
@@ -694,8 +723,8 @@ export default function DemoPage() {
             flex-shrink: 0;
             overflow-x: auto;
             overflow-y: hidden;
-            border-right: none !important;
-            border-top: 1px solid #1e2a45 !important;
+            border: 1px solid rgba(255,255,255,0.08) !important;
+            border-radius: 16px !important;
             padding: 6px 8px !important;
             gap: 2px !important;
             -webkit-overflow-scrolling: touch;
@@ -723,23 +752,26 @@ export default function DemoPage() {
         }
       `}</style>
 
+      {/* Aurora orb (2 more via ::before / ::after) */}
+      <div className="demo-orb3" aria-hidden />
+
       {/* ── Top banner ─────────────────────────────── */}
-      <div className="demo-top-banner" style={{ background: 'linear-gradient(90deg,rgba(249,115,22,.15),rgba(6,182,212,.1))', borderBottom: '1px solid rgba(249,115,22,.3)', padding: '10px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, flexShrink: 0 }}>
+      <div className="demo-top-banner" style={{ background: 'rgba(255,255,255,0.05)', WebkitBackdropFilter: 'blur(20px)', backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,0.08)', padding: '10px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, flexShrink: 0, position: 'relative', zIndex: 2 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{ background: '#F97316', color: '#fff', fontSize: 11, fontWeight: 800, padding: '3px 10px', borderRadius: 20, letterSpacing: 1.5 }}>DEMO MODE</span>
+          <span style={{ background: 'linear-gradient(135deg,#F97316,#06B6D4)', color: '#fff', fontSize: 11, fontWeight: 800, padding: '3px 10px', borderRadius: 20, letterSpacing: 1.5, boxShadow: '0 2px 14px rgba(249,115,22,0.45)' }}>DEMO MODE</span>
           <span className="demo-banner-text" style={{ color: '#94a3b8', fontSize: 13 }}>Viewing <strong style={{ color: '#f1f5f9' }}>{TENANT}</strong> — fake data, no real API calls</span>
         </div>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           <button onClick={tourActive ? stopTour : startTour} className="tour-controls" style={{ background: tourActive ? 'rgba(6,182,212,.2)' : 'rgba(255,255,255,.08)', border: `1px solid ${tourActive ? '#06B6D4' : 'rgba(255,255,255,.15)'}`, borderRadius: 8, padding: '7px 14px', color: tourActive ? '#06B6D4' : '#f1f5f9', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
             {tourActive ? '⏹ Stop tour' : '▶ Tour'}
           </button>
-          <Link href="/#pricing" className="demo-top-banner-cta" style={{ background: '#F97316', color: '#fff', textDecoration: 'none', padding: '8px 18px', borderRadius: 8, fontWeight: 700, fontSize: 13, whiteSpace: 'nowrap' }}>Get AdminOS →</Link>
+          <Link href="/#pricing" className="demo-top-banner-cta" style={{ background: 'linear-gradient(135deg,#F97316,#fb923c)', color: '#fff', textDecoration: 'none', padding: '8px 18px', borderRadius: 10, fontWeight: 700, fontSize: 13, whiteSpace: 'nowrap', boxShadow: '0 6px 20px -6px rgba(249,115,22,0.7)' }}>Get AdminOS →</Link>
         </div>
       </div>
 
       {/* ── Tour hint banner ───────────────────────── */}
       {hint && (
-        <div className="tour-hint" style={{ background: 'rgba(6,182,212,0.1)', borderBottom: '1px solid rgba(6,182,212,.25)', padding: '10px 24px', display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div className="tour-hint" style={{ background: 'rgba(6,182,212,0.12)', WebkitBackdropFilter: 'blur(16px)', backdropFilter: 'blur(16px)', borderBottom: '1px solid rgba(6,182,212,.25)', padding: '10px 24px', display: 'flex', alignItems: 'center', gap: 12, position: 'relative', zIndex: 2 }}>
           <div style={{ display: 'flex', gap: 4 }}>
             {TOUR_STEPS.map((_, i) => (
               <div key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: i === tourStep ? '#06B6D4' : '#1e3a5f', transition: 'background .3s' }} />
@@ -750,9 +782,9 @@ export default function DemoPage() {
       )}
 
       {/* ── Header ─────────────────────────────────── */}
-      <div className="demo-header" style={{ padding: '16px 24px', borderBottom: '1px solid #1e2a45', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#0A0F2C', flexShrink: 0 }}>
+      <div className="demo-header" style={{ padding: '16px 24px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(255,255,255,0.04)', WebkitBackdropFilter: 'blur(20px)', backdropFilter: 'blur(20px)', flexShrink: 0, position: 'relative', zIndex: 2 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <div style={{ width: 36, height: 36, borderRadius: 8, background: 'linear-gradient(135deg,#F97316,#ea580c)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: 16, color: '#fff' }}>A</div>
+          <div style={{ width: 38, height: 38, borderRadius: 11, background: 'linear-gradient(135deg,#F97316,#06B6D4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: 16, color: '#fff', boxShadow: '0 6px 20px -4px rgba(249,115,22,0.6), inset 0 1px 0 rgba(255,255,255,0.25)' }}>A</div>
           <div>
             <div style={{ fontWeight: 700, color: '#f1f5f9', fontSize: 15 }}>{TENANT}</div>
             <div style={{ fontSize: 12, color: '#64748b' }}>AdminOS · {DATE}</div>
@@ -771,20 +803,21 @@ export default function DemoPage() {
       </div>
 
       {/* ── Shell ──────────────────────────────────── */}
-      <div className="demo-shell" style={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+      <div className="demo-shell" style={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden', padding: 16, gap: 16, position: 'relative', zIndex: 1 }}>
 
         {/* Sidebar */}
-        <div className="demo-sidebar" style={{ width: 220, flexShrink: 0, background: '#0A0F2C', borderRight: '1px solid #1e2a45', display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
+        <div className="demo-sidebar" style={{ width: 220, flexShrink: 0, background: 'rgba(255,255,255,0.04)', WebkitBackdropFilter: 'blur(20px)', backdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 18, boxShadow: '0 12px 40px -12px rgba(0,0,0,0.6)', display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
           <div className="demo-sidebar-label" style={{ fontSize: 11, color: '#475569', textTransform: 'uppercase', letterSpacing: 1.2, padding: '14px 14px 6px', fontWeight: 600 }}>AI Agents</div>
 
           <div className="agents-container" style={{ padding: '6px 8px', display: 'flex', flexDirection: 'column', gap: 2 }}>
             {AGENTS.map(a => (
               <button key={a.id} onClick={() => { setActiveAgent(a.id); if (tourActive) stopTour() }}
                 className="demo-agent-btn"
-                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 10px', borderRadius: 8, border: 'none', cursor: 'pointer', textAlign: 'left', background: activeAgent === a.id ? 'rgba(249,115,22,0.12)' : 'none', transition: 'background .15s', position: 'relative' }}
-                onMouseEnter={e => { if (activeAgent !== a.id) e.currentTarget.style.background = '#0f172a' }}
-                onMouseLeave={e => { if (activeAgent !== a.id) e.currentTarget.style.background = 'none' }}
+                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 12, border: '1px solid ' + (activeAgent === a.id ? 'rgba(255,255,255,0.10)' : 'transparent'), cursor: 'pointer', textAlign: 'left', background: activeAgent === a.id ? `linear-gradient(90deg, ${a.color}26, rgba(255,255,255,0.02))` : 'transparent', boxShadow: activeAgent === a.id ? `0 8px 24px -12px ${a.color}, inset 0 1px 0 rgba(255,255,255,0.05)` : 'none', position: 'relative' }}
+                onMouseEnter={e => { if (activeAgent !== a.id) e.currentTarget.style.background = 'rgba(255,255,255,0.05)' }}
+                onMouseLeave={e => { if (activeAgent !== a.id) e.currentTarget.style.background = 'transparent' }}
               >
+                {activeAgent === a.id && <span style={{ position: 'absolute', left: 0, top: 9, bottom: 9, width: 3, borderRadius: '0 3px 3px 0', background: a.color, boxShadow: `0 0 10px ${a.color}` }} />}
                 <span className="demo-agent-icon" style={{ fontSize: 18, flexShrink: 0 }}>{a.icon}</span>
                 <div style={{ minWidth: 0 }}>
                   <div className="demo-agent-name" style={{ fontWeight: 600, fontSize: 14, color: activeAgent === a.id ? a.color : '#f1f5f9', transition: 'color .15s' }}>{a.label}</div>
@@ -796,12 +829,12 @@ export default function DemoPage() {
           </div>
 
           {/* Live notifications */}
-          <div className="demo-notifs" style={{ margin: '8px 10px 0', borderTop: '1px solid #1e2a45', paddingTop: 10 }}>
+          <div className="demo-notifs" style={{ margin: '8px 10px 0', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 10 }}>
             <div style={{ fontSize: 11, color: '#475569', textTransform: 'uppercase', letterSpacing: 1, fontWeight: 600, marginBottom: 8, padding: '0 4px' }}>Live activity</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               {notifs.length === 0 && <div style={{ fontSize: 12, color: '#334155', padding: '4px', fontStyle: 'italic' }}>Agents standing by…</div>}
               {notifs.map((n, i) => (
-                <div key={i} className="notif-item" style={{ padding: '6px 8px', background: '#0f172a', borderRadius: 6, borderLeft: `2px solid ${n.color}`, opacity: 1 - i * 0.15 }}>
+                <div key={i} className="notif-item" style={{ padding: '6px 8px', background: 'rgba(255,255,255,0.04)', borderRadius: 8, borderLeft: `2px solid ${n.color}`, boxShadow: `0 0 12px -6px ${n.color}`, opacity: 1 - i * 0.15 }}>
                   <div style={{ fontSize: 11, color: n.color, fontWeight: 600, marginBottom: 1 }}>{n.icon} {n.agent} · {n.time}</div>
                   <div style={{ fontSize: 11, color: '#64748b', lineHeight: 1.3 }}>{n.text}</div>
                 </div>
@@ -810,16 +843,16 @@ export default function DemoPage() {
           </div>
 
           {/* CTA */}
-          <div className="demo-sidebar-footer" style={{ marginTop: 'auto', padding: '16px 10px', borderTop: '1px solid #1e2a45' }}>
-            <Link href="/signup" style={{ display: 'block', background: '#F97316', borderRadius: 8, padding: '10px 12px', color: '#fff', textDecoration: 'none', fontWeight: 700, fontSize: 13, textAlign: 'center' }}>Start free trial →</Link>
-            <Link href="/" style={{ display: 'block', marginTop: 8, color: '#475569', textDecoration: 'none', fontSize: 12, textAlign: 'center' }}>← Back to site</Link>
+          <div className="demo-sidebar-footer" style={{ marginTop: 'auto', padding: '16px 10px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+            <Link href="/signup" style={{ display: 'block', background: 'linear-gradient(135deg,#F97316,#fb923c)', borderRadius: 10, padding: '10px 12px', color: '#fff', textDecoration: 'none', fontWeight: 700, fontSize: 13, textAlign: 'center', boxShadow: '0 8px 22px -8px rgba(249,115,22,0.75)' }}>Start free trial →</Link>
+            <Link href="/" style={{ display: 'block', marginTop: 8, color: '#64748b', textDecoration: 'none', fontSize: 12, textAlign: 'center' }}>← Back to site</Link>
           </div>
         </div>
 
         {/* Agent panel */}
-        <div className="demo-content-area" style={{ flex: 1, overflowY: 'auto', background: '#050B1A', display: 'flex', flexDirection: 'column' }}>
+        <div className="demo-content-area" style={{ flex: 1, overflowY: 'auto', background: 'rgba(255,255,255,0.035)', WebkitBackdropFilter: 'blur(22px)', backdropFilter: 'blur(22px)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 18, boxShadow: '0 12px 40px -12px rgba(0,0,0,0.6)', display: 'flex', flexDirection: 'column' }}>
           {/* Panel header */}
-          <div style={{ padding: '14px 20px', borderBottom: '1px solid #1e2a45', background: '#0A0F2C', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+          <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
             <span style={{ fontSize: 22 }}>{activeAgentMeta.icon}</span>
             <div>
               <div style={{ fontWeight: 700, color: '#f1f5f9', fontSize: 15 }}>{activeAgentMeta.label}</div>
@@ -838,7 +871,7 @@ export default function DemoPage() {
       </div>
 
       {/* Bottom CTA */}
-      <div className="demo-bottom-cta" style={{ background: '#0A0F2C', borderTop: '1px solid #1e2a45', padding: '16px 24px', textAlign: 'center', flexShrink: 0 }}>
+      <div className="demo-bottom-cta" style={{ background: 'rgba(255,255,255,0.05)', WebkitBackdropFilter: 'blur(20px)', backdropFilter: 'blur(20px)', borderTop: '1px solid rgba(255,255,255,0.08)', padding: '16px 24px', textAlign: 'center', flexShrink: 0, position: 'relative', zIndex: 2 }}>
         <span style={{ color: '#64748b', fontSize: 14 }}>
           Ready for the real thing?{' '}
           <Link href="/signup" style={{ color: '#F97316', fontWeight: 700, textDecoration: 'none' }}>
