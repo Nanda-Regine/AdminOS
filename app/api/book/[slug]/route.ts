@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { checkRateLimit } from '@/lib/security/rateLimit'
 import { z } from 'zod'
 
 const bookingSchema = z.object({
@@ -47,6 +48,11 @@ export async function GET(_request: Request, { params }: { params: Promise<{ slu
 
 export async function POST(request: Request, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
+
+  // Public booking form — rate-limit per page + caller IP to stop booking spam.
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
+  const { success } = await checkRateLimit('api', `book:${slug}:${ip}`)
+  if (!success) return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
 
   // Resolve tenant by slug
   const { data: tenant, error: tenantError } = await supabaseAdmin
