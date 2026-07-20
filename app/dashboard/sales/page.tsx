@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { formatZAR } from '@/lib/format'
 import { buildSalesIntel } from '@/lib/sales/signal'
+import { getSetupState } from '@/lib/tenant/setup-state'
 import { publishSignal } from '@/lib/signals/bus'
 import {
   MessageSquare, ArrowRight, Users, TrendingUp, Snowflake,
@@ -18,13 +19,15 @@ export default async function SalesCockpit() {
   if (!user) redirect('/login')
   const tenantId = user.app_metadata?.tenant_id as string
 
-  const intel = await buildSalesIntel(tenantId)
+  const [intel, setup] = await Promise.all([buildSalesIntel(tenantId), getSetupState(tenantId)])
   void publishSignal('sales', tenantId, intel.signal)
   const { attentionList, staleContacts, needAttention, openConversations, totalContacts } = intel
 
   // ── The Closer leads ───────────────────────────────────────────────────────
   let lead: { line: string; action: string; href: string }
-  if (needAttention > 0) {
+  if (setup.contacts === 0) {
+    lead = { line: `Your customer list is empty — add your first contact, or connect WhatsApp so conversations land here automatically.`, action: 'Add a contact', href: '/dashboard/contacts?new=1' }
+  } else if (needAttention > 0) {
     lead = { line: `${needAttention} customer${needAttention > 1 ? 's are' : ' is'} unhappy or urgent right now — respond first. Churn happens fastest here, and a fast reply saves the relationship.`, action: 'Open the inbox', href: '/dashboard/inbox' }
   } else if (staleContacts.length > 0) {
     lead = { line: `${staleContacts.length} good contact${staleContacts.length > 1 ? 's have' : ' has'} gone quiet for 30+ days — leads go cold fast. A message or a sequence brings them back.`, action: 'Re-engage them', href: '/dashboard/reach' }

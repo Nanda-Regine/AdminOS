@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { formatZAR } from '@/lib/format'
 import { buildGovernanceIntel } from '@/lib/governance/signal'
+import { getSetupState } from '@/lib/tenant/setup-state'
 import { publishSignal } from '@/lib/signals/bus'
 import {
   ShieldCheck, ArrowRight, HeartPulse, Gauge, FileSignature,
@@ -18,13 +19,15 @@ export default async function GovernanceCockpit() {
   if (!user) redirect('/login')
   const tenantId = user.app_metadata?.tenant_id as string
 
-  const intel = await buildGovernanceIntel(tenantId)
+  const [intel, setup] = await Promise.all([buildGovernanceIntel(tenantId), getSetupState(tenantId)])
   void publishSignal('governance', tenantId, intel.signal)
   const { deadlines, contractsExpiring, contractsAwaiting, healthScore, valuation } = intel
   const complianceDue = intel.signal.complianceDue
 
   let lead: { line: string; action: string; href: string }
-  if (complianceDue > 0) {
+  if (setup.isNew) {
+    lead = { line: `Governance starts once you're set up — add your team, contacts and contracts, and AdminOS tracks compliance deadlines and your business health for you.`, action: 'Start setup', href: '/dashboard/getting-started' }
+  } else if (complianceDue > 0) {
     const soonest = deadlines[0]
     lead = { line: `${complianceDue} compliance deadline${complianceDue > 1 ? 's are' : ' is'} within two weeks${soonest ? ` — ${soonest.title} is next` : ''}. Missing these carries penalties.`, action: 'Open compliance', href: '/dashboard/settings/compliance' }
   } else if (contractsExpiring > 0) {

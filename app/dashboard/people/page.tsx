@@ -3,6 +3,7 @@ import { TopBar } from '@/components/dashboard/TopBar'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { buildPeopleIntel } from '@/lib/people/signal'
+import { getSetupState } from '@/lib/tenant/setup-state'
 import { publishSignal } from '@/lib/signals/bus'
 import {
   Users, ArrowRight, CalendarCheck, Wallet, HeartPulse, Scale,
@@ -17,13 +18,15 @@ export default async function PeopleCockpit() {
   if (!user) redirect('/login')
   const tenantId = user.app_metadata?.tenant_id as string
 
-  const intel = await buildPeopleIntel(tenantId)
+  const [intel, setup] = await Promise.all([buildPeopleIntel(tenantId), getSetupState(tenantId)])
   void publishSignal('people', tenantId, intel.signal)
   const { approvals, wellnessAvg, lowWellness, openIr, activeStaff, pendingLeave, pendingExpenses } = intel
   const totalApprovals = pendingLeave + pendingExpenses
 
   let lead: { line: string; action: string; href: string }
-  if (openIr > 0) {
+  if (setup.staff === 0) {
+    lead = { line: `Add your team to run payroll, leave and performance reviews in one place — start with your first staff member.`, action: 'Add a staff member', href: '/dashboard/staff?new=1' }
+  } else if (openIr > 0) {
     lead = { line: `${openIr} disciplinary record${openIr > 1 ? 's are' : ' is'} awaiting acknowledgement — close the loop to stay CCMA-defensible.`, action: 'Open IR log', href: '/dashboard/ir-log' }
   } else if (totalApprovals > 0) {
     lead = { line: `${totalApprovals} approval${totalApprovals > 1 ? 's are' : ' is'} waiting — ${pendingLeave} leave, ${pendingExpenses} expense. Clearing them keeps the team moving.`, action: 'Clear approvals', href: pendingLeave >= pendingExpenses ? '/dashboard/team' : '/dashboard/expenses' }

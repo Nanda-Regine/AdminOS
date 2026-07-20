@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { formatZAR } from '@/lib/format'
 import { buildMoneyIntel } from '@/lib/money/signal'
+import { getSetupState } from '@/lib/tenant/setup-state'
 import { publishSignal } from '@/lib/signals/bus'
 import { SendRemindersButton } from '@/components/dashboard/SendRemindersButton'
 import {
@@ -23,13 +24,15 @@ export default async function CashCockpit() {
   if (!user) redirect('/login')
   const tenantId = user.app_metadata?.tenant_id as string
 
-  const intel = await buildMoneyIntel(tenantId)
+  const [intel, setup] = await Promise.all([buildMoneyIntel(tenantId), getSetupState(tenantId)])
   void publishSignal('money', tenantId, intel.signal)
   const { signal: s, aging, overdue } = intel
 
   // ── The Bookkeeper leads (deterministic, pre-briefed) ──────────────────────
   let lead: { line: string; action: string; href: string; remind?: boolean }
-  if (s.arStuck > 0) {
+  if (setup.invoices === 0) {
+    lead = { line: `Let's get the money moving — raise your first invoice and AdminOS tracks who owes you and chases overdue payers for you.`, action: 'Create your first invoice', href: '/dashboard/invoices?new=1' }
+  } else if (s.arStuck > 0) {
     lead = { line: `You're owed ${formatZAR(s.arTotal)}, and ${formatZAR(s.arStuck)} of it is 60+ days overdue — cash you've earned but haven't collected. Chase the oldest first.`, action: 'Review recovery queue', href: '/dashboard/invoices' }
   } else if (s.arOverdue > 0) {
     lead = { line: `You're owed ${formatZAR(s.arTotal)}, with ${formatZAR(s.arOverdue)} overdue. A reminder today is the cheapest way to bring it in.`, action: 'Send reminders', href: '/dashboard/invoices', remind: true }

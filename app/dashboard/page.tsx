@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { formatZAR } from '@/lib/format'
 import { publishSignal, financeMode } from '@/lib/signals/bus'
 import { getDailyBrief } from '@/lib/signals/brief'
+import { getSetupState } from '@/lib/tenant/setup-state'
 import { BriefCard } from './BriefCard'
 import {
   ArrowRight, AlertTriangle, CheckCircle2, Sparkles, Wallet, Users, Package,
@@ -98,7 +99,7 @@ export default async function CommandCenter() {
   // ── PUBLISH SIGNALS to the nervous system (Law 2: computed once, read everywhere)
   const arOverdueSig = invoices.filter(i => (i.days_overdue || 0) > 0).reduce((s, i) => s + outstanding(i), 0)
   const mode = financeMode({ netPosition, runwayMonths, arStuck })
-  const brief = await getDailyBrief(tenantId)
+  const [brief, setup] = await Promise.all([getDailyBrief(tenantId), getSetupState(tenantId)])
   void publishSignal('money', tenantId, {
     mode, arTotal, arOverdue: arOverdueSig, arStuck, apTotal, netPosition, runwayMonths, recoveryReview,
     health: netPosition < 0 || arStuck > 0 ? 'bad' : arOverdueSig > 0 ? 'watch' : 'good',
@@ -201,8 +202,9 @@ export default async function CommandCenter() {
   const hour = now.getHours()
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
   const dateStr = now.toLocaleDateString('en-ZA', { weekday: 'long', day: 'numeric', month: 'long' })
-  const state = constraint ? (netPosition < 0 || arStuck > 0 ? 'needs attention' : 'on watch') : 'running smoothly'
-  const stateColor = state === 'running smoothly' ? '#34D399' : state === 'on watch' ? '#FBBF24' : '#F87171'
+  let state = constraint ? (netPosition < 0 || arStuck > 0 ? 'needs attention' : 'on watch') : 'running smoothly'
+  let stateColor = state === 'running smoothly' ? '#34D399' : state === 'on watch' ? '#FBBF24' : '#F87171'
+  if (setup.isNew) { state = 'ready to set up'; stateColor = 'var(--indigo-light)' }
 
   const toneStyle = {
     red:    { bg: 'rgba(239,68,68,0.12)',  fg: '#F87171' },
@@ -228,14 +230,19 @@ export default async function CommandCenter() {
               <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{greeting}, {firstName} — your business is <span style={{ color: stateColor, fontWeight: 600 }}>{state}</span></p>
             </div>
             <h2 className="text-xl font-semibold mt-1.5 max-w-3xl" style={{ color: 'var(--text-primary)' }}>
-              {constraint ? constraint.headline : decisionCount > 0 ? `${decisionCount} decision${decisionCount > 1 ? 's' : ''} waiting for you` : 'Everything is handled — no decisions pending.'}
+              {setup.isNew ? `Welcome to AdminOS — let's set up your business in a few steps.` : constraint ? constraint.headline : decisionCount > 0 ? `${decisionCount} decision${decisionCount > 1 ? 's' : ''} waiting for you` : 'Everything is handled — no decisions pending.'}
             </h2>
             <div className="flex items-center gap-4 mt-2 flex-wrap text-sm" style={{ color: 'var(--text-muted)' }}>
               <span>Net position <strong style={{ color: netPosition < 0 ? '#F87171' : '#34D399' }}>{formatZAR(netPosition)}</strong></span>
               {runwayMonths !== null && <span>· ≈ {Math.max(0, Math.round(runwayMonths))} mo runway at current burn</span>}
               <span>· {formatZAR(arOverdue)} overdue</span>
             </div>
-            {constraint && (
+            {setup.isNew ? (
+              <Link href="/dashboard/getting-started" className="inline-flex items-center gap-2 mt-3 px-4 py-2 rounded-xl text-sm font-semibold transition-all hover:opacity-90"
+                style={{ background: 'var(--indigo)', color: '#fff' }}>
+                Start setup <ArrowRight className="w-4 h-4" />
+              </Link>
+            ) : constraint && (
               <Link href={constraint.href} className="inline-flex items-center gap-2 mt-3 px-4 py-2 rounded-xl text-sm font-semibold transition-all hover:opacity-90"
                 style={{ background: 'var(--indigo)', color: '#fff' }}>
                 {constraint.action} <ArrowRight className="w-4 h-4" />

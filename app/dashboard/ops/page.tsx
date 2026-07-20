@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { formatZAR } from '@/lib/format'
 import { buildOpsIntel } from '@/lib/ops/signal'
+import { getSetupState } from '@/lib/tenant/setup-state'
 import { publishSignal } from '@/lib/signals/bus'
 import {
   Package, ArrowRight, CalendarClock, ClipboardList, Boxes,
@@ -18,13 +19,15 @@ export default async function OpsCockpit() {
   if (!user) redirect('/login')
   const tenantId = user.app_metadata?.tenant_id as string
 
-  const intel = await buildOpsIntel(tenantId)
+  const [intel, setup] = await Promise.all([buildOpsIntel(tenantId), getSetupState(tenantId)])
   void publishSignal('ops', tenantId, intel.signal)
   const { lowStockItems, bookingsToday, overdueTasks, openTasks, pendingBookings } = intel
 
   // ── The Operator leads ─────────────────────────────────────────────────────
   let lead: { line: string; action: string; href: string }
-  if (lowStockItems.length > 0) {
+  if (setup.products === 0) {
+    lead = { line: `Set up what you sell — add your first product or service, and AdminOS tracks stock, bookings and jobs from here.`, action: 'Add a product', href: '/dashboard/inventory?new=1' }
+  } else if (lowStockItems.length > 0) {
     lead = { line: `${lowStockItems.length} product${lowStockItems.length > 1 ? 's are' : ' is'} at or below reorder level — a stockout stops sales. Reorder before you run dry.`, action: 'Review inventory', href: '/dashboard/inventory' }
   } else if (pendingBookings > 0) {
     lead = { line: `${pendingBookings} booking${pendingBookings > 1 ? 's are' : ' is'} awaiting confirmation — confirm today to lock the schedule and cut no-shows.`, action: 'Open bookings', href: '/dashboard/bookings' }
