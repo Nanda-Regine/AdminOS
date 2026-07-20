@@ -13,6 +13,16 @@ interface EmailPayload {
 }
 
 export async function POST(request: Request) {
+  // Inbound email must arrive via the trusted Mirembe hub / email forwarder,
+  // authenticated with the shared secret (same gate as the Paystack receiver).
+  // Without this the endpoint was fully unauthenticated: anyone could POST a
+  // forged email for any tenant_id and trigger a paid AI call + inject messages
+  // into that tenant's inbox. Fails closed if HUB_INTERNAL_SECRET is unset.
+  const hubSecret = process.env.HUB_INTERNAL_SECRET
+  if (!hubSecret || request.headers.get('x-hub-secret') !== hubSecret) {
+    return new NextResponse('Forbidden', { status: 403 })
+  }
+
   let payload: EmailPayload
 
   try {

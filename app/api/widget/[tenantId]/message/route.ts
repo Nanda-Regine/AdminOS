@@ -1,17 +1,23 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { sanitizeForAI } from '@/lib/security/sanitize'
+import { checkRateLimit } from '@/lib/security/rateLimit'
 
 // POST /api/widget/[tenantId]/message — visitor sends a message
 // GET  /api/widget/[tenantId]/message?session_id=X&after=Y — poll for agent replies
 //
-// No authentication required — this is the public-facing widget endpoint.
-// Rate limiting should be applied at the edge (Vercel) to prevent abuse.
+// No authentication required — this is the public-facing widget endpoint, so it is
+// rate-limited per tenant + visitor IP to prevent spam / abuse.
 
 const MAX_MESSAGE_LENGTH = 500
 
 export async function POST(request: Request, { params }: { params: Promise<{ tenantId: string }> }) {
   const { tenantId } = await params
+
+  // Rate limit before any DB work — public endpoint, keyed by tenant + caller IP.
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
+  const { success } = await checkRateLimit('api', `widget:${tenantId}:${ip}`)
+  if (!success) return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
 
   // Validate tenant
   const { data: tenant } = await supabaseAdmin
