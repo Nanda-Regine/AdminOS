@@ -942,8 +942,8 @@ export default function HomePage() {
               <div style={{ textAlign: 'center', marginBottom: 60 }}>
                 <p style={{ color: 'var(--orange)', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 12 }}>Beyond the agents</p>
                 <h2 style={{ fontSize: 'clamp(28px, 4vw, 52px)', fontWeight: 900, letterSpacing: '-2px', marginBottom: 16 }}>A complete business OS.</h2>
-                <p style={{ color: 'var(--dim)', maxWidth: 480, margin: '0 auto', lineHeight: 1.65, fontSize: 16 }}>
-                  AdminOS goes deeper than messaging. Every system your business needs — built in, not bolted on.
+                <p style={{ color: 'var(--dim)', maxWidth: 520, margin: '0 auto', lineHeight: 1.65, fontSize: 16 }}>
+                  AdminOS goes deeper than messaging. Every system your business needs — built in, not bolted on. And each one opens with the single thing that needs you next, so you manage by exception instead of digging through pages.
                 </p>
               </div>
 
