@@ -14,6 +14,7 @@ const lineItemSchema = z.object({
 
 const createSchema = z.object({
   contactId:    z.string().uuid().optional(),
+  contactName:  z.string().max(200).optional(),   // free-text recipient when no contact is linked
   lineItems:    z.array(lineItemSchema).min(1),
   dueDate:      z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   notes:        z.string().max(2000).optional(),
@@ -95,22 +96,42 @@ export async function POST(request: Request) {
 
   const invoiceNumber = `INV-${today}-${String((count ?? 0) + 1).padStart(4, '0')}`
 
+  // Resolve the recipient name. `contact_name` is NOT NULL and is the column the
+  // list, exports and recovery all read — the old insert never set it (every
+  // create 400'd) and wrote the value to the vestigial `total` column instead of
+  // the canonical `amount`. Look up the linked contact server-side; fall back to
+  // a free-text name, then to a safe placeholder.
+  let contactName = body.contactName?.trim() || null
+  if (body.contactId) {
+    const { data: contact } = await supabaseAdmin
+      .from('contacts')
+      .select('full_name')
+      .eq('id', body.contactId)
+      .eq('tenant_id', tenantId)
+      .single()
+    if (contact?.full_name) contactName = contact.full_name
+  }
+  if (!contactName) contactName = 'Cash sale'
+
   const { data, error } = await supabaseAdmin
     .from('invoices')
     .insert({
       tenant_id:      tenantId,
       contact_id:     body.contactId  ?? null,
+      contact_name:   contactName,
       invoice_number: invoiceNumber,
       line_items:     lineItemsWithTotals,
       subtotal,
       vat_amount:     vatTotal,
       total,
+      amount:         total,   // canonical value column the whole app reads
+      amount_paid:    0,
       amount_due:     total,
       currency:       body.currency,
       due_date:       body.dueDate   ?? null,
       notes:          body.notes     ?? null,
       reference:      body.reference ?? null,
-      status:         'draft',
+      status:         'sent',
       created_by:     user.id,
     })
     .select()

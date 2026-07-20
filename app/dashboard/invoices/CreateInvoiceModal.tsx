@@ -31,9 +31,11 @@ export function CreateInvoiceModal({ contacts }: Props) {
   const [dueDate, setDueDate] = useState('')
   const [notes, setNotes] = useState('')
   const [reference, setReference] = useState('')
+  const [billToName, setBillToName] = useState('')
 
   function resetForm() {
     setContactId('')
+    setBillToName('')
     setDescription('')
     setUnitPrice('')
     setQuantity('1')
@@ -65,6 +67,7 @@ export function CreateInvoiceModal({ contacts }: Props) {
     try {
       const body = {
         contactId: contactId || undefined,
+        contactName: contactId ? undefined : (billToName.trim() || undefined),
         lineItems: [
           {
             description: description.trim(),
@@ -127,6 +130,20 @@ export function CreateInvoiceModal({ contacts }: Props) {
               ))}
             </select>
           </FormField>
+
+          {/* Bill-to name — only when no contact is linked, so the invoice still names its recipient */}
+          {!contactId && (
+            <FormField label="Bill to (name)" hint="Who is this invoice for?">
+              <input
+                type="text"
+                value={billToName}
+                onChange={(e) => setBillToName(e.target.value)}
+                placeholder="e.g. Sipho Dlamini"
+                className={inputCls}
+                style={inputSty}
+              />
+            </FormField>
+          )}
 
           {/* Reference */}
           <FormField label="Reference / PO number" hint="Optional — your own reference">
