@@ -6,6 +6,8 @@ import { TopBar } from '@/components/dashboard/TopBar'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { FileText } from 'lucide-react'
 import { Document, Goal } from '@/types/database'
 
 const categoryVariant: Record<string, 'blue' | 'green' | 'purple' | 'yellow' | 'gray'> = {
@@ -255,11 +257,12 @@ export default function DocumentsPage() {
               </div>
             ))}
             {documents.length === 0 && (
-              <div className="px-5 py-12 text-center text-[var(--text-dim)]">
-                <p className="text-4xl mb-2">📁</p>
-                <p className="text-sm font-medium">No documents yet</p>
-                <p className="text-xs mt-1">Upload any file above — AI will classify and extract insights automatically</p>
-              </div>
+              <EmptyState
+                icon={FileText}
+                title="No documents yet"
+                body="Upload any file — AI will classify it and extract insights automatically."
+                action={{ label: 'Upload a document', onClick: () => fileInputRef.current?.click() }}
+              />
             )}
           </div>
         </Card>

@@ -3,6 +3,8 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { TopBar } from '@/components/dashboard/TopBar'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { FileBarChart } from 'lucide-react'
 import { redirect } from 'next/navigation'
 import { PrintButton } from './PrintButton'
 
@@ -101,11 +103,11 @@ export default async function BoardPackPage() {
 
         {boardPacks.length === 0 ? (
           <Card>
-            <div className="text-center py-14 text-[var(--text-dim)]">
-              <p className="text-4xl mb-3">📁</p>
-              <p className="text-sm font-medium text-[var(--text-muted)] mb-1">No board packs generated yet</p>
-              <p className="text-xs">Board packs are auto-generated at month end.</p>
-            </div>
+            <EmptyState
+              icon={FileBarChart}
+              title="No board packs generated yet"
+              body="Board packs are auto-generated at month end."
+            />
           </Card>
         ) : (
           <>

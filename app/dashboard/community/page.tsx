@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { TopBar } from '@/components/dashboard/TopBar'
 import { SectionBackground } from '@/components/dashboard/SectionBackground'
 import { Card } from '@/components/ui/card'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { MessageSquare } from 'lucide-react'
 
 type Post = {
   id: string
@@ -188,13 +190,11 @@ export default function CommunityPage() {
           </div>
         ) : filtered.length === 0 ? (
           <Card>
-            <div className="text-center py-14">
-              <p className="text-4xl mb-3">🌱</p>
-              <p className="text-sm font-medium text-[var(--text-muted)]">
-                {filter === 'all' ? 'The community board is quiet' : `No ${catMeta(filter).label} posts yet`}
-              </p>
-              <p className="text-xs text-[var(--text-dim)] mt-1">Be the first to share something.</p>
-            </div>
+            <EmptyState
+              icon={MessageSquare}
+              title={filter === 'all' ? 'The community board is quiet' : `No ${catMeta(filter).label} posts yet`}
+              body="Be the first to share something."
+            />
           </Card>
         ) : (
           <div className="space-y-3">

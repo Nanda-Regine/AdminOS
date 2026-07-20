@@ -4,6 +4,8 @@ import { TopBar } from '@/components/dashboard/TopBar'
 import { SectionBackground } from '@/components/dashboard/SectionBackground'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { PiggyBank } from 'lucide-react'
 import { redirect } from 'next/navigation'
 import { CreateStokvelModal, AddMemberModal } from './StokvelActions'
 
@@ -154,11 +156,12 @@ export default async function StokvelPage() {
 
         {groups.length === 0 ? (
           <Card>
-            <div className="text-center py-14 text-[var(--text-dim)]">
-              <p className="text-4xl mb-3">🤝</p>
-              <p className="text-sm font-medium text-[var(--text-muted)] mb-1">No stokvel groups yet</p>
-              <p className="text-xs">Create a stokvel to start pooling resources with your community.</p>
-            </div>
+            <EmptyState
+              icon={PiggyBank}
+              title="No stokvel groups yet"
+              body="Create a stokvel to start pooling resources with your community."
+              action={{ label: 'Create a stokvel', href: '?new=1' }}
+            />
           </Card>
         ) : (
           groups.map((group) => {

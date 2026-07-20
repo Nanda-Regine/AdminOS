@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { redirect } from 'next/navigation'
 import { Megaphone, Eye, Pin } from 'lucide-react'
+import { EmptyState } from '@/components/ui/EmptyState'
 import { CreateAnnouncementForm } from './CreateAnnouncementForm'
 
 export const dynamic = 'force-dynamic'
@@ -62,10 +63,11 @@ export default async function AnnouncementsPage() {
           <h3 className="font-semibold text-[var(--text-primary)] mb-4">All Announcements</h3>
 
           {items.length === 0 ? (
-            <div className="text-center py-10 text-[var(--text-dim)]">
-              <Megaphone className="w-8 h-8 mx-auto text-[var(--text-dim)] mb-2" />
-              <p className="text-sm">No announcements yet. Create one above to notify your team.</p>
-            </div>
+            <EmptyState
+              icon={Megaphone}
+              title="No announcements yet"
+              body="Create one above to notify your team."
+            />
           ) : (
             <div className="space-y-3">
               {items.map((item) => {

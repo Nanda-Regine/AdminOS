@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useOpenOnParam } from '@/lib/hooks/useOpenOnParam'
 
 /* ─── shared primitive ───────────────────────────────────────────────── */
 function Modal({
@@ -53,6 +54,9 @@ export function CreateStokvelModal() {
   const [description, setDescription] = useState('')
   const [contributionAmount, setContributionAmount] = useState('')
   const [frequency, setFrequency] = useState<'weekly' | 'fortnightly' | 'monthly'>('monthly')
+
+  // Lets the EmptyState CTA (?new=1) open this modal.
+  useOpenOnParam('new', () => setOpen(true))
 
   function reset() {
     setName('')
