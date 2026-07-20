@@ -53,17 +53,19 @@ export async function POST(request: Request) {
 
   const { data, error } = await supabaseAdmin
     .from('goals')
+    // Aligned to the actual goals schema (title/description/quarter/target_metric/
+    // target_value/progress_pct/status) — the columns the other two goals inserters
+    // (workflow/file-received, documents/upload) use. This route previously wrote
+    // category/target_unit/target_date/created_by, none of which exist → every
+    // create 400'd ("Could not find the 'category' column").
     .insert({
-      tenant_id:    tenantId,
-      title:        body.title,
-      description:  body.description  ?? null,
-      category:     body.category     ?? null,
-      target_value: body.targetValue  ?? null,
-      target_unit:  body.targetUnit   ?? null,
-      target_date:  body.targetDate   ?? null,
-      progress_pct: 0,
-      status:       'active',
-      created_by:   user.id,
+      tenant_id:     tenantId,
+      title:         body.title,
+      description:   body.description  ?? null,
+      target_metric: body.targetUnit   ?? null,
+      target_value:  body.targetValue  ?? null,
+      progress_pct:  0,
+      status:        'active',
     })
     .select()
     .single()

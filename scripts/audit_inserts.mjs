@@ -26,6 +26,14 @@ const rows = await sql(`select table_name, column_name from information_schema.c
 const required = {}
 for (const r of Array.isArray(rows) ? rows : []) (required[r.table_name] ??= []).push(r.column_name)
 
+// ALL columns per table — so we can also flag inserts that write a column that
+// does NOT exist (the goals bug: inserted category/target_unit/target_date/
+// created_by, none of which are real → every create 400'd).
+const allRows = await sql(`select table_name, column_name from information_schema.columns
+  where table_schema='public' order by table_name;`)
+const columns = {}
+for (const r of Array.isArray(allRows) ? allRows : []) (columns[r.table_name] ??= new Set()).add(r.column_name)
+
 // Walk every route.ts, find .insert({...}) blocks and their nearest .from('table').
 function walk(dir) {
   let out = []
@@ -84,12 +92,16 @@ for (const f of files) {
     const keys = new Set(topKeys(obj))
     if (keys.has('*SPREAD*')) { checked++; continue }   // a spread may supply anything — can't judge statically
     const missing = required[table].filter(c => !keys.has(c))
+    // Columns the insert writes that don't exist on the table → guaranteed 400.
+    const tableCols = columns[table] ?? new Set()
+    const unknown = [...keys].filter(k => k !== '*SPREAD*' && !tableCols.has(k))
     checked++
-    if (missing.length) {
+    if (missing.length || unknown.length) {
       flags++
       console.log(`\n⚠ ${f.replace(/\\/g, '/').replace('app/api/', '')}`)
       console.log(`   table: ${table}`)
-      console.log(`   NOT-NULL columns never set: ${missing.join(', ')}`)
+      if (missing.length) console.log(`   NOT-NULL columns never set: ${missing.join(', ')}`)
+      if (unknown.length) console.log(`   columns written that DON'T EXIST: ${unknown.join(', ')}`)
     }
   }
 }

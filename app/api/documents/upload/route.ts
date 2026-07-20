@@ -86,16 +86,17 @@ export async function POST(request: Request) {
   // ── 2. Create pending document record immediately (user sees it straight away) ─
   const { data: docRecord, error: insertErr } = await supabaseAdmin
     .from('documents')
+    // Only real columns. This insert previously also wrote file_name/storage_path/
+    // status — none of which exist on `documents` — so every upload 400'd (the
+    // table had 0 rows). The canonical columns are original_filename/storage_url/
+    // processing_status.
     .insert({
       tenant_id: tenantId,
       original_filename: file.name,
-      file_name: file.name,
       file_type: fileType,
       storage_url: storagePath,
-      storage_path: storagePath,
       is_reference: isReference,
       processing_status: 'processing',
-      status: 'processing',
       uploaded_by: user.id,
     })
     .select('id')
