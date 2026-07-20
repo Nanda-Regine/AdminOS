@@ -64,7 +64,6 @@ export async function POST(request: Request) {
       description:   body.description  ?? null,
       target_metric: body.targetUnit   ?? null,
       target_value:  body.targetValue  ?? null,
-      progress_pct:  0,
       status:        'active',
     })
     .select()
