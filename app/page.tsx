@@ -3,9 +3,10 @@ import type { Metadata } from 'next'
 import MobileNav from '@/components/MobileNav'
 
 export const metadata: Metadata = {
-  title: 'AdminOS — The Business OS Built for South Africa',
+  // Title leads with the highest-intent SA search terms, then the brand.
+  title: 'Invoicing, Payroll & Business Software for South African SMEs | AdminOS',
   description:
-    'AdminOS is the complete business operating system for South African SMEs — AI agents, Employee OS, Business Academy, Payroll, Compliance, Operations and more. From R349/month.',
+    'AdminOS is all-in-one business software for South African small businesses — invoicing, automated debt recovery, payroll (PAYE/UIF/SDL), staff, bookings, compliance and 6 AI agents, WhatsApp-native. Built for SA. From R349/month. Start a 14-day free trial.',
   alternates: { canonical: 'https://adminos.co.za' },
 }
 
@@ -142,16 +143,62 @@ const industries = [
   '🏦 Financial Services', '🎓 Training Providers', '💊 Pharmacies', '🏠 Estate Agents',
 ]
 
+// One @graph with three entities: the software, the company, and the FAQ (rich
+// snippets). areaServed = South Africa signals the market to search engines.
 const jsonLd = {
   '@context': 'https://schema.org',
-  '@type': 'SoftwareApplication',
-  name: 'AdminOS',
-  applicationCategory: 'BusinessApplication',
-  operatingSystem: 'Web, Android, iOS',
-  url: 'https://adminos.co.za',
-  description: 'Complete business operating system for South African SMEs — 6 AI agents, Employee OS, Business Academy, Payroll, Compliance, Operations, and Community features. From R349/month.',
-  author: { '@type': 'Organization', name: 'Mirembe Muse (Pty) Ltd', url: 'https://adminos.co.za' },
-  offers: { '@type': 'AggregateOffer', priceCurrency: 'ZAR', lowPrice: '349', highPrice: '9999', offerCount: '5' },
+  '@graph': [
+    {
+      '@type': 'SoftwareApplication',
+      '@id': 'https://adminos.co.za/#software',
+      name: 'AdminOS',
+      applicationCategory: 'BusinessApplication',
+      operatingSystem: 'Web, Android, iOS',
+      url: 'https://adminos.co.za',
+      inLanguage: ['en-ZA', 'af', 'zu', 'xh'],
+      description: 'Complete business operating system for South African SMEs — invoicing, debt recovery, payroll (PAYE/UIF/SDL), staff, compliance, bookings and 6 AI agents, WhatsApp-native. From R349/month.',
+      featureList: [
+        'Invoicing & automated debt recovery',
+        'Payroll (PAYE, UIF, SDL) & payslips',
+        'WhatsApp automation & AI agents',
+        'Staff / HR (Employee OS)',
+        'Bookings, quotes & contracts',
+        'Compliance calendar & POPIA tools',
+        'Cash-flow forecast & business health score',
+      ],
+      areaServed: { '@type': 'Country', name: 'South Africa' },
+      author: { '@id': 'https://adminos.co.za/#org' },
+      offers: { '@type': 'AggregateOffer', priceCurrency: 'ZAR', lowPrice: '349', highPrice: '9999', offerCount: '5' },
+    },
+    {
+      '@type': 'Organization',
+      '@id': 'https://adminos.co.za/#org',
+      name: 'AdminOS',
+      legalName: 'Mirembe Muse (Pty) Ltd',
+      url: 'https://adminos.co.za',
+      logo: 'https://adminos.co.za/icon-512.png',
+      description: 'AdminOS — the business operating system for South African SMEs.',
+      areaServed: { '@type': 'Country', name: 'South Africa' },
+      slogan: 'The OS that runs your business.',
+      sameAs: ['https://x.com/CreativelyNanda'],
+      contactPoint: {
+        '@type': 'ContactPoint',
+        contactType: 'customer support',
+        email: 'hello@adminos.co.za',
+        areaServed: 'ZA',
+        availableLanguage: ['English', 'Afrikaans', 'Zulu', 'Xhosa'],
+      },
+    },
+    {
+      '@type': 'FAQPage',
+      '@id': 'https://adminos.co.za/#faq',
+      mainEntity: faqs.map((f) => ({
+        '@type': 'Question',
+        name: f.q,
+        acceptedAnswer: { '@type': 'Answer', text: f.a },
+      })),
+    },
+  ],
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
