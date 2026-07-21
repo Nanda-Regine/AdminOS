@@ -29,7 +29,9 @@ export const wellnessFanOut = inngest.createFunction(
             phoneNumberId,
             member.phone,
             WHATSAPP_TEMPLATES.WELLNESS_CHECKIN,
-            (member.language ?? 'en') + '_ZA',
+            // Valid Meta template language codes only (en/af/zu/xh) — the old
+            // `${lang}_ZA` produced en_ZA/zu_ZA, which WhatsApp rejects.
+            (['af', 'zu', 'xh'].includes(member.language ?? '') ? member.language! : 'en'),
             [{ type: 'body', parameters: [{ type: 'text', text: member.full_name ?? 'there' }] }]
           )
         )

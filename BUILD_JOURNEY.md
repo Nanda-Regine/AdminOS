@@ -634,5 +634,41 @@ All issues identified by the Explore-agent audit were fixed:
 
 ---
 
+## Phase — Post-launch hardening & verification (Session 18, 2026-07-20/21)
+
+**Goal:** make the long tail even, prove the app actually *works* (not just compiles), and close the gaps that only surface when you push on them.
+
+### Long-tail UX made even
+- Shared **`EmptyState`** + **`Skeleton`** components + `dashboard/loading.tsx`; a `useOpenOnParam` hook so an empty-state CTA opens the page's create modal. Rolled across ~19 list pages + all 6 cockpits (first-run states via `getSetupState` — a new tenant gets a setup nudge, not a false "all smooth").
+- **Email Studio** migrated off the last legacy cream/navy palette onto the design system.
+
+### The write side got real (this is the big one)
+Built **`scripts/audit_inserts.mjs`** (static: flags inserts that miss a NOT-NULL column *or* write a column that doesn't exist) and **`scripts/verify_write_flows.mjs`** (E2E create→read→cleanup over **29 authenticated routes / 111 assertions**, MK-tagged + self-cleaning). This flushed out **6 create paths that were 100% broken in production** — all invisible to the read-only test suites, all the same "route drifted from the DB schema" class:
+1. **invoices** — never set `contact_name`, wrote value to a vestigial `total` column.
+2. **agents/pen** — omitted NOT-NULL `email_type`, swallowed by a bare `.catch()` (0 drafts ever saved).
+3. **portal** — phantom `contact_identifier` + `revoked_at` columns (portal links never worked).
+4. **goals** — phantom `category`/`target_unit`/`target_date` + inserting a generated column.
+5. **documents/upload** — phantom `file_name`/`storage_path`/`status` (0 uploads ever worked).
+6. **task_comments** — the table **never existed**; created it (migration `20260721`).
+
+### Trust, honesty, security
+- **Sage add-on removed** everywhere (never wired) — catalogue now the canonical 4.
+- **Landing fact-checked**: removed the false Sage claim, qualified unbacked outcome stats, fixed "8 subscriptions"→7. `PRODUCT_OVERVIEW.md` written.
+- **Legal pages updated**: disclosed **Paystack + Twilio** sub-processors (POPIA gap), trial-end wording matches reality, real plan names in the SLA.
+- **Webhook security review** — found + fixed a **real vuln**: `webhook/email` was fully unauthenticated (forged POST → paid AI call + inbox injection for any tenant_id). Gated with the fail-closed hub secret; rate-limited the public `widget` + `book/[slug]` endpoints. All payment/inbound webhooks verified to reject forgery (401/403 live).
+
+### Trial + Langa
+- **14-day trial wired end-to-end (soft nudge):** `getTrialState()` (reads the subscription, not the mismatched `tenant.plan`), a non-blocking `TrialBanner` countdown, and a nightly expiry cron. It was *created* on signup but invisible and never-ending before.
+- **Langa** verified live (genuinely excellent SA-specific advice on `claude-sonnet-4-6`), then **streamed** (SSE — types instead of a 15s pause) and **optimised**: parallelised budget+context, dropped the expensive triggered-lessons JOIN, and fixed a query that *400'd every chat* (filtered `status != 'completed'` on an enum with no such value → Langa never saw the tenant's goals). TTFT ~6.2s → ~3.5s warm.
+- **Demo page** given a modern glass/aurora redesign (logic untouched).
+
+### WhatsApp readiness
+- Fixed the template **language codes** (`en_ZA`→`en`; WhatsApp has no `_ZA` variants) so approved templates will actually send. Wrote **`WHATSAPP_TEMPLATE_SETUP.md`** — the step-by-step for approving all 44 templates in Meta, with the param-count wiring gaps flagged.
+
+### Posture
+Every change build-verified on Vercel (deploy-first). `verify_prod` 37/37 · write-flows 111/0 · audits clean. The through-line: **end-to-end testing exposed what compile-time and read-only tests structurally cannot** — 6 dead write paths and a live webhook vuln, all fixed and proven against production.
+
+---
+
 *Built by Nandawula Regine Kabali-Kagwa · Mirembe Muse (Pty) Ltd · South Africa*  
 *"African-built, African-first."*

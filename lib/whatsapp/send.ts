@@ -57,7 +57,9 @@ export async function sendWhatsAppTemplate(
   phoneNumberId: string,
   to: string,
   templateName: string,
-  languageCode: 'en_ZA' | 'af_ZA' | 'zu_ZA' | 'xh_ZA' | string,
+  // Meta WhatsApp template language codes — NOT region variants. Valid: en, af,
+  // zu, xh (NOT en_ZA/zu_ZA — those don't exist in WhatsApp and every send 404s).
+  languageCode: 'en' | 'af' | 'zu' | 'xh' | string,
   components: MetaTemplateComponent[]
 ): Promise<{ messageId: string }> {
   const data = await metaPost(`${META_API_BASE}/${phoneNumberId}/messages`, {

@@ -47,7 +47,7 @@ export const onboardingSequence = inngest.createFunction(
           process.env.META_PHONE_NUMBER_ID!,
           ownerPhone,
           WHATSAPP_TEMPLATES.ONBOARDING_WELCOME,
-          'en_ZA',
+          'en',   // Meta template language — NOT en_ZA (that code doesn't exist → send 404s)
           [{ type: 'body', parameters: [{ type: 'text', text: ownerName }] }]
         )
       })
