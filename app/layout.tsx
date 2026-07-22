@@ -158,7 +158,7 @@ export default function RootLayout({
         <Analytics />
         <SpeedInsights />
         <script dangerouslySetInnerHTML={{ __html: `if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js')}` }} />
-              <script src="https://jarvis.mirembemuse.co.za/mm-feedback.js" data-app="adminos" defer></script>
+              <script src="/mm-feedback.js" data-app="adminos" defer></script>
       </body>
     </html>
   )
