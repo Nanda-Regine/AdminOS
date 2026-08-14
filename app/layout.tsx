@@ -159,7 +159,7 @@ export default function RootLayout({
         <SpeedInsights />
         <script dangerouslySetInnerHTML={{ __html: `if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js')}` }} />
               <script src="/mm-feedback.js" data-app="adminos" defer></script>
-              <script src="https://js.sentry-cdn.com/e6fa52ca2fd75d19fee0898327795fbf.min.js" crossorigin="anonymous"></script>
+              <script src="https://js.sentry-cdn.com/e6fa52ca2fd75d19fee0898327795fbf.min.js" crossOrigin="anonymous"></script>
       </body>
     </html>
   )
