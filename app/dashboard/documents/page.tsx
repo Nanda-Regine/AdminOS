@@ -22,12 +22,15 @@ const fileTypeIcon: Record<string, string> = {
   mp3: '🎵', m4a: '🎵', wav: '🎵', mp4: '🎬', mov: '🎬',
 }
 
-// Accepted file types (mirrors lib/files/parser.ts — update both if adding new types)
+// Accepted file types — must match ALLOWED_MIME_TYPES in
+// app/api/documents/upload/route.ts, which rejects anything else with a 415.
+// Audio/video previously appeared in this list and in the "Media" info card
+// below, but the upload route has never accepted those MIME types — every
+// such upload 415'd. That's what Creative Assets (Cloudinary-backed) is for.
 const ACCEPTED = [
   '.pdf', '.docx', '.doc', '.xlsx', '.xls', '.csv', '.pptx', '.txt', '.md', '.rtf',
   '.jpg', '.jpeg', '.png', '.webp', '.gif', '.heic',
   '.json', '.xml',
-  '.mp3', '.m4a', '.wav', '.ogg', '.mp4', '.mov', '.avi',
 ].join(',')
 
 export default function DocumentsPage() {
@@ -145,7 +148,10 @@ export default function DocumentsPage() {
             {uploading ? uploadProgress : 'Drop a file here or click to upload'}
           </p>
           <p className="text-xs text-[var(--text-dim)] mb-4">
-            PDF, Word, Excel, PowerPoint, CSV, Images, Audio, Video · Max 50MB
+            PDF, Word, Excel, PowerPoint, CSV, Images · Max 10MB · for audio/video, use{' '}
+            <a href="/dashboard/creative-assets" className="underline hover:text-emerald-600" onClick={(e) => e.stopPropagation()}>
+              Creative Assets
+            </a>
           </p>
           {uploadProgress && !uploading && (
             <p className="text-sm text-emerald-600 font-medium">{uploadProgress}</p>
@@ -168,7 +174,7 @@ export default function DocumentsPage() {
             { icon: '📄', label: 'Documents', types: 'PDF, Word, PowerPoint, RTF' },
             { icon: '📊', label: 'Spreadsheets', types: 'Excel, CSV, Numbers' },
             { icon: '🖼️', label: 'Images', types: 'JPG, PNG, WEBP, HEIC' },
-            { icon: '🎵', label: 'Media', types: 'MP3, MP4, WAV, MOV' },
+            { icon: '🎬', label: 'Audio & Video', types: 'See Creative Assets →' },
           ].map((item) => (
             <div key={item.label} className="bg-[var(--surface-1)] border border-[var(--border)] rounded-lg p-3 text-center">
               <p className="text-xl mb-1">{item.icon}</p>

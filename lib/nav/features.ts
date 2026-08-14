@@ -17,7 +17,7 @@ import {
   UserCircle2, UsersRound, Scale, BookOpen,
   FileSignature, ShieldCheck, Gauge, HeartPulse, BarChart3, Landmark,
   GraduationCap, Library, HandHeart, PiggyBank, Megaphone,
-  Puzzle, CreditCard, Settings, Bot,
+  Puzzle, CreditCard, Settings, Bot, Clapperboard,
 } from 'lucide-react'
 
 export type FeatureCategory =
@@ -76,6 +76,7 @@ export const FEATURES: Feature[] = [
   { href: '/dashboard/inventory', label: 'Inventory', icon: Package,       category: 'Deliver' },
   { href: '/dashboard/tasks',     label: 'Tasks',     icon: ClipboardList, category: 'Deliver' },
   { href: '/dashboard/documents', label: 'Documents', icon: FileText,      category: 'Deliver' },
+  { href: '/dashboard/creative-assets', label: 'Creative Assets', icon: Clapperboard, category: 'Deliver' },
 
   // ── Team (People) ─────────────────────────────────────────────────────────
   { href: '/dashboard/people',   label: 'People Cockpit', icon: UsersRound, category: 'Team' },

@@ -343,7 +343,7 @@ export default function OnboardingPage() {
         {/* Owner name */}
         {!state.ownerName ? (
           <>
-            <SiyandaBubble text={msgs.businessNamePrompt.replace('business', 'name — what do people call you?')} delay={900} />
+            <SiyandaBubble text={msgs.ownerNamePrompt} delay={900} />
             <TextInput
               placeholder="e.g. Thembi"
               value={input}

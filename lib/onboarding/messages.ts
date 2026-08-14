@@ -8,6 +8,7 @@ export interface OnboardingMessages {
   // Step 1
   siyandaIntro: (name: string) => string
   siyandaIntroList: string[]
+  ownerNamePrompt: string
   businessNamePrompt: string
   businessNameConfirm: (name: string) => string
   businessTypePrompt: string
@@ -103,6 +104,7 @@ const messages: Record<Language, OnboardingMessages> = {
       'Alex ready to handle your WhatsApp messages',
       'Your first AI email drafted by Pen',
     ],
+    ownerNamePrompt: "Let's start. What's your name — what do people call you?",
     businessNamePrompt: "Let's start. What's your business called?",
     businessNameConfirm: (name) =>
       `Perfect. ${name} is officially in AdminOS. Let's get it running.`,
@@ -210,7 +212,8 @@ const messages: Record<Language, OnboardingMessages> = {
       'U-Alex ulungele ukuphatha imiyalezo yakho ye-WhatsApp',
       'I-imeyili yakho yokuqala yazwa nguPen',
     ],
-    businessNamePrompt: 'Masiقula. Ibhizinisi lakho libizwa ngani?',
+    ownerNamePrompt: 'Masiqala. Ubizwa ngobani?',
+    businessNamePrompt: 'Masiqala. Ibhizinisi lakho libizwa ngani?',
     businessNameConfirm: (name) =>
       `Kuhle. ${name} isemthethweni ku-AdminOS. Asisebenze.`,
     businessTypePrompt: 'Luhlobo luni lwebhizinisi?',
@@ -312,6 +315,7 @@ const messages: Record<Language, OnboardingMessages> = {
       'U-Alex elungele ukuphatha imiyalezo yakho ye-WhatsApp',
       'I-imeyili yakho yokuqala ibhaliwe nguPen',
     ],
+    ownerNamePrompt: 'Masiqale. Ngubani igama lakho?',
     businessNamePrompt: 'Masiiqale. Ibhizinisi lakho libizwa ngantoni?',
     businessNameConfirm: (name) =>
       `Kuhle. ${name} isemthethweni ku-AdminOS. Masiqale.`,
@@ -414,6 +418,7 @@ const messages: Record<Language, OnboardingMessages> = {
       'Alex gereed om jou WhatsApp-boodskappe te hanteer',
       'Jou eerste KI-e-pos deur Pen opgestel',
     ],
+    ownerNamePrompt: 'Kom ons begin. Wat is jou naam — wat noem mense jou?',
     businessNamePrompt: 'Kom ons begin. Wat is jou besigheid se naam?',
     businessNameConfirm: (name) =>
       `Perfek. ${name} is nou amptelik in AdminOS. Kom ons kry dit aan die gang.`,
@@ -516,6 +521,7 @@ const messages: Record<Language, OnboardingMessages> = {
       'Alex o lokela ho tshwara melaetsa ya hao ya WhatsApp',
       'Lengolo-tshedimosetso la hao la pele le hlokolositsweng ke Pen',
     ],
+    ownerNamePrompt: 'A re qaleng. Lebitso la hao ke mang — batho ba o bitsa mang?',
     businessNamePrompt: 'A re qaleng. Khoebo ya hao e bitswa eng?',
     businessNameConfirm: (name) =>
       `Ke hantle. ${name} e se e le ya molao ho AdminOS. A re e sebedise.`,

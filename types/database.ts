@@ -144,6 +144,29 @@ export interface Document {
   created_at: string
 }
 
+export type CreativeAssetCategory = 'audio' | 'voice_over' | 'soundtrack' | 'video_long' | 'video_short' | 'finished_work'
+export type CreativeAssetStatus = 'draft' | 'in_review' | 'approved' | 'delivered'
+
+export interface CreativeAsset {
+  id: string
+  tenant_id: string
+  contact_id: string | null
+  title: string
+  category: CreativeAssetCategory
+  status: CreativeAssetStatus
+  storage_mode: 'hosted' | 'external'
+  cloudinary_public_id: string | null
+  cloudinary_url: string | null
+  cloudinary_resource_type: string | null
+  file_size_bytes: number | null
+  external_url: string | null
+  external_provider: string | null
+  notes: string | null
+  created_by: string | null
+  created_at: string
+  updated_at: string
+}
+
 export interface Goal {
   id: string
   tenant_id: string
