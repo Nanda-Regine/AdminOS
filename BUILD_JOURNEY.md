@@ -670,5 +670,29 @@ Every change build-verified on Vercel (deploy-first). `verify_prod` 37/37 · wri
 
 ---
 
+## Phase — First beta user, Phase 0 follow-up, and a live E2E signup proof (2026-08-14)
+
+**Goal:** onboard AdminOS's first real external user (Jael Malavila, a Johannesburg videographer/media agency owner) — which surfaced a paused production database and a security gap the previous Phase 0 fix believed it had already closed.
+
+### Production was paused
+Found the Supabase project (`aetydnhnxmrsgqaqtofc`) in `INACTIVE` status — auto-paused from inactivity. The `adminos.co.za` Vercel frontend kept serving its redirect the whole time, masking the outage: anything touching the DB (login, signup, dashboard, WhatsApp bot, invoicing) would have looked fine on the surface while being fully broken underneath. Restored via the Supabase Management API (`INACTIVE` → `COMING_UP` → `RESTORING` → `ACTIVE_HEALTHY`, ~2.5 min, no data lost). No alerting exists for this today — worth a keep-alive cron or plan upgrade.
+
+### Phase 0 hadn't actually closed the gap
+`20260717_phase0_tenant_isolation.sql` moved `tenant_id`/`role` reads to service-role-only `app_metadata` and claimed *"every RLS policy calls this function... fixing the function fixes all ~40 policies at once."* That was false for **49 policies**:
+- **32** in six pre-Phase-0 migration files (`phase5_financial`, `phase6_operations`, `phase7_ubuntu`, `phase8_compliance`, `phase9_11_advanced`, `phase11_billing`) that hardcoded the spoofable `user_metadata` expression directly instead of calling `current_tenant_id()`.
+- **17** more found only by querying `pg_policies` directly against production — not present in any of those six files, including **`roles` and `user_roles` themselves** (the authorization backbone) and **`disciplinary_records`/`performance_reviews`** (the exact POPIA-sensitive data Phase 0's own bug writeup named as the reason for the fix).
+
+Fixed via two migrations (`20260814_phase0_followup_legacy_policies.sql`, `20260814_phase0_followup2_live_discovered.sql`), applied directly to production via the Management API and verified: `SELECT count(*) FROM pg_policies WHERE qual LIKE '%user_metadata%'` → **0**. Lesson: a migration's own comment claiming "this fixes everything" isn't proof — verify against live `pg_policies`, since local migration files and deployed state had already diverged once (confirmed separately: `addon_subscriptions` exists in a migration file but was never actually created in production).
+
+### First beta user — Jael Malavila
+Provisioned as an independent tenant (`jael-malavila`), role `owner`, plan `partner` (top tier, comped free) — same tenant-creation logic as `app/api/admin/create-tenant/route.ts`, run directly against production. Runs a video/media production agency in Johannesburg (audio, voice-over, soundtrack, long-form and short-form video, client delivery) — struggles with client admin, hence the beta. **Known gap flagged, not yet fixed:** `documents/upload` caps at 10MB and only accepts PDF/Word/Excel/CSV/text/images — no audio or video MIME types — so her actual deliverables can't go through AdminOS's document system as-is.
+
+### Proved the general signup path works — live, not just read
+At the user's request, ran an actual end-to-end test against production with a disposable QA account (created via the real `/signup` form, then deleted after): signup → session created → redirected to `/dashboard/onboarding` → full sidebar nav rendered (Cash Cockpit, Invoices, Payroll, Sales, Inbox, etc.) → Siyanda (the onboarding AI guide) chat flow responded correctly to name input → sign out → sign in → correctly resumed mid-onboarding. Confirms the plain self-serve path (not just operator-provisioned accounts) is genuinely working end-to-end today.
+
+One cosmetic bug spotted in passing: the onboarding greeting renders "What's your name — what do people call you? **called?**" — a stray duplicated word, likely a streaming-render artifact. Not yet fixed.
+
+---
+
 *Built by Nandawula Regine Kabali-Kagwa · Mirembe Muse (Pty) Ltd · South Africa*  
 *"African-built, African-first."*
