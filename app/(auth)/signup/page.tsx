@@ -192,7 +192,7 @@ export default function SignupPage() {
                 required
                 value={form.name}
                 onChange={(e) => update('name', e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 placeholder="Jane Smith"
               />
             </div>
@@ -202,7 +202,7 @@ export default function SignupPage() {
                 required
                 value={form.businessName}
                 onChange={(e) => update('businessName', e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 placeholder="Sunshine Hardware"
               />
             </div>
@@ -213,7 +213,7 @@ export default function SignupPage() {
                 required
                 value={form.email}
                 onChange={(e) => update('email', e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 placeholder="you@business.co.za"
               />
             </div>
@@ -225,7 +225,7 @@ export default function SignupPage() {
                 minLength={8}
                 value={form.password}
                 onChange={(e) => update('password', e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 placeholder="Min. 8 characters"
               />
             </div>
