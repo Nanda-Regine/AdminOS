@@ -989,3 +989,46 @@ Six parallel read-only audits: page inventory & completeness · responsive/premi
 SA compliance & security · BBOpsOS pattern mining · JarvisOS wing mining · six-industry fit.
 Building resumes once they land and the plan is updated with their findings.
 
+
+### Session 6 continued — security, compliance calendar, mobile
+
+**CRITICAL security fix (applied to production).** Phase 0 and both August
+follow-ups fixed *which tenant* a caller can reach — verified still holding, 0
+policies read `user_metadata`. Neither constrained *what a caller may do inside
+their tenant*. Every sensitive table carried
+`FOR ALL USING (tenant_id = current_tenant_id())` with a **NULL `with_check`**,
+and Supabase grants `ALL` to `authenticated` by default. Any staff user could
+POST directly to PostgREST with the public anon key and set their own `role_id`
+to owner, read every payslip in the company, or upgrade their own subscription.
+Revoked `INSERT/UPDATE/DELETE` from `authenticated` and `anon` on `roles`,
+`user_roles`, `payslips`, `payroll_runs`, `staff`, `subscriptions`,
+`disciplinary_records`, `performance_reviews`. Safe because all 131 API routes
+write through the service role and no client component writes these tables.
+`SELECT` left intact. Verified post-apply: zero write grants remain.
+
+**Compliance calendar activated.** `seed_compliance_calendar()` had shipped in
+Phase 8 — correct, carrying EMP201/IRP6/ITR14/CIPC/COIDA/EMP501 with real
+penalty text — and was called by nothing. No tenant hook, no POST, no page.
+Every tenant's calendar was empty while the homepage sold it as "pre-seeded".
+Now: unique index so the seed is genuinely idempotent (its `ON CONFLICT DO
+NOTHING` had no constraint to catch on, so re-running duplicated everything);
+status computed by a `BEFORE` trigger from `due_date` (ported from BB MotherShip
+Deluxe `010_world_class.sql`) so it can never go stale; `recurrence` finally
+acted on, so completing a monthly item schedules the next; every active tenant
+backfilled; new tenants seeded from `create-tenant`. New `/dashboard/compliance`
+page on the shared `DataTable`, leading with the next deadline and its penalty.
+Result: 19 seeded items per tenant, statuses computing correctly.
+
+**Mobile / contrast.** Added `.on-light`, the mirror of the existing `.on-dark`
+helper — the root cause of a bug class that shipped at least six times. The
+default theme is dark, so any surface forcing a light background inherited
+near-white text. Rebinding the text tokens locally fixes every descendant at
+once, no per-element edits, no `!important`. Applied to 24 pastel panels.
+Button min-heights floored at 40/44/48px (md was ~36px, under the touch
+minimum, app-wide from one file). Feedback widget also hidden on `/demo`; cookie
+banner reserves a right gutter on mobile so its buttons clear the widget.
+
+**Still open (not built):** the "models paperwork, not work" gap — job costing
+(`time_entries`), asset/vehicle register, purchase orders, and deposits on
+bookings. Also: `business_type` steers exactly one file, so an attendee picking
+"Construction" gets the identical product to one picking "Retail".
