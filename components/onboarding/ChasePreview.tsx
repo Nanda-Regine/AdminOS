@@ -71,6 +71,10 @@ Reply *PAY* to get our banking details, or call us to chat. 🙏`
               className="rounded-2xl rounded-tr-sm px-3 py-2 text-xs leading-relaxed shadow-sm"
               style={{
                 background: '#DCF8C6',
+                // Explicit, because the app's default theme is dark: without a
+                // colour here the bubble inherits the near-white --foreground
+                // and the message is invisible on the pale green.
+                color: '#111B21',
                 maxWidth: '88%',
                 whiteSpace: 'pre-wrap',
                 wordBreak: 'break-word',
@@ -82,7 +86,7 @@ Reply *PAY* to get our banking details, or call us to chat. 🙏`
                 style={{ background: '#128C7E', animation: typed.length < message.length ? 'blink 0.7s step-end infinite' : 'none' }}
               />
               <div className="flex justify-end items-center gap-1 mt-1">
-                <span className="text-[var(--text-dim)]" style={{ fontSize: 10 }}>Chase · just now</span>
+                <span style={{ fontSize: 10, color: '#667781' }}>Chase · just now</span>
                 <svg width="14" height="10" viewBox="0 0 14 10" fill="none">
                   <path d="M1 5l3.5 3.5L13 1" stroke="#4FC3F7" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                   <path d="M4 5l3.5 3.5L13 1" stroke="#4FC3F7" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />

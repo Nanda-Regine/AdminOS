@@ -42,8 +42,42 @@
     'background:' + COLOR + ';color:#0A0A0F;font:600 13px system-ui,sans-serif;padding:11px 16px;border-radius:999px;' +
     'box-shadow:0 6px 22px rgba(0,0,0,0.35);', '💬 Feedback')
   btn.setAttribute('aria-label', 'Send feedback')
+  btn.id = 'mm-fb-btn'
 
-  function close() { open = false; if (panel) panel.remove(); panel = null; btn.style.display = 'block' }
+  // Routes where the widget must stay out of the way. Guided flows (onboarding)
+  // anchor their primary action bottom-right, which is exactly where this button
+  // sits at z-index 2147483000 — it covered the Continue button.
+  var HIDE_ON = (script.getAttribute('data-hide-on') || '')
+    .split(',').map(function (s) { return s.trim() }).filter(Boolean)
+
+  function hiddenHere() {
+    if (!HIDE_ON.length) return false
+    var p = location.pathname
+    for (var i = 0; i < HIDE_ON.length; i++) if (p.indexOf(HIDE_ON[i]) === 0) return true
+    return false
+  }
+  function applyVisibility() { if (!open) btn.style.display = hiddenHere() ? 'none' : 'block' }
+
+  // Next.js client-side navigation does not fire popstate on pushState, so the
+  // history methods are patched to re-evaluate on every in-app route change.
+  ;['pushState', 'replaceState'].forEach(function (m) {
+    var orig = history[m]
+    history[m] = function () { var r = orig.apply(this, arguments); applyVisibility(); return r }
+  })
+  window.addEventListener('popstate', applyVisibility)
+
+  // Shrink to an icon on narrow screens and lift clear of the on-screen keyboard
+  // / gesture bar. !important because the base styles are inline.
+  var css = el('style')
+  css.textContent =
+    '@media (max-width:640px){#mm-fb-btn{' +
+      'font-size:0!important;padding:0!important;width:44px!important;height:44px!important;' +
+      'display:flex!important;align-items:center;justify-content:center;' +
+      'right:12px!important;bottom:calc(12px + env(safe-area-inset-bottom,0px))!important;' +
+    '}#mm-fb-btn::before{content:"💬";font-size:18px;line-height:1}}'
+  document.head.appendChild(css)
+
+  function close() { open = false; if (panel) panel.remove(); panel = null; applyVisibility() }
 
   function render() {
     panel = el('div', 'position:fixed;right:18px;bottom:18px;z-index:2147483001;width:320px;max-width:calc(100vw - 36px);' +
@@ -98,6 +132,6 @@
 
   btn.onclick = function () { if (open) return; open = true; btn.style.display = 'none'; render() }
 
-  function mount() { document.body.appendChild(btn) }
+  function mount() { document.body.appendChild(btn); applyVisibility() }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount); else mount()
 })();

@@ -76,6 +76,10 @@ export function CarePreview({ staffName, role, businessName }: CarePreviewProps)
                   className="rounded-2xl px-3 py-2 text-xs leading-relaxed shadow-sm"
                   style={{
                     background: isIncoming ? '#fff' : '#DCF8C6',
+                    // Explicit, because the app's default theme is dark: without a
+                    // colour here the bubble inherits the near-white --foreground
+                    // and the message is invisible on the pale bubble.
+                    color: '#111B21',
                     borderTopLeftRadius: isIncoming ? 4 : 16,
                     borderTopRightRadius: isIncoming ? 16 : 4,
                     maxWidth: '88%',
@@ -98,7 +102,9 @@ export function CarePreview({ staffName, role, businessName }: CarePreviewProps)
           {/* Typing indicator */}
           {step > 0 && step < messages.length && (
             <div className="flex justify-start">
-              <div className="rounded-2xl rounded-tl-sm px-3 py-2 bg-[var(--surface-1)] shadow-sm flex gap-1 items-center">
+              {/* Solid white, not var(--surface-1): that token is a translucent
+                  white for dark surfaces and washes out on the light chat area. */}
+              <div className="rounded-2xl rounded-tl-sm px-3 py-2 shadow-sm flex gap-1 items-center" style={{ background: '#fff' }}>
                 {[0, 1, 2].map(d => (
                   <span
                     key={d}

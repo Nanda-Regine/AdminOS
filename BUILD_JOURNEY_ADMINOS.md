@@ -932,3 +932,60 @@ New route `app/demo/page.tsx` — fully client-side, no real API calls:
 
 *Built by Nandawula Regine · Mirembe Muse (Pty) Ltd · adminos.co.za*
 *"Build it bulletproof. Build it beautiful. Build it for Africa."*
+
+---
+
+## Session 6 — Conference Readiness Sprint (16 August 2026)
+
+**Deadline:** conference on 18 August 2026 — hundreds of SA SMEs and EMEs.
+**Mandate:** make AdminOS read as a "Super Tool" that could genuinely run a business —
+enterprise-grade UI, clean premium UX across mobile/tablet/desktop, solid cybersecurity,
+demonstrable SA compliance, and a proper home for every business stakeholder.
+
+**Full plan: [`CONFERENCE_READINESS_PLAN.md`](./CONFERENCE_READINESS_PLAN.md)** — written
+before building, per the project golden rule.
+
+### Golden rule established
+
+Every plan is committed to memory **and** this build journey *before* any building starts,
+so a mid-build crash never loses the thread.
+
+### Reuse strategy — work smarter, not harder
+
+Rather than re-deriving solved problems, three mature codebases are mined for portable
+patterns: **BB MotherShip Deluxe** (`OneDrive/BBOpsOS`) for operational categorisation,
+stakeholder modelling and colour-coded data presentation; **JarvisOS** for its finance,
+marketing, CEO and Sanyu wing frameworks; and the **industry OS demos**
+(`Transport-shuttle-os`, `carpentary-os-demo`, `StokvelOS`, `campus-compass`) for
+sector-specific data models.
+
+### Bugs found and fixed
+
+| Bug | Root cause | Fix |
+|---|---|---|
+| Login/signup inputs unreadable | App defaults to the **dark** theme, but `.auth-shell` forces a light background. Inputs set no colour, so they inherited the near-white `--foreground` — white on white | Explicit `text-gray-900 bg-white placeholder:text-gray-400` on all six inputs |
+| Landing mobile menu see-through and clipped | Overlay is `position:fixed; inset:0` but sits inside `<header class="glass-nav">`, which sets `backdrop-filter`. Any value other than `none` makes that element the **containing block for fixed descendants**, so `inset:0` resolved against the ~60px nav bar, not the viewport | Portal to `document.body`; fully opaque background; Escape-to-close |
+| Onboarding WhatsApp previews unreadable | Same dark-theme inheritance: chat bubbles set a pale background but no text colour | Explicit `#111B21` on bubbles; solid white typing indicator; WhatsApp-grey timestamp |
+| Feedback widget covering onboarding CTA | `position:fixed; right:18px; bottom:18px; z-index:2147483000` — sat on top of the bottom-right primary action | Added `data-hide-on` route gating (SPA-aware via patched `history.pushState`); icon-only 44px button below 640px with safe-area inset |
+| Admin-generated auth links could never work | `app/auth/callback/route.ts` requires `?code=` (PKCE). Links from `/auth/v1/admin/generate_link` carry no PKCE verifier and return tokens in the URL **fragment**, which a server route cannot read and middleware bounces first | Added `app/auth/confirm/route.ts` — server-side `verifyOtp` on `token_hash`, sets session cookies |
+
+**Systemic finding:** the dark-theme-inheritance contrast bug is a *class*, not an incident —
+three separate instances in one session. Any light-background surface in this app must set an
+explicit text colour. A full sweep is in flight.
+
+### Infrastructure fixes
+
+- Supabase `mailer_otp_exp` raised **3600 → 86400** — auth links were expiring in one hour.
+- `uri_allow_list` gained `https://adminos.co.za/**` and both `www` variants. Without a path
+  wildcard, GoTrue silently collapses any `redirect_to` back to `site_url`.
+- **Found: the `RESEND_API_KEY` is revoked** — verified invalid on `/domains`, `/api-keys` and a
+  real send. The identical key is in `JarvisOS/.env.local`, so JarvisOS email is broken too.
+  Combined with Supabase having no custom SMTP, **no AdminOS email reaches external users.**
+  This is why the first beta user never received her invite.
+
+### Discovery in flight
+
+Six parallel read-only audits: page inventory & completeness · responsive/premium UX ·
+SA compliance & security · BBOpsOS pattern mining · JarvisOS wing mining · six-industry fit.
+Building resumes once they land and the plan is updated with their findings.
+
