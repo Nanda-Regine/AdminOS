@@ -74,7 +74,7 @@ export default async function CompliancePage() {
         title="POPI Compliance Centre"
         subtitle="Protection of Personal Information Act — data register and rights management"
       />
-      <div className="p-6 space-y-6">
+      <div className="p-4 md:p-6 space-y-6">
 
         {/* POPI status banner */}
         <div className="on-light bg-emerald-50 border border-emerald-200 rounded-xl p-5 flex items-start gap-4">

@@ -70,7 +70,7 @@ export function CreateShiftModal({ staff }: { staff: StaffOption[] }) {
           <FormField label="Date *">
             <input name="shiftDate" type="date" required value={form.shiftDate} onChange={handleChange} className={inputCls} style={inputSty} />
           </FormField>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormField label="Start">
               <input name="startTime" type="time" required value={form.startTime} onChange={handleChange} className={inputCls} style={inputSty} />
             </FormField>

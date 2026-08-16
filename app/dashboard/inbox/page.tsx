@@ -261,7 +261,7 @@ export default function InboxPage() {
               </button>
             ))}
             {filtered.length === 0 && (
-              <div className="p-6 text-center text-sm text-[var(--text-muted)]">
+              <div className="p-4 md:p-6 text-center text-sm text-[var(--text-muted)]">
                 {search ? 'No conversations match your search.' : 'No conversations yet.'}
               </div>
             )}

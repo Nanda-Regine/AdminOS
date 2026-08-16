@@ -37,7 +37,7 @@ export default async function PayrollPage() {
     <div>
       <TopBar title="Payroll" subtitle="Manage payroll runs and payslips"
         actions={<RunPayrollForm defaultMonth={new Date().getMonth() + 1} defaultYear={new Date().getFullYear()} />} />
-      <div className="p-6 space-y-6">
+      <div className="p-4 md:p-6 space-y-6">
 
         {/* Latest run status */}
         {latestRun ? (

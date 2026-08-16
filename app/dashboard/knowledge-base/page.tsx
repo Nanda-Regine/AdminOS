@@ -51,7 +51,7 @@ export default async function KnowledgeBasePage() {
         subtitle={`${articles.length} articles · ${publishedCount} published`}
         actions={<CreateArticleModal />}
       />
-      <div className="p-6 space-y-6">
+      <div className="p-4 md:p-6 space-y-6">
 
         {/* Stats row */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

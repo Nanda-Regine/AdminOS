@@ -65,7 +65,7 @@ export default function NewCampaignPage() {
   return (
     <div>
       <TopBar title="New Campaign" subtitle="Broadcast a message to your audience" />
-      <div className="p-6 max-w-2xl">
+      <div className="p-4 md:p-6 max-w-2xl">
 
         <Link href="/dashboard/reach"
           className="inline-flex items-center gap-1.5 text-sm mb-6"

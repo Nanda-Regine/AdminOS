@@ -74,7 +74,7 @@ export function CreateProductModal() {
               placeholder="e.g. Cement 50kg bag" className={inputCls} style={inputSty} />
           </FormField>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormField label="SKU">
               <input name="sku" type="text" value={form.sku} onChange={handleChange}
                 placeholder="e.g. CEM-50" className={inputCls} style={inputSty} />
@@ -85,7 +85,7 @@ export function CreateProductModal() {
             </FormField>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormField label="Current stock">
               <input name="currentStock" type="number" min="0" step="1" value={form.currentStock} onChange={handleChange}
                 placeholder="0" className={inputCls} style={inputSty} />
@@ -96,7 +96,7 @@ export function CreateProductModal() {
             </FormField>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormField label="Cost price (R)" hint="what you pay">
               <input name="costPrice" type="number" min="0" step="0.01" value={form.costPrice} onChange={handleChange}
                 placeholder="0.00" className={inputCls} style={inputSty} />

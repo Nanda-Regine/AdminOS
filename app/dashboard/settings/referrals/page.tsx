@@ -41,7 +41,7 @@ export default async function ReferralsPage() {
   return (
     <div>
       <TopBar title="Referrals" subtitle="Earn a free month for every business you refer" />
-      <div className="p-6 space-y-6">
+      <div className="p-4 md:p-6 space-y-6">
 
         {/* Reward summary */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

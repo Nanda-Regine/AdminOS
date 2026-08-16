@@ -58,7 +58,7 @@ export default async function OperatorTenantPage({ params }: Props) {
           <p className="text-white/40 text-sm">{tenantId}</p>
         </div>
 
-        <div className="grid grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
           {statCards.map(card => (
             <div key={card.label} className="rounded-xl border border-white/10 bg-white/5 p-4">
               <p className="text-xs text-white/40 uppercase tracking-wide">{card.label}</p>

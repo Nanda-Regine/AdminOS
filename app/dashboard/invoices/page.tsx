@@ -37,7 +37,7 @@ export default async function InvoicesPage() {
   return (
     <div>
       <TopBar title="Invoices" subtitle="Debt register and recovery" actions={<CreateInvoiceModal contacts={contacts || []} />} />
-      <div className="p-6 space-y-6">
+      <div className="p-4 md:p-6 space-y-6">
 
         {/* Summary */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

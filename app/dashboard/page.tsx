@@ -217,7 +217,7 @@ export default async function CommandCenter() {
     <div className="animate-fade-in">
       <TopBar title="Command Center" subtitle={dateStr} />
 
-      <div className="p-6 space-y-6">
+      <div className="p-4 md:p-6 space-y-6">
 
         {/* ── THE PULSE ─────────────────────────────────────────────────── */}
         <div className="rounded-2xl px-6 py-5 relative overflow-hidden border on-dark"

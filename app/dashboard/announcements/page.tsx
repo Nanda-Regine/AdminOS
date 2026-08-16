@@ -50,7 +50,7 @@ export default async function AnnouncementsPage() {
         title="Announcements"
         subtitle={`${items.length} total · ${pinnedCount} pinned`}
       />
-      <div className="p-6 space-y-6">
+      <div className="p-4 md:p-6 space-y-6">
 
         {/* Create form */}
         <Card>

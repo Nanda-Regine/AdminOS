@@ -52,7 +52,7 @@ export default async function OpsCockpit() {
   return (
     <div>
       <TopBar title="Ops Cockpit" subtitle="Stock, schedule and work — the day at a glance" />
-      <div className="p-6 space-y-6">
+      <div className="p-4 md:p-6 space-y-6">
 
         {/* ── The Operator leads ───────────────────────────────────────────── */}
         <div className="rounded-2xl px-6 py-5 relative overflow-hidden border on-dark"

@@ -44,22 +44,22 @@ export function Modal({ open, onClose, title, children, size = 'md' }: ModalProp
     >
       <style>{`dialog::backdrop { background: rgba(0,0,0,0.65); backdrop-filter: blur(4px); }`}</style>
       <div
-        className="flex items-center justify-between px-5 py-4 border-b sticky top-0 z-10"
-        style={{ background: 'var(--surface-1)', borderColor: 'var(--border)' }}
+        className="flex items-center justify-between gap-3 px-4 sm:px-5 py-3 border-b sticky top-0 z-10"
+        style={{ background: 'var(--navy-800)', borderColor: 'var(--border)' }}
       >
-        <h2 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>{title}</h2>
+        <h2 className="text-base font-semibold truncate min-w-0" style={{ color: 'var(--text-primary)' }}>{title}</h2>
         <button
           type="button"
           onClick={onClose}
-          className="rounded-lg p-1.5 transition-colors hover:bg-white/10"
+          className="rounded-lg p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center transition-colors hover:bg-white/10 shrink-0"
           style={{ color: 'var(--text-muted)' }}
         >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
       </div>
-      <div className="p-5">{children}</div>
+      <div className="p-4 sm:p-5">{children}</div>
     </dialog>
   )
 }

@@ -145,7 +145,7 @@ export default async function ContactDetailPage({
         title={contact.full_name || contact.phone || 'Contact'}
         subtitle="Contact profile & history"
       />
-      <div className="p-6 space-y-6">
+      <div className="p-4 md:p-6 space-y-6">
 
         {/* Back link */}
         <Link href="/dashboard/contacts"

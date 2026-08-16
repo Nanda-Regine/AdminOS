@@ -119,7 +119,7 @@ export default async function CashflowPage() {
   return (
     <div>
       <TopBar title="Cashflow" subtitle="90-day forecast · income vs expense" />
-      <div className="p-6 space-y-6">
+      <div className="p-4 md:p-6 space-y-6">
 
         {/* Summary stat cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

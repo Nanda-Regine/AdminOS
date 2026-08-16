@@ -124,7 +124,7 @@ export default function DocumentsPage() {
   return (
     <div>
       <TopBar title="Documents" subtitle="Upload, analyse, and track your business files" />
-      <div className="p-6 space-y-6">
+      <div className="p-4 md:p-6 space-y-6">
 
         {/* Upload zone */}
         <div

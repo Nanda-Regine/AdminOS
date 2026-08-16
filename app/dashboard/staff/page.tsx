@@ -44,7 +44,7 @@ export default async function StaffPage() {
   return (
     <div>
       <TopBar title="Staff" subtitle={`${staff.length} team members`} actions={<AddStaffModal />} />
-      <div className="p-6 space-y-6">
+      <div className="p-4 md:p-6 space-y-6">
 
         {/* Pending leave requests */}
         {pendingLeave.length > 0 && (

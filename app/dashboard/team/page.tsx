@@ -91,7 +91,7 @@ export default async function TeamPage() {
         subtitle={`${staff.length} team member${staff.length !== 1 ? 's' : ''}`}
         actions={<CreateShiftModal staff={staff.map((s) => ({ id: s.id as string, full_name: (s.full_name as string) ?? null }))} />}
       />
-      <div className="p-6 space-y-6">
+      <div className="p-4 md:p-6 space-y-6">
 
         {/* Stat cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

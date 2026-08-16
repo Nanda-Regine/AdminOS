@@ -62,7 +62,7 @@ export default async function HandbookPage() {
   return (
     <div>
       <TopBar title="Handbook & SOPs" subtitle={`${sops.length} procedures`} actions={<CreateSOPModal />} />
-      <div className="p-6 space-y-6">
+      <div className="p-4 md:p-6 space-y-6">
 
         {/* Summary */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

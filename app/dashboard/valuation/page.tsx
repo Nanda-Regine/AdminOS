@@ -82,7 +82,7 @@ export default async function ValuationPage() {
   return (
     <div>
       <TopBar title="Business Valuation" subtitle="Understand and grow your business value" />
-      <div className="p-6 space-y-6">
+      <div className="p-4 md:p-6 space-y-6">
 
         {/* Big number */}
         <Card>

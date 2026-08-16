@@ -106,7 +106,7 @@ export default async function BillingPage({
   return (
     <div>
       <TopBar title="Billing" subtitle="Manage your AdminOS subscription and add-ons" />
-      <div className="p-6 space-y-8">
+      <div className="p-4 md:p-6 space-y-8">
 
         {success && (
           <div className="flex items-center gap-3 p-4 rounded-2xl"

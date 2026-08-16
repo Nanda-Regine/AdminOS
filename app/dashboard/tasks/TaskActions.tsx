@@ -157,7 +157,7 @@ export function CreateTaskModal({ staff }: { staff: StaffMember[] }) {
               </div>
 
               {/* Priority + Due Date (side by side) */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
                     Priority

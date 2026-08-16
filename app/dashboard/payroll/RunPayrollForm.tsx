@@ -50,7 +50,7 @@ export function RunPayrollForm({ defaultMonth, defaultYear }: { defaultMonth: nu
           <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
             Generates payslips for all active staff for the chosen period, with PAYE / UIF / SDL worked out. You review before distributing.
           </p>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormField label="Month">
               <select value={month} onChange={e => setMonth(Number(e.target.value))} className={inputCls} style={inputSty}>
                 {MONTHS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}

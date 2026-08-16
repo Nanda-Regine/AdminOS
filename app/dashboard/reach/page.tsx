@@ -37,7 +37,7 @@ export default async function ReachPage() {
   return (
     <div>
       <TopBar title="Reach" subtitle="Broadcast campaigns — send WhatsApp messages to your entire audience" />
-      <div className="p-6 space-y-6">
+      <div className="p-4 md:p-6 space-y-6">
 
         <BillingGateOverlay requiredAddon="reach" locked={!reachActive}>
           <div className="space-y-6">

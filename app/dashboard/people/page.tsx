@@ -48,7 +48,7 @@ export default async function PeopleCockpit() {
   return (
     <div>
       <TopBar title="People Cockpit" subtitle="Approvals, wellness and discipline — run the team" />
-      <div className="p-6 space-y-6">
+      <div className="p-4 md:p-6 space-y-6">
 
         <div className="rounded-2xl px-6 py-5 relative overflow-hidden border on-dark"
           style={{ background: 'linear-gradient(135deg, #101a3e 0%, #172549 100%)', borderColor: 'var(--border)' }}>

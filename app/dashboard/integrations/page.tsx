@@ -33,7 +33,7 @@ export default async function IntegrationsPage() {
   return (
     <div>
       <TopBar title="Integrations" subtitle="Live data feeds — load shedding, weather, FX rates, phone tools" />
-      <div className="p-6 space-y-6">
+      <div className="p-4 md:p-6 space-y-6">
 
         {/* Top row: load shedding + weather */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

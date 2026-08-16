@@ -182,7 +182,7 @@ export default function EmailStudioPage() {
     <div>
       <TopBar title="Pen — Email Studio" subtitle="AI-powered professional emails" actions={viewToggle} />
 
-      <div className="p-6">
+      <div className="p-4 md:p-6">
         {view === 'compose' ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Left: Form */}
@@ -249,7 +249,7 @@ export default function EmailStudioPage() {
                 </div>
 
                 {/* Recipient */}
-                <div className="grid grid-cols-2 gap-3 mb-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
                   <div>
                     <label className={labelCls.replace('mb-2', 'mb-1')}>Recipient Name</label>
                     <input

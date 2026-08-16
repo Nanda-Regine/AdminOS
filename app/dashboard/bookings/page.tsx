@@ -76,7 +76,7 @@ export default async function BookingsPage() {
   return (
     <div>
       <TopBar title="Bookings" subtitle={`Week of ${start}`} />
-      <div className="p-6 space-y-6">
+      <div className="p-4 md:p-6 space-y-6">
 
         {/* Week summary */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

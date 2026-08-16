@@ -43,7 +43,7 @@ export default async function SettingsPage() {
           </Link>
         }
       />
-      <div className="p-6 space-y-6">
+      <div className="p-4 md:p-6 space-y-6">
 
         {/* Business profile */}
         <Card>

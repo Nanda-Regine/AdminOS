@@ -55,7 +55,7 @@ export default async function CashCockpit() {
   return (
     <div>
       <TopBar title="Cash Cockpit" subtitle="Money in, money out — the whole cash picture" />
-      <div className="p-6 space-y-6">
+      <div className="p-4 md:p-6 space-y-6">
 
         {/* ── The Bookkeeper leads ─────────────────────────────────────────── */}
         <div className="rounded-2xl px-6 py-5 relative overflow-hidden border on-dark"

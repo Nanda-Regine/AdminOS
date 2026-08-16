@@ -35,7 +35,7 @@ export default async function AutonomySettings() {
   return (
     <div>
       <TopBar title="Autonomy" subtitle="Decide what AdminOS may do on its own" />
-      <div className="p-6 space-y-6 max-w-3xl">
+      <div className="p-4 md:p-6 space-y-6 max-w-3xl">
         <div className="rounded-2xl px-6 py-5 relative overflow-hidden border on-dark"
           style={{ background: 'linear-gradient(135deg, #101a3e 0%, #16224a 100%)', borderColor: 'var(--border)' }}>
           <div className="relative flex items-start gap-3">

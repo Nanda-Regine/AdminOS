@@ -102,7 +102,7 @@ export default function CommunityPage() {
     <div>
       <SectionBackground />
       <TopBar title="Community" subtitle="Peer network — learn, share, grow together" />
-      <div className="p-6 space-y-5 max-w-3xl mx-auto">
+      <div className="p-4 md:p-6 space-y-5 max-w-3xl mx-auto">
 
         {/* Action bar */}
         <div className="flex items-center justify-between gap-3">

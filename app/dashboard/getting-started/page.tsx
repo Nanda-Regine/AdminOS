@@ -22,7 +22,7 @@ export default async function GettingStartedPage() {
   return (
     <div>
       <TopBar title="Getting Started" subtitle="Your step-by-step setup guide" />
-      <div className="p-6">
+      <div className="p-4 md:p-6">
         <OnboardingTraining defaultLang={toLang(tenant?.language_primary)} />
       </div>
     </div>

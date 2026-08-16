@@ -158,7 +158,7 @@ export default function OnboardingPage() {
                 <h2 className="text-xl font-bold text-[var(--text-primary)]">Business Profile</h2>
                 <p className="text-sm text-[var(--text-dim)] mt-1">Tell us about your business so we can personalise your AI assistant.</p>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="col-span-2">
                   <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Business name *</label>
                   <input className="w-full border border-[var(--border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"

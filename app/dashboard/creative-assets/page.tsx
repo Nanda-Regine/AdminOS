@@ -202,7 +202,7 @@ export default function CreativeAssetsPage() {
   return (
     <div>
       <TopBar title="Creative Assets" subtitle="Track your audio, video, and finished deliverables" />
-      <div className="p-6 space-y-6">
+      <div className="p-4 md:p-6 space-y-6">
 
         {/* Category filter */}
         <div className="flex flex-wrap gap-2">

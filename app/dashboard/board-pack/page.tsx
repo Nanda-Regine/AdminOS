@@ -99,7 +99,7 @@ export default async function BoardPackPage() {
   return (
     <div>
       <TopBar title="Board Pack" subtitle="Monthly governance reports" />
-      <div className="p-6 space-y-6">
+      <div className="p-4 md:p-6 space-y-6">
 
         {boardPacks.length === 0 ? (
           <Card>

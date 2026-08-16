@@ -175,7 +175,7 @@ export default async function TasksPage() {
         subtitle={`${allTasks.length} total · ${todo.length + inProgress.length} open`}
         actions={<CreateTaskModal staff={staffList} />}
       />
-      <div className="p-6 space-y-5">
+      <div className="p-4 md:p-6 space-y-5">
 
         {/* Alert banners */}
         {urgentOpen.length > 0 && (

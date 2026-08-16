@@ -67,7 +67,7 @@ export default async function ExpensesPage() {
         subtitle={`${pending.length} pending approval`}
         actions={<CreateExpenseModal staff={staff} />}
       />
-      <div className="p-6 space-y-6">
+      <div className="p-4 md:p-6 space-y-6">
 
         {/* Summary stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

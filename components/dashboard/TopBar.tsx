@@ -21,11 +21,15 @@ export function TopBar({ title, subtitle, actions }: TopBarProps) {
         WebkitBackdropFilter: 'blur(20px)',
       }}
     >
-      <div>
-        <h1 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>{title}</h1>
-        {subtitle && <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{subtitle}</p>}
+      {/* min-w-0 + truncate: a flex child defaults to min-width:auto and refuses
+          to shrink below its content, so a long subtitle (governance runs ~380px)
+          pushed the actions clean off a 360px screen. shrink-0 keeps the bell and
+          offline chip pinned regardless of title length. */}
+      <div className="min-w-0 flex-1">
+        <h1 className="text-base font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{title}</h1>
+        {subtitle && <p className="text-xs truncate hidden sm:block" style={{ color: 'var(--text-muted)' }}>{subtitle}</p>}
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 shrink-0 ml-2">
         <OfflineIndicator />
         {actions}
         <NotificationBell />

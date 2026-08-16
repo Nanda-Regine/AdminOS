@@ -122,7 +122,7 @@ export default async function HealthPage() {
         title="Business Health"
         subtitle="Holistic health score across 6 dimensions"
       />
-      <div className="p-6 space-y-6">
+      <div className="p-4 md:p-6 space-y-6">
 
         {!latest ? (
           <Card>
@@ -168,7 +168,7 @@ export default async function HealthPage() {
                   <p className="text-xs text-[var(--text-dim)] mt-2">
                     Benchmark: South African SME average is ~55/100. Scores above 70 indicate strong business health.
                   </p>
-                  <div className="mt-4 grid grid-cols-3 gap-2">
+                  <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2">
                     {DIMENSION_LABELS.map(({ key, label, color }) => {
                       const score = dimensions[key] ?? 0
                       return (

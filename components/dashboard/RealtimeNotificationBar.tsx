@@ -96,7 +96,7 @@ export function RealtimeNotificationBar() {
   if (notifications.length === 0) return null
 
   return (
-    <div className="fixed top-4 right-4 z-50 space-y-2 w-80">
+    <div className="fixed top-16 md:top-4 right-2 md:right-4 z-50 space-y-2 w-[calc(100vw-1rem)] max-w-80">
       {notifications.map((n) => (
         <div
           key={n.id}
