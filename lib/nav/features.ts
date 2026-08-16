@@ -17,7 +17,7 @@ import {
   UserCircle2, UsersRound, Scale, BookOpen,
   FileSignature, ShieldCheck, Gauge, HeartPulse, BarChart3, Landmark,
   GraduationCap, Library, HandHeart, PiggyBank, Megaphone,
-  Puzzle, CreditCard, Settings, Bot, Clapperboard, Truck,
+  Puzzle, CreditCard, Settings, Bot, Clapperboard, Truck, BadgeCheck,
 } from 'lucide-react'
 
 export type FeatureCategory =
@@ -106,6 +106,7 @@ export const FEATURES: Feature[] = [
   { href: '/dashboard/governance',          label: 'Governance Cockpit', icon: ShieldCheck, category: 'Govern' },
   { href: '/dashboard/contracts',           label: 'Contracts',  icon: FileSignature, category: 'Govern' },
   { href: '/dashboard/compliance',          label: 'Compliance Calendar', icon: CalendarClock, category: 'Govern' },
+  { href: '/dashboard/licenses',            label: 'Licences & Permits', icon: BadgeCheck, category: 'Govern' },
   { href: '/dashboard/settings/compliance', label: 'POPIA & Data',        icon: ShieldCheck,   category: 'Govern' },
   { href: '/dashboard/valuation',           label: 'Valuation',  icon: Gauge,         category: 'Govern' },
   { href: '/dashboard/health',              label: 'Health',     icon: HeartPulse,    category: 'Govern' },
