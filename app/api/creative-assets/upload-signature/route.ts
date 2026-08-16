@@ -2,17 +2,12 @@ import { NextResponse } from 'next/server'
 import { requireContext, AuthError } from '@/lib/auth/context'
 import { PermissionError } from '@/lib/auth/permissions'
 import { checkRateLimit } from '@/lib/security/rateLimit'
-import { cloudinaryConfigured, signCreativeAssetUpload } from '@/lib/cloudinary/signature'
+import { cloudinaryConfigured, signCreativeAssetUpload, MAX_HOSTED_UPLOAD_BYTES } from '@/lib/cloudinary/signature'
 import { z } from 'zod'
 
 const schema = z.object({
   resourceType: z.enum(['video', 'image']),
 })
-
-// Hard ceiling for direct-hosted uploads. Anything bigger should use the
-// 'external' storage mode (link out) instead of paying our Cloudinary bill
-// for it — see the migration comment in 20260814_creative_assets.sql.
-export const MAX_HOSTED_UPLOAD_BYTES = 100 * 1024 * 1024 // 100MB
 
 export async function POST(request: Request) {
   try {
