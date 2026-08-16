@@ -4,6 +4,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { TopBar } from '@/components/dashboard/TopBar'
 import { Card } from '@/components/ui/card'
 import { SuppliersTable, type SupplierRow } from './SuppliersTable'
+import { AddSupplierModal } from './AddSupplierModal'
 
 export const metadata = {
   title: 'Suppliers — AdminOS',
@@ -51,6 +52,7 @@ export default async function SuppliersPage() {
       <TopBar
         title="Suppliers"
         subtitle="Who you buy from — and what that spend does for your B-BBEE scorecard"
+        actions={<AddSupplierModal />}
       />
 
       <div className="p-4 md:p-6 space-y-4 md:space-y-6">

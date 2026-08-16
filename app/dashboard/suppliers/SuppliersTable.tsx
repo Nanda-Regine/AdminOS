@@ -148,6 +148,7 @@ export function SuppliersTable({ rows }: { rows: SupplierRow[] }) {
         icon={Truck}
         title="No suppliers yet"
         body="Track who you buy from — with their B-BBEE level and ownership — so your preferential procurement spend is evidence, not a guess."
+        action={{ label: 'Add your first supplier', href: '/dashboard/suppliers?new=1' }}
       />
     )
   }
