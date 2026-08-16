@@ -77,7 +77,7 @@ export default async function CompliancePage() {
       <div className="p-6 space-y-6">
 
         {/* POPI status banner */}
-        <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-5 flex items-start gap-4">
+        <div className="on-light bg-emerald-50 border border-emerald-200 rounded-xl p-5 flex items-start gap-4">
           <span className="text-3xl">🛡️</span>
           <div>
             <p className="font-semibold text-emerald-900 mb-1">AdminOS is POPI-compliant by design</p>

@@ -122,6 +122,26 @@
   color: var(--text-primary);
 }
 
+/* The mirror of .on-dark, and the fix for a whole class of bug.
+   The default theme is dark, so --text-primary and friends are near-white. Any
+   surface that opts out of the dark ground — a bg-emerald-50 alert row, a pastel
+   status panel, the cream onboarding flow, the auth shells — inherits white text
+   and renders invisible unless the author remembers to override it. Authors kept
+   forgetting; it shipped unreadable at least six times.
+   Rebinding the tokens locally means every descendant that reads
+   var(--text-primary) becomes dark automatically, with no per-element edits and
+   no !important. Put .on-light on the panel, not on each child. */
+.on-light {
+  --text-primary:   #0F172A;
+  --text-secondary: #334155;
+  --text-muted:     #475569;
+  --text-dim:       #64748B;
+  --border:         rgba(15,23,42,0.14);
+  --surface-1:      rgba(15,23,42,0.04);
+  --surface-2:      rgba(15,23,42,0.07);
+  color: var(--text-primary);
+}
+
 /* Per-section accent ground (fixed layer behind a section's content). */
 .section-bg {
   position: fixed; inset: 0; z-index: -1; pointer-events: none;

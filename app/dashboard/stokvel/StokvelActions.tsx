@@ -178,7 +178,7 @@ export function CreateStokvelModal() {
           </div>
 
           {error && (
-            <p className="text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>
+            <p className="text-xs text-red-600 on-light bg-red-50 rounded-lg px-3 py-2">{error}</p>
           )}
 
           <div className="flex gap-3 pt-1">
@@ -296,7 +296,7 @@ export function AddMemberModal({ stokvelId }: { stokvelId: string }) {
           </div>
 
           {error && (
-            <p className="text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>
+            <p className="text-xs text-red-600 on-light bg-red-50 rounded-lg px-3 py-2">{error}</p>
           )}
 
           <div className="flex gap-3 pt-1">

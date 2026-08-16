@@ -13,10 +13,13 @@ const variantClasses = {
   ghost: 'text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]',
 }
 
+// min-h floors these at a thumb-friendly size. Padding alone gave md ~36px and
+// sm ~34px, under the 44px touch minimum — and most of this app is used on a
+// mid-range Android at ~390px wide, where every button was a mis-tap risk.
 const sizeClasses = {
-  sm: 'px-3 py-1.5 text-sm',
-  md: 'px-4 py-2 text-sm',
-  lg: 'px-6 py-3 text-base',
+  sm: 'px-3 py-1.5 text-sm min-h-[40px]',
+  md: 'px-4 py-2 text-sm min-h-[44px]',
+  lg: 'px-6 py-3 text-base min-h-[48px]',
 }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(

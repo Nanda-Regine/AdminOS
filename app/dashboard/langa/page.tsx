@@ -253,7 +253,7 @@ export default function LangaPage() {
 
         {/* Error */}
         {error && (
-          <div className="mx-auto max-w-md bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700">
+          <div className="mx-auto max-w-md on-light bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700">
             {error}
           </div>
         )}

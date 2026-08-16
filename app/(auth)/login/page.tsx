@@ -131,7 +131,7 @@ export default function LoginPage() {
             </div>
 
             {error && (
-              <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700">
+              <div className="on-light bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700">
                 {error}
                 {error.includes('confirm your email') && (
                   <div className="mt-2">

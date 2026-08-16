@@ -88,7 +88,8 @@ export const FEATURES: Feature[] = [
   // ── Govern (Governance) ───────────────────────────────────────────────────
   { href: '/dashboard/governance',          label: 'Governance Cockpit', icon: ShieldCheck, category: 'Govern' },
   { href: '/dashboard/contracts',           label: 'Contracts',  icon: FileSignature, category: 'Govern' },
-  { href: '/dashboard/settings/compliance', label: 'Compliance', icon: ShieldCheck,   category: 'Govern' },
+  { href: '/dashboard/compliance',          label: 'Compliance Calendar', icon: CalendarClock, category: 'Govern' },
+  { href: '/dashboard/settings/compliance', label: 'POPIA & Data',        icon: ShieldCheck,   category: 'Govern' },
   { href: '/dashboard/valuation',           label: 'Valuation',  icon: Gauge,         category: 'Govern' },
   { href: '/dashboard/health',              label: 'Health',     icon: HeartPulse,    category: 'Govern' },
   { href: '/dashboard/board-pack',          label: 'Board Pack', icon: Landmark,      category: 'Govern' },

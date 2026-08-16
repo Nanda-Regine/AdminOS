@@ -144,7 +144,7 @@ export default function OnboardingPage() {
         </div>
 
         {saveMsg && (
-          <div className="mb-4 px-4 py-2 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-700">
+          <div className="mb-4 px-4 py-2 on-light bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-700">
             {saveMsg}
           </div>
         )}
@@ -380,7 +380,7 @@ export default function OnboardingPage() {
                 <h2 className="text-xl font-bold text-[var(--text-primary)]">You&apos;re live!</h2>
                 <p className="text-sm text-[var(--text-dim)] mt-1">AdminOS is now running your business in the background.</p>
               </div>
-              <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-left space-y-2">
+              <div className="on-light bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-left space-y-2">
                 {[
                   'AI trained on your business',
                   'Dashboard ready',

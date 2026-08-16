@@ -179,7 +179,7 @@ export default async function TasksPage() {
 
         {/* Alert banners */}
         {urgentOpen.length > 0 && (
-          <div className="flex items-center gap-2 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm">
+          <div className="flex items-center gap-2 px-4 py-3 on-light bg-red-50 border border-red-200 rounded-xl text-sm">
             <span className="text-red-500 font-bold text-base leading-none">!</span>
             <span className="font-semibold text-red-700">
               {urgentOpen.length} urgent task{urgentOpen.length !== 1 ? 's' : ''}
@@ -188,7 +188,7 @@ export default async function TasksPage() {
           </div>
         )}
         {overdueOpen.length > 0 && (
-          <div className="flex items-center gap-2 px-4 py-3 bg-orange-50 border border-orange-200 rounded-xl text-sm">
+          <div className="flex items-center gap-2 px-4 py-3 on-light bg-orange-50 border border-orange-200 rounded-xl text-sm">
             <span className="text-orange-500">⚠</span>
             <span className="font-semibold text-orange-700">
               {overdueOpen.length} overdue task{overdueOpen.length !== 1 ? 's' : ''}

@@ -175,7 +175,7 @@ export default function CommunityPage() {
                 </button>
               </div>
               {postError && (
-                <p className="text-xs text-red-600 bg-red-50 px-3 py-2 rounded-lg">{postError}</p>
+                <p className="text-xs text-red-600 on-light bg-red-50 px-3 py-2 rounded-lg">{postError}</p>
               )}
             </form>
           </Card>

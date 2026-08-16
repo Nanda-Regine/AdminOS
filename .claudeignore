@@ -1,0 +1,108 @@
+# Dependencies
+node_modules/
+vendor/
+.pnpm-store/
+.yarn/
+.npm/
+bower_components/
+
+# Build outputs
+dist/
+build/
+out/
+.next/
+.nuxt/
+.output/
+.turbo/
+.vercel/
+.svelte-kit/
+target/
+*.min.js
+*.bundle.js
+*.chunk.js
+*.map
+
+# Test coverage
+coverage/
+.nyc_output/
+__coverage__/
+
+# Logs, cache, temp
+*.log
+logs/
+.cache/
+.temp/
+tmp/
+.pytest_cache/
+.mypy_cache/
+
+# Lock files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+Cargo.lock
+Gemfile.lock
+poetry.lock
+composer.lock
+
+# IDE & OS
+.vscode/
+.idea/
+.fleet/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Databases & large files
+*.db
+*.sqlite
+*.sqlite3
+*.sql
+*.dump
+*.csv
+*.json.gz
+*.parquet
+
+# Archives & media
+*.zip
+*.tar
+*.tar.gz
+*.rar
+*.7z
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.pdf
+*.iso
+
+# Environment & secrets (Claude shouldn't read these anyway)
+.env
+.env.*
+*.pem
+*.key
+*.crt
+
+# Generated/compiled
+*.pyc
+*.pyo
+__pycache__/
+*.class
+*.o
+*.so
+*.dylib
+.gradle/
+.elixir_ls/
+
+# Documentation builds (if you have these)
+site/
+_site/
+.docusaurus/
+
+# Add your project-specific patterns
+# uploads/
+# storage/
+# public/media/

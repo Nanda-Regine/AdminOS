@@ -83,6 +83,15 @@ export async function POST(request: Request) {
   await seedDefaultRoles(tenant.id)
   await assignRole({ userId: user.id, tenantId: tenant.id, roleName: 'owner' })
 
+  // Pre-load the SA statutory calendar — EMP201, IRP6, ITR14, CIPC, COIDA,
+  // EMP501 with their penalty text. Idempotent (unique on tenant+type+due_date),
+  // and non-fatal: a tenant that exists without a calendar is recoverable, a
+  // signup that 500s because of one is not.
+  const { error: seedErr } = await supabaseAdmin.rpc('seed_compliance_calendar', {
+    p_tenant_id: tenant.id,
+  })
+  if (seedErr) console.error('compliance calendar seed failed', tenant.id, seedErr.message)
+
   // tenant_id and role are security claims: app_metadata (service-role writable
   // only), never user_metadata (user-writable). Onboarding UI state stays in
   // user_metadata, where a user rewriting it harms nobody.

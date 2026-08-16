@@ -380,7 +380,7 @@ export default function InboxPage() {
                   ))}
                 </div>
                 {agentResponse && (
-                  <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 text-sm text-[var(--text-secondary)] leading-relaxed">
+                  <div className="on-light bg-emerald-50 border border-emerald-200 rounded-lg p-3 text-sm text-[var(--text-secondary)] leading-relaxed">
                     <div className="flex items-start justify-between gap-2">
                       <p className="whitespace-pre-wrap">{agentResponse}</p>
                       <button

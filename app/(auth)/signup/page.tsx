@@ -231,7 +231,7 @@ export default function SignupPage() {
             </div>
 
             {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-700">
+              <div className="on-light bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-700">
                 {error}{' '}
                 {error.includes('already exists') && (
                   <Link href="/login" className="font-semibold underline">Sign in →</Link>

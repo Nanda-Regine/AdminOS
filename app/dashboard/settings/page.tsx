@@ -112,7 +112,7 @@ export default async function SettingsPage() {
                     {isConnected ? (
                       <Badge variant="green">Connected</Badge>
                     ) : (
-                      <button className="text-sm text-emerald-600 border border-emerald-300 px-3 py-1 rounded-lg hover:bg-emerald-50">
+                      <button className="text-sm text-emerald-600 border border-emerald-300 px-3 py-1 rounded-lg hover:on-light bg-emerald-50">
                         Connect
                       </button>
                     )}

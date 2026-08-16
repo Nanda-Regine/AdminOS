@@ -52,7 +52,7 @@ export default async function StaffPage() {
             <h3 className="font-semibold text-[var(--text-primary)] mb-4">Pending Leave Requests ({pendingLeave.length})</h3>
             <div className="space-y-2">
               {pendingLeave.map((req) => (
-                <div key={req.id} className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                <div key={req.id} className="flex items-center justify-between p-3 on-light bg-yellow-50 rounded-lg border border-yellow-200">
                   <div>
                     <p className="text-sm font-medium text-[var(--text-primary)]">
                       {(req.staff as { full_name: string } | null)?.full_name || 'Staff member'}

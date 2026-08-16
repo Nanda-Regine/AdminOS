@@ -62,7 +62,7 @@ export default async function CalendarPage() {
             ) : (
               <div className="space-y-2">
                 {approvedLeave.map((req) => (
-                  <div key={req.id} className="flex items-center justify-between p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+                  <div key={req.id} className="flex items-center justify-between p-3 on-light bg-emerald-50 border border-emerald-200 rounded-lg">
                     <div>
                       <p className="text-sm font-medium text-[var(--text-primary)]">
                         {(req.staff as { full_name: string } | null)?.full_name}
@@ -86,7 +86,7 @@ export default async function CalendarPage() {
             ) : (
               <div className="space-y-2">
                 {pendingLeave.map((req) => (
-                  <div key={req.id} className="flex items-center justify-between p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <div key={req.id} className="flex items-center justify-between p-3 on-light bg-yellow-50 border border-yellow-200 rounded-lg">
                     <div>
                       <p className="text-sm font-medium text-[var(--text-primary)]">
                         {(req.staff as { full_name: string } | null)?.full_name}
@@ -113,7 +113,7 @@ export default async function CalendarPage() {
                   (new Date(inv.due_date + 'T12:00:00').getTime() - today.getTime()) / 86_400_000
                 )
                 return (
-                  <div key={inv.id} className="flex items-center justify-between p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                  <div key={inv.id} className="flex items-center justify-between p-3 on-light bg-orange-50 border border-orange-200 rounded-lg">
                     <div>
                       <p className="text-sm font-medium text-[var(--text-primary)]">{inv.contact_name}</p>
                       <p className="text-xs text-[var(--text-muted)]">Due {inv.due_date} · R{Number(inv.amount).toLocaleString()}</p>

@@ -208,7 +208,7 @@ export function CreateTaskModal({ staff }: { staff: StaffMember[] }) {
 
               {/* Error */}
               {error && (
-                <p className="text-xs text-red-500 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+                <p className="text-xs text-red-500 on-light bg-red-50 border border-red-100 rounded-lg px-3 py-2">
                   {error}
                 </p>
               )}

@@ -29,12 +29,16 @@ export function CookieConsent() {
 
   if (!visible) return null
 
+  // pr-20 on mobile only: the feedback widget is a 44px fixed button at
+  // right:12px/bottom:12px with a near-max z-index, so a full-bleed banner put
+  // its own buttons underneath it. Reserving the gutter is simpler than
+  // fighting the stacking order.
   return (
     <div
       role="dialog"
       aria-label="Cookie consent"
       aria-live="polite"
-      className="fixed bottom-0 left-0 right-0 z-50 p-4 md:p-6 md:bottom-4 md:left-4 md:right-auto md:max-w-sm"
+      className="fixed bottom-0 left-0 right-0 z-50 p-4 pr-20 md:p-6 md:pr-6 md:bottom-4 md:left-4 md:right-auto md:max-w-sm"
     >
       <div className="bg-gray-900 border border-white/10 rounded-2xl p-5 shadow-2xl shadow-black/60">
         <p className="text-sm font-semibold text-white mb-1">We use cookies 🍪</p>

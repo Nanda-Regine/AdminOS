@@ -45,7 +45,7 @@ export function RecoveryReviewQueue() {
   if (!items || items.length === 0) return null
 
   return (
-    <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
+    <div className="rounded-2xl border border-amber-200 on-light bg-amber-50 p-5">
       <div className="flex items-center gap-2 mb-1">
         <span className="text-amber-600">⚠️</span>
         <h3 className="font-semibold text-amber-900">Needs your review — {items.length} overdue {items.length === 1 ? 'account' : 'accounts'}</h3>
