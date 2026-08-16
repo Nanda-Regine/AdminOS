@@ -14,20 +14,37 @@ const PUBLIC_PATHS = [
   '/manifest.json',
 ]
 
+// Routes reachable without a session. Everything here MUST authenticate itself —
+// webhooks by signature, public forms by rate limit, signing links by token.
 const PUBLIC_PREFIXES = [
   '/api/webhook/',
   '/api/webhooks/',
   '/api/onboarding/',
   '/api/auth/',
   '/api/health',
-  '/api/billing/payfast-webhook',
+  // Payment gateways. `/api/billing/payfast-webhook` was listed here but no such
+  // route exists — the real PayFast receiver is `/api/billing/webhook` (MD5 +
+  // IP allowlist) and Paystack posts to `/api/paystack/webhook` (hub secret).
+  // Neither was exempt, so both were 401'd at the edge before their handler ran.
+  '/api/billing/webhook',
   '/api/billing/payfast-itn',
+  '/api/paystack/webhook',
+  // Public-by-design surfaces, each with its own gate:
+  '/api/book/',        // public booking form — rate limited
+  '/api/widget/',      // embeddable widget — rate limited per tenant+IP
   '/api/voice/',
-  '/api/cron/',
   '/portal/',
   '/_next/',
   '/icons/',
   '/public/',
+]
+
+// Narrower than a prefix, because the sibling routes must stay private: a
+// `/api/contracts/` prefix would also expose list, update and delete.
+// Only the per-signer signing endpoint is public, and it validates its own
+// token and expiry.
+const PUBLIC_PATTERNS = [
+  /^\/api\/contracts\/[^/]+\/sign\/?$/,
 ]
 
 const BILLING_EXEMPT = [
@@ -45,7 +62,8 @@ export async function middleware(request: NextRequest) {
 
   if (
     PUBLIC_PATHS.includes(pathname) ||
-    PUBLIC_PREFIXES.some((p) => pathname.startsWith(p))
+    PUBLIC_PREFIXES.some((p) => pathname.startsWith(p)) ||
+    PUBLIC_PATTERNS.some((re) => re.test(pathname))
   ) {
     return addSecurityHeaders(NextResponse.next())
   }

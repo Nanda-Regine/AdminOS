@@ -61,8 +61,8 @@ export function AlexConversation({ faqs, businessName }: AlexConversationProps) 
           {shownCount >= 1 && (
             <div className="flex justify-start" style={{ animation: 'fadeUp 0.3s ease' }}>
               <div
-                className="rounded-2xl rounded-tl-sm px-3 py-2 text-xs leading-relaxed shadow-sm bg-[var(--surface-1)]"
-                style={{ maxWidth: '88%' }}
+                className="rounded-2xl rounded-tl-sm px-3 py-2 text-xs leading-relaxed shadow-sm"
+                style={{ maxWidth: '88%', background: '#fff', color: '#111B21' }}
               >
                 <div className="font-semibold mb-1" style={{ color: '#1565C0', fontSize: 10 }}>Alex</div>
                 Hi there! Welcome to {businessName} 👋 How can I help you today?
@@ -91,7 +91,7 @@ export function AlexConversation({ faqs, businessName }: AlexConversationProps) 
             <div className="flex justify-end" style={{ animation: 'fadeUp 0.3s ease' }}>
               <div
                 className="rounded-2xl rounded-tr-sm px-3 py-2 text-xs leading-relaxed shadow-sm"
-                style={{ background: '#DCF8C6', maxWidth: '88%' }}
+                style={{ background: '#DCF8C6', color: '#111B21', maxWidth: '88%' }}
               >
                 {displayFaqs[selectedFaq].question}
               </div>
@@ -102,8 +102,8 @@ export function AlexConversation({ faqs, businessName }: AlexConversationProps) 
           {showAnswer && selectedFaq !== null && (
             <div className="flex justify-start" style={{ animation: 'fadeUp 0.3s ease' }}>
               <div
-                className="rounded-2xl rounded-tl-sm px-3 py-2 text-xs leading-relaxed shadow-sm bg-[var(--surface-1)]"
-                style={{ maxWidth: '88%', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
+                className="rounded-2xl rounded-tl-sm px-3 py-2 text-xs leading-relaxed shadow-sm"
+                style={{ maxWidth: '88%', background: '#fff', color: '#111B21', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
               >
                 <div className="font-semibold mb-1" style={{ color: '#1565C0', fontSize: 10 }}>Alex</div>
                 {displayFaqs[selectedFaq].answer}
