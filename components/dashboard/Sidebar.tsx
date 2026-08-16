@@ -6,11 +6,14 @@ import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { ThemeToggle } from './ThemeToggle'
 import { LogOut, Menu, X } from 'lucide-react'
-import { featuresByCategory } from '@/lib/nav/features'
+import { featuresByCategory, type BusinessType } from '@/lib/nav/features'
 
-const NAV_GROUPS = featuresByCategory()
 
-export function Sidebar() {
+
+export function Sidebar({ businessType }: { businessType?: BusinessType | null }) {
+  // Computed per render, not at module scope: the sidebar is now scoped to the
+  // tenant's industry, so it cannot be a module-level constant shared by all.
+  const NAV_GROUPS = featuresByCategory(businessType)
   const pathname = usePathname()
   const router = useRouter()
   const [open, setOpen] = useState(false)

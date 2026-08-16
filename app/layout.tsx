@@ -15,7 +15,7 @@ const geistSans = Geist({
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://adminos.co.za'
 const APP_NAME = 'AdminOS'
 const APP_DESCRIPTION =
-  'AI-powered business operating system for South African SMEs, NGOs, schools, and clinics. Automate WhatsApp, debt recovery, staff wellness, and get daily AI business briefs. Built for Africa.'
+  'AI-powered business operating system for South African SMEs, trades, agencies, NGOs and schools. Automate WhatsApp, debt recovery, payroll and your SARS compliance calendar, and get daily AI business briefs. Built for Africa.'
 
 export const metadata: Metadata = {
   metadataBase: new URL(APP_URL),
@@ -55,7 +55,8 @@ export const metadata: Metadata = {
     'Zulu Xhosa Afrikaans business software',
     'NGO management system South Africa',
     'school admin system South Africa',
-    'clinic management software South Africa',
+    'construction admin software South Africa',
+    'creative agency management software South Africa',
     // Local (major metros)
     'business software Johannesburg',
     'business software Cape Town',

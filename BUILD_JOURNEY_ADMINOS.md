@@ -1032,3 +1032,132 @@ banner reserves a right gutter on mobile so its buttons clear the widget.
 (`time_entries`), asset/vehicle register, purchase orders, and deposits on
 bookings. Also: `business_type` steers exactly one file, so an attendee picking
 "Construction" gets the identical product to one picking "Retail".
+
+---
+
+## Roadmap after the conference — what to build, and what to copy
+
+Written 16 Aug 2026 from six parallel audits (page inventory, responsive UX, SA
+compliance + security, BBOpsOS mining, JarvisOS mining, six-industry fit).
+Full working plan: `CONFERENCE_READINESS_PLAN.md`.
+
+### The one-sentence diagnosis
+
+**AdminOS models a business's *paperwork* superbly and its *work* barely at all.**
+Compliance, payroll, AR chasing, governance, the signal bus and the autonomy
+governor are genuinely strong. But `projects` has a `budget` column with nothing
+costing against it, `bookings` carry no money, and there is no vehicle, no
+billable hour, no quote. Every operator's first question is about *their* core
+object — vehicle, site, patient, matter, room, edit — and none of them exist.
+That is the whole of the "too basic" feeling, and it is four builds wide.
+
+### Correction to a standing assumption
+
+BBOpsOS is **not** the richer system. It is a 42-file single-tenant mobile staff
+portal with no tables, no suppliers, no inventory and no equipment. AdminOS is
+far larger (~180 API routes, 55 pages, 46 migrations) and ahead on information
+architecture, data presentation and design tokens. `lib/nav/features.ts:2` claims
+it was "Ported from BB-MotherShip-Deluxe" — **that file does not exist there**;
+the comment is stale. Do not port BBOpsOS's nav, badge or card patterns backwards.
+What BBOpsOS genuinely has is *discipline*: closed operational loops and status
+rigour. Take those, not its surface.
+
+### Highest-value builds, in order
+
+| # | Build | Why | Effort |
+|---|---|---|---|
+| 1 | **Deposits + payment links on bookings/invoices** | Both PayFast and Paystack are already wired for AdminOS's *own* billing; nothing exposes them to the tenant's customers. No invoice PDF, no "Pay now". Turns AdminOS from a record of money into a mover of money. Hits hospitality, creative, trades and events at once. | ~5 d |
+| 2 | **Job costing: `time_entries` + rollup into `projects.budget`** | One build serves billable hours, site labour cost, driver hours and edit time — and answers "which jobs actually made money", which no segment can currently answer. | ~8 d |
+| 3 | **Polymorphic asset register** | Vehicles (logistics), plant (construction), kit (creative), devices (clinics). Reuse the proven `professional_licenses` + `licenseRemindersCron` expiry pattern. Makes logistics demoable at all — "where do I add my vehicles?" is asked in the first 30 seconds. | ~7 d |
+| 4 | **Transactional client portal** | `app/portal/[token]/page.tsx` is read-only. Needs document exchange, versioned deliverables with timestamped comments, a client Approve button writing to `audit_log`, e-sign entry and Pay Now. The difference between "a tool I log into" and "the system my clients and I both work in". | ~6 d |
+| 5 | **Proper tax invoice** | No invoice renderer exists at all. Needs "TAX INVOICE" wording, supplier VAT + CIPC number, recipient details at or above R5,000, VAT shown separately — and `COUNT(*)+1` numbering replaced with a per-tenant Postgres sequence (it is non-atomic *and* reuses numbers after a delete; both are VAT Act violations an accountant will spot). | ~5 h |
+| 6 | **EME B-BBEE sworn affidavit generator** | Zero hits for "affidavit"/"EME" in the codebase. Most SA SMEs are EMEs (turnover under R10m) and this single document is the whole of their B-BBEE obligation. Render through the same HTML-to-print path as `lib/payroll/payslipTemplate.ts`. | ~4 h |
+| 7 | **Purchase orders + reorder loop** | `ops/page.tsx:30-31` detects low stock and stops at a sentence. Close it: low stock, draft PO to preferred supplier, approve, receipt posts a `receive` transaction. The only cycle in the product that would touch the physical world. | ~4 d |
+
+### Known dead ends and broken leaves (cheap, do first)
+
+- `/dashboard/valuation` "Recalculate" is a `GET` form to a route returning
+  `NextResponse.json` — it navigates the browser to **raw JSON**.
+- `/dashboard/settings` "Connect" buttons have no `onClick` in a server component.
+- `/dashboard/contacts/[id]` "+ New Invoice" points at `/dashboard/invoices/new`,
+  which **404s**; its Edit and overflow buttons are also dead.
+- `/dashboard/health` renders empty with no manual generate button — and
+  `/dashboard/governance`'s happy-path CTA points straight at it.
+- `/dashboard/calendar` is three stacked lists, not a calendar. Rename or rebuild.
+- `/demo` is 884 lines with **zero API calls** and faked latency; the landing page
+  links to it six times. Label it "sample data" or it reads as dishonest.
+- `/contact` has no form — only `mailto:` links. No lead capture.
+- Referrals never attribute: `signup?ref=` is never read.
+
+### Compliance and security debt
+
+- **POPIA consent is never written.** Columns and the display badge exist; no
+  route sets them. Every contact reads "no consent" forever.
+- **Global rule #3 ("soft delete only, `deleted_at`") is not implemented anywhere** —
+  zero `deleted_at` columns; every delete is hard. That is *good* for POPIA
+  erasure but contradicts the stated rule. Pick one story and write it down.
+- Retention periods are displayed but no job enforces them.
+- Migration files still carry the old `user_metadata` RLS shape even though live
+  policies are fixed — **any new table copy-pasted from them reintroduces a
+  spoofable policy.** Fix the templates.
+- `checkPermission` is called by only 12 of 131 service-role routes.
+- CSP ships `'unsafe-eval' 'unsafe-inline'`, so it provides little XSS protection.
+
+### Port list — proven code from the other repos
+
+**From JarvisOS** (`OneDrive/JarvisOS`) — near-verbatim, mostly needs
+`user_id` to `tenant_id`:
+
+| Source | What it gives |
+|---|---|
+| `src/app/api/finance/import/bank-statement/route.ts:16-158` | SA bank CSV parser (TymeBank, ABSA, Bidvest, FNB, Capitec) — separator auto-detect, four date formats, single-signed or debit/credit columns. **The demo moment: upload a Capitec CSV, watch 200 lines categorise themselves.** Pure, zero coupling. |
+| `src/app/api/finance/tax/route.ts:8-83` | Provisional tax / IRP6 estimator — SARS brackets, rebate, tax-year resolver, IRP6-1/IRP6-2 split with statutory dates. Answers the question SA owners lose sleep over. AdminOS has VAT201 but not income tax. |
+| `src/lib/finance/ledger.ts:75-148` | `buildIncomeStatement` / `buildBalanceSheet` / `buildTrialBalance` — pure functions over `BalanceRow[]`, with a balance check. |
+| `src/lib/finance/ledger.ts:152-262` | `renderStatementHtml` — branded print-to-PDF statement pack. Swap `BRAND` for tenant branding. |
+| `src/inngest/finance/alert-scan.ts:22-95` | Revenue-dip / expense-spike anomaly cron. Keep its two design calls: rolling 30-day windows (not calendar months) and reporting only the single worst category, to avoid alert storms. **Makes the software speak first.** |
+| `src/app/api/ceo/daily-queue/route.ts:8-64` | A *persisted, resolvable* decision queue any worker can write into. AdminOS recomputes "Needs You Now" inline, so it cannot be dismissed or routed to. Keep the empty-state celebration. |
+| `src/inngest/ceo/morning-brief.ts:12-22` | The second Haiku pass that parses a prose brief into a structured execution queue. One extra cheap call turns a paragraph into a checklist. |
+| `src/inngest/ceo/board-deliberation.ts:15-70` | Multi-persona board deliberation. Four SA-SME personas (Accountant, Labour Lawyer, Operator, Banker) in parallel, then synthesis. Feed each the tenant's real signals so advice cites actual numbers. |
+| `src/lib/finance/waterfall.ts` (whole file) + `waterfall-apply.ts` | Closes the Profit-First loop. `app/api/profit-first/route.ts:98-134` calculates allocations and nothing ever applies them. |
+| `src/lib/sanyu/supply-chain.ts:125-355` | Yield-from-stock, limiting input, shopping list, **reorder schedule with projected stockout date and urgency banding**. Directly upgrades AdminOS's low-stock flag into "order from Makro by Thursday or you run out on the 14th". |
+| `src/lib/sanyu/supply-chain.ts:438-490` | WhatsApp-ready supplier-grouped message builders. AdminOS already owns the channel. |
+| `src/lib/marketing/banned-claims.ts:52-67` | Brand-safety gate, written as laws not examples, consumed by both the prompt and a regex test. **AdminOS drafts customer-facing messages on a business's behalf — this is a liability control, not a nicety.** |
+| `src/app/finance/page.tsx:19-120` | `ProgressRing`, `DSOWidget`, `JoyAccountCard` — self-contained SVG components. |
+| `.claude/memory/feedback-empire-standard.md:13` | Adopt as the build gate: *"Does this free the owner from machine work, or does it just store data? If it's just storage, it's not done."* |
+
+**From BBOpsOS** (`OneDrive/BBOpsOS`) — patterns, not files:
+
+| Source | What it gives |
+|---|---|
+| `011_checklists.sql:9-60` + `checklists/actions.ts:49-57,93-99` | Template to dated run to **item snapshot** to gated sign-off. Two non-obvious bits worth keeping: snapshot the template items into the run so editing the template never rewrites history, and refuse sign-off while items remain so the audit record cannot be falsified. The daily-ritual layer AdminOS has no answer for. |
+| `010_world_class.sql:73-90` | Auto-enrol every training module on staff insert. Creating a user *is* onboarding them. |
+| `compliance-item-card.tsx:21-26` | `Record<Union, {label, cls, Icon}>` status config. **Use `Record<Union,...>` not `Record<string,...>`** so adding a status breaks the build instead of silently falling through to grey. |
+| `drill/actions.ts:173-257` | The full auto-remediation loop: score, assign a fix, notify managers, award XP. One user action, five system consequences, zero manager input. |
+
+**Already done from this list:** the compliance status trigger
+(`010_world_class.sql:95-114`) and the recurrence roll-forward shipped 16 Aug.
+
+### Still-unbuilt UI for tables that already exist
+
+The backend is repeatedly ahead of the front door — these are hours, not days:
+
+- **`suppliers`** — full table with `bbbee_level`, `women_owned`, `youth_owned`,
+  `is_community_verified`, plus a working filtered API at
+  `app/api/suppliers/route.ts:30-43`. **No page, no nav entry.** The single most
+  South-African differentiator in the product is invisible. ~2 h.
+- **`/dashboard/staff/[id]`** — `api/staff/[id]/documents` and `/payslips` both
+  exist with no page to reach them. ~half a day.
+- **`/dashboard/inventory/[id]`** — `inventory_transactions` records every
+  movement and nothing displays it.
+- **`professional_licenses`, `safety_incidents`, `employment_equity_data`** — API
+  routes, no UI at all.
+
+### Design-system debt
+
+Five competing colour systems (landing orange/cyan, auth navy+gold, login forest
+green, signup emerald, dashboard indigo+gold), six border-radii in live use, five
+shadow levels over 35 uses, and no spacing scale — 42 dashboard pages open with a
+bare `p-6` and exactly one file in the repo uses a responsive padding pair. Status
+colour maps are duplicated in ~10 places with raw hex bypassing the tokens in all
+five cockpits. A `lib/status.ts` plus a `--space-*` token set would collapse most
+of it.

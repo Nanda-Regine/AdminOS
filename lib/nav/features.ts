@@ -35,6 +35,11 @@ export const CATEGORY_ORDER: { key: FeatureCategory; blurb: string }[] = [
   { key: 'Setup',    blurb: 'Configure' },
 ]
 
+/** Mirrors the `business_type` enum in supabase/schema.sql. */
+export type BusinessType =
+  | 'school' | 'clinic' | 'ngo' | 'retail' | 'property'
+  | 'legal' | 'logistics' | 'trades' | 'other'
+
 export interface Feature {
   href: string
   label: string
@@ -43,6 +48,17 @@ export interface Feature {
   /** Add-on that gates this feature (page still shows a billing gate). */
   requiresAddon?: 'ring' | 'reach'
   exact?: boolean
+  /**
+   * Industries this feature is relevant to. Omit for the universal spine —
+   * invoicing, contacts, staff, compliance — which every business needs.
+   *
+   * Listing industries HIDES the feature from everyone else. Until now
+   * business_type was captured at onboarding and then steered nothing, so a
+   * construction firm and a spaza shop saw an identical 42-item sidebar,
+   * including Stokvel and Creative Assets. That sameness is the seam an
+   * experienced operator finds immediately.
+   */
+  industries?: BusinessType[]
 }
 
 export const FEATURES: Feature[] = [
@@ -73,10 +89,10 @@ export const FEATURES: Feature[] = [
   { href: '/dashboard/ops',       label: 'Ops Cockpit', icon: Boxes,       category: 'Deliver' },
   { href: '/dashboard/bookings',  label: 'Bookings',  icon: CalendarClock, category: 'Deliver' },
   { href: '/dashboard/calendar',  label: 'Calendar',  icon: CalendarDays,  category: 'Deliver' },
-  { href: '/dashboard/inventory', label: 'Inventory', icon: Package,       category: 'Deliver' },
+  { href: '/dashboard/inventory', label: 'Inventory', icon: Package,       category: 'Deliver', industries: ['retail','trades','logistics','clinic','school','ngo'] },
   { href: '/dashboard/tasks',     label: 'Tasks',     icon: ClipboardList, category: 'Deliver' },
   { href: '/dashboard/documents', label: 'Documents', icon: FileText,      category: 'Deliver' },
-  { href: '/dashboard/creative-assets', label: 'Creative Assets', icon: Clapperboard, category: 'Deliver' },
+  { href: '/dashboard/creative-assets', label: 'Creative Assets', icon: Clapperboard, category: 'Deliver', industries: ['other','property','ngo'] },
 
   // ── Team (People) ─────────────────────────────────────────────────────────
   { href: '/dashboard/people',   label: 'People Cockpit', icon: UsersRound, category: 'Team' },
@@ -99,7 +115,7 @@ export const FEATURES: Feature[] = [
   { href: '/dashboard/knowledge-base', label: 'Knowledge Base',    icon: Library,       category: 'Grow' },
   { href: '/dashboard/announcements',  label: 'Announcements',     icon: Megaphone,     category: 'Grow' },
   { href: '/dashboard/community',      label: 'Community',         icon: HandHeart,     category: 'Grow' },
-  { href: '/dashboard/stokvel',        label: 'Stokvel',           icon: PiggyBank,     category: 'Grow' },
+  { href: '/dashboard/stokvel',        label: 'Stokvel',           icon: PiggyBank,     category: 'Grow', industries: ['retail','ngo','trades','other'] },
 
   // ── Setup (footer) ────────────────────────────────────────────────────────
   { href: '/dashboard/settings/autonomy', label: 'Autonomy',    icon: Bot,        category: 'Setup' },
@@ -108,9 +124,29 @@ export const FEATURES: Feature[] = [
   { href: '/dashboard/settings',         label: 'Settings',     icon: Settings,   category: 'Setup' },
 ]
 
-/** Features grouped by category, in value-chain order. */
-export function featuresByCategory(): { key: FeatureCategory; blurb: string; items: Feature[] }[] {
+/**
+ * Is this feature relevant to the given business?
+ *
+ * Fails OPEN, deliberately: an unset or unrecognised business_type shows
+ * everything. Most existing tenants have never set one, and hiding a paid
+ * feature from someone who is entitled to it is a far worse failure than
+ * showing one they don't need.
+ */
+export function isFeatureVisible(f: Feature, businessType?: BusinessType | null): boolean {
+  if (!f.industries) return true
+  if (!businessType) return true
+  return f.industries.includes(businessType)
+}
+
+/** Features grouped by category, in value-chain order, scoped to the business. */
+export function featuresByCategory(
+  businessType?: BusinessType | null
+): { key: FeatureCategory; blurb: string; items: Feature[] }[] {
   return CATEGORY_ORDER
-    .map(({ key, blurb }) => ({ key, blurb, items: FEATURES.filter(f => f.category === key) }))
+    .map(({ key, blurb }) => ({
+      key,
+      blurb,
+      items: FEATURES.filter(f => f.category === key && isFeatureVisible(f, businessType)),
+    }))
     .filter(g => g.items.length > 0)
 }

@@ -137,10 +137,16 @@ const stats = [
   { value: '95+',    label: 'Platform features & automations' },
 ]
 
+// Only sectors AdminOS can actually carry end-to-end. Legal firms, clinics and
+// pharmacies were listed here and have been removed on purpose: attorneys need
+// Section 86 trust accounting, and medical practices need ICD-10 coding and
+// electronic scheme claims. Neither exists, and both are regulatory
+// disqualifiers rather than feature gaps — naming them invites the one question
+// we cannot answer. Financial services was dropped for the same reason (FSCA).
 const industries = [
-  '⚖️ Legal Firms', '🏥 Clinics', '🏫 Schools', '🏢 NGOs',
-  '🛍️ Retail', '🏗️ Property', '🚚 Logistics', '🔧 Trades',
-  '🏦 Financial Services', '🎓 Training Providers', '💊 Pharmacies', '🏠 Estate Agents',
+  '🏗️ Construction & Trades', '🎬 Creative & Media', '💼 Consulting', '🛍️ Retail & Wholesale',
+  '🚚 Logistics & Transport', '🎪 Events & Hospitality', '🧹 Cleaning & Facilities', '🏢 NGOs & Non-profits',
+  '🏫 Schools & Training', '🏠 Property & Rentals', '📊 Accounting & Bookkeeping', '💇 Salons & Wellness',
 ]
 
 // One @graph with three entities: the software, the company, and the FAQ (rich
