@@ -5,8 +5,9 @@ import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import {
   ArrowLeft, Phone, Mail, Building2, Tag, MessageSquare,
-  FileText, CreditCard, Shield, Clock, Edit, Send, MoreHorizontal,
+  FileText, CreditCard, Shield, Clock,
 } from 'lucide-react'
+import { ContactActions } from './ContactActions'
 
 type Contact = {
   id:               string
@@ -179,25 +180,7 @@ export default async function ContactDetailPage({
               </div>
 
               {/* Quick actions */}
-              <div className="flex gap-2 mb-6">
-                {contact.phone && (
-                  <a href={`https://wa.me/${contact.phone.replace(/\D/g, '')}`}
-                    target="_blank" rel="noopener noreferrer"
-                    className="flex-1 inline-flex items-center justify-center gap-2 py-2 rounded-xl text-sm font-medium transition-all"
-                    style={{ background: 'var(--indigo)', color: '#fff' }}>
-                    <Send className="w-3.5 h-3.5" />
-                    Message
-                  </a>
-                )}
-                <button className="w-10 h-10 rounded-xl flex items-center justify-center"
-                  style={{ background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
-                  <Edit className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
-                </button>
-                <button className="w-10 h-10 rounded-xl flex items-center justify-center"
-                  style={{ background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
-                  <MoreHorizontal className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
-                </button>
-              </div>
+              <ContactActions contact={contact} />
 
               {/* Details */}
               <div className="space-y-3">
@@ -361,7 +344,7 @@ export default async function ContactDetailPage({
                     Invoices ({invoices.length})
                   </h3>
                 </div>
-                <Link href={`/dashboard/invoices/new?contact=${contact.id}`}
+                <Link href={`/dashboard/invoices?new=1&contact=${contact.id}`}
                   className="text-xs font-medium"
                   style={{ color: 'var(--indigo-light)' }}>
                   + New Invoice

@@ -742,7 +742,9 @@ export default function DemoPage() {
           .demo-agent-icon { font-size: 20px !important; }
           .demo-agent-name { font-size: 11px !important; }
           .demo-agent-role { display: none !important; }
-          .demo-banner-text { display: none; }
+          .demo-banner-text { font-size: 11px !important; }
+          .demo-banner-text-long { display: none; }
+          .demo-banner-text-short { display: inline !important; }
           .demo-content-area { flex: 1 !important; min-height: 0 !important; overflow-y: auto !important; display: flex; flex-direction: column; }
           .demo-bottom-cta { padding: 10px 16px !important; }
           .demo-top-banner { padding: 8px 12px !important; gap: 8px !important; }
@@ -759,7 +761,10 @@ export default function DemoPage() {
       <div className="demo-top-banner" style={{ background: 'rgba(255,255,255,0.05)', WebkitBackdropFilter: 'blur(20px)', backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,0.08)', padding: '10px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, flexShrink: 0, position: 'relative', zIndex: 2 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <span style={{ background: 'linear-gradient(135deg,#F97316,#06B6D4)', color: '#fff', fontSize: 11, fontWeight: 800, padding: '3px 10px', borderRadius: 20, letterSpacing: 1.5, boxShadow: '0 2px 14px rgba(249,115,22,0.45)' }}>DEMO MODE</span>
-          <span className="demo-banner-text" style={{ color: '#94a3b8', fontSize: 13 }}>Viewing <strong style={{ color: '#f1f5f9' }}>{TENANT}</strong> — fake data, no real API calls</span>
+          <span className="demo-banner-text" style={{ color: '#94a3b8', fontSize: 13 }}>
+            <span className="demo-banner-text-long">Viewing <strong style={{ color: '#f1f5f9' }}>{TENANT}</strong> — fake data, no real API calls</span>
+            <span className="demo-banner-text-short" style={{ display: 'none' }}>Sample data — not live</span>
+          </span>
         </div>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           <button onClick={tourActive ? stopTour : startTour} className="tour-controls" style={{ background: tourActive ? 'rgba(6,182,212,.2)' : 'rgba(255,255,255,.08)', border: `1px solid ${tourActive ? '#06B6D4' : 'rgba(255,255,255,.15)'}`, borderRadius: 8, padding: '7px 14px', color: tourActive ? '#06B6D4' : '#f1f5f9', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>

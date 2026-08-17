@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Modal, FormField, inputCls, inputSty, Btn } from '@/components/ui/modal'
 import { useOpenOnParam } from '@/lib/hooks/useOpenOnParam'
 
@@ -16,14 +16,21 @@ interface Props {
 
 export function CreateInvoiceModal({ contacts }: Props) {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  // Lets an EmptyState CTA (`?new=1`) open this modal from the table below.
-  useOpenOnParam('new', () => setOpen(true))
 
   // Form state
   const [contactId, setContactId] = useState('')
+
+  // Lets an EmptyState CTA (`?new=1`) open this modal from the table below.
+  // A contact detail page can also deep-link `?new=1&contact=<id>` to pre-select the contact.
+  useOpenOnParam('new', () => {
+    const preselect = searchParams.get('contact')
+    if (preselect) setContactId(preselect)
+    setOpen(true)
+  })
   const [description, setDescription] = useState('')
   const [unitPrice, setUnitPrice] = useState('')
   const [quantity, setQuantity] = useState('1')

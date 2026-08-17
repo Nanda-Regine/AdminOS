@@ -112,9 +112,12 @@ export default async function SettingsPage() {
                     {isConnected ? (
                       <Badge variant="green">Connected</Badge>
                     ) : (
-                      <button className="text-sm text-emerald-600 border border-emerald-300 px-3 py-1 rounded-lg hover:on-light bg-emerald-50">
-                        Connect
-                      </button>
+                      <span
+                        title="This integration is on our roadmap and not yet available to connect."
+                        className="text-sm text-[var(--text-dim)] border border-[var(--border)] px-3 py-1 rounded-lg cursor-default"
+                      >
+                        Coming soon
+                      </span>
                     )}
                   </div>
                 </div>

@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { TopBar } from '@/components/dashboard/TopBar'
 import { Card } from '@/components/ui/card'
 import { redirect } from 'next/navigation'
+import { RecalculateButton } from './RecalculateButton'
 
 type Driver = {
   revenue_growth: number
@@ -102,14 +103,7 @@ export default async function ValuationPage() {
                 <p className="text-3xl font-bold text-[var(--text-dim)]">No snapshot yet</p>
               )}
             </div>
-            <form action="/api/valuation" method="GET">
-              <button
-                type="submit"
-                className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg transition-colors"
-              >
-                Recalculate
-              </button>
-            </form>
+            <RecalculateButton />
           </div>
 
           {/* Trend line (sparkline-style) */}

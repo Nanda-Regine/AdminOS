@@ -4,16 +4,20 @@ import { TopBar } from '@/components/dashboard/TopBar'
 import { Card } from '@/components/ui/card'
 import { redirect } from 'next/navigation'
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react'
+import { GenerateHealthScoreButton } from './GenerateHealthScoreButton'
 
 export const dynamic = 'force-dynamic'
 
+// Keys must match `dimension_details` as written by calculateHealthScore /
+// saveHealthSnapshot (lib/intelligence/healthScore.ts:335-341) — not the
+// display labels below.
 type Dimensions = {
   financial?: number
   operational?: number
-  team?: number
+  people?: number
   customer?: number
-  compliance?: number
-  growth?: number
+  legal?: number
+  strategic?: number
   [key: string]: number | undefined
 }
 
@@ -27,10 +31,10 @@ type Snapshot = {
 const DIMENSION_LABELS: { key: keyof Dimensions; label: string; color: string }[] = [
   { key: 'financial',   label: 'Financial',   color: '#22C55E' },
   { key: 'operational', label: 'Operational', color: '#6366F1' },
-  { key: 'team',        label: 'Team',        color: '#F59E0B' },
+  { key: 'people',      label: 'Team',        color: '#F59E0B' },
   { key: 'customer',    label: 'Customer',    color: '#38BDF8' },
-  { key: 'compliance',  label: 'Compliance',  color: '#A78BFA' },
-  { key: 'growth',      label: 'Growth',      color: '#EC4899' },
+  { key: 'legal',       label: 'Compliance',  color: '#A78BFA' },
+  { key: 'strategic',   label: 'Growth',      color: '#EC4899' },
 ]
 
 function ScoreRing({ score }: { score: number }) {
@@ -128,7 +132,8 @@ export default async function HealthPage() {
           <Card>
             <div className="text-center py-12 text-[var(--text-dim)]">
               <p className="text-3xl mb-2">🩺</p>
-              <p className="text-sm">No health snapshots yet. The system generates scores weekly.</p>
+              <p className="text-sm mb-4">No health snapshots yet. The system generates scores weekly — or generate one now.</p>
+              <GenerateHealthScoreButton label="Generate First Snapshot" />
             </div>
           </Card>
         ) : (
@@ -141,6 +146,7 @@ export default async function HealthPage() {
                 <div className="flex-1 space-y-2">
                   <div className="flex items-center gap-3">
                     <h3 className="text-lg font-semibold text-[var(--text-primary)]">Health Score</h3>
+                    <GenerateHealthScoreButton label="Refresh" />
                     {TrendIcon && scoreDelta !== null && (
                       <span
                         className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${
@@ -241,8 +247,8 @@ export default async function HealthPage() {
                             <td className="py-2 text-right font-bold text-[var(--text-primary)]">{snap.overall_score}</td>
                             <td className="py-2 text-right text-[var(--text-muted)]">{dims.financial ?? '—'}</td>
                             <td className="py-2 text-right text-[var(--text-muted)]">{dims.operational ?? '—'}</td>
-                            <td className="py-2 text-right text-[var(--text-muted)]">{dims.team ?? '—'}</td>
-                            <td className="py-2 text-right text-[var(--text-muted)]">{dims.compliance ?? '—'}</td>
+                            <td className="py-2 text-right text-[var(--text-muted)]">{dims.people ?? '—'}</td>
+                            <td className="py-2 text-right text-[var(--text-muted)]">{dims.legal ?? '—'}</td>
                           </tr>
                         )
                       })}

@@ -88,7 +88,7 @@ export const FEATURES: Feature[] = [
   // ── Deliver (Ops) ─────────────────────────────────────────────────────────
   { href: '/dashboard/ops',       label: 'Ops Cockpit', icon: Boxes,       category: 'Deliver' },
   { href: '/dashboard/bookings',  label: 'Bookings',  icon: CalendarClock, category: 'Deliver' },
-  { href: '/dashboard/calendar',  label: 'Calendar',  icon: CalendarDays,  category: 'Deliver' },
+  { href: '/dashboard/calendar',  label: 'Schedule',  icon: CalendarDays,  category: 'Deliver' },
   { href: '/dashboard/suppliers', label: 'Suppliers', icon: Truck,        category: 'Deliver' },
   { href: '/dashboard/inventory', label: 'Inventory', icon: Package,       category: 'Deliver', industries: ['retail','trades','logistics','clinic','school','ngo'] },
   { href: '/dashboard/tasks',     label: 'Tasks',     icon: ClipboardList, category: 'Deliver' },
