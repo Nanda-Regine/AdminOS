@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { ConfirmSubmit } from '@/components/ui/ConfirmSubmit'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import { Users } from 'lucide-react'
 import { AddStaffModal } from './AddStaffModal'
 
@@ -155,7 +156,8 @@ export default async function StaffPage() {
               : null
 
             return (
-              <Card key={member.id}>
+              <Link key={member.id} href={`/dashboard/staff/${member.id}`} className="block transition-transform hover:-translate-y-0.5">
+              <Card className="h-full cursor-pointer hover:border-[var(--border-hover)]">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-700 font-semibold">
@@ -191,6 +193,7 @@ export default async function StaffPage() {
                   <p className="mt-2 text-xs text-[var(--text-dim)]">{member.phone}</p>
                 )}
               </Card>
+              </Link>
             )
           })}
 

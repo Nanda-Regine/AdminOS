@@ -113,6 +113,7 @@ export function InventoryTable({ rows }: { rows: ProductRow[] }) {
       columns={columns}
       filters={filters}
       getRowKey={p => p.id}
+      rowHref={p => `/dashboard/inventory/${p.id}`}
       searchPlaceholder="Search name, SKU, category…"
       initialSort={{ key: 'current_stock', dir: 'asc' }}
       csvFilename="inventory.csv"
