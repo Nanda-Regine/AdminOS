@@ -4,7 +4,13 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 
 // ─── Fake tenant ─────────────────────────────────────────────────────────────
-const TENANT = 'Thabo Dlamini Attorneys'
+// Creative & media (video production) — one of the twelve industries AdminOS
+// actually markets itself to (app/page.tsx's `industries` list). Deliberately
+// NOT a law firm or clinic: both were removed from that list on purpose
+// (Section 86 trust accounting / ICD-10 coding are regulatory disqualifiers,
+// not feature gaps) — this prototype shouldn't contradict that call.
+const TENANT = 'Khumalo Motion Studio'
+const OWNER = 'Naledi'
 const DATE = '14 June 2026'
 
 const AGENTS = [
@@ -20,12 +26,12 @@ const AGENTS = [
 // ─── Live event ticker ────────────────────────────────────────────────────────
 const LIVE_EVENTS = [
   { icon: '💰', agent: 'Chase', text: 'Recovered R8,500 from Sipho Mthembu', time: '09:14', color: '#06B6D4' },
-  { icon: '💬', agent: 'Alex',  text: 'Replied to Fatima Mokoena re: contract', time: '09:18', color: '#F97316' },
+  { icon: '💬', agent: 'Alex',  text: 'Replied to Fatima Mokoena re: wedding highlights reel', time: '09:18', color: '#F97316' },
   { icon: '💚', agent: 'Care',  text: 'Bongani Nkosi wellness check sent', time: '09:22', color: '#22c55e' },
-  { icon: '📄', agent: 'Doc',   text: 'Scanned employment_contract_priya.pdf', time: '09:31', color: '#a78bfa' },
+  { icon: '📄', agent: 'Doc',   text: 'Scanned production_agreement_thusong.pdf', time: '09:31', color: '#a78bfa' },
   { icon: '💰', agent: 'Chase', text: 'Reminder sent — INV-028 R15,000 overdue', time: '09:45', color: '#06B6D4' },
   { icon: '🎓', agent: 'Langa', text: 'New lesson unlocked: "SA Labour Law 101"', time: '10:02', color: '#fbbf24' },
-  { icon: '💬', agent: 'Alex',  text: 'City of Joburg enquiry auto-resolved', time: '10:11', color: '#F97316' },
+  { icon: '💬', agent: 'Alex',  text: 'Thusong Retail Group enquiry auto-resolved', time: '10:11', color: '#F97316' },
   { icon: '📊', agent: 'Insight', text: 'Daily brief ready — revenue up 18%', time: '10:15', color: '#06B6D4' },
 ]
 
@@ -42,20 +48,20 @@ const TOUR_STEPS = [
 
 // ─── Alex ─────────────────────────────────────────────────────────────────────
 const ALEX_CONTACTS = [
-  { name: 'Sipho Mthembu',      time: '09:14', unread: 2, preview: 'Good morning, re: the lease agreement…' },
-  { name: 'Fatima Mokoena',     time: '08:52', unread: 1, preview: 'When will my contract be ready?' },
+  { name: 'Sipho Mthembu',      time: '09:14', unread: 2, preview: 'Good morning, re: our wedding highlights reel…' },
+  { name: 'Fatima Mokoena',     time: '08:52', unread: 1, preview: 'When will our brand video be ready?' },
   { name: 'David van Rensburg', time: 'Yesterday', unread: 0, preview: 'Thanks for the update!' },
   { name: 'Nompumelelo Dube',   time: 'Yesterday', unread: 0, preview: 'Invoice received, processing.' },
 ]
 const ALEX_SCRIPTED: Record<string, { from: string; text: string }[]> = {
   'Sipho Mthembu': [
-    { from: 'sipho', text: 'Good morning. I need to follow up on the lease agreement review.' },
-    { from: 'sipho', text: 'My tenant needs to sign by end of month.' },
-    { from: 'alex',  text: "Hi Sipho 👋 Your lease agreement is ready. I've flagged 3 clauses for your attention before signing — shall I send a summary to WhatsApp?" },
+    { from: 'sipho', text: 'Good morning. I need to follow up on our wedding highlights reel.' },
+    { from: 'sipho', text: 'We need it before our anniversary at the end of the month.' },
+    { from: 'alex',  text: "Hi Sipho 👋 Your wedding highlights reel is ready for review. I've flagged 2 sections that may need a music-licensing swap before final delivery — shall I send you the private preview link?" },
   ],
   'Fatima Mokoena': [
-    { from: 'fatima', text: 'Hi, when will my employment contract be ready?' },
-    { from: 'alex',   text: "Hi Fatima! Contract EMP-2026-044 is 90% complete. Expected tomorrow by 14:00. I'll notify you the moment it's ready to sign 📋" },
+    { from: 'fatima', text: 'Hi, when will our brand video be ready?' },
+    { from: 'alex',   text: "Hi Fatima! Project BRD-2026-044 is 90% complete — colour grading in progress. Expected tomorrow by 14:00. I'll notify you the moment the final cut is ready to review 🎬" },
   ],
 }
 const ALEX_QUICKREPLIES = ['Confirm appointment', 'Request document', 'Check invoice status', 'Schedule callback']
@@ -78,7 +84,7 @@ function AlexAgent() {
     setActive(name)
     setMsgs(ALEX_SCRIPTED[name] ?? [
       { from: 'client', text: 'Hi, I have a question about my case.' },
-      { from: 'alex', text: "Hi there 👋 I'm Alex, the AI inbox assistant for Thabo Dlamini Attorneys. How can I help?" },
+      { from: 'alex', text: "Hi there 👋 I'm Alex, the AI inbox assistant for Khumalo Motion Studio. How can I help?" },
     ])
   }
 
@@ -214,10 +220,10 @@ function ChaseAgent() {
 
 // ─── Care ─────────────────────────────────────────────────────────────────────
 const CARE_STAFF = [
-  { name: 'Thandi Dlamini',   role: 'Paralegal',       score: 82, trend: '↑', last: '2 hrs ago',  flag: false },
-  { name: 'Bongani Nkosi',    role: 'Senior Attorney', score: 61, trend: '↓', last: '1 day ago',  flag: true  },
-  { name: 'Priya Naidoo',     role: 'Conveyancing',    score: 90, trend: '→', last: '3 hrs ago',  flag: false },
-  { name: 'Lebo Sithole',     role: 'Admin',           score: 54, trend: '↓', last: '2 days ago', flag: true  },
+  { name: 'Thandi Dlamini',   role: 'Video Editor',      score: 82, trend: '↑', last: '2 hrs ago',  flag: false },
+  { name: 'Bongani Nkosi',    role: 'Senior Videographer', score: 61, trend: '↓', last: '1 day ago',  flag: true  },
+  { name: 'Priya Naidoo',     role: 'Producer',          score: 90, trend: '→', last: '3 hrs ago',  flag: false },
+  { name: 'Lebo Sithole',     role: 'Admin',             score: 54, trend: '↓', last: '2 days ago', flag: true  },
 ]
 const CARE_RESPONSES = [
   "💚 Wellness check sent to all 4 staff via WhatsApp. Bongani and Lebo flagged — anonymous support resources and SA EAP helpline shared. Follow-up in 48 hours.",
@@ -272,19 +278,19 @@ function CareAgent() {
 
 // ─── Doc ──────────────────────────────────────────────────────────────────────
 const DOC_RESULT = {
-  title: 'Employment Contract — Priya Naidoo',
-  type: 'Employment Agreement',
-  parties: ['Thabo Dlamini Attorneys (Employer)', 'Priya Naidoo (Employee)'],
+  title: 'Production Agreement — Khumalo Motion Studio × Thusong Retail Group',
+  type: 'Client Production Agreement',
+  parties: ['Khumalo Motion Studio (Producer)', 'Thusong Retail Group (Client)'],
   date: '1 May 2026',
   clauses: [
-    { label: 'Probation',     value: '3 months',              flag: false },
-    { label: 'Notice period', value: '4 weeks',               flag: false },
-    { label: 'Non-compete',   value: '24 months — ⚠ long',   flag: true  },
-    { label: 'IP Assignment', value: 'All work product',      flag: false },
-    { label: 'Governing law', value: 'South Africa',          flag: false },
+    { label: 'Usage rights',       value: '12 months, digital only',        flag: false },
+    { label: 'Revision rounds',    value: '2 included',                     flag: false },
+    { label: 'Kill fee',           value: '50% if cancelled after shoot day', flag: false },
+    { label: 'Footage ownership',  value: 'Retained by studio — ⚠ check',   flag: true  },
+    { label: 'Governing law',      value: 'South Africa',                   flag: false },
   ],
   risk: 'Medium',
-  riskDetail: 'Non-compete clause (24 months) may be unenforceable under SA labour law. Recommend reducing to 12 months.',
+  riskDetail: "Footage ownership clause conflicts with the client's verbal expectation of a full raw-footage handover — recommend clarifying before sign-off to avoid a delivery dispute.",
 }
 
 function DocAgent() {
@@ -306,12 +312,12 @@ function DocAgent() {
             onMouseLeave={e => (e.currentTarget.style.borderColor = '#1e3a5f')}
           >
             <div style={{ fontSize: 40, marginBottom: 12 }}>📄</div>
-            <div style={{ fontWeight: 600, color: '#f1f5f9', marginBottom: 6 }}>employment_contract_priya.pdf</div>
+            <div style={{ fontWeight: 600, color: '#f1f5f9', marginBottom: 6 }}>production_agreement_thusong.pdf</div>
             <div style={{ fontSize: 13, color: '#64748b', marginBottom: 20 }}>128 KB · PDF · Ready to scan</div>
             <button style={{ background: '#a78bfa', border: 'none', borderRadius: 8, padding: '10px 24px', color: '#fff', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>Scan with Doc AI →</button>
           </div>
           <div style={{ marginTop: 16, display: 'flex', gap: 8 }}>
-            {['NDA', 'Lease', 'Invoice', 'Will'].map(t => (
+            {['NDA', 'Release Form', 'Invoice', 'Contract'].map(t => (
               <div key={t} onClick={scan} style={{ padding: '8px 14px', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 8, fontSize: 12, color: '#64748b', cursor: 'pointer', transition: 'all .15s' }}
                 onMouseEnter={e => { e.currentTarget.style.borderColor = '#a78bfa'; e.currentTarget.style.color = '#a78bfa' }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)'; e.currentTarget.style.color = '#64748b' }}
@@ -368,8 +374,8 @@ const INSIGHT_METRICS = [
   { label: 'Staff wellness score',value: '71.75',     change: '-4pt', up: false },
 ]
 const INSIGHT_BRIEFS = [
-  `Good morning, Thabo. Here's your ${DATE} daily brief:\n\n💰 Revenue tracking R 127,400 for June — 18% above target. Chase recovered 3 overdue accounts worth R 65,500 this week.\n\n⚠️ Bongani Nkosi's wellness score dropped 12 points — recommend a private check-in today.\n\n📅 Contract deadlines this week: Sipho Mthembu (lease review) due Friday is highest priority.\n\n🔥 Action today: Approve INV-034 (City of Joburg, R 42,000) before the 10:00 deadline.`,
-  `Afternoon snapshot for ${DATE}:\n\n📞 Alex handled 12 WhatsApp messages — 9 resolved automatically, 3 awaiting your reply.\n\n📄 Doc scanned 4 contracts today. 1 flagged: employment agreement non-compete clause (24 months) likely unenforceable — review before Friday signing.\n\n💡 Insight: Clients who receive WhatsApp reminders pay 4.8× faster than email-only. Chase saved your practice an estimated R 18,000 in collection costs this month.`,
+  `Good morning, ${OWNER}. Here's your ${DATE} daily brief:\n\n💰 Revenue tracking R 127,400 for June — 18% above target. Chase recovered 3 overdue accounts worth R 65,500 this week.\n\n⚠️ Bongani Nkosi's wellness score dropped 12 points — recommend a private check-in today.\n\n📅 Delivery deadlines this week: Sipho Mthembu (wedding highlights reel) due Friday is highest priority.\n\n🔥 Action today: Approve INV-034 (Thusong Retail Group, R 42,000) before the 10:00 deadline.`,
+  `Afternoon snapshot for ${DATE}:\n\n📞 Alex handled 12 WhatsApp messages — 9 resolved automatically, 3 awaiting your reply.\n\n📄 Doc scanned 4 client agreements today. 1 flagged: footage ownership clause conflicts with the client's expectations — review before Friday sign-off.\n\n💡 Insight: Clients who receive WhatsApp reminders pay 4.8× faster than email-only. Chase saved your studio an estimated R 18,000 in collection costs this month.`,
 ]
 const BAR_DATA = [
   { label: 'Mon', h: 55 }, { label: 'Tue', h: 80 }, { label: 'Wed', h: 65 },
@@ -425,11 +431,11 @@ const PEN_TEMPLATES = [
   { id: 'proposal', label: '📋 Service proposal' },
 ]
 const PEN_SCRIPTED: Record<string, (t: string) => string> = {
-  whatsapp: t => `Hi [Client Name] 👋\n\n${t ? `Re: ${t}\n\n` : ''}Thabo Dlamini Attorneys — professional, affordable legal services.\n\n✅ Fast turnaround\n✅ POPI compliant\n✅ 15+ years experience\n\nReply YES to book a free 20-minute consultation.\n\n— Thabo Dlamini Attorneys\n📞 011 234 5678`,
-  linkedin: t => `🏛️ Why SA SMEs can't skip legal advice in 2026\n\n${t || 'Contracts protect your business. One dispute without documentation can cost more than a year of legal fees.'}\n\nAt Thabo Dlamini Attorneys:\n→ Verbal agreements gone wrong\n→ Lease clauses that favour landlords\n→ Employee disputes without documentation\n\nAffordable retainer packages from R1,800/month.\n\nDM me or visit thabodlamini.co.za\n\n#LegalAdvice #SouthAfrica #SME #BusinessLaw`,
-  invoice:  t => `Subject: Invoice ${t || 'INV-2026-035'} — Thabo Dlamini Attorneys\n\nDear [Client Name],\n\nPlease find invoice ${t || 'INV-2026-035'} attached.\n\n📋 Amount due: R [AMOUNT]\n📅 Payment due: 30 days from invoice date\n🏦 FNB: Account 62345678901 (Branch 250655)\n\nUse invoice number as reference.\n\nQueries? Reply here or WhatsApp +27 82 123 4567.\n\nWarm regards,\nThabo Dlamini`,
-  reminder: t => `Hi [Client Name] 🔔\n\nFriendly reminder: invoice ${t || 'INV-2026-031'} (R 8,500) was due on 16 April.\n\nPlease arrange payment within 48 hours to avoid further action.\n\n💳 EFT: FNB 62345678901\n💳 PayFast: thabodlamini.co.za/pay\n\nAlready paid? Send proof to accounts@thabodlamini.co.za 🙏`,
-  proposal: t => `SERVICE PROPOSAL\nThabo Dlamini Attorneys\n\nPrepared for: ${t || '[Prospective Client]'}\nDate: ${DATE}\n\n─────────────────────\nSCOPE OF SERVICES\n─────────────────────\n✓ Commercial contract drafting\n✓ Employment law compliance\n✓ Property law & conveyancing\n✓ Dispute resolution\n\n─────────────────────\nPRICING\n─────────────────────\nRetainer (10 hrs/mo): R 4,500/month\nAd hoc rate: R 850/hour\nDocument review: R 350/document\n\n─────────────────────\nNEXT STEPS\n─────────────────────\nSign & return by: 21 June 2026\nKick-off call: 23 June 2026\n\nQuestions? 011 234 5678`,
+  whatsapp: t => `Hi [Client Name] 👋\n\n${t ? `Re: ${t}\n\n` : ''}Khumalo Motion Studio — video production for brands, weddings & content creators.\n\n✅ Fast turnaround\n✅ Full usage rights included\n✅ 8+ years behind the camera\n\nReply YES to book a free 20-minute consultation.\n\n— Khumalo Motion Studio\n📞 011 234 5678`,
+  linkedin: t => `🎥 Why SA brands can't skip professional video in 2026\n\n${t || 'Phone-shot content undersells a brand. One unclear usage-rights conversation can cost more than the shoot itself.'}\n\nAt Khumalo Motion Studio:\n→ Phone-shot content that undersells the brand\n→ No usage-rights clarity before publishing\n→ Missed deadlines with no backup plan\n\nAffordable package rates from R1,800/project.\n\nDM me or visit khumalomotion.co.za\n\n#VideoProduction #SouthAfrica #SME #ContentMarketing`,
+  invoice:  t => `Subject: Invoice ${t || 'INV-2026-035'} — Khumalo Motion Studio\n\nDear [Client Name],\n\nPlease find invoice ${t || 'INV-2026-035'} attached.\n\n📋 Amount due: R [AMOUNT]\n📅 Payment due: 30 days from invoice date\n🏦 FNB: Account 62345678901 (Branch 250655)\n\nUse invoice number as reference.\n\nQueries? Reply here or WhatsApp +27 82 123 4567.\n\nWarm regards,\n${OWNER} Khumalo`,
+  reminder: t => `Hi [Client Name] 🔔\n\nFriendly reminder: invoice ${t || 'INV-2026-031'} (R 8,500) was due on 16 April.\n\nPlease arrange payment within 48 hours to avoid a hold on final footage delivery.\n\n💳 EFT: FNB 62345678901\n💳 PayFast: khumalomotion.co.za/pay\n\nAlready paid? Send proof to accounts@khumalomotion.co.za 🙏`,
+  proposal: t => `SERVICE PROPOSAL\nKhumalo Motion Studio\n\nPrepared for: ${t || '[Prospective Client]'}\nDate: ${DATE}\n\n─────────────────────\nSCOPE OF SERVICES\n─────────────────────\n✓ Full-day shoot (up to 8 hours)\n✓ Professional colour grading & sound mix\n✓ 2 rounds of revisions included\n✓ Delivery in vertical + horizontal cuts\n\n─────────────────────\nPRICING\n─────────────────────\nHalf-day shoot package: R 4,500\nFull-day shoot + edit: R 12,000\nAdditional revision round: R 850\n\n─────────────────────\nNEXT STEPS\n─────────────────────\nSign & return by: 21 June 2026\nKick-off call: 23 June 2026\n\nQuestions? 011 234 5678`,
 }
 
 function PenAgent() {
@@ -490,7 +496,7 @@ const LANGA_FRAMEWORKS = [
 const LANGA_QA: { q: string; a: string }[] = [
   {
     q: "What's the most important thing I can do to improve cash flow right now?",
-    a: "Based on your business profile, your biggest cash flow risk is the 45-day average invoice payment gap. Here are 3 actions specific to a legal practice:\n\n1. **Switch to 50% upfront deposits** for all new matters — standard for SA attorneys.\n2. **Run Chase daily at 08:00** — automated WhatsApp reminders increase collection speed by 60%.\n3. **Offer payment plans via PayFast** for clients > R20,000 — reduces disputes and keeps them paying.\n\nThe 'Float Buffer' framework (Module 3 of Cash Flow Management) covers your 90-day safety net calculation.",
+    a: "Based on your business profile, your biggest cash flow risk is the 45-day average invoice payment gap. Here are 3 actions specific to a creative/production studio:\n\n1. **Switch to 50% upfront deposits** before any shoot day — standard for SA production studios.\n2. **Run Chase daily at 08:00** — automated WhatsApp reminders increase collection speed by 60%.\n3. **Offer payment plans via PayFast** for clients > R20,000 — reduces disputes and keeps them paying.\n\nThe 'Float Buffer' framework (Module 3 of Cash Flow Management) covers your 90-day safety net calculation.",
   },
   {
     q: "One of my employees handed in their notice. What do I need to do?",
@@ -502,13 +508,13 @@ const LANGA_QA: { q: string; a: string }[] = [
   },
   {
     q: "How much is my business worth?",
-    a: "A legal practice like yours is typically valued at **2–3× annual net profit** (EBITDA multiple for SA professional services).\n\n📊 Based on your revenue of R127,400 MTD (annualised ~R1.5M):\n\n| Scenario | Multiplier | Estimated Value |\n|----------|------------|-----------------|\n| Conservative | 2× | R 960,000 |\n| Standard | 2.5× | R 1,200,000 |\n| With systems | 3× | R 1,440,000 |\n\n**The key insight:** A business with documented systems and recurring clients commands 3× vs 1.5× for an owner-dependent practice.\n\nAdminOS tracks your **Exit Readiness Score**. Currently estimated at **41/100** — run the Business Valuation module (Scale plan) to get a full report with your specific uplift actions.",
+    a: "A creative/production studio like yours is typically valued at **1.5–2.5× annual net profit** (lower than a retainer-driven services business, since project-based revenue is less predictable — a real lever you can close).\n\n📊 Based on your revenue of R127,400 MTD (annualised ~R1.5M):\n\n| Scenario | Multiplier | Estimated Value |\n|----------|------------|-----------------|\n| Conservative | 1.5× | R 720,000 |\n| Standard | 2× | R 960,000 |\n| With systems | 2.5× | R 1,200,000 |\n\n**The key insight:** A studio with documented systems and recurring retainer clients commands the top end vs the bottom for one that's fully owner-dependent and one-off-project driven.\n\nAdminOS tracks your **Exit Readiness Score**. Currently estimated at **41/100** — run the Business Valuation module (Scale plan) to get a full report with your specific uplift actions.",
   },
 ]
 
 function LangaAgent() {
   const [msgs, setMsgs] = useState<{ from: 'user' | 'langa'; text: string }[]>([
-    { from: 'langa', text: "Hi Thabo 👋 I'm Langa, your AdminOS business mentor. I've been studying your business — revenue trends, staff wellness, outstanding invoices, compliance calendar.\n\nWhat's on your mind today? I can help with cash flow, hiring, legal compliance, pricing, growth planning, or anything else you're navigating as a South African business owner." },
+    { from: 'langa', text: `Hi ${OWNER} 👋 I'm Langa, your AdminOS business mentor. I've been studying your business — revenue trends, staff wellness, outstanding invoices, compliance calendar.\n\nWhat's on your mind today? I can help with cash flow, hiring, legal compliance, pricing, growth planning, or anything else you're navigating as a South African business owner.` },
   ])
   const [input, setInput] = useState('')
   const [typing, setTyping] = useState(false)
@@ -525,7 +531,7 @@ function LangaAgent() {
         const keywords = qa.q.toLowerCase().split(' ').filter(w => w.length > 4)
         return keywords.some(k => lower.includes(k))
       })
-      const reply = match?.a ?? `That's a great question for a ${TENANT} at your stage. The AdminOS Business Academy has a framework specifically for this — let me pull the most relevant insight from your business data and the 40+ playbooks in the library.\n\n(In the full app, Langa has access to your actual revenue, staff data, compliance calendar, and industry benchmarks to give personalised guidance.)`
+      const reply = match?.a ?? `That's a great question for a business like ${TENANT} at your stage. The AdminOS Business Academy has a framework specifically for this — let me pull the most relevant insight from your business data and the 40+ playbooks in the library.\n\n(In the full app, Langa has access to your actual revenue, staff data, compliance calendar, and industry benchmarks to give personalised guidance.)`
       setMsgs(p => [...p, { from: 'langa', text: reply }]); setTyping(false)
     }, 1800)
   }
