@@ -1161,3 +1161,109 @@ bare `p-6` and exactly one file in the repo uses a responsive padding pair. Stat
 colour maps are duplicated in ~10 places with raw hex bypassing the tokens in all
 five cockpits. A `lib/status.ts` plus a `--space-*` token set would collapse most
 of it.
+
+---
+
+## Session 7 — Conference prep continued (17 August 2026)
+
+Conference confirmed for **19 August (Wednesday)** — corrected from an earlier
+"tomorrow" assumption; two working days, not one.
+
+### `/demo` re-skinned: law firm → creative/media studio
+
+`/demo` (the flagship interactive prototype, linked 6× from the landing page)
+role-played "Thabo Dlamini Attorneys." `app/page.tsx:139-143` deliberately
+excludes legal (and clinic) from the industries AdminOS markets itself to —
+Section 86 trust accounting is a regulatory disqualifier, not a feature gap.
+The demo was contradicting that decision in the most-clicked leave-behind on
+the site. Re-skinned every scripted block to **Khumalo Motion Studio** (Naledi
+Khumalo, video production) — WhatsApp/LinkedIn/invoice/proposal copy, Alex's
+conversations, Care's staff roles, Insight's briefs, Langa's cash-flow and
+valuation answers, and the Doc agent's scanned document (now a client
+production agreement flagging a footage-ownership clause conflict — an
+authentic production-studio risk, not a generic reskin).
+
+### Independent code review of session 6's diff — one real regression caught
+
+Ran `/code-review` on `46c1f60..HEAD` rather than trusting the prior session's
+self-review. Top finding was worse than it read at first: the health-page
+dimension-key fix from session 6 corrected the JSON key *names* to match what
+`saveHealthSnapshot` writes, but never checked what's stored *at* those keys —
+`dimension_details` holds each dimension's `details` object
+(`{totalGoals, futureGoals, ...}`), not its 0–100 score. With the old, wrong
+keys the page silently rendered 0 (annoying, not fatal); with the corrected
+keys it would have rendered an object as a React child and **crashed the page
+outright** the next time someone opened it. Fixed properly this time — the
+page now reads the six real numeric columns (`financial_health`,
+`legal_compliance`, `people_management`, `customer_relations`,
+`operational_maturity`, `strategic_readiness`) instead of `dimension_details`.
+
+Also fixed from the same review: inventory's "stocktake adjustment" could only
+ever increase stock (the API bucketed `adjust` with `receive`/`return` and
+always `Math.abs()`'d the quantity) — a stocktake finding *less* stock than
+the system thinks could never correct down. API now takes `adjust` as a signed
+delta; the modal gained an increase/decrease toggle. `RecalculateButton` and
+`GenerateHealthScoreButton` silently swallowed fetch failures — consolidated
+into one `components/ui/RefreshButton.tsx` that surfaces the error instead of
+fixing the same bug twice in two near-duplicate files. `EditContactModal`
+never reset its form on reopen (edit, Cancel, reopen showed the abandoned
+edit). `CreateInvoiceModal`'s contact deep-link could silently show a blank
+dropdown for a contact outside the first 100 (alphabetical) fetched on
+`/dashboard/invoices` — the contact's name now travels through the URL so the
+modal can render it either way. `avatarColor()` was triplicated verbatim
+across three files; extracted to `lib/ui/avatarColor.ts`.
+
+### Bigger finding: `tenants.business_type` was never persisted by real signups
+
+Tracing the /demo fix into the onboarding flow surfaced something larger than
+a copy problem. The 16 Aug "business_type now scopes the sidebar" feature
+(`e6f7740`) has likely **never actually activated for a single real tenant**.
+
+The primary onboarding flow (Siyanda's AI chat, `app/dashboard/onboarding/
+page.tsx`) asks "what type of business are you?" and uses the answer to
+customise its own example content — but the answer only ever reaches
+`/api/onboarding/progress`, which stores it in Supabase Auth `user_metadata`
+(decorative, chat-only). `/api/onboarding/complete` doesn't touch
+`tenants.business_type` either, and `/api/onboarding/create-tenant` (the
+route that actually inserts the tenant row, called before Siyanda ever
+greets the user) never sets it. Since `isFeatureVisible()` fails open only on
+a NULL `business_type`, and every real tenant's stays NULL forever, the
+industry-scoped sidebar is a silent no-op — the same "backend ahead of the
+front door" class of bug as Suppliers/Licences/the health-score keys, just one
+layer further upstream, and self-inflicted by session 6 shipping the
+*consumer* of a field nothing ever *produces*.
+
+Fixed: `complete()` now POSTs the mapped `business_type` to `/api/settings/
+profile`. That surfaced a second bug in the process — the route
+unconditionally defaulted any omitted `faqs`/`policies`/`tone`/`services`
+field to `''`, so a partial-body caller (like this new one) would have
+silently wiped previously-configured bot training content. Fixed to only
+overwrite fields actually sent, not blank the rest.
+
+Also discovered while fixing this: **three independent, disagreeing lists**
+of "what industries does AdminOS serve" existed simultaneously —
+`app/page.tsx`'s marketed 12, `lib/nav/features.ts`'s 9-value DB enum, and
+`lib/onboarding/examples.ts`'s 13 human-readable labels (which included
+"Legal Services" and "Healthcare / Medical Practice" — directly contradicting
+`app/page.tsx`'s decision) — plus a **fourth**, `/dashboard/settings/
+onboarding`'s hardcoded `<select>`, which offered **"Government /
+Municipality," never a valid value of the `business_type` Postgres enum at
+all.** Selecting it would fail that form with a raw Postgres error on save —
+a confirmed crash bug, not a hypothetical. Fixed: removed Legal/Healthcare
+from the Siyanda picker and Government (+ Legal/Clinic for consistency) from
+the settings dropdown; added Creative & Media to the Siyanda picker with real
+example content (production agreement, footage-ownership FAQ — the same
+vertical /demo was just re-skinned to) and Logistics/Trades to the settings
+dropdown, both previously missing despite being marketed.
+
+Six labels (Cleaning, Consulting, Accounting, Creative & Media, Events,
+Salons) still have no dedicated `business_type` enum value and map to
+`'other'` as a safe fallback. `supabase/migrations/
+20260817_business_type_extend.sql` is written (adds `creative`, `consulting`,
+`events`, `cleaning`, `accounting`, `salons` via `ALTER TYPE ... ADD VALUE`)
+but **not applied** — needs a deliberate run against production, not
+something to do silently from a coding session.
+
+**Still open:** the migration above; `safety_incidents` and
+`employment_equity_data` still have APIs with no UI (same pattern, smaller
+scale); RESEND_API_KEY still dead (deprioritized for the conference).
