@@ -168,17 +168,23 @@ export default function OnboardingPage() {
                   <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Business type</label>
                   <select className="w-full border border-[var(--border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     value={formData.businessType} onChange={(e) => update('businessType', e.target.value)}>
-                    <option value="retail">Retail / Shop</option>
+                    <option value="retail">Retail / Wholesale</option>
                     <option value="school">School / Education</option>
                     <option value="ngo">NGO / Non-profit</option>
-                    <option value="property">Property</option>
+                    <option value="property">Property / Rentals</option>
                     <option value="logistics">Logistics / Transport</option>
                     <option value="trades">Construction / Trades</option>
+                    <option value="creative">Creative & Media</option>
+                    <option value="consulting">Consulting</option>
+                    <option value="events">Events & Hospitality</option>
+                    <option value="cleaning">Cleaning & Facilities</option>
+                    <option value="accounting">Accounting & Bookkeeping</option>
+                    <option value="salons">Salons & Wellness</option>
                     <option value="other">Other</option>
                   </select>
                   {/*
-                    Clinic/Medical, Legal and Government/Municipality were
-                    removed on purpose:
+                    Clinic/Medical, Legal and Government/Municipality are
+                    deliberately absent:
                     - Clinic/Medical and Legal contradict app/page.tsx's
                       `industries` list, which deliberately excludes both —
                       AdminOS lacks ICD-10 coding / medical scheme claims and
@@ -187,7 +193,11 @@ export default function OnboardingPage() {
                     - "Government / Municipality" was never a valid value of
                       the `business_type` Postgres enum (supabase/schema.sql) —
                       selecting it made this form fail with a raw DB error on
-                      save. Every option below IS a real enum value.
+                      save. Every option below IS a real enum value — the
+                      other six were added 2026-08-17 via
+                      supabase/migrations/20260817_business_type_extend.sql,
+                      matching the full twelve industries AdminOS markets
+                      itself to.
                   */}
                 </div>
                 <div>

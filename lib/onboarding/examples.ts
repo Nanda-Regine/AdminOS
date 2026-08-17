@@ -14,6 +14,8 @@ export const BUSINESS_TYPES = [
   'NGO / Non-profit',
   'Accounting & Finance',
   'Property & Real Estate',
+  'Events & Hospitality',
+  'Salons & Wellness',
   'Other',
 ] as const
 
@@ -21,24 +23,25 @@ export type BusinessType = (typeof BUSINESS_TYPES)[number]
 
 /**
  * Maps a BUSINESS_TYPES label to the `business_type` Postgres enum
- * ('school'|'clinic'|'ngo'|'retail'|'property'|'legal'|'logistics'|'trades'|
- * 'other' — see supabase/schema.sql). Several labels above don't have a
- * dedicated enum value yet (Cleaning, Consulting, Accounting, Creative &
- * Media) and fall back to 'other' until the enum is extended — that's a
- * schema migration against production, tracked separately, not done here.
+ * (supabase/schema.sql — extended 2026-08-17 via
+ * supabase/migrations/20260817_business_type_extend.sql to add creative,
+ * consulting, events, cleaning, accounting, salons alongside the original
+ * school|clinic|ngo|retail|property|legal|logistics|trades|other).
  */
 const ENUM_BY_LABEL: Record<BusinessType, string> = {
-  'Cleaning Services':        'other',
+  'Cleaning Services':        'cleaning',
   'Carpentry & Joinery':      'trades',
-  'Creative & Media':         'other',
+  'Creative & Media':         'creative',
   'Education / School':       'school',
   Retail:                     'retail',
   Construction:                'trades',
-  Consulting:                  'other',
+  Consulting:                  'consulting',
   'Logistics & Transport':    'logistics',
   'NGO / Non-profit':         'ngo',
-  'Accounting & Finance':     'other',
+  'Accounting & Finance':     'accounting',
   'Property & Real Estate':   'property',
+  'Events & Hospitality':     'events',
+  'Salons & Wellness':        'salons',
   Other:                      'other',
 }
 
@@ -330,6 +333,52 @@ export const BUSINESS_EXAMPLES: Record<string, BusinessExample> = {
     ],
     staff_role_example: 'Property Agent',
     document_example: 'Offer to purchase or lease agreement',
+  },
+  'Events & Hospitality': {
+    invoice_example: 'Corporate year-end function — 120 guests',
+    invoice_amount: '38000',
+    faq_examples: [
+      {
+        question: 'How far in advance should we book?',
+        answer:
+          'We recommend booking 6–8 weeks ahead for weddings and corporate functions, though shorter notice can sometimes be accommodated. Peak season (Nov–Dec) fills up fastest.',
+      },
+      {
+        question: 'Do you handle catering, or just the venue and planning?',
+        answer:
+          'We offer both — full-service event planning including catering, decor and AV, or venue and coordination only if you are bringing your own vendors.',
+      },
+      {
+        question: "What's your deposit and cancellation policy?",
+        answer:
+          'A 50% deposit secures your date, with the balance due 7 days before the event. Deposits are non-refundable within 30 days of the event date.',
+      },
+    ],
+    staff_role_example: 'Event Coordinator',
+    document_example: 'Event contract or run sheet',
+  },
+  'Salons & Wellness': {
+    invoice_example: 'Colour & cut package — Client Ndlovu',
+    invoice_amount: '850',
+    faq_examples: [
+      {
+        question: 'Do I need to book an appointment?',
+        answer:
+          'Yes, we recommend booking ahead to guarantee your preferred stylist and time slot. Walk-ins are welcome subject to availability.',
+      },
+      {
+        question: "What's your cancellation policy?",
+        answer:
+          'We ask for at least 24 hours notice to cancel or reschedule. Late cancellations may incur a 50% fee.',
+      },
+      {
+        question: 'Do you sell the products you use?',
+        answer:
+          'Yes, all products used in your service are available for purchase at the front desk so you can maintain your look at home.',
+      },
+    ],
+    staff_role_example: 'Stylist',
+    document_example: 'Client consultation card',
   },
   Other: {
     invoice_example: 'Services rendered — Client project',

@@ -35,10 +35,15 @@ export const CATEGORY_ORDER: { key: FeatureCategory; blurb: string }[] = [
   { key: 'Setup',    blurb: 'Configure' },
 ]
 
-/** Mirrors the `business_type` enum in supabase/schema.sql. */
+/**
+ * Mirrors the `business_type` enum in supabase/schema.sql — extended
+ * 2026-08-17 (supabase/migrations/20260817_business_type_extend.sql) to add
+ * the six marketed industries (app/page.tsx) that had no enum value yet.
+ */
 export type BusinessType =
   | 'school' | 'clinic' | 'ngo' | 'retail' | 'property'
   | 'legal' | 'logistics' | 'trades' | 'other'
+  | 'creative' | 'consulting' | 'events' | 'cleaning' | 'accounting' | 'salons'
 
 export interface Feature {
   href: string
@@ -90,10 +95,13 @@ export const FEATURES: Feature[] = [
   { href: '/dashboard/bookings',  label: 'Bookings',  icon: CalendarClock, category: 'Deliver' },
   { href: '/dashboard/calendar',  label: 'Schedule',  icon: CalendarDays,  category: 'Deliver' },
   { href: '/dashboard/suppliers', label: 'Suppliers', icon: Truck,        category: 'Deliver' },
-  { href: '/dashboard/inventory', label: 'Inventory', icon: Package,       category: 'Deliver', industries: ['retail','trades','logistics','clinic','school','ngo'] },
+  { href: '/dashboard/inventory', label: 'Inventory', icon: Package,       category: 'Deliver', industries: ['retail','trades','logistics','clinic','school','ngo','cleaning','salons'] },
   { href: '/dashboard/tasks',     label: 'Tasks',     icon: ClipboardList, category: 'Deliver' },
   { href: '/dashboard/documents', label: 'Documents', icon: FileText,      category: 'Deliver' },
-  { href: '/dashboard/creative-assets', label: 'Creative Assets', icon: Clapperboard, category: 'Deliver', industries: ['other','property','ngo'] },
+  // 'creative' used to arrive here only via the 'other' catch-all (Creative &
+  // Media had no dedicated business_type value before 2026-08-17) — keep
+  // 'other' too so nothing already relying on that catch-all regresses.
+  { href: '/dashboard/creative-assets', label: 'Creative Assets', icon: Clapperboard, category: 'Deliver', industries: ['creative','other','property','ngo'] },
 
   // ── Team (People) ─────────────────────────────────────────────────────────
   { href: '/dashboard/people',   label: 'People Cockpit', icon: UsersRound, category: 'Team' },
