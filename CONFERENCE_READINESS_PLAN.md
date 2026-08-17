@@ -160,12 +160,15 @@ demos loses to a colour-coded status badge on the main table.
 | 2026-08-16 ~15:57 | Fixed: auth form white-on-white inputs; landing mobile menu clipped by `backdrop-filter` containing block; added `/auth/confirm` token-hash route (`51f2c73`) |
 | 2026-08-16 ~16:40 | Fixed: onboarding WhatsApp preview bubbles unreadable; feedback widget covering onboarding CTA + oversized on mobile |
 | 2026-08-16 ~16:41 | Six discovery audits launched |
-| — | *Next: audits land → update §4 and §5 with findings → build* |
+| 2026-08-16 17:40–19:04 | Audits landed; roadmap written into BUILD_JOURNEY_ADMINOS.md. Shipped: sidebar scoped by `business_type`; Suppliers page + form (B-BBEE data reachable); Licences & Permits page (reminders had been firing at an unfillable table); mobile responsiveness pass on dashboard + forms |
+| 2026-08-17 | Closed the roadmap's "known dead ends" punch list: valuation Recalculate (was navigating to raw JSON), settings Connect buttons (honest "Coming soon", no OAuth backend exists for any of the 5), contacts New Invoice 404 + dead Edit button (wired to existing PATCH API), demo mobile disclosure (was CSS-hidden below 700px — the exact width most attendees will use), calendar renamed to "Schedule" (it's leave + invoice-due lists, not a calendar grid). Also fixed in passing: `/dashboard/health` was reading wrong JSON keys, so 3 of 6 dimension bars (Team/Compliance/Growth) always showed 0 regardless of real data — now correct, plus a manual "Generate Now" button since there wasn't one. `tsc --noEmit` clean, pushed to `main`. |
+| — | *Still open before conference: staff/[id] and inventory/[id] pages (backend exists, no UI); RESEND_API_KEY still dead (deprioritized — demo won't touch live signup/invite); demo script (W8) not yet written* |
 
 ---
 
 ## 9. Open decisions for Nanda
 
-1. **Which industry leads the demo?** Determines where polish effort concentrates.
-2. **Deploy cadence** — push to production as we go, or one hardened deploy the night before?
-3. **Jael's access** — `/auth/confirm` is committed but unpushed; her sign-in is blocked until it deploys.
+1. ~~Which industry leads the demo?~~ **Resolved 2026-08-17 (Nanda deferred to Claude's call):** lead with **creative/services** — it has a real live customer story (Jael Malavila, the Kustom Krafts case study) rather than a hypothetical, and Suppliers/B-BBEE gives it a strong SA-differentiator moment mid-demo. If time allows during the walkthrough, retail/trades is the natural second act since Suppliers + Licences just shipped.
+2. **Deploy cadence** — still open. Practice this session has been push-as-we-go (each fix committed, `tsc --noEmit` clean, pushed straight to `main`) since that's what prior sessions did and the working tree needs to stay clean for `git log` to reflect reality. Flag if you'd rather freeze the branch and batch a single deploy tonight instead.
+3. ~~Jael's access~~ — `/auth/confirm` was pushed 2026-08-16 (`46c1f60` is `origin/main`, includes it). **Not independently re-verified this session** — confirm her sign-in works before the conference if she's part of the demo.
+4. **RESEND_API_KEY still dead** (2026-08-17, per Nanda: deprioritized, demo won't touch live signup/invite) — leave as-is for tomorrow, but rotate before onboarding any real attendee post-conference or emails will keep silently vanishing.
