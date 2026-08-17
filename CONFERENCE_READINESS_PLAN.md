@@ -162,7 +162,8 @@ demos loses to a colour-coded status badge on the main table.
 | 2026-08-16 ~16:41 | Six discovery audits launched |
 | 2026-08-16 17:40–19:04 | Audits landed; roadmap written into BUILD_JOURNEY_ADMINOS.md. Shipped: sidebar scoped by `business_type`; Suppliers page + form (B-BBEE data reachable); Licences & Permits page (reminders had been firing at an unfillable table); mobile responsiveness pass on dashboard + forms |
 | 2026-08-17 | Closed the roadmap's "known dead ends" punch list: valuation Recalculate (was navigating to raw JSON), settings Connect buttons (honest "Coming soon", no OAuth backend exists for any of the 5), contacts New Invoice 404 + dead Edit button (wired to existing PATCH API), demo mobile disclosure (was CSS-hidden below 700px — the exact width most attendees will use), calendar renamed to "Schedule" (it's leave + invoice-due lists, not a calendar grid). Also fixed in passing: `/dashboard/health` was reading wrong JSON keys, so 3 of 6 dimension bars (Team/Compliance/Growth) always showed 0 regardless of real data — now correct, plus a manual "Generate Now" button since there wasn't one. `tsc --noEmit` clean, pushed to `main`. |
-| — | *Still open before conference: staff/[id] and inventory/[id] pages (backend exists, no UI); RESEND_API_KEY still dead (deprioritized — demo won't touch live signup/invite); demo script (W8) not yet written* |
+| 2026-08-17 (cont.) | Shipped `staff/[id]` and `inventory/[id]` — the last "backend exists, no UI" gaps from the roadmap. Staff: profile, leave/wellness, documents (new add-document modal), payslips, leave history. Inventory: stock summary + margin, full transaction history, Record Transaction modal against the existing atomic stock-update API. Both list pages now link into their detail pages. `tsc --noEmit` clean, pushed. |
+| — | *Still open before conference: RESEND_API_KEY still dead (deprioritized — demo won't touch live signup/invite); demo script (W8) not yet written* |
 
 ---
 
