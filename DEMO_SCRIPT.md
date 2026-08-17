@@ -1,6 +1,6 @@
 # AdminOS — Conference Demo Script (W8)
 
-**Written:** 2026-08-17 · **Conference:** 2026-08-18 · **Author:** Claude with Nandawula Regine
+**Written:** 2026-08-17 · **Conference:** 2026-08-19 (Wednesday) · **Author:** Claude with Nandawula Regine
 **Companion docs:** `CONFERENCE_READINESS_PLAN.md` (the sprint plan), `BUILD_JOURNEY_ADMINOS.md` (what shipped, roadmap)
 
 > Per the project golden rule, this script goes to memory + the repo before the walkthrough is
@@ -15,17 +15,18 @@ real tenant** — a live customer, not a hypothetical. Resolved 2026-08-17; see
 `CONFERENCE_READINESS_PLAN.md` §9. Retail/trades (Suppliers + B-BBEE, just shipped) is the
 natural second act if there's time or a follow-up question steers there.
 
-**Do not use `/demo` as the primary walkthrough.** It role-plays "Thabo Dlamini Attorneys" — a
-law firm. Legal was *deliberately removed* from the industries AdminOS markets itself to
-(`app/page.tsx:139-143` — Section 86 trust accounting is a regulatory disqualifier, not a
-feature gap AdminOS can close). Walking a law firm on stage the day after that decision was
-written contradicts it in front of the exact audience it's meant to protect. `/demo` is fine as
-a **leave-behind** attendees explore on their own phones afterward — it's now honestly labeled
-sample data on every screen size — just don't drive it live yourself.
+**`/demo` is now safe to use, live or as a leave-behind.** It previously role-played "Thabo
+Dlamini Attorneys" — a law firm, directly contradicting `app/page.tsx`'s deliberate exclusion of
+legal from AdminOS's marketed industries (Section 86 trust accounting is a regulatory
+disqualifier, not a feature gap). Fixed 2026-08-17: re-skinned to **Khumalo Motion Studio**, a
+creative/media agency — the same vertical as the live walkthrough above, so the two now
+reinforce each other instead of contradicting each other. Good as a **second demo path** if
+Jael's tenant has a technical hiccup, and a strong leave-behind either way (honestly labeled
+sample data on every screen size).
 
 ---
 
-## 1. Before you walk on stage (do this tonight or tomorrow morning, not live)
+## 1. Before you walk on stage (do this before Wednesday, not live)
 
 - [ ] **Log into Jael's tenant in advance** and leave the session warm. Her `/auth/confirm`
       route was pushed 16 Aug but the invite email itself can't be trusted — `RESEND_API_KEY`
@@ -146,12 +147,14 @@ volunteering:
   someone asks "can I connect my Xero right now" — answer verbally ("on the roadmap, not
   live yet"), don't open the tab to show them.
 - **Live signup/invite.** Covered in §1 — email is dead.
-- **`/dashboard/settings/onboarding`'s business-type dropdown**, if you're showing how a new
-  tenant sets up. It still offers "Clinic / Medical" and "Legal" as options, which the
-  landing page deliberately does *not* market to (see §0). If a doctor or attorney in the
-  audience picks their real industry there expecting a fit, there's nothing stopping them —
-  this is flagged for a post-conference fix, not something to demo around live, but don't
-  walk through this specific screen if you can avoid it.
+- **Six industries still show "Other" at signup, not their real name** — Creative & Media,
+  Consulting, Events & Hospitality, Cleaning & Facilities, Accounting & Bookkeeping, Salons
+  & Wellness all have onboarding content now (fixed 2026-08-17) but map to the generic
+  `business_type = 'other'` until a database migration lands
+  (`supabase/migrations/20260817_business_type_extend.sql`, written, not yet applied — see
+  the open question in the build journal). Not visibly broken if walked through live — the
+  Siyanda chat still shows correct tailored examples for all twelve — just don't claim the
+  sidebar visibly re-scopes by name for those six specifically.
 
 ---
 
