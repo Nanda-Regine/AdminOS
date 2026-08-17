@@ -147,14 +147,6 @@ volunteering:
   someone asks "can I connect my Xero right now" — answer verbally ("on the roadmap, not
   live yet"), don't open the tab to show them.
 - **Live signup/invite.** Covered in §1 — email is dead.
-- **Six industries still show "Other" at signup, not their real name** — Creative & Media,
-  Consulting, Events & Hospitality, Cleaning & Facilities, Accounting & Bookkeeping, Salons
-  & Wellness all have onboarding content now (fixed 2026-08-17) but map to the generic
-  `business_type = 'other'` until a database migration lands
-  (`supabase/migrations/20260817_business_type_extend.sql`, written, not yet applied — see
-  the open question in the build journal). Not visibly broken if walked through live — the
-  Siyanda chat still shows correct tailored examples for all twelve — just don't claim the
-  sidebar visibly re-scopes by name for those six specifically.
 
 ---
 

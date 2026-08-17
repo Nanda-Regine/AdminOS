@@ -1257,13 +1257,25 @@ vertical /demo was just re-skinned to) and Logistics/Trades to the settings
 dropdown, both previously missing despite being marketed.
 
 Six labels (Cleaning, Consulting, Accounting, Creative & Media, Events,
-Salons) still have no dedicated `business_type` enum value and map to
-`'other'` as a safe fallback. `supabase/migrations/
-20260817_business_type_extend.sql` is written (adds `creative`, `consulting`,
-`events`, `cleaning`, `accounting`, `salons` via `ALTER TYPE ... ADD VALUE`)
-but **not applied** — needs a deliberate run against production, not
-something to do silently from a coding session.
+Salons) had no dedicated `business_type` enum value and mapped to `'other'`
+as a safe fallback. Nanda approved applying the migration this session —
+`supabase/migrations/20260817_business_type_extend.sql` was run directly
+against production via the Supabase Management API (`SUPABASE_ACCESS_TOKEN`
+from `.env.local`, same mechanism as the 14 Aug Phase 0 followup migrations),
+verified before (9 values) and after (15 values) with a read-only enum-range
+query. Then wired through: `mapBusinessTypeToEnum()` now maps all six to
+their real values; added 'Events & Hospitality' and 'Salons & Wellness' to
+Siyanda's picker with real example content (previously missing from the
+picker entirely, not just mismapped); extended `lib/nav/features.ts`'s
+`BusinessType` type; extended the settings dropdown to match. Caught one
+regression before it shipped: Creative Assets was gated on
+`industries: ['other', ...]`, which is exactly what Creative & Media used to
+map to — with a real `'creative'` value now in play, that gate would have
+made Creative Assets *invisible* to creative/media tenants specifically, the
+one segment it exists for. Fixed to `['creative', 'other', ...]`. Also added
+Inventory for `cleaning`/`salons` (both manage physical consumable stock —
+genuine product fit, not just consistency).
 
-**Still open:** the migration above; `safety_incidents` and
-`employment_equity_data` still have APIs with no UI (same pattern, smaller
-scale); RESEND_API_KEY still dead (deprioritized for the conference).
+**Still open:** `safety_incidents` and `employment_equity_data` still have
+APIs with no UI (same pattern, smaller scale); RESEND_API_KEY still dead
+(deprioritized for the conference).
