@@ -14,7 +14,7 @@ const TYPES = [
   { value: 'adjust',   label: 'Stocktake adjustment' },
 ]
 
-const EMPTY = { transactionType: 'receive', quantity: '', unitCost: '', reference: '', notes: '' }
+const EMPTY = { transactionType: 'receive', adjustDirection: 'decrease', quantity: '', unitCost: '', reference: '', notes: '' }
 
 export function RecordTransactionModal({
   productId, unit, currentStock,
@@ -39,12 +39,16 @@ export function RecordTransactionModal({
     const qty = parseInt(form.quantity, 10)
     if (!Number.isFinite(qty) || qty <= 0) { setError('Enter a quantity greater than 0'); return }
 
+    // 'adjust' is the one type that corrects stock either direction — the API
+    // takes it as a signed quantity, so apply the sign from the toggle below.
+    const signedQty = form.transactionType === 'adjust' && form.adjustDirection === 'decrease' ? -qty : qty
+
     setLoading(true)
     try {
       const body = {
         productId,
         transactionType: form.transactionType,
-        quantity: qty,
+        quantity: signedQty,
         unitCost: form.unitCost ? parseFloat(form.unitCost) : undefined,
         reference: form.reference.trim() || undefined,
         notes: form.notes.trim() || undefined,
@@ -84,6 +88,28 @@ export function RecordTransactionModal({
               {TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
             </select>
           </FormField>
+
+          {form.transactionType === 'adjust' && (
+            <FormField label="Direction *">
+              <div className="flex gap-2">
+                {(['decrease', 'increase'] as const).map(dir => (
+                  <button
+                    key={dir}
+                    type="button"
+                    onClick={() => setForm(prev => ({ ...prev, adjustDirection: dir }))}
+                    className="flex-1 px-3 py-2 rounded-lg text-sm font-medium border transition-colors"
+                    style={
+                      form.adjustDirection === dir
+                        ? { background: dir === 'decrease' ? 'rgba(239,68,68,0.15)' : 'rgba(34,197,94,0.15)', color: dir === 'decrease' ? '#F87171' : '#22C55E', borderColor: dir === 'decrease' ? '#F87171' : '#22C55E' }
+                        : { background: 'transparent', color: 'var(--text-muted)', borderColor: 'var(--border)' }
+                    }
+                  >
+                    {dir === 'decrease' ? '↓ Correct down' : '↑ Correct up'}
+                  </button>
+                ))}
+              </div>
+            </FormField>
+          )}
 
           <FormField label={`Quantity *${unit ? ` (${unit})` : ''}`} hint={`Current stock: ${currentStock}${unit ? ` ${unit}` : ''}`}>
             <input name="quantity" type="number" min="1" step="1" required value={form.quantity} onChange={handleChange}

@@ -4,37 +4,38 @@ import { TopBar } from '@/components/dashboard/TopBar'
 import { Card } from '@/components/ui/card'
 import { redirect } from 'next/navigation'
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react'
-import { GenerateHealthScoreButton } from './GenerateHealthScoreButton'
+import { RefreshButton } from '@/components/ui/RefreshButton'
 
 export const dynamic = 'force-dynamic'
 
-// Keys must match `dimension_details` as written by calculateHealthScore /
-// saveHealthSnapshot (lib/intelligence/healthScore.ts:335-341) — not the
-// display labels below.
+// Six real numeric columns on business_health_snapshots (see
+// saveHealthSnapshot, lib/intelligence/healthScore.ts:335-340). Deliberately
+// NOT reading `dimension_details` for these scores: that JSONB column holds
+// each dimension's `details` object (e.g. {totalGoals, futureGoals,
+// overdueGoals} for strategic) — an object, not a 0-100 number — and would
+// crash the render below if used here.
 type Dimensions = {
-  financial?: number
-  operational?: number
-  people?: number
-  customer?: number
-  legal?: number
-  strategic?: number
-  [key: string]: number | undefined
+  financial_health?: number
+  operational_maturity?: number
+  people_management?: number
+  customer_relations?: number
+  legal_compliance?: number
+  strategic_readiness?: number
 }
 
-type Snapshot = {
+type Snapshot = Dimensions & {
   id: string
   overall_score: number
-  dimensions: Dimensions
   created_at: string
 }
 
 const DIMENSION_LABELS: { key: keyof Dimensions; label: string; color: string }[] = [
-  { key: 'financial',   label: 'Financial',   color: '#22C55E' },
-  { key: 'operational', label: 'Operational', color: '#6366F1' },
-  { key: 'people',      label: 'Team',        color: '#F59E0B' },
-  { key: 'customer',    label: 'Customer',    color: '#38BDF8' },
-  { key: 'legal',       label: 'Compliance',  color: '#A78BFA' },
-  { key: 'strategic',   label: 'Growth',      color: '#EC4899' },
+  { key: 'financial_health',     label: 'Financial',   color: '#22C55E' },
+  { key: 'operational_maturity', label: 'Operational', color: '#6366F1' },
+  { key: 'people_management',    label: 'Team',        color: '#F59E0B' },
+  { key: 'customer_relations',   label: 'Customer',    color: '#38BDF8' },
+  { key: 'legal_compliance',     label: 'Compliance',  color: '#A78BFA' },
+  { key: 'strategic_readiness',  label: 'Growth',       color: '#EC4899' },
 ]
 
 function ScoreRing({ score }: { score: number }) {
@@ -97,10 +98,9 @@ export default async function HealthPage() {
 
   const tenantId = user.app_metadata?.tenant_id as string
 
-  // Real column is dimension_details — aliased so render (latest.dimensions) holds.
   const { data: snapshots } = await supabaseAdmin
     .from('business_health_snapshots')
-    .select('id, overall_score, dimensions:dimension_details, created_at')
+    .select('id, overall_score, financial_health, operational_maturity, people_management, customer_relations, legal_compliance, strategic_readiness, created_at')
     .eq('tenant_id', tenantId)
     .order('created_at', { ascending: false })
     .limit(12)
@@ -118,7 +118,7 @@ export default async function HealthPage() {
     scoreDelta < 0 ? TrendingDown :
     Minus
 
-  const dimensions: Dimensions = latest?.dimensions ?? {}
+  const dimensions: Dimensions = latest ?? {}
 
   return (
     <div>
@@ -133,7 +133,7 @@ export default async function HealthPage() {
             <div className="text-center py-12 text-[var(--text-dim)]">
               <p className="text-3xl mb-2">🩺</p>
               <p className="text-sm mb-4">No health snapshots yet. The system generates scores weekly — or generate one now.</p>
-              <GenerateHealthScoreButton label="Generate First Snapshot" />
+              <RefreshButton endpoint="/api/health-score?refresh=true" label="Generate First Snapshot" />
             </div>
           </Card>
         ) : (
@@ -146,7 +146,11 @@ export default async function HealthPage() {
                 <div className="flex-1 space-y-2">
                   <div className="flex items-center gap-3">
                     <h3 className="text-lg font-semibold text-[var(--text-primary)]">Health Score</h3>
-                    <GenerateHealthScoreButton label="Refresh" />
+                    <RefreshButton
+                      endpoint="/api/health-score?refresh=true"
+                      label="Refresh"
+                      className="text-xs font-medium px-2.5 py-1 rounded-lg border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-primary)] disabled:opacity-60"
+                    />
                     {TrendIcon && scoreDelta !== null && (
                       <span
                         className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${
@@ -225,7 +229,6 @@ export default async function HealthPage() {
                     </thead>
                     <tbody className="divide-y divide-[var(--border)]">
                       {trend.map((snap, i) => {
-                        const dims: Dimensions = snap.dimensions ?? {}
                         const isLatest = i === trend.length - 1
                         return (
                           <tr
@@ -245,10 +248,10 @@ export default async function HealthPage() {
                               )}
                             </td>
                             <td className="py-2 text-right font-bold text-[var(--text-primary)]">{snap.overall_score}</td>
-                            <td className="py-2 text-right text-[var(--text-muted)]">{dims.financial ?? '—'}</td>
-                            <td className="py-2 text-right text-[var(--text-muted)]">{dims.operational ?? '—'}</td>
-                            <td className="py-2 text-right text-[var(--text-muted)]">{dims.people ?? '—'}</td>
-                            <td className="py-2 text-right text-[var(--text-muted)]">{dims.legal ?? '—'}</td>
+                            <td className="py-2 text-right text-[var(--text-muted)]">{snap.financial_health ?? '—'}</td>
+                            <td className="py-2 text-right text-[var(--text-muted)]">{snap.operational_maturity ?? '—'}</td>
+                            <td className="py-2 text-right text-[var(--text-muted)]">{snap.people_management ?? '—'}</td>
+                            <td className="py-2 text-right text-[var(--text-muted)]">{snap.legal_compliance ?? '—'}</td>
                           </tr>
                         )
                       })}

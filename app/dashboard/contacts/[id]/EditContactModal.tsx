@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Modal, FormField, inputCls, inputSty, Btn } from '@/components/ui/modal'
 
@@ -32,6 +32,23 @@ export function EditContactModal({ contact, open, onClose }: Props) {
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Modal stays mounted between opens (parent just flips `open`), so state
+  // set once from props would otherwise go stale: edit, Cancel, reopen would
+  // show the abandoned edit instead of the contact's actual saved values.
+  useEffect(() => {
+    if (!open) return
+    setForm({
+      full_name: contact.full_name ?? '',
+      email: contact.email ?? '',
+      phone: contact.phone ?? '',
+      company: contact.company ?? '',
+      contact_type: (contact.contact_type as string) || 'client',
+      notes: contact.notes ?? '',
+    })
+    setError(null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, contact])
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))

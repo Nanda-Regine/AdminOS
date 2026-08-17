@@ -64,18 +64,23 @@ export async function POST(request: Request) {
 
   if (!product) return new NextResponse('Product not found', { status: 404 })
 
-  // Compute stock delta
+  // Compute stock delta. 'adjust' (stocktake correction) is the one type
+  // that must go either way, so it keeps the caller's signed quantity as-is
+  // rather than being forced positive — a stocktake finding less stock than
+  // the system thinks needs to correct DOWN, not just up.
   const sells   = ['sell','damage','transfer']
-  const receives = ['receive','return','adjust']
+  const receives = ['receive','return']
   let delta = body.quantity
 
   if (sells.includes(body.transactionType)) {
     delta = -Math.abs(body.quantity)
-    if (product.current_stock + delta < 0) {
-      return NextResponse.json({ error: 'Insufficient stock' }, { status: 422 })
-    }
   } else if (receives.includes(body.transactionType)) {
     delta = Math.abs(body.quantity)
+  }
+  // else 'adjust': delta stays as the raw signed quantity submitted.
+
+  if (product.current_stock + delta < 0) {
+    return NextResponse.json({ error: 'Insufficient stock' }, { status: 422 })
   }
 
   // Insert transaction + update stock atomically via RPC

@@ -3,7 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { TopBar } from '@/components/dashboard/TopBar'
 import { Card } from '@/components/ui/card'
 import { redirect } from 'next/navigation'
-import { RecalculateButton } from './RecalculateButton'
+import { RefreshButton } from '@/components/ui/RefreshButton'
 
 type Driver = {
   revenue_growth: number
@@ -103,7 +103,7 @@ export default async function ValuationPage() {
                 <p className="text-3xl font-bold text-[var(--text-dim)]">No snapshot yet</p>
               )}
             </div>
-            <RecalculateButton />
+            <RefreshButton endpoint="/api/valuation?refresh=true" label="Recalculate" />
           </div>
 
           {/* Trend line (sparkline-style) */}
