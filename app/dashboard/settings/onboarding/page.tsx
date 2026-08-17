@@ -170,13 +170,25 @@ export default function OnboardingPage() {
                     value={formData.businessType} onChange={(e) => update('businessType', e.target.value)}>
                     <option value="retail">Retail / Shop</option>
                     <option value="school">School / Education</option>
-                    <option value="clinic">Clinic / Medical</option>
                     <option value="ngo">NGO / Non-profit</option>
                     <option value="property">Property</option>
-                    <option value="legal">Legal</option>
-                    <option value="government">Government / Municipality</option>
+                    <option value="logistics">Logistics / Transport</option>
+                    <option value="trades">Construction / Trades</option>
                     <option value="other">Other</option>
                   </select>
+                  {/*
+                    Clinic/Medical, Legal and Government/Municipality were
+                    removed on purpose:
+                    - Clinic/Medical and Legal contradict app/page.tsx's
+                      `industries` list, which deliberately excludes both —
+                      AdminOS lacks ICD-10 coding / medical scheme claims and
+                      Section 86 trust accounting, regulatory disqualifiers
+                      rather than feature gaps.
+                    - "Government / Municipality" was never a valid value of
+                      the `business_type` Postgres enum (supabase/schema.sql) —
+                      selecting it made this form fail with a raw DB error on
+                      save. Every option below IS a real enum value.
+                  */}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Country</label>

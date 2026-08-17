@@ -23,12 +23,17 @@ export async function POST(request: Request) {
     .eq('id', tenantId)
     .single()
 
+  // Only overwrite settings keys the caller actually sent — this route is
+  // called with partial bodies (e.g. onboarding completion only sends
+  // name + businessType), and unconditionally defaulting an omitted field
+  // to '' silently wiped any previously-configured bot training content.
+  const existingSettings = existing?.settings || {}
   const updatedSettings = {
-    ...(existing?.settings || {}),
-    faqs: faqs || '',
-    policies: policies || '',
-    tone: tone || 'warm',
-    services: services || '',
+    ...existingSettings,
+    faqs: faqs !== undefined ? faqs : (existingSettings.faqs ?? ''),
+    policies: policies !== undefined ? policies : (existingSettings.policies ?? ''),
+    tone: tone !== undefined ? tone : (existingSettings.tone ?? 'warm'),
+    services: services !== undefined ? services : (existingSettings.services ?? ''),
   }
 
   const { data: updatedTenant, error } = await supabaseAdmin

@@ -1,8 +1,11 @@
+// Legal Services and Healthcare/Medical Practice are deliberately not offered
+// here — mirrors app/page.tsx's `industries` list, which removed both on
+// purpose (Section 86 trust accounting / ICD-10 coding + scheme claims are
+// regulatory disqualifiers AdminOS cannot close, not feature gaps).
 export const BUSINESS_TYPES = [
   'Cleaning Services',
   'Carpentry & Joinery',
-  'Legal Services',
-  'Healthcare / Medical Practice',
+  'Creative & Media',
   'Education / School',
   'Retail',
   'Construction',
@@ -15,6 +18,33 @@ export const BUSINESS_TYPES = [
 ] as const
 
 export type BusinessType = (typeof BUSINESS_TYPES)[number]
+
+/**
+ * Maps a BUSINESS_TYPES label to the `business_type` Postgres enum
+ * ('school'|'clinic'|'ngo'|'retail'|'property'|'legal'|'logistics'|'trades'|
+ * 'other' — see supabase/schema.sql). Several labels above don't have a
+ * dedicated enum value yet (Cleaning, Consulting, Accounting, Creative &
+ * Media) and fall back to 'other' until the enum is extended — that's a
+ * schema migration against production, tracked separately, not done here.
+ */
+const ENUM_BY_LABEL: Record<BusinessType, string> = {
+  'Cleaning Services':        'other',
+  'Carpentry & Joinery':      'trades',
+  'Creative & Media':         'other',
+  'Education / School':       'school',
+  Retail:                     'retail',
+  Construction:                'trades',
+  Consulting:                  'other',
+  'Logistics & Transport':    'logistics',
+  'NGO / Non-profit':         'ngo',
+  'Accounting & Finance':     'other',
+  'Property & Real Estate':   'property',
+  Other:                      'other',
+}
+
+export function mapBusinessTypeToEnum(label: string): string {
+  return ENUM_BY_LABEL[label as BusinessType] ?? 'other'
+}
 
 interface BusinessExample {
   invoice_example: string

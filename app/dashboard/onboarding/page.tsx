@@ -8,7 +8,7 @@ import { AlexConversation } from '@/components/onboarding/AlexConversation'
 import { DocExtraction } from '@/components/onboarding/DocExtraction'
 import { PenStream } from '@/components/onboarding/PenStream'
 import { LANGUAGES, getMessages, type Language } from '@/lib/onboarding/messages'
-import { BUSINESS_TYPES, getExamples } from '@/lib/onboarding/examples'
+import { BUSINESS_TYPES, getExamples, mapBusinessTypeToEnum } from '@/lib/onboarding/examples'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -306,6 +306,24 @@ export default function OnboardingPage() {
   async function complete() {
     setCompleted(true)
     localStorage.removeItem('adminos_onboarding')
+    // Siyanda asks for business type to customise the chat's own example
+    // content (getExamples above), but nothing wrote it back to the tenant
+    // record — tenants.business_type stayed NULL for every real signup, so
+    // the sidebar's industry scoping (lib/nav/features.ts) silently never
+    // activated. Persist it here, mapped to the DB enum. Best-effort: a
+    // failed save shouldn't block finishing onboarding.
+    try {
+      await fetch('/api/settings/profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: state.businessName || undefined,
+          businessType: state.businessType ? mapBusinessTypeToEnum(state.businessType) : undefined,
+        }),
+      })
+    } catch {
+      // non-blocking
+    }
     await fetch('/api/onboarding/complete', { method: 'POST' })
   }
 
