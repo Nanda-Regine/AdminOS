@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { formatZAR } from '@/lib/format'
 import { StaffDocuments } from './StaffDocuments'
+import { avatarColor } from '@/lib/ui/avatarColor'
 
 type Staff = {
   id:                      string
@@ -71,13 +72,6 @@ const LEAVE_STATUS: Record<string, { bg: string; text: string }> = {
   approved: { bg: 'rgba(34,197,94,0.15)',  text: '#22C55E' },
   pending:  { bg: 'rgba(245,158,11,0.15)', text: '#F59E0B' },
   declined: { bg: 'rgba(239,68,68,0.15)',  text: '#F87171' },
-}
-
-const AVATAR_COLORS = ['#6366F1', '#8B5CF6', '#EC4899', '#0EA5E9', '#10B981', '#F59E0B', '#EF4444', '#14B8A6']
-function avatarColor(id: string): string {
-  let h = 0
-  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0
-  return AVATAR_COLORS[h % AVATAR_COLORS.length]
 }
 
 export default async function StaffDetailPage({

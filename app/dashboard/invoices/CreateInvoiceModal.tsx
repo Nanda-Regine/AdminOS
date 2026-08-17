@@ -23,12 +23,23 @@ export function CreateInvoiceModal({ contacts }: Props) {
 
   // Form state
   const [contactId, setContactId] = useState('')
+  // Only used when a deep-linked contact isn't in `contacts` (which is
+  // capped at 100, alphabetically — see app/dashboard/invoices/page.tsx) —
+  // without this the dropdown would silently show no selection even though
+  // contactId is set correctly underneath.
+  const [preselectedContactName, setPreselectedContactName] = useState<string | null>(null)
 
   // Lets an EmptyState CTA (`?new=1`) open this modal from the table below.
-  // A contact detail page can also deep-link `?new=1&contact=<id>` to pre-select the contact.
+  // A contact detail page can also deep-link `?new=1&contact=<id>&name=<name>`
+  // to pre-select a contact outside that 100-row cap.
   useOpenOnParam('new', () => {
     const preselect = searchParams.get('contact')
-    if (preselect) setContactId(preselect)
+    if (preselect) {
+      setContactId(preselect)
+      if (!contacts.some(c => c.id === preselect)) {
+        setPreselectedContactName(searchParams.get('name'))
+      }
+    }
     setOpen(true)
   })
   const [description, setDescription] = useState('')
@@ -42,6 +53,7 @@ export function CreateInvoiceModal({ contacts }: Props) {
 
   function resetForm() {
     setContactId('')
+    setPreselectedContactName(null)
     setBillToName('')
     setDescription('')
     setUnitPrice('')
@@ -132,6 +144,9 @@ export function CreateInvoiceModal({ contacts }: Props) {
               style={inputSty}
             >
               <option value="">— No contact —</option>
+              {preselectedContactName && (
+                <option value={contactId}>{preselectedContactName}</option>
+              )}
               {contacts.map((c) => (
                 <option key={c.id} value={c.id}>{c.full_name}</option>
               ))}

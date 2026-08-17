@@ -5,6 +5,7 @@ import { ChevronRight, Users } from 'lucide-react'
 import { DataTable, type Column, type FilterDef } from '@/components/ui/DataTable'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { formatZAR } from '@/lib/format'
+import { avatarColor } from '@/lib/ui/avatarColor'
 
 export type ContactRow = {
   id:                string
@@ -55,12 +56,6 @@ function sentimentInfo(score: number | null) {
   return SENTIMENT_LABEL[clamped] ?? null
 }
 
-const AVATAR_COLORS = ['#6366F1', '#8B5CF6', '#EC4899', '#0EA5E9', '#10B981', '#F59E0B', '#EF4444', '#14B8A6']
-function avatarColor(id: string): string {
-  let h = 0
-  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0
-  return AVATAR_COLORS[h % AVATAR_COLORS.length]
-}
 
 export function ContactsTable({ rows }: { rows: ContactRow[] }) {
   const router = useRouter()

@@ -8,6 +8,7 @@ import {
   FileText, CreditCard, Shield, Clock,
 } from 'lucide-react'
 import { ContactActions } from './ContactActions'
+import { avatarColor } from '@/lib/ui/avatarColor'
 
 type Contact = {
   id:               string
@@ -58,16 +59,6 @@ const TYPE_COLORS: Record<string, { bg: string; text: string }> = {
   supplier: { bg: 'rgba(245,158,11,0.15)',  text: '#F59E0B' },
   staff:    { bg: 'rgba(34,197,94,0.15)',   text: '#22C55E' },
   unknown:  { bg: 'rgba(148,163,184,0.12)', text: '#94A3B8' },
-}
-
-const AVATAR_COLORS = [
-  '#6366F1', '#8B5CF6', '#EC4899', '#0EA5E9',
-  '#10B981', '#F59E0B', '#EF4444', '#14B8A6',
-]
-function avatarColor(id: string): string {
-  let h = 0
-  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0
-  return AVATAR_COLORS[h % AVATAR_COLORS.length]
 }
 
 function initials(name: string | null, phone: string | null): string {
@@ -344,7 +335,7 @@ export default async function ContactDetailPage({
                     Invoices ({invoices.length})
                   </h3>
                 </div>
-                <Link href={`/dashboard/invoices?new=1&contact=${contact.id}`}
+                <Link href={`/dashboard/invoices?new=1&contact=${contact.id}&name=${encodeURIComponent(contact.full_name || contact.phone || '')}`}
                   className="text-xs font-medium"
                   style={{ color: 'var(--indigo-light)' }}>
                   + New Invoice
