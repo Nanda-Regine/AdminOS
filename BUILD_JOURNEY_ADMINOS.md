@@ -1279,3 +1279,55 @@ genuine product fit, not just consistency).
 **Still open:** `safety_incidents` and `employment_equity_data` still have
 APIs with no UI (same pattern, smaller scale); RESEND_API_KEY still dead
 (deprioritized for the conference).
+
+## Session 8 (2026-08-18) — Safety Incidents & Employment Equity pages
+
+Closed the last two items on the "backend exists, no UI" punch list —
+`safety_incidents` and `employment_equity_data`, both flagged since Session 7.
+
+**Safety Incidents** (`app/dashboard/safety/page.tsx` +
+`app/dashboard/safety/SafetyClient.tsx`): server component fetches
+`safety_incidents` joined to `staff(full_name)` plus the tenant's staff list,
+same shape as `app/dashboard/licenses/page.tsx`. Client mirrors
+`LicensesClient`/`AddSupplierModal`'s structure — `DataTable` with a
+colour-coded incident-type badge (near_miss/minor_injury → amber, major_injury
+/fatality → red, property_damage/environmental → neutral), a type filter, and
+a client-side date-range filter (two date inputs narrowing the row set before
+`DataTable`'s own search/filter run — matches the GET route's `from`/`to`
+params without a second round trip, same call as Licences' fully-client-side
+filtering). "Report incident" modal covers the full POST schema: staff select,
+date, type, description, location, comma-separated witnesses, immediate
+action, root cause, corrective action, and an IOD-reported checkbox that
+reveals a reference-number field. Major injury/fatality already
+auto-raises a COIDA compliance item server-side (`app/api/safety/route.ts`)
+— nothing to add there.
+
+One correction made versus the pattern doc's literal suggestion: the API
+embeds `staff:staff(full_name, role)` and `app/dashboard/staff/page.tsx`
+selects `full_name` — but `app/dashboard/licenses/page.tsx`'s own staff query
+selects a `name` column that **does not exist** on `staff`
+(`supabase/schema.sql` only has `full_name`). That looks like a live bug in
+the shipped Licences page, pre-existing and out of scope here — flagging it
+rather than copying it forward. The new Safety page selects `id, full_name`
+throughout.
+
+**Employment Equity** (`app/dashboard/settings/employment-equity/page.tsx` +
+`EmploymentEquityClient.tsx`): placed under `settings/` alongside
+`settings/compliance` (POPIA) since it's the same "internal compliance data
+collection" shape, not an operational list page. Server component fetches the
+current year's `employment_equity_data` row (or a template if none exists
+yet, mirroring `app/api/ee/route.ts`'s own GET fallback). Client has a year
+selector (fetches `/api/ee?year=` on change), a 10-field race×gender
+demographics grid (African/Coloured/Indian/White/Foreign × Male/Female) plus
+disabled count and total workforce, a live demographics-total vs
+total-workforce mismatch hint, PATCH-backed save, and a "Download EEA2
+Report" button linking straight to `/api/ee/report?year=&download=true`
+(new tab). Explanatory copy states plainly this is internal data collection
+only — the real EEA2/EEA4 submission still goes through the DoEL's own
+system.
+
+Both wired into `lib/nav/features.ts` under **Govern**, no `industries`
+restriction (universal OHS/labour-law compliance, same spine as Licences):
+`Safety Incidents` (`ShieldAlert`) and `Employment Equity` (`PieChart`) —
+both icons confirmed present in the installed `lucide-react` before use.
+`tsc --noEmit` clean, pushed to `main`.
