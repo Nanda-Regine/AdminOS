@@ -1331,3 +1331,31 @@ restriction (universal OHS/labour-law compliance, same spine as Licences):
 `Safety Incidents` (`ShieldAlert`) and `Employment Equity` (`PieChart`) —
 both icons confirmed present in the installed `lucide-react` before use.
 `tsc --noEmit` clean, pushed to `main`.
+
+## Session 8 continued — tester tenant fully seeded
+
+Wrote `scripts/seed-demo-tenant.mjs`, an idempotent (check-then-insert per
+table) seed script for the QA tenant "Mzansi Test Traders"
+(`c1336f9c-0617-46f2-978f-605da9ad2ebc`) — a general dealer/hardware persona
+in East London. Seeded staff (9, varied job level/gender/race for EE),
+contacts (14), suppliers (9, with B-BBEE levels), products (14, some below
+reorder level) + inventory_transactions (16), invoices (14, all 7 live
+`invoice_status` values incl. the undocumented `draft`/`sent`/`overdue`/
+`cancelled` the enum actually carries in prod beyond schema.sql's four),
+expenses (10), contracts (7), booking_services (3) + bookings (10), tasks
+(13), goals (7), professional_licenses (6, incl. one expired, one expiring
+soon), safety_incidents (6, mixed non-fatal types), employment_equity_data
+(2026, demographics reconciled to the seeded staff), and two
+business_health_snapshots (trend). Every row carries the tenant's UUID;
+`compliance_items` untouched (already the standard 19 from
+`seed_compliance_calendar`). Discovered `@supabase/supabase-js`'s import
+hangs indefinitely in this shell — rewrote the script on plain `fetch()`
+against PostgREST with the service-role key instead.
+
+**Real bug found, not fixed (flagged for Nanda):** `documents` INSERT is
+broken for every tenant, always — the `trg_document_processing` trigger's
+`fn_trigger_doc_pipeline()` reads `NEW.status`, a column that does not exist
+on `documents` (the real column is `processing_status`), so Postgres throws
+`42703` on any insert regardless of values. Seed script catches this and
+logs the table as skipped rather than crashing the whole run. `tsc --noEmit`
+clean, pushed to `main`.
