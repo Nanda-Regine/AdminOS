@@ -1352,10 +1352,27 @@ business_health_snapshots (trend). Every row carries the tenant's UUID;
 hangs indefinitely in this shell — rewrote the script on plain `fetch()`
 against PostgREST with the service-role key instead.
 
-**Real bug found, not fixed (flagged for Nanda):** `documents` INSERT is
-broken for every tenant, always — the `trg_document_processing` trigger's
-`fn_trigger_doc_pipeline()` reads `NEW.status`, a column that does not exist
-on `documents` (the real column is `processing_status`), so Postgres throws
-`42703` on any insert regardless of values. Seed script catches this and
-logs the table as skipped rather than crashing the whole run. `tsc --noEmit`
-clean, pushed to `main`.
+**Real bug found, not fixed in that session (flagged for Nanda):** `documents`
+INSERT is broken for every tenant, always — the `trg_document_processing`
+trigger's `fn_trigger_doc_pipeline()` reads `NEW.status`, a column that does
+not exist on `documents` (the real column is `processing_status`), so
+Postgres throws `42703` on any insert regardless of values. Seed script
+caught this and logged the table as skipped rather than crashing the whole
+run. `tsc --noEmit` clean, pushed to `main`.
+
+### Session 9 — fixed the documents-insert trigger bug
+
+Nanda approved the fix immediately. The corrected function already existed
+*on paper* in `supabase/master_schema.sql` (commented `-- FIX: was using
+NEW.status (wrong)...`) — it had just never been applied to production, and
+also fixed a second latent bug in the same function nobody had hit yet:
+`NEW.storage_path` (doesn't exist) → `NEW.storage_url` (the real column).
+Applied that exact corrected `fn_trigger_doc_pipeline()` + trigger directly
+to production via the Supabase Management API, then verified live: inserted
+5 realistic documents into Mzansi Test Traders (mixed `processing_status`
+values including `'processing'`, which is what fires the trigger) — the
+insert that used to throw `42703` now succeeds, and `workflow_queue` shows
+the correct `document_uploaded` payload with `storage_url` populated.
+Codified as `supabase/migrations/20260819_fix_doc_pipeline_trigger.sql` so
+it's reproducible for local dev / any future environment, not just a live
+prod patch. `documents` for Mzansi Test Traders: 0 → 5.
