@@ -1713,23 +1713,34 @@ detail this list intentionally compresses.
    fixed in the same pass: `orchestrator.ts`'s `run()`/`stream()` never
    called `recordUsage` — `pen`'s real live traffic was unmetered too.
    → same memory file for original audit detail.
-3. **31+ dashboard pages have zero permission check** — auth-only, not
-   authorization, and the original "31" count is itself stale: the
-   sweep behind it only checked one directory level and missed 6 more
-   unprotected pages nested under `app/dashboard/settings/*`. **12 of
-   the original 31 fixed** (staff list/detail Session 11; payroll,
-   settings/billing, cashflow, compliance [Compliance Calendar — not
-   the distinct settings/compliance page], contracts, expenses,
-   invoices, safety, suppliers, valuation Session 12). **Remaining:**
-   the other 19 from the original list (analytics, announcements,
-   board-pack, bookings, calendar, contacts, dashboard root,
-   getting-started, handbook, health, inventory, ir-log,
-   knowledge-base, licenses, reach, ring, settings, sequences, stokvel,
-   tasks, team, workflow-monitor) **plus** 6 newly-found ones
-   (`settings/{root,autonomy,compliance,employment-equity,onboarding,
-   referrals}`). Each still needs its permission picked deliberately
-   from `DEFAULT_ROLE_PERMISSIONS` (`lib/auth/permissions.ts`), not a
-   blanket find-replace. → memory `adminos-page-level-authorization-gap`.
+3. ~~**Dashboard pages have zero permission check.**~~ **Server-component
+   sweep closed Session 13 (2026-08-21, same day as Session 12,
+   commit `c4ad6f2`).** 12 fixed Session 12 + 27 more fixed Session 13
+   (the Session 12 "19+6 remain" count was itself stale — a fresh sweep
+   found 45 open pages, not 25). **What's left is a different shape of
+   problem, not more of the same list:**
+   - 8 client-component pages can't use the page-gate pattern at all
+     (creative-assets, documents, email-studio, inbox, langa,
+     onboarding, sequences/new, settings/onboarding) — need the check
+     added at the API routes they call (several of which — `/api/
+     sequences`, `/api/settings/profile`, `/api/onboarding/add-staff`
+     — have no permission check either), or RLS for the ones
+     (inbox, creative-assets, documents) that read Supabase directly
+     from the client with no API route in between.
+   - `app/dashboard/page.tsx` (dashboard root) can't take a hard gate —
+     it's the universal post-login landing page for every role, but
+     renders real financial data. Needs role-scoped rendering, a
+     genuine design decision, not a mechanical fix.
+   - `community/page.tsx` looks like an intentional cross-tenant forum
+     (nullable `tenant_id`), not a gating bug — verify before touching.
+   - `tasks` needs a new `view_tasks`-shaped permission that doesn't
+     exist yet; nothing in the current union fits without misapplying.
+   - New `view_communications` permission (owner/admin only) added for
+     `/dashboard/ring`. **Backfill migration
+     `20260821_add_view_communications_permission.sql` written but not
+     yet applied to prod** — do that before relying on the gate for
+     tenants provisioned before 2026-08-21.
+   → memory `adminos-page-level-authorization-gap` for full detail.
 
 ### P1 — decide the AI agent system's shape
 
@@ -1747,6 +1758,20 @@ detail this list intentionally compresses.
    deletion once confirmed nothing external depends on it.
 6. **No test coverage of the orchestrator, Langa, or any `/api/agents/*`
    route.** `app/api/health/route.ts` checks DB/Redis/API-key presence only.
+6a. ~~**`boardPack.ts` was a 4th unmetered AI pipeline.**~~ **Fixed Session 13
+   (2026-08-21, commit `c4ad6f2`)** — same bug as P0#1, just not caught in
+   that sweep. Now routes through `checkBudget`/`recordUsage`/
+   `getModelForFeature('board_pack', plan)` with a graceful fallback.
+6b. **8 empty `app/api/cron/*` directories** (daily-brief, debt-recovery,
+   escalate-conversations, fan-out-brief, fan-out-wellness, process-queue,
+   sequences, wellness) — confirmed dead 2026-08-21, Inngest fully replaced
+   them, only docs still reference the old paths. Safe to delete, not done.
+6c. **3 Inngest functions run with no `step.run`/try-catch isolation**
+   (`impactSnapshot.ts`, `payrollReminder.ts`, `streakChecker.ts`) — a
+   mid-run failure loses all partial progress on retry; `payrollReminder.ts`
+   is the worst case (retry re-sends reminders already sent in the failed
+   attempt). Each needs its own retry semantics considered, not a blanket
+   wrap. → memory `adminos-automations-layer-audit-2026-08-21`.
 
 ### P2 — the product-value gap ("paperwork, not work")
 
@@ -1800,17 +1825,29 @@ this list has been built since:
     shape** — live policies are fixed, but any new table copy-pasted from
     the templates reintroduces the hole. Fix the templates themselves.
 
-### P4 — known dead-end bugs (flagged 16 Aug, not confirmed fixed since — verify first)
+### P4 — known dead-end bugs (verified 2026-08-21 Session 13 — 21–23 fixed since 16 Aug, 24–25 still true)
 
-21. `/dashboard/valuation` "Recalculate" navigates the browser to raw JSON
-    (a `GET` form pointed at a route returning `NextResponse.json`).
-22. `/dashboard/settings` "Connect" buttons have no `onClick` (server
-    component).
-23. `/dashboard/contacts/[id]` "+ New Invoice" 404s (`/dashboard/invoices/
-    new` doesn't exist); its Edit and overflow buttons are also dead.
-24. `/dashboard/calendar` is three stacked lists, not a calendar.
-25. Referrals never attribute — `signup?ref=` is never read.
-26. `/contact` has no form, only `mailto:` links — no lead capture.
+21. ~~`/dashboard/valuation` "Recalculate" navigates to raw JSON.~~
+    **Confirmed fixed** — now `components/ui/RefreshButton.tsx`, a proper
+    client-side fetch + `router.refresh()` with error surfacing.
+22. ~~`/dashboard/settings` "Connect" buttons have no `onClick`.~~
+    **Confirmed fixed** — integrations now show a "Connected" badge or a
+    disabled "Coming soon" span, no dead button exists.
+23. ~~`/dashboard/contacts/[id]` "+ New Invoice" 404s; Edit/overflow dead.~~
+    **Confirmed fixed** — "+ New Invoice" deep-links
+    `/dashboard/invoices?new=1&contact=<id>&name=<name>` into
+    `CreateInvoiceModal.tsx`, which reads all three params correctly via
+    `useSearchParams`. The old Edit/overflow buttons no longer exist on the
+    page at all.
+24. **Still true.** `/dashboard/calendar` renders a 2-column grid + `<table>`
+    (leave requests + invoices due), not a month/week calendar view.
+25. **Still true.** No `ref=`/`referred_by`/`referral_code` read anywhere in
+    signup or onboarding — `app/dashboard/settings/referrals/page.tsx` shows
+    the tenant's own code and rewards, but nothing captures an incoming
+    referral. The referral program has no attribution mechanism at all.
+26. ~~`/contact` has no form, only `mailto:` links.~~ **Downgraded, not a
+    live bug** — the page has a real lead-capture path (Cal.com "Book a
+    Demo" booking link) plus mailto: for sales/support/legal.
 
 ### P5 — infra/monitoring (dated June, unverified since — confirm still true before building)
 
@@ -1824,5 +1861,6 @@ this list has been built since:
 Source memory files for full detail behind every item above:
 `adminos-post-conference-audit-2026-08-20`,
 `adminos-page-level-authorization-gap`,
-`adminos-agent-system-disconnected-2026-08-21`.
+`adminos-agent-system-disconnected-2026-08-21`,
+`adminos-automations-layer-audit-2026-08-21`.
    scope; not a code fix.
