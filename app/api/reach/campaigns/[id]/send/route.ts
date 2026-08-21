@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { requireAddon } from '@/lib/billing/gates'
+import { requirePermission } from '@/lib/auth/permissions'
 import { sendWhatsAppMessage } from '@/lib/whatsapp/send'
 
 export const runtime = 'nodejs'
@@ -18,6 +19,12 @@ export async function POST(
     await requireAddon('reach')
   } catch {
     return NextResponse.json({ error: 'Reach add-on required' }, { status: 403 })
+  }
+
+  try {
+    await requirePermission('send_broadcasts')
+  } catch {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
   const { id } = await params

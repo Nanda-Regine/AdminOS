@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { requirePermission } from '@/lib/auth/permissions'
 
 // GET /api/staff/[id]/payslips
 // Returns all payslips for a specific staff member. Tenant ownership is enforced.
@@ -14,6 +15,14 @@ export async function GET(
 
   const tenantId = user.app_metadata?.tenant_id as string
   if (!tenantId) return new NextResponse('No tenant', { status: 400 })
+
+  // staff has no auth-user linkage column today, so self-ownership can't be
+  // checked here — gating on view_payroll (owner/admin only by default,
+  // same as payroll/run and payroll/emp201) is what closes the "any
+  // colleague can see any salary" gap for now.
+  try { await requirePermission('view_payroll') } catch {
+    return new NextResponse('Forbidden', { status: 403 })
+  }
 
   const { id: staffId } = await params
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { requireAddon } from '@/lib/billing/gates'
+import { requirePermission } from '@/lib/auth/permissions'
 import { sendWhatsApp } from '@/lib/whatsapp/send'
 import { Redis } from '@upstash/redis'
 
@@ -44,6 +45,12 @@ export async function POST(request: NextRequest) {
     await requireAddon('reach')
   } catch {
     return NextResponse.json({ error: 'Reach add-on required' }, { status: 402 })
+  }
+
+  try {
+    await requirePermission('send_broadcasts')
+  } catch {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
   const tenantId = user.app_metadata?.tenant_id as string
