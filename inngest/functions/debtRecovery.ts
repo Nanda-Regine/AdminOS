@@ -8,6 +8,7 @@ import { writeAuditLog } from '@/lib/security/audit'
 import { notifyTenant } from '@/lib/notifications/notify'
 import { getTenantAutonomy } from '@/lib/autonomy/config'
 import { resolveTier } from '@/lib/autonomy/tiers'
+import { checkBudget, recordUsage, getModelForFeature } from '@/lib/ai/costControls'
 import Anthropic from '@anthropic-ai/sdk'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
@@ -34,7 +35,7 @@ export const debtRecoveryEngine = inngest.createFunction(
           .single(),
         supabaseAdmin
           .from('tenants')
-          .select('name, settings, system_prompt_cache, language_primary')
+          .select('name, plan, settings, system_prompt_cache, language_primary')
           .eq('id', tenant_id)
           .single(),
       ])
@@ -126,6 +127,7 @@ export const debtRecoveryEngine = inngest.createFunction(
       const days = daysOverdue(inv.due_date)
       const tenantName = context.tenant?.name ?? 'our business'
       const lang = context.tenant?.language_primary ?? 'en'
+      const plan = context.tenant?.plan ?? 'trial'
 
       // Only tiers 1-3 reach here — anything higher stopped at the owner-review gate above.
       const toneMap: Record<number, string> = {
@@ -134,8 +136,21 @@ export const debtRecoveryEngine = inngest.createFunction(
         3: 'courteous but clear notice',
       }
 
+      // Budget check — this is a live, automated pipeline (daily sweep across every
+      // overdue invoice for every tenant), so it must be metered like any other AI call.
+      // A blocked check returns null rather than throwing: the sweep re-evaluates and
+      // retries next run, same as a deferred/blocked-by-guard send below.
+      const budget = await checkBudget(tenant_id, plan, 300)
+      if (!budget.allowed) {
+        console.warn(`[AI:blocked] tenant=${tenant_id} feature=chase_message reason=${budget.reason}`)
+        return null
+      }
+
+      const model = getModelForFeature('chase_message', plan)
+      const t0 = Date.now()
+
       const response = await anthropic.messages.create({
-        model: 'claude-haiku-4-5-20251001',
+        model,
         max_tokens: 300,
         messages: [{
           role: 'user',
@@ -153,7 +168,19 @@ Reply ONLY with the message text.`,
         }],
       })
 
-      return response.content[0].type === 'text' ? response.content[0].text : ''
+      const text = response.content[0].type === 'text' ? response.content[0].text : ''
+
+      void recordUsage({
+        tenantId:   tenant_id,
+        plan,
+        feature:    'chase_message',
+        model,
+        tokensIn:   response.usage.input_tokens,
+        tokensOut:  response.usage.output_tokens,
+        durationMs: Date.now() - t0,
+      })
+
+      return text
     })
 
     const templateMap: Record<number, string> = {
@@ -165,6 +192,18 @@ Reply ONLY with the message text.`,
     const sendResult = await step.run('send-message', async () => {
       const phone = context.invoice!.contact_phone
       if (!phone) return { sent: false as const, reason: 'no_phone' }
+
+      if (!message) {
+        await writeAuditLog({
+          tenantId: tenant_id,
+          actor: 'chase',
+          action: 'debt_recovery_deferred_budget',
+          resourceType: 'invoice',
+          resourceId: invoice_id,
+          metadata: { tier },
+        })
+        return { sent: false as const, reason: 'budget_exceeded' }
+      }
 
       // Belt and braces: the gate above already returned for tier > AUTO_SEND_MAX_TIER.
       // If a future edit moves that gate, this refuses rather than sends.

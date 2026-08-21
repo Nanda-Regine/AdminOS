@@ -1,6 +1,7 @@
 import { inngest } from '@/inngest/client'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { writeAuditLog } from '@/lib/security/audit'
+import { checkBudget, recordUsage, getModelForFeature } from '@/lib/ai/costControls'
 import Anthropic from '@anthropic-ai/sdk'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
@@ -60,9 +61,28 @@ export const docIntelligencePipeline = inngest.createFunction(
       return { status: 'failed', reason: 'empty_text' }
     }
 
-    const classification = await step.run('classify-document', async () => {
+    const plan = await step.run('load-tenant-plan', async () => {
+      const { data } = await supabaseAdmin.from('tenants').select('plan').eq('id', tenant_id).single()
+      return data?.plan ?? 'trial'
+    })
+
+    // Each step below returns [data, budgetBlocked] rather than setting an outer
+    // flag: Inngest memoizes a step's return value and, on retry/replay, restores
+    // it WITHOUT re-invoking the callback — a side effect on an outer closure
+    // variable would be lost on replay, so the blocked signal has to travel inside
+    // the memoized return value itself.
+    const [classification, classifyBlocked] = await step.run('classify-document', async () => {
+      const budget = await checkBudget(tenant_id, plan, 300)
+      if (!budget.allowed) {
+        console.warn(`[AI:blocked] tenant=${tenant_id} feature=document_classify reason=${budget.reason}`)
+        return [{ type: 'other', confidence: 0 }, true]
+      }
+
+      const model = getModelForFeature('document_classify', plan)
+      const t0 = Date.now()
+
       const response = await anthropic.messages.create({
-        model: 'claude-haiku-4-5-20251001',
+        model,
         max_tokens: 300,
         messages: [{
           role: 'user',
@@ -74,20 +94,35 @@ ${rawText.slice(0, 3000)}`,
         }],
       })
 
+      void recordUsage({
+        tenantId: tenant_id, plan, feature: 'document_classify', model,
+        tokensIn: response.usage.input_tokens, tokensOut: response.usage.output_tokens,
+        durationMs: Date.now() - t0,
+      })
+
       const text = response.content[0].type === 'text' ? response.content[0].text : '{}'
       const match = text.match(/\{[\s\S]*\}/)
       try {
-        return match ? JSON.parse(match[0]) : { type: 'other', confidence: 0.5 }
+        return [match ? JSON.parse(match[0]) : { type: 'other', confidence: 0.5 }, false]
       } catch {
-        return { type: 'other', confidence: 0.5 }
+        return [{ type: 'other', confidence: 0.5 }, false]
       }
     })
 
-    const extracted = await step.run('extract-structured-data', async () => {
-      if (!classification.type || classification.type === 'other') return {}
+    const [extracted, extractBlocked] = await step.run('extract-structured-data', async () => {
+      if (!classification.type || classification.type === 'other') return [{}, false]
+
+      const budget = await checkBudget(tenant_id, plan, 1000)
+      if (!budget.allowed) {
+        console.warn(`[AI:blocked] tenant=${tenant_id} feature=document_extract reason=${budget.reason}`)
+        return [{}, true]
+      }
+
+      const model = getModelForFeature('document_extract', plan)
+      const t0 = Date.now()
 
       const response = await anthropic.messages.create({
-        model: 'claude-haiku-4-5-20251001',
+        model,
         max_tokens: 1000,
         messages: [{
           role: 'user',
@@ -97,12 +132,18 @@ Document: ${rawText.slice(0, 5000)}`,
         }],
       })
 
+      void recordUsage({
+        tenantId: tenant_id, plan, feature: 'document_extract', model,
+        tokensIn: response.usage.input_tokens, tokensOut: response.usage.output_tokens,
+        durationMs: Date.now() - t0,
+      })
+
       const text = response.content[0].type === 'text' ? response.content[0].text : '{}'
       const match = text.match(/\{[\s\S]*\}/)
       try {
-        return match ? JSON.parse(match[0]) : {}
+        return [match ? JSON.parse(match[0]) : {}, false]
       } catch {
-        return {}
+        return [{}, false]
       }
     })
 
@@ -135,16 +176,31 @@ Document: ${rawText.slice(0, 5000)}`,
       })
     }
 
-    if (is_reference) {
-      await step.run('store-reference-schema', async () => {
+    const referenceBlocked = is_reference
+      ? await step.run('store-reference-schema', async () => {
+        const budget = await checkBudget(tenant_id, plan, 500)
+        if (!budget.allowed) {
+          console.warn(`[AI:blocked] tenant=${tenant_id} feature=document_reference_schema reason=${budget.reason}`)
+          return true
+        }
+
+        const model = getModelForFeature('document_reference_schema', plan)
+        const t0 = Date.now()
+
         const response = await anthropic.messages.create({
-          model: 'claude-haiku-4-5-20251001',
+          model,
           max_tokens: 500,
           messages: [{
             role: 'user',
             content: `Extract only the FIELD STRUCTURE (names and types) of this document. Do NOT include any actual values, names, amounts, or personal data. Return JSON: {"fields":[{"name":"...","type":"string|number|date|boolean","description":"..."}]}
 Document: ${rawText.slice(0, 3000)}`,
           }],
+        })
+
+        void recordUsage({
+          tenantId: tenant_id, plan, feature: 'document_reference_schema', model,
+          tokensIn: response.usage.input_tokens, tokensOut: response.usage.output_tokens,
+          durationMs: Date.now() - t0,
         })
 
         const text = response.content[0].type === 'text' ? response.content[0].text : '{}'
@@ -160,8 +216,12 @@ Document: ${rawText.slice(0, 3000)}`,
           status: 'complete',
           processed_at: new Date().toISOString(),
         })
+
+        return false
       })
-    }
+      : false
+
+    const budgetBlocked = classifyBlocked || extractBlocked || referenceBlocked
 
     const summary = await step.run('generate-summary', async () => {
       return classification.summary ?? 'Document processed successfully.'
@@ -183,9 +243,9 @@ Document: ${rawText.slice(0, 3000)}`,
       action: 'document_processed',
       resourceType: 'document',
       resourceId: document_id,
-      metadata: { type: classification.type, confidence: classification.confidence },
+      metadata: { type: classification.type, confidence: classification.confidence, budget_blocked: budgetBlocked },
     })
 
-    return { status: 'complete', document_id, type: classification.type }
+    return { status: 'complete', document_id, type: classification.type, budget_blocked: budgetBlocked }
   }
 )

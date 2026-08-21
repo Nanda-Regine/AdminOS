@@ -64,6 +64,9 @@ const FEATURE_MODEL_MAP: Record<string, FeatureRouter> = {
   announcement_draft:    (_) => MODELS.HAIKU,
   faq_answer:            (_) => MODELS.HAIKU,
   widget_reply:          (_) => MODELS.HAIKU,
+  document_classify:        (_) => MODELS.HAIKU,
+  document_extract:         (_) => MODELS.HAIKU,
+  document_reference_schema: (_) => MODELS.HAIKU,
 
   // Sonnet — standard quality features
   daily_brief:           (_) => MODELS.SONNET,

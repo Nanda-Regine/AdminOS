@@ -1,7 +1,7 @@
 import { inngest } from '@/inngest/client'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { writeAuditLog } from '@/lib/security/audit'
-import { getModelForFeature } from '@/lib/ai/costControls'
+import { checkBudget, recordUsage, getModelForFeature } from '@/lib/ai/costControls'
 import { setDailyBrief } from '@/lib/signals/brief'
 import Anthropic from '@anthropic-ai/sdk'
 
@@ -71,6 +71,17 @@ export const dailyBriefEngine = inngest.createFunction(
         ? `\n- Business Health Score: ${intelligence.healthScore}/100 (Legal: ${intelligence.legalScore ?? '?'}/100)`
         : ''
 
+      // Budget check — this runs nightly for every tenant, so it must be metered
+      // like any other AI call. A blocked check skips the brief for today rather
+      // than throwing; store-brief below logs the deferral instead of a brief.
+      const budget = await checkBudget(tenant_id, intelligence.plan, maxTokens)
+      if (!budget.allowed) {
+        console.warn(`[AI:blocked] tenant=${tenant_id} feature=daily_brief reason=${budget.reason}`)
+        return null
+      }
+
+      const t0 = Date.now()
+
       const response = await anthropic.messages.create({
         model,
         max_tokens: maxTokens,
@@ -94,10 +105,31 @@ Today is ${new Date().toLocaleDateString('en-ZA', { weekday: 'long', day: 'numer
         }],
       })
 
-      return response.content[0].type === 'text' ? response.content[0].text : ''
+      const text = response.content[0].type === 'text' ? response.content[0].text : ''
+
+      void recordUsage({
+        tenantId:   tenant_id,
+        plan:       intelligence.plan,
+        feature:    'daily_brief',
+        model,
+        tokensIn:   response.usage.input_tokens,
+        tokensOut:  response.usage.output_tokens,
+        durationMs: Date.now() - t0,
+      })
+
+      return text
     })
 
     await step.run('store-brief', async () => {
+      if (!brief) {
+        await writeAuditLog({
+          tenantId: tenant_id,
+          actor: 'insight',
+          action: 'daily_brief_deferred_budget',
+          metadata: { generated_at: new Date().toISOString() },
+        })
+        return
+      }
       // Surface it (Command Center reads this) + keep the audit trail.
       await setDailyBrief(tenant_id, brief)
       await writeAuditLog({
@@ -108,6 +140,6 @@ Today is ${new Date().toLocaleDateString('en-ZA', { weekday: 'long', day: 'numer
       })
     })
 
-    return { tenant_id, brief_length: brief.length, status: 'generated' }
+    return { tenant_id, brief_length: brief?.length ?? 0, status: brief ? 'generated' : 'deferred_budget' }
   }
 )
