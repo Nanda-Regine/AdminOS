@@ -1533,4 +1533,182 @@ everywhere they're actually used).
    deciding unilaterally, since affidavit content especially has legal
    accuracy stakes.
 7. `HUB_INTERNAL_SECRET` — flag to Nanda for a judgement call on rotation
+   scope.
+
+## Session 11 (2026-08-21) — closed out Session 10's resume plan, found two new systemic issues
+
+Resumed exactly where Session 10 paused. Items 1–3 of that plan done and pushed:
+
+1. **Licences fix committed** (`e706787`) — the `staff.name`→`full_name` fix
+   that was sitting uncommitted in the working tree since Session 10.
+2. **Both HIGH security findings fixed** (`eb670d4`) — `requirePermission
+   ('send_broadcasts')` added to all three WhatsApp broadcast write paths
+   (`reach/send`, `reach/campaigns` POST, `reach/campaigns/[id]/send`);
+   `requirePermission('view_payroll')` added to `staff/[id]/payslips`.
+3. **Both MEDIUM security findings fixed** (`c3ad364`) —
+   `requirePermission('manage_staff')` added to `staff/[id]/documents`
+   (deliberately not `manage_documents`, which the `staff` role already
+   holds by default and would not have closed the gap); the `agents` rate
+   limiter added to **both** `/api/langa` and `/api/agents/langa` — tracing
+   actual callers showed the audit named the wrong route: web and mobile
+   both call `/api/agents/langa`, not `/api/langa`.
+
+**Found while fixing #3, not part of the original audit:** the staff list
+and staff detail *pages* rendered salary, ID numbers, addresses and
+emergency contacts for the whole team with **zero permission check** — only
+login was required, and the sidebar nav isn't role-filtered either, so this
+was reachable by any authenticated tenant member regardless of role. This
+was the actual root cause of finding #3's data exposure, not just the
+documents API. Fixed both pages (`manage_staff`, `notFound()` on denial,
+matching the page-level convention documented in `lib/auth/context.ts`).
+
+A repo-wide sweep sizing that gap found **31 dashboard pages** in the same
+shape — query `supabaseAdmin` directly, no permission check at all — not
+fixed this session, itemized in the build list below.
+
+Separately, asked to check "are all agents working as they should" — a
+61-tool-call background audit found the AI agent system is more broken than
+assumed: two non-interoperating agent naming systems, a fully-broken
+user-facing panel, and the three highest-volume live AI pipelines running
+with zero cost/budget control. Also itemized below.
+
+Full detail for both new findings: memory `adminos-page-level-
+authorization-gap` and `adminos-agent-system-disconnected-2026-08-21`.
+`tsc --noEmit` clean at every step this session.
+
+**Still open from Session 10's plan, not reached:** items 4–7 (the
+soft-delete/hard-delete POPIA decision, re-verifying the POPIA-consent
+claim, the compliance-overclaims build-vs-copy calls, `HUB_INTERNAL_SECRET`
+rotation judgement) — carried into the build list below rather than
+duplicated here.
+
+---
+
+## Build list — everything open, for a fresh session
+
+Written 2026-08-21 as a standing punch list so a new chat can start straight
+into execution instead of re-deriving this from six different audits. Ordered
+by real severity/value, not by discovery date. Each item names its source
+audit/session and the file(s) to start at. Memory files carry the full
+detail this list intentionally compresses.
+
+### P0 — real exposure, fix first
+
+1. **Cost/budget control bypassed on the 3 live AI pipelines.**
+   `inngest/functions/debtRecovery.ts`, `dailyBrief.ts`, `docIntelligence.ts`
+   make direct/near-direct Claude calls with no `checkBudget`/`recordUsage` —
+   `docIntelligence.ts` fires on every document upload, not just a cron, so
+   this is a live uncapped-spend surface, not theoretical. The budget system
+   itself (`lib/ai/costControls.ts`) is fine; it's just not called here.
+   → memory `adminos-agent-system-disconnected-2026-08-21`.
+2. **Inbox "AI Agents" panel is fully broken — 400 on every click.**
+   `app/dashboard/inbox/page.tsx` calls agent names (`draft`, `summarise`,
+   `lookup`, `escalation`, `advisor`) from `lib/ai/agents.config.ts`; the
+   route (`app/api/agents/[agentType]/route.ts`) only recognizes
+   `AGENT_CONFIGS`'s names (`alex`, `chase`, `care`, `doc`, `insight`,
+   `pen`) from `lib/ai/orchestrator.ts`. Silent regression, shipped as
+   working per `BUILD_JOURNEY_ADMINOS.md:203-204`. → same memory file.
+3. **31 dashboard pages have zero permission check** — auth-only, not
+   authorization. Two of them (staff list/detail) already fixed this
+   session; payroll, billing, compliance, cashflow, expenses, invoices,
+   safety, contracts, valuation, suppliers and 21 others are not. Each page
+   needs its permission picked deliberately from `DEFAULT_ROLE_PERMISSIONS`
+   (`lib/auth/permissions.ts`), not a blanket find-replace — payroll and
+   billing first by data sensitivity. → memory
+   `adminos-page-level-authorization-gap`.
+
+### P1 — decide the AI agent system's shape
+
+4. **Orchestrator persona cleanup.** Of `AGENT_CONFIGS`'s 6 personas, only
+   `pen` has a real UI caller. `chase`/`doc`/`insight`'s actual, working
+   functionality lives entirely in the Inngest functions from P0#1,
+   duplicated and disconnected from their same-named persona; `alex`/`care`
+   have no working equivalent anywhere. Decide: consolidate the Inngest
+   pipelines back through the orchestrator (gets them budget control for
+   free, fixes P0#1 and this in one move), or delete the unused personas so
+   `AGENT_CONFIGS` stops implying capability that doesn't exist end-to-end.
+5. **`/api/langa` orphaned route** — no UI caller (web/mobile both use
+   `/api/agents/langa`), self-documented in its own code comment. Low
+   priority, already has the same rate limit as its sibling; candidate for
+   deletion once confirmed nothing external depends on it.
+6. **No test coverage of the orchestrator, Langa, or any `/api/agents/*`
+   route.** `app/api/health/route.ts` checks DB/Redis/API-key presence only.
+
+### P2 — the product-value gap ("paperwork, not work")
+
+From the Aug 16 six-way audit, still the accurate diagnosis — nothing on
+this list has been built since:
+
+7. **Deposits + payment links on tenant invoices/bookings** (~5d). PayFast
+   and Paystack are wired for AdminOS's own billing only
+   (`app/api/billing/payfast-itn`, `app/api/paystack/webhook`) — nothing
+   exposes them to a tenant's own customers. Highest product value on this
+   list: turns AdminOS from a record of money into a mover of money.
+8. **Job costing** — `time_entries` rolling into `projects.budget` (~8d).
+   Nothing currently answers "which jobs made money."
+9. **Polymorphic asset/vehicle register** (~7d) — vehicles, plant, kit,
+   devices. Reuse the `professional_licenses` expiry-reminder pattern.
+10. **Purchase orders + reorder loop** (~4d) — `ops/page.tsx:30-31` detects
+    low stock and stops at a sentence; no PO/approve/receipt flow.
+11. **Transactional client portal** (~6d) — `app/portal/[token]/page.tsx` is
+    read-only; needs document exchange, an Approve button writing to
+    `audit_log`, e-sign, Pay Now.
+12. **Proper tax invoice renderer** (~5h) — no compliant "TAX INVOICE"
+    exists anywhere (VAT breakdown, supplier VAT/CIPC number). Also fix
+    while in there: invoice numbering is `COUNT(*)+1`, non-atomic and reuses
+    numbers after a delete — a VAT Act problem, needs a per-tenant Postgres
+    sequence.
+13. **EME B-BBEE sworn affidavit generator** (~4h) — zero hits for
+    "affidavit"/"EME" in the codebase; most SA SMEs are EMEs and this one
+    document is their whole B-BBEE obligation. Render through the same
+    HTML-to-print path as `lib/payroll/payslipTemplate.ts`.
+14. **Formalization pathway UI** — `app/api/formalization/route.ts` is a
+    complete working API (CIPC/SARS/VAT/UIF tracking), nothing in `app/`
+    calls it. Cheapest of the compliance gaps: same shape as
+    Suppliers/Licences/Safety, API's already done.
+15. **Own-business B-BBEE ownership %/scorecard** — only supplier-side
+    B-BBEE data exists today; nothing captures the tenant's own.
+16. **Per-contact POPIA export** — claimed on the compliance page
+    (`app/dashboard/settings/compliance/page.tsx:142`), no button, no API.
+
+### P3 — compliance/security debt (documentation or judgement calls, not builds)
+
+17. **POPIA soft-delete vs. hard-delete — undecided.** The erasure route
+    mixes hard-delete and null-in-place; contradicts Global Rule #3 without
+    it being written down as an intentional exception. Needs a one-paragraph
+    decision, no code change.
+18. **POPIA consent flags — re-verify whether any route writes them.**
+    Columns + UI badge exist; an earlier audit claimed the badge always
+    reads "no consent." Not re-checked since.
+19. **`HUB_INTERNAL_SECRET`** shared statically across 4+ payment webhook
+    endpoints — Nanda's call on rotation scope, not a code fix.
+20. **Migration templates still carry the old spoofable `user_metadata` RLS
+    shape** — live policies are fixed, but any new table copy-pasted from
+    the templates reintroduces the hole. Fix the templates themselves.
+
+### P4 — known dead-end bugs (flagged 16 Aug, not confirmed fixed since — verify first)
+
+21. `/dashboard/valuation` "Recalculate" navigates the browser to raw JSON
+    (a `GET` form pointed at a route returning `NextResponse.json`).
+22. `/dashboard/settings` "Connect" buttons have no `onClick` (server
+    component).
+23. `/dashboard/contacts/[id]` "+ New Invoice" 404s (`/dashboard/invoices/
+    new` doesn't exist); its Edit and overflow buttons are also dead.
+24. `/dashboard/calendar` is three stacked lists, not a calendar.
+25. Referrals never attribute — `signup?ref=` is never read.
+26. `/contact` has no form, only `mailto:` links — no lead capture.
+
+### P5 — infra/monitoring (dated June, unverified since — confirm still true before building)
+
+27. No Sentry (Next.js or the now-existing Expo app).
+28. No super-admin health dashboard (`/dashboard/admin/health` — queue
+    depth, error rate, AI usage per tenant).
+29. No per-tenant request rate limiting outside AI routes.
+30. No document virus scan on upload.
+31. No automated tenant-isolation test suite (RLS-leak regression guard).
+
+Source memory files for full detail behind every item above:
+`adminos-post-conference-audit-2026-08-20`,
+`adminos-page-level-authorization-gap`,
+`adminos-agent-system-disconnected-2026-08-21`.
    scope; not a code fix.
