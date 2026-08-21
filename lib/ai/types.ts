@@ -14,6 +14,7 @@ export interface OrchestratorRequest {
   agentName: AgentName
   userMessage: string
   tenantId: string
+  plan?: string
   conversationId?: string
   contactIdentifier?: string
   documentId?: string

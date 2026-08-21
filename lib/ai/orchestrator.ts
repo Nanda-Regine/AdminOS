@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { writeAuditLog } from '@/lib/security/audit'
+import { recordUsage } from '@/lib/ai/costControls'
 import type { AgentName, AgentConfig, OrchestratorRequest, OrchestratorResponse } from './types'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
@@ -192,6 +193,16 @@ export class AgentOrchestrator {
     const latencyMs = Date.now() - startMs
     const cached = (response.usage.cache_read_input_tokens ?? 0) > 0
 
+    void recordUsage({
+      tenantId:   req.tenantId,
+      plan:       req.plan ?? 'trial',
+      feature:    `agent_${req.agentName}`,
+      model:      config.model,
+      tokensIn:   response.usage.input_tokens,
+      tokensOut:  response.usage.output_tokens,
+      durationMs: latencyMs,
+    })
+
     await writeAuditLog({
       tenantId: req.tenantId,
       actor: req.agentName,
@@ -221,6 +232,7 @@ export class AgentOrchestrator {
   async stream(req: OrchestratorRequest): Promise<ReadableStream> {
     const config = AGENT_CONFIGS[req.agentName]
     const contextBlock = await this.buildContext(req)
+    const startMs = Date.now()
 
     const stream = await anthropic.messages.stream({
       model: config.model,
@@ -247,6 +259,23 @@ export class AgentOrchestrator {
         }
         controller.enqueue(new TextEncoder().encode('data: [DONE]\n\n'))
         controller.close()
+
+        // Usage only becomes available once the stream is fully drained —
+        // this is why the streaming path never metered itself before.
+        try {
+          const finalMessage = await stream.finalMessage()
+          void recordUsage({
+            tenantId:   req.tenantId,
+            plan:       req.plan ?? 'trial',
+            feature:    `agent_${req.agentName}`,
+            model:      config.model,
+            tokensIn:   finalMessage.usage.input_tokens,
+            tokensOut:  finalMessage.usage.output_tokens,
+            durationMs: Date.now() - startMs,
+          })
+        } catch (e) {
+          console.error('[orchestrator:stream] usage recording failed (non-fatal)', e)
+        }
       },
     })
   }

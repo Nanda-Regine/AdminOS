@@ -67,6 +67,9 @@ const FEATURE_MODEL_MAP: Record<string, FeatureRouter> = {
   document_classify:        (_) => MODELS.HAIKU,
   document_extract:         (_) => MODELS.HAIKU,
   document_reference_schema: (_) => MODELS.HAIKU,
+  agent_draft:           (_) => MODELS.HAIKU,
+  agent_summarise:       (_) => MODELS.HAIKU,
+  agent_lookup:          (_) => MODELS.HAIKU,
 
   // Sonnet — standard quality features
   daily_brief:           (_) => MODELS.SONNET,
@@ -79,6 +82,7 @@ const FEATURE_MODEL_MAP: Record<string, FeatureRouter> = {
   book_in_action:        (_) => MODELS.SONNET,
   health_score_insight:  (_) => MODELS.SONNET,
   cashflow_forecast:     (_) => MODELS.SONNET,
+  agent_escalation:      (_) => MODELS.SONNET,
 
   // Opus — premium only (scale/partner plans)
   board_pack:            (p) => isPremiumEnterprisePlan(p) ? MODELS.OPUS : MODELS.SONNET,

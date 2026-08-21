@@ -2,8 +2,11 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { orchestrator, AGENT_CONFIGS } from '@/lib/ai/orchestrator'
+import { AGENT_DEFINITIONS, type AgentType } from '@/lib/ai/agents.config'
+import { buildAgentContext, storeAdvisorInsights } from '@/lib/ai/agents'
+import { callClaudeAgent } from '@/lib/ai/callClaude'
 import { checkRateLimit } from '@/lib/security/rateLimit'
-import { getClientIp } from '@/lib/security/audit'
+import { getClientIp, writeAuditLog } from '@/lib/security/audit'
 import { checkBudget } from '@/lib/ai/costControls'
 import type { AgentName } from '@/lib/ai/types'
 import { z } from 'zod'
@@ -33,8 +36,12 @@ export async function POST(request: Request, { params }: AgentRouteParams) {
   const { success } = await checkRateLimit('agents', tenantId)
   if (!success) return new NextResponse('Too Many Requests', { status: 429 })
 
-  const agentName = agentType as AgentName
-  if (!AGENT_CONFIGS[agentName]) return new NextResponse('Unknown agent', { status: 400 })
+  // Two agent registries exist: AGENT_CONFIGS (orchestrator personas — alex/chase/
+  // care/doc/insight/pen) and AGENT_DEFINITIONS (the Inbox panel's agents — draft/
+  // summarise/lookup/escalation/advisor). Both are valid targets of this route.
+  const isOrchestratorAgent = agentType in AGENT_CONFIGS
+  const isInboxAgent = agentType in AGENT_DEFINITIONS
+  if (!isOrchestratorAgent && !isInboxAgent) return new NextResponse('Unknown agent', { status: 400 })
 
   let body: z.infer<typeof bodySchema>
   try {
@@ -52,42 +59,79 @@ export async function POST(request: Request, { params }: AgentRouteParams) {
     return NextResponse.json({ error: 'Daily AI budget exceeded. Upgrade your plan or try again tomorrow.' }, { status: 429 })
   }
 
-  const config = AGENT_CONFIGS[agentName]
+  if (isOrchestratorAgent) {
+    const agentName = agentType as AgentName
+    const config = AGENT_CONFIGS[agentName]
 
-  if (config.streaming) {
+    if (config.streaming) {
+      try {
+        const stream = await orchestrator.stream({
+          agentName,
+          userMessage: body.userMessage,
+          tenantId,
+          plan,
+          conversationId: body.conversationId,
+          contactIdentifier: body.contactIdentifier,
+          documentId: body.documentId,
+          metadata: { ...body.metadata, callerIp: getClientIp(request) },
+        })
+        return new Response(stream, {
+          headers: {
+            'Content-Type': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+          },
+        })
+      } catch {
+        return NextResponse.json({ error: 'Stream failed. Please try again.' }, { status: 500 })
+      }
+    }
+
     try {
-      const stream = await orchestrator.stream({
+      const result = await orchestrator.run({
         agentName,
         userMessage: body.userMessage,
         tenantId,
+        plan,
         conversationId: body.conversationId,
         contactIdentifier: body.contactIdentifier,
         documentId: body.documentId,
         metadata: { ...body.metadata, callerIp: getClientIp(request) },
       })
-      return new Response(stream, {
-        headers: {
-          'Content-Type': 'text/event-stream',
-          'Cache-Control': 'no-cache',
-          'Connection': 'keep-alive',
-        },
-      })
+      return NextResponse.json(result)
     } catch {
-      return NextResponse.json({ error: 'Stream failed. Please try again.' }, { status: 500 })
+      return NextResponse.json({ error: 'Agent failed. Please try again.' }, { status: 500 })
     }
   }
 
+  // Inbox panel agents (System B) — draft/summarise/lookup/escalation/advisor.
+  // These have a real, DB-backed implementation in lib/ai/agents.ts that was never
+  // wired to this route; the Inbox UI has always called these names (see
+  // app/dashboard/inbox/page.tsx), not the orchestrator's.
+  const inboxAgentType = agentType as AgentType
+  const agentDef = AGENT_DEFINITIONS[inboxAgentType]
+  const feature = inboxAgentType === 'advisor' ? 'advisor_agent' : `agent_${inboxAgentType}`
+
   try {
-    const result = await orchestrator.run({
-      agentName,
-      userMessage: body.userMessage,
-      tenantId,
-      conversationId: body.conversationId,
-      contactIdentifier: body.contactIdentifier,
-      documentId: body.documentId,
-      metadata: { ...body.metadata, callerIp: getClientIp(request) },
+    const contextBlock = await buildAgentContext(inboxAgentType, tenantId, body.userMessage, body.contactIdentifier)
+    const text = await callClaudeAgent(agentDef.buildPrompt(), contextBlock, 500, {
+      tenantId, plan, feature,
     })
-    return NextResponse.json(result)
+
+    if (inboxAgentType === 'advisor' && text) {
+      void storeAdvisorInsights(tenantId, text)
+    }
+
+    await writeAuditLog({
+      tenantId,
+      actor: inboxAgentType,
+      action: `agent.${inboxAgentType}.called`,
+      resourceType: body.conversationId ? 'conversation' : undefined,
+      resourceId: body.conversationId,
+      metadata: { feature, callerIp: getClientIp(request) },
+    })
+
+    return NextResponse.json({ response: text })
   } catch {
     return NextResponse.json({ error: 'Agent failed. Please try again.' }, { status: 500 })
   }

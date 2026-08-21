@@ -1584,6 +1584,73 @@ duplicated here.
 
 ---
 
+## Session 12 (2026-08-21) — closed Build list P0 #1 (AI cost/budget bypass)
+
+Picked up the standing build list below and started at P0 #1, the highest-
+severity item (live, uncapped AI spend). Fixed all three offending Inngest
+pipelines (`01e5e7e`):
+
+1. **`inngest/functions/debtRecovery.ts`** — added `tenant.plan` to the
+   existing `tenants` select, `checkBudget` before generating the WhatsApp
+   reminder, model now routed through `getModelForFeature('chase_message',
+   plan)` instead of a hardcoded string, `recordUsage` after the call. A
+   blocked budget defers the send (same shape as the existing
+   content-guard block) rather than throwing — the daily sweep retries it
+   next run.
+2. **`inngest/functions/dailyBrief.ts`** — same pattern (plan was already
+   fetched here). A blocked budget writes a `daily_brief_deferred_budget`
+   audit entry instead of a brief; Command Center just won't show today's.
+3. **`inngest/functions/docIntelligence.ts`** — the worst offender: never
+   fetched the tenant's plan at all, and made up to 3 hardcoded-model
+   Claude calls per document upload with zero metering. Added a
+   `load-tenant-plan` step, `checkBudget`/`recordUsage` around all three
+   calls (classify/extract/reference-schema), and three new Haiku feature
+   routes in `costControls.ts` (`document_classify`, `document_extract`,
+   `document_reference_schema`) matching the model it already used.
+
+**Correctness note worth remembering for any future Inngest step work:**
+budget-blocked state could NOT be tracked via a plain outer `let` flag set
+inside a `step.run` callback — Inngest memoizes each step's return value
+and, on retry/replay, restores it without re-invoking the callback, so a
+side effect on a closure variable is silently lost on replay. Fixed by
+threading `[data, blocked]` tuples through the step return value itself
+instead (see `docIntelligence.ts`'s `classifyBlocked`/`extractBlocked`/
+`referenceBlocked`).
+
+`tsc --noEmit` clean. ESLint could not run in this environment (crashed
+on a `node:fs` read error unrelated to the diff — not a code finding).
+
+Also closed **P0 #2 (Inbox AI panel 400s)** same session:
+`app/api/agents/[agentType]/route.ts` now recognizes both agent
+registries — `AGENT_CONFIGS` (orchestrator personas) and
+`AGENT_DEFINITIONS` (the Inbox panel's `draft`/`summarise`/`lookup`/
+`escalation`/`advisor`, System B). The Inbox agents now run through
+`lib/ai/agents.ts`'s already-built context functions
+(`buildAgentContext`/`storeAdvisorInsights`) and `callClaudeAgent` (which
+carries its own `checkBudget`/`recordUsage`), with 4 new feature routes
+in `costControls.ts` (`agent_draft`/`agent_summarise`/`agent_lookup` →
+Haiku, `agent_escalation` → Sonnet; `advisor` reuses the existing
+`advisor_agent` route). Response shape (`{ response: text }`) matches
+what `app/dashboard/inbox/page.tsx` already expected.
+
+**Found and fixed while in this file, same category as P0 #1:**
+`orchestrator.ts`'s `run()`/`stream()` never called `recordUsage` at
+all — the budget-enforced orchestrator path was itself unmetered, so
+`pen` (the one orchestrator persona with real UI traffic today, via
+Email Studio) has been generating real Claude spend the budget counter
+never saw. Added `recordUsage` to both paths (`OrchestratorRequest` gained
+an optional `plan` field, threaded from the route's already-fetched
+tenant plan); the streaming path reads usage via `stream.finalMessage()`
+after the stream drains, since token counts aren't available mid-stream.
+
+**Not touched, still open:** Build list P0 #3 (31 unprotected pages) —
+natural next item. Also still open per Build list P1: deciding the
+orchestrator's fate (only `pen` has a real caller; `alex`/`care` have no
+working equivalent; `chase`/`doc`/`insight`'s real logic still lives
+solely in the Inngest pipelines, duplicated from same-named personas).
+
+---
+
 ## Build list — everything open, for a fresh session
 
 Written 2026-08-21 as a standing punch list so a new chat can start straight
@@ -1594,20 +1661,18 @@ detail this list intentionally compresses.
 
 ### P0 — real exposure, fix first
 
-1. **Cost/budget control bypassed on the 3 live AI pipelines.**
-   `inngest/functions/debtRecovery.ts`, `dailyBrief.ts`, `docIntelligence.ts`
-   make direct/near-direct Claude calls with no `checkBudget`/`recordUsage` —
-   `docIntelligence.ts` fires on every document upload, not just a cron, so
-   this is a live uncapped-spend surface, not theoretical. The budget system
-   itself (`lib/ai/costControls.ts`) is fine; it's just not called here.
-   → memory `adminos-agent-system-disconnected-2026-08-21`.
-2. **Inbox "AI Agents" panel is fully broken — 400 on every click.**
-   `app/dashboard/inbox/page.tsx` calls agent names (`draft`, `summarise`,
-   `lookup`, `escalation`, `advisor`) from `lib/ai/agents.config.ts`; the
-   route (`app/api/agents/[agentType]/route.ts`) only recognizes
-   `AGENT_CONFIGS`'s names (`alex`, `chase`, `care`, `doc`, `insight`,
-   `pen`) from `lib/ai/orchestrator.ts`. Silent regression, shipped as
-   working per `BUILD_JOURNEY_ADMINOS.md:203-204`. → same memory file.
+1. ~~**Cost/budget control bypassed on the 3 live AI pipelines.**~~ **Fixed
+   Session 12 (`01e5e7e`).** `debtRecovery.ts`, `dailyBrief.ts`,
+   `docIntelligence.ts` now all call `checkBudget`/`recordUsage` and route
+   models through `getModelForFeature`. → memory
+   `adminos-agent-system-disconnected-2026-08-21` for original audit detail.
+2. ~~**Inbox "AI Agents" panel is fully broken — 400 on every click.**~~
+   **Fixed Session 12.** The route now recognizes both `AGENT_CONFIGS`
+   (orchestrator) and `AGENT_DEFINITIONS` (Inbox panel) names, routing
+   the latter through `lib/ai/agents.ts`'s existing implementation. Also
+   fixed in the same pass: `orchestrator.ts`'s `run()`/`stream()` never
+   called `recordUsage` — `pen`'s real live traffic was unmetered too.
+   → same memory file for original audit detail.
 3. **31 dashboard pages have zero permission check** — auth-only, not
    authorization. Two of them (staff list/detail) already fixed this
    session; payroll, billing, compliance, cashflow, expenses, invoices,
