@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { requirePermission } from '@/lib/auth/permissions'
 import { z } from 'zod'
 
 const uploadSchema = z.object({
@@ -22,6 +23,14 @@ export async function GET(
 
   const tenantId = user.app_metadata?.tenant_id as string
   if (!tenantId) return new NextResponse('No tenant', { status: 400 })
+
+  // HR-sensitive (IDs, contracts, certifications) — gated the same way as
+  // its sibling HR surfaces (disciplinary, staff CRUD, performance-reviews),
+  // not manage_documents: 'staff' role holds manage_documents by default,
+  // which would not have closed the any-colleague's-documents gap.
+  try { await requirePermission('manage_staff') } catch {
+    return new NextResponse('Forbidden', { status: 403 })
+  }
 
   const { id: staffId } = await params
 
@@ -59,6 +68,10 @@ export async function POST(
 
   const tenantId = user.app_metadata?.tenant_id as string
   if (!tenantId) return new NextResponse('No tenant', { status: 400 })
+
+  try { await requirePermission('manage_staff') } catch {
+    return new NextResponse('Forbidden', { status: 403 })
+  }
 
   const { id: staffId } = await params
 

@@ -10,6 +10,7 @@ import {
 import { formatZAR } from '@/lib/format'
 import { StaffDocuments } from './StaffDocuments'
 import { avatarColor } from '@/lib/ui/avatarColor'
+import { checkPermission } from '@/lib/auth/permissions'
 
 type Staff = {
   id:                      string
@@ -84,6 +85,9 @@ export default async function StaffDetailPage({
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  // Same gate as the staff list page — see the comment there.
+  if (!(await checkPermission('manage_staff'))) notFound()
 
   const tenantId = user.app_metadata?.tenant_id as string
 

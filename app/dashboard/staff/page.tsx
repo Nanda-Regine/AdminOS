@@ -5,10 +5,11 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ConfirmSubmit } from '@/components/ui/ConfirmSubmit'
 import { EmptyState } from '@/components/ui/EmptyState'
-import { redirect } from 'next/navigation'
+import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { Users } from 'lucide-react'
 import { AddStaffModal } from './AddStaffModal'
+import { checkPermission } from '@/lib/auth/permissions'
 
 function WellnessDot({ score }: { score: number }) {
   const color =
@@ -22,6 +23,16 @@ export default async function StaffPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  // This page and its detail view render salary, ID numbers, home addresses
+  // and emergency contacts for the whole team with no prior gate — nav
+  // itself isn't role-filtered, so any authenticated tenant member could
+  // browse here. Same manage_staff boundary the write-side HR routes already
+  // use (disciplinary, staff CRUD, performance-reviews, leave approve/decline).
+  // notFound(), not a redirect: don't confirm the page exists to someone
+  // probing without the permission (lib/auth/context.ts's documented
+  // convention for page-level denials).
+  if (!(await checkPermission('manage_staff'))) notFound()
 
   const tenantId = user.app_metadata?.tenant_id as string
 

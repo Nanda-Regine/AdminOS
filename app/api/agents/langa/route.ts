@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { streamLanga, LangaMessage } from '@/lib/ai/agents/langa'
+import { checkRateLimit } from '@/lib/security/rateLimit'
 import { z } from 'zod'
 
 const schema = z.object({
@@ -30,6 +31,13 @@ export async function POST(request: Request) {
 
   const tenantId = user.app_metadata?.tenant_id as string
   if (!tenantId) return new NextResponse('No tenant', { status: 400 })
+
+  // Same 'agents' limiter as /api/agents/[agentType] — Langa is bounded
+  // by a daily token budget (checkBudget, inside streamLanga) but that's
+  // not a per-request rate limiter, so a tight burst loop can still run
+  // up real Claude API cost before the daily meter trips.
+  const { success } = await checkRateLimit('agents', tenantId)
+  if (!success) return new NextResponse('Too Many Requests', { status: 429 })
 
   const plan = (user.app_metadata?.plan as string) ?? 'trial'
 

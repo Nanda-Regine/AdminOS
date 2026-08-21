@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { chatWithLanga, LangaMessage } from '@/lib/ai/agents/langa'
 import { sanitizeForAI } from '@/lib/security/sanitize'
 import { fireBusinessEvent } from '@/lib/academy/knowledgeGraph'
+import { checkRateLimit } from '@/lib/security/rateLimit'
 
 const chatSchema = z.object({
   message: z.string().min(1).max(2000),
@@ -23,6 +24,13 @@ export async function POST(request: Request) {
 
   const tenantId = user.app_metadata?.tenant_id as string
   if (!tenantId) return new NextResponse('No tenant', { status: 400 })
+
+  // Same 'agents' limiter as /api/agents/[agentType] and /api/agents/langa.
+  // No client currently calls this route (web/mobile both use
+  // /api/agents/langa) but it's still a live authenticated endpoint that can
+  // be curled directly, so it gets the same per-request bound.
+  const { success } = await checkRateLimit('agents', tenantId)
+  if (!success) return new NextResponse('Too Many Requests', { status: 429 })
 
   let body: z.infer<typeof chatSchema>
   try { body = chatSchema.parse(await request.json()) } catch (e) {
