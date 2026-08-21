@@ -3,12 +3,18 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { TopBar } from '@/components/dashboard/TopBar'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { redirect } from 'next/navigation'
+import { redirect, notFound } from 'next/navigation'
+import { checkPermission } from '@/lib/auth/permissions'
 
 export default async function CalendarPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  // Despite the "Schedule" label this is staff leave requests (names + leave
+  // reasons — HR data colleagues shouldn't browse) plus invoices due
+  // (financial). approve_leave matches the dominant content and role shape.
+  if (!(await checkPermission('approve_leave'))) notFound()
 
   const tenantId = user.app_metadata?.tenant_id as string
 

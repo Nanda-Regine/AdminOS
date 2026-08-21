@@ -1,8 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { TopBar } from '@/components/dashboard/TopBar'
-import { redirect } from 'next/navigation'
+import { redirect, notFound } from 'next/navigation'
 import { ReportsPanel } from './ReportsPanel'
 import { FileSpreadsheet } from 'lucide-react'
+import { checkPermission } from '@/lib/auth/permissions'
 
 export const dynamic = 'force-dynamic'
 
@@ -10,6 +11,12 @@ export default async function ReportsPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  // Income statement, VAT201, journal and expense working papers — the same
+  // view_financials boundary as the rest of the money-facing dashboard.
+  // notFound(), not a redirect, per the page-level denial convention in
+  // lib/auth/context.ts.
+  if (!(await checkPermission('view_financials'))) notFound()
 
   return (
     <div>

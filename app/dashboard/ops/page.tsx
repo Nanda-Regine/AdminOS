@@ -1,11 +1,12 @@
 import { createClient } from '@/lib/supabase/server'
 import { TopBar } from '@/components/dashboard/TopBar'
-import { redirect } from 'next/navigation'
+import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { formatZAR } from '@/lib/format'
 import { buildOpsIntel } from '@/lib/ops/signal'
 import { getSetupState } from '@/lib/tenant/setup-state'
 import { publishSignal } from '@/lib/signals/bus'
+import { checkPermission } from '@/lib/auth/permissions'
 import {
   Package, ArrowRight, CalendarClock, ClipboardList, Boxes,
   AlertTriangle, ChevronRight, Plus, CalendarDays,
@@ -17,6 +18,11 @@ export default async function OpsCockpit() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  // Stock value at cost and reorder levels are the same inventory-sensitivity
+  // boundary as suppliers/page.tsx — gate on manage_inventory, not filename.
+  if (!(await checkPermission('manage_inventory'))) notFound()
+
   const tenantId = user.app_metadata?.tenant_id as string
 
   const [intel, setup] = await Promise.all([buildOpsIntel(tenantId), getSetupState(tenantId)])

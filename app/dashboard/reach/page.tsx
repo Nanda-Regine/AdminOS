@@ -3,9 +3,10 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { TopBar } from '@/components/dashboard/TopBar'
 import { BillingGateOverlay } from '@/components/ui/BillingGateOverlay'
 import { hasAddon } from '@/lib/billing/gates'
-import { redirect } from 'next/navigation'
+import { redirect, notFound } from 'next/navigation'
 import { Radio, Send, CheckCheck, Eye } from 'lucide-react'
 import { ReachCampaignTable, type Campaign } from './ReachCampaignTable'
+import { checkPermission } from '@/lib/auth/permissions'
 
 function pct(num: number, denom: number) {
   if (!denom) return '—'
@@ -16,6 +17,10 @@ export default async function ReachPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  // Sending WhatsApp broadcasts to the whole audience has its own dedicated
+  // permission — the API routes under /api/reach already require it.
+  if (!(await checkPermission('send_broadcasts'))) notFound()
 
   const tenantId = user.app_metadata?.tenant_id as string
   const reachActive = await hasAddon('reach')

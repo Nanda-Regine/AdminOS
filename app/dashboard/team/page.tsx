@@ -5,8 +5,9 @@ import { CreateShiftModal } from './CreateShiftModal'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ConfirmSubmit } from '@/components/ui/ConfirmSubmit'
-import { redirect } from 'next/navigation'
+import { redirect, notFound } from 'next/navigation'
 import { Users, Clock, CalendarOff, Calendar } from 'lucide-react'
+import { checkPermission } from '@/lib/auth/permissions'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,6 +15,10 @@ export default async function TeamPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  // Staff roster with phone numbers, department and clock-in status, plus
+  // leave approve/decline actions — the same HR-record boundary as Payroll.
+  if (!(await checkPermission('manage_staff'))) notFound()
 
   const tenantId = user.app_metadata?.tenant_id as string
 

@@ -4,9 +4,10 @@ import { TopBar } from '@/components/dashboard/TopBar'
 import { BillingGateOverlay } from '@/components/ui/BillingGateOverlay'
 import { CopyButton } from '@/components/ui/CopyButton'
 import { hasAddon } from '@/lib/billing/gates'
-import { redirect } from 'next/navigation'
+import { redirect, notFound } from 'next/navigation'
 import { Phone, PhoneIncoming, Clock, Bot, Users } from 'lucide-react'
 import { RingCallTable, type CallLog } from './RingCallTable'
+import { checkPermission } from '@/lib/auth/permissions'
 
 function formatDuration(sec: number | null): string {
   if (!sec) return '—'
@@ -19,6 +20,11 @@ export default async function RingPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  // Call recordings, transcripts, and customer phone numbers — a materially
+  // more sensitive surface than the analytics/contacts boundaries used
+  // elsewhere, so it gets its own permission rather than an ill-fitting reuse.
+  if (!(await checkPermission('view_communications'))) notFound()
 
   const tenantId  = user.app_metadata?.tenant_id as string
   const ringActive = await hasAddon('ring')

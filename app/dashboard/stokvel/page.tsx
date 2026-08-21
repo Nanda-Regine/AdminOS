@@ -6,8 +6,9 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { PiggyBank } from 'lucide-react'
-import { redirect } from 'next/navigation'
+import { redirect, notFound } from 'next/navigation'
 import { CreateStokvelModal, AddMemberModal } from './StokvelActions'
+import { checkPermission } from '@/lib/auth/permissions'
 
 // Real schema (verified against prod):
 //   stokvel_groups(id, name, rules, contribution_amount, frequency, status, created_at)
@@ -72,6 +73,9 @@ export default async function StokvelPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  // Member contribution amounts and pooled money — financial data.
+  if (!(await checkPermission('view_financials'))) notFound()
 
   const tenantId = user.app_metadata?.tenant_id as string
 

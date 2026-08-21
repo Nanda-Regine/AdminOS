@@ -1,8 +1,9 @@
-import { redirect } from 'next/navigation'
+import { redirect, notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { TopBar } from '@/components/dashboard/TopBar'
 import { EmploymentEquityClient, type EEData } from './EmploymentEquityClient'
+import { checkPermission } from '@/lib/auth/permissions'
 
 export const metadata = {
   title: 'Employment Equity — AdminOS',
@@ -19,6 +20,10 @@ export default async function EmploymentEquityPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  // Workforce demographics for EEA2/EEA4 reporting — HR/staff data, not
+  // general tenant settings.
+  if (!(await checkPermission('manage_staff'))) notFound()
 
   const tenantId = user.app_metadata?.tenant_id as string | undefined
   if (!tenantId) redirect('/dashboard')

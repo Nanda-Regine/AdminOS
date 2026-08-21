@@ -5,8 +5,9 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { FileBarChart } from 'lucide-react'
-import { redirect } from 'next/navigation'
+import { redirect, notFound } from 'next/navigation'
 import { PrintButton } from './PrintButton'
+import { checkPermission } from '@/lib/auth/permissions'
 
 // The generator (inngest/functions/boardPack.ts) writes these keys — a mix of
 // prose, objects (financials/customers/…), and string arrays (risks/…). The old
@@ -73,6 +74,10 @@ export default async function BoardPackPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  // Executive summary, financial snapshot, compliance health, risks and
+  // decisions-needed — a leadership governance report, not staff reading.
+  if (!(await checkPermission('view_financials'))) notFound()
 
   const tenantId = user.app_metadata?.tenant_id as string
 

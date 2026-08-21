@@ -1,9 +1,10 @@
-import { redirect } from 'next/navigation'
+import { redirect, notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { TopBar } from '@/components/dashboard/TopBar'
 import { Card } from '@/components/ui/card'
 import { LicensesClient, type LicenseRow, type StaffOption } from './LicensesClient'
+import { checkPermission } from '@/lib/auth/permissions'
 
 export const metadata = {
   title: 'Licences & Permits — AdminOS',
@@ -19,6 +20,11 @@ export default async function LicensesPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  // Named staff professional registrations/licence numbers — the same
+  // manage_staff boundary as Safety and the staff pages. notFound(), not a
+  // redirect, per the page-level denial convention in lib/auth/context.ts.
+  if (!(await checkPermission('manage_staff'))) notFound()
 
   const tenantId = user.app_metadata?.tenant_id as string | undefined
   if (!tenantId) redirect('/dashboard')

@@ -1,12 +1,13 @@
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { TopBar } from '@/components/dashboard/TopBar'
-import { redirect } from 'next/navigation'
+import { redirect, notFound } from 'next/navigation'
 import { DECISION_CATALOGUE, DECISION_DEFAULTS, type Tier } from '@/lib/autonomy/tiers'
 import { NOTIFY_CATEGORIES } from '@/lib/notifications/delivery'
 import { AutonomyControls } from './AutonomyControls'
 import { NotificationPreferences } from './NotificationPreferences'
 import { Bot } from 'lucide-react'
+import { checkPermission } from '@/lib/auth/permissions'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,6 +15,10 @@ export default async function AutonomySettings() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  // Which decisions AdminOS may make on its own — a tenant configuration surface.
+  if (!(await checkPermission('manage_settings'))) notFound()
+
   const tenantId = user.app_metadata?.tenant_id as string
 
   const { data } = await supabaseAdmin

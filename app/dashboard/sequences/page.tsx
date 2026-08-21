@@ -1,15 +1,20 @@
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { TopBar } from '@/components/dashboard/TopBar'
-import { redirect } from 'next/navigation'
+import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { Zap, Plus, Users, CheckCheck, Play } from 'lucide-react'
 import { SequencesTable, type Sequence, type Step } from './SequencesTable'
+import { checkPermission } from '@/lib/auth/permissions'
 
 export default async function SequencesPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  // Automated multi-step WhatsApp message flows — mass tenant-wide messaging,
+  // the same capability class as manual broadcasts.
+  if (!(await checkPermission('send_broadcasts'))) notFound()
 
   const tenantId = user.app_metadata?.tenant_id as string
 

@@ -1,9 +1,10 @@
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { TopBar } from '@/components/dashboard/TopBar'
-import { redirect } from 'next/navigation'
+import { redirect, notFound } from 'next/navigation'
 import { CheckCircle2, Clock, XCircle, Zap, RefreshCw } from 'lucide-react'
 import Link from 'next/link'
+import { checkPermission } from '@/lib/auth/permissions'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,6 +19,10 @@ export default async function WorkflowMonitorPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  // System audit log + automation pipeline internals — operational/analytics
+  // visibility, not everyday staff data.
+  if (!(await checkPermission('view_analytics'))) notFound()
 
   const tenantId = user.app_metadata?.tenant_id as string
 

@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { ContactActions } from './ContactActions'
 import { avatarColor } from '@/lib/ui/avatarColor'
+import { checkPermission } from '@/lib/auth/permissions'
 
 type Contact = {
   id:               string
@@ -96,6 +97,10 @@ export default async function ContactDetailPage({
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  // Single contact's financials, POPIA consent state, conversations and
+  // invoices — same manage_contacts boundary as the /contacts list.
+  if (!(await checkPermission('manage_contacts'))) notFound()
 
   const tenantId = user.app_metadata?.tenant_id as string
 

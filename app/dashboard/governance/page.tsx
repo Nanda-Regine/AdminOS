@@ -1,11 +1,12 @@
 import { createClient } from '@/lib/supabase/server'
 import { TopBar } from '@/components/dashboard/TopBar'
-import { redirect } from 'next/navigation'
+import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { formatZAR } from '@/lib/format'
 import { buildGovernanceIntel } from '@/lib/governance/signal'
 import { getSetupState } from '@/lib/tenant/setup-state'
 import { publishSignal } from '@/lib/signals/bus'
+import { checkPermission } from '@/lib/auth/permissions'
 import {
   ShieldCheck, ArrowRight, HeartPulse, Gauge, FileSignature,
   ChevronRight, Landmark, AlertTriangle, CalendarClock,
@@ -17,6 +18,12 @@ export default async function GovernanceCockpit() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  // Compliance exposure, contract terms, and business valuation — the same
+  // exec/board-level sensitivity boundary as payroll and financials.
+  // notFound(), matching the page-level denial convention in lib/auth/context.ts.
+  if (!(await checkPermission('view_financials'))) notFound()
+
   const tenantId = user.app_metadata?.tenant_id as string
 
   const [intel, setup] = await Promise.all([buildGovernanceIntel(tenantId), getSetupState(tenantId)])

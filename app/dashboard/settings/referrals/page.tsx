@@ -3,7 +3,8 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { TopBar } from '@/components/dashboard/TopBar'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { redirect } from 'next/navigation'
+import { redirect, notFound } from 'next/navigation'
+import { checkPermission } from '@/lib/auth/permissions'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://adminos.co.za'
 
@@ -11,6 +12,10 @@ export default async function ReferralsPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  // Settings sub-page (billing-adjacent rewards) — same boundary as the rest
+  // of Settings.
+  if (!(await checkPermission('manage_settings'))) notFound()
 
   const tenantId = user.app_metadata?.tenant_id as string
 

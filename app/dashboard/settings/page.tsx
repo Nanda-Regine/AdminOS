@@ -3,10 +3,11 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { TopBar } from '@/components/dashboard/TopBar'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { redirect } from 'next/navigation'
+import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { BotTrainingForm } from './BotTrainingForm'
 import { LogoUpload } from './LogoUpload'
+import { checkPermission } from '@/lib/auth/permissions'
 
 const integrations = [
   { id: 'gmail', label: 'Gmail', icon: '✉️', description: 'Sync inbound emails' },
@@ -20,6 +21,9 @@ export default async function SettingsPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  // Business profile, integrations and bot training — tenant configuration.
+  if (!(await checkPermission('manage_settings'))) notFound()
 
   const tenantId = user.app_metadata?.tenant_id as string
 

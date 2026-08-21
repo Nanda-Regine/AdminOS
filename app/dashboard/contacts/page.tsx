@@ -1,16 +1,21 @@
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { TopBar } from '@/components/dashboard/TopBar'
-import { redirect } from 'next/navigation'
+import { redirect, notFound } from 'next/navigation'
 import { Users, AlertCircle, TrendingUp } from 'lucide-react'
 import { CreateContactModal } from './CreateContactModal'
 import { ContactsTable, type ContactRow } from './ContactsTable'
 import { formatZAR } from '@/lib/format'
+import { checkPermission } from '@/lib/auth/permissions'
 
 export default async function ContactsPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  // The whole CRM list — balances owed, lifetime revenue per contact.
+  // manage_contacts is held by every internal role but not by 'client'.
+  if (!(await checkPermission('manage_contacts'))) notFound()
 
   const tenantId = user.app_metadata?.tenant_id as string
 

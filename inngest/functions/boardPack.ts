@@ -1,5 +1,6 @@
 import { inngest } from '@/inngest/client'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { checkBudget, recordUsage, getModelForFeature } from '@/lib/ai/costControls'
 import Anthropic from '@anthropic-ai/sdk'
 
 const anthropic = new Anthropic()
@@ -38,6 +39,11 @@ export const onBoardPackRequested = inngest.createFunction(
       period_end:    string
       period_label:  string
     }
+
+    const plan = await step.run('load-tenant-plan', async () => {
+      const { data } = await supabaseAdmin.from('tenants').select('plan').eq('id', tenant_id).single()
+      return data?.plan ?? 'trial'
+    })
 
     // Gather all data in parallel steps
     const [financials, customers, invoices, staff, compliance, goals] = await Promise.all([
@@ -90,12 +96,21 @@ export const onBoardPackRequested = inngest.createFunction(
       ]
 
       // Generate AI narrative — input is already-aggregated numbers, never raw user data
-      const aiResponse = await anthropic.messages.create({
-        model:      'claude-haiku-4-5-20251001',
-        max_tokens: 600,
-        messages: [{
-          role:    'user',
-          content: `You are a South African business advisor writing an executive summary for a board pack.
+      const budget = await checkBudget(tenant_id, plan, 1200)
+      let narrative: string
+      if (!budget.allowed) {
+        console.warn(`[AI:blocked] tenant=${tenant_id} feature=board_pack reason=${budget.reason}`)
+        narrative = 'Executive summary unavailable this period — AI usage budget reached. The figures below are unaffected.'
+      } else {
+        const model = getModelForFeature('board_pack', plan)
+        const t0 = Date.now()
+
+        const aiResponse = await anthropic.messages.create({
+          model,
+          max_tokens: 600,
+          messages: [{
+            role:    'user',
+            content: `You are a South African business advisor writing an executive summary for a board pack.
 Write a concise 3-paragraph executive summary in professional but accessible English for a small-to-medium business owner.
 
 Period: ${period_label}
@@ -109,10 +124,17 @@ Format:
 - Paragraph 3: Key focus areas and opportunities going forward (2-3 sentences)
 
 Be specific and data-driven. Mention actual numbers. Keep it under 200 words.`,
-        }],
-      })
+          }],
+        })
 
-      const narrative = (aiResponse.content[0] as { type: string; text: string }).text
+        void recordUsage({
+          tenantId: tenant_id, plan, feature: 'board_pack', model,
+          tokensIn: aiResponse.usage.input_tokens, tokensOut: aiResponse.usage.output_tokens,
+          durationMs: Date.now() - t0,
+        })
+
+        narrative = (aiResponse.content[0] as { type: string; text: string }).text
+      }
 
       // Derive risks, opportunities, decisions
       const risks: string[] = []

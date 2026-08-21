@@ -3,7 +3,8 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { TopBar } from '@/components/dashboard/TopBar'
 import { StatCard } from '@/components/dashboard/StatCard'
 import { Card } from '@/components/ui/card'
-import { redirect } from 'next/navigation'
+import { redirect, notFound } from 'next/navigation'
+import { checkPermission } from '@/lib/auth/permissions'
 
 type WellnessEntry = { score: number; date: string }
 
@@ -20,6 +21,10 @@ export default async function AnalyticsPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  // Revenue, outstanding debt, debt aging and per-staff wellness scores — the
+  // business-intelligence rollup, gated the same as the page's own name says.
+  if (!(await checkPermission('view_analytics'))) notFound()
 
   const tenantId = user.app_metadata?.tenant_id as string
 

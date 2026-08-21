@@ -2,9 +2,10 @@ import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { TopBar } from '@/components/dashboard/TopBar'
 import { Card } from '@/components/ui/card'
-import { redirect } from 'next/navigation'
+import { redirect, notFound } from 'next/navigation'
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react'
 import { RefreshButton } from '@/components/ui/RefreshButton'
+import { checkPermission } from '@/lib/auth/permissions'
 
 export const dynamic = 'force-dynamic'
 
@@ -95,6 +96,12 @@ export default async function HealthPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  // Cross-dimension scorecard (financial/operational/people/customer/
+  // compliance/strategic) — the same rollup-analytics sensitivity as the
+  // dashboard's other trend views. notFound(), matching the page-level
+  // denial convention in lib/auth/context.ts.
+  if (!(await checkPermission('view_analytics'))) notFound()
 
   const tenantId = user.app_metadata?.tenant_id as string
 

@@ -1,12 +1,13 @@
 import { createClient } from '@/lib/supabase/server'
 import { TopBar } from '@/components/dashboard/TopBar'
-import { redirect } from 'next/navigation'
+import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { formatZAR } from '@/lib/format'
 import { buildMoneyIntel } from '@/lib/money/signal'
 import { getSetupState } from '@/lib/tenant/setup-state'
 import { publishSignal } from '@/lib/signals/bus'
 import { SendRemindersButton } from '@/components/dashboard/SendRemindersButton'
+import { checkPermission } from '@/lib/auth/permissions'
 import {
   Wallet, ArrowRight, TrendingUp, TrendingDown, Landmark, FileSpreadsheet,
   Receipt, AlertTriangle, ChevronRight, PiggyBank,
@@ -22,6 +23,13 @@ export default async function CashCockpit() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  // AR/AP totals, aging and net cash position — the same view_financials
+  // boundary as Cashflow, Compliance, Contracts, Valuation and Governance.
+  // notFound(), not a redirect, per the page-level denial convention in
+  // lib/auth/context.ts.
+  if (!(await checkPermission('view_financials'))) notFound()
+
   const tenantId = user.app_metadata?.tenant_id as string
 
   const [intel, setup] = await Promise.all([buildMoneyIntel(tenantId), getSetupState(tenantId)])

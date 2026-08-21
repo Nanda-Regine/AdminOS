@@ -4,7 +4,8 @@ import { TopBar } from '@/components/dashboard/TopBar'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ConfirmSubmit } from '@/components/ui/ConfirmSubmit'
-import { redirect } from 'next/navigation'
+import { redirect, notFound } from 'next/navigation'
+import { checkPermission } from '@/lib/auth/permissions'
 
 const DATA_REGISTER = [
   {
@@ -48,6 +49,10 @@ export default async function CompliancePage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  // Per-category record counts (incl. staff/financial) and irreversible
+  // contact-erasure — tenant compliance configuration, not everyday data.
+  if (!(await checkPermission('manage_settings'))) notFound()
 
   const tenantId = user.app_metadata?.tenant_id as string
 

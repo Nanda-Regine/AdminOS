@@ -5,8 +5,9 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ConfirmSubmit } from '@/components/ui/ConfirmSubmit'
 import { EmptyState } from '@/components/ui/EmptyState'
-import { redirect } from 'next/navigation'
+import { redirect, notFound } from 'next/navigation'
 import { Calendar } from 'lucide-react'
+import { checkPermission } from '@/lib/auth/permissions'
 
 const statusVariant: Record<string, 'green' | 'yellow' | 'red' | 'gray' | 'blue'> = {
   confirmed: 'green',
@@ -45,6 +46,12 @@ export default async function BookingsPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  // Every customer's name, appointment and price across the whole tenant —
+  // manage_contacts is the permission that separates internal roles (who all
+  // hold it) from the client role (which doesn't), so a customer logged in
+  // as 'client' can't browse every other customer's bookings here.
+  if (!(await checkPermission('manage_contacts'))) notFound()
 
   const tenantId = user.app_metadata?.tenant_id as string
   const { start, end, todayStr } = getWeekBounds()

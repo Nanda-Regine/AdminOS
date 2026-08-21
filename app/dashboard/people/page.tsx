@@ -1,10 +1,11 @@
 import { createClient } from '@/lib/supabase/server'
 import { TopBar } from '@/components/dashboard/TopBar'
-import { redirect } from 'next/navigation'
+import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { buildPeopleIntel } from '@/lib/people/signal'
 import { getSetupState } from '@/lib/tenant/setup-state'
 import { publishSignal } from '@/lib/signals/bus'
+import { checkPermission } from '@/lib/auth/permissions'
 import {
   Users, ArrowRight, CalendarCheck, Wallet, HeartPulse, Scale,
   ChevronRight, UserPlus, ClipboardCheck,
@@ -16,6 +17,11 @@ export default async function PeopleCockpit() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  // Leave + expense approval queue plus per-staff wellness scores — the same
+  // approval-authority boundary as expenses/page.tsx (approve_leave).
+  if (!(await checkPermission('approve_leave'))) notFound()
+
   const tenantId = user.app_metadata?.tenant_id as string
 
   const [intel, setup] = await Promise.all([buildPeopleIntel(tenantId), getSetupState(tenantId)])

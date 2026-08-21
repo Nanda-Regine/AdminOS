@@ -3,9 +3,10 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { TopBar } from '@/components/dashboard/TopBar'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { redirect } from 'next/navigation'
+import { redirect, notFound } from 'next/navigation'
 import { AlertTriangle, CheckCircle, Clock } from 'lucide-react'
 import { LogIncidentModal } from './LogIncidentModal'
+import { checkPermission } from '@/lib/auth/permissions'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,6 +14,11 @@ export default async function IRLogPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  // Named staff disciplinary/grievance records — the same manage_staff
+  // boundary as Safety and the staff pages. notFound(), not a redirect, per
+  // the page-level denial convention in lib/auth/context.ts.
+  if (!(await checkPermission('manage_staff'))) notFound()
 
   const tenantId = user.app_metadata?.tenant_id as string
 

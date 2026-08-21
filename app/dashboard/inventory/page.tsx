@@ -2,10 +2,11 @@ import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { TopBar } from '@/components/dashboard/TopBar'
 import { Card } from '@/components/ui/card'
-import { redirect } from 'next/navigation'
+import { redirect, notFound } from 'next/navigation'
 import { InventoryTable, type ProductRow } from './InventoryTable'
 import { CreateProductModal } from './CreateProductModal'
 import { formatZAR } from '@/lib/format'
+import { checkPermission } from '@/lib/auth/permissions'
 
 const money = (v: number) => formatZAR(v, { cents: true })
 
@@ -13,6 +14,11 @@ export default async function InventoryPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  // Stock levels, cost/selling prices and stock valuation — the same
+  // manage_inventory boundary as Suppliers. notFound(), not a redirect, per
+  // the page-level denial convention in lib/auth/context.ts.
+  if (!(await checkPermission('manage_inventory'))) notFound()
 
   const tenantId = user.app_metadata?.tenant_id as string
 

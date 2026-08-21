@@ -1,11 +1,12 @@
 import { createClient } from '@/lib/supabase/server'
 import { TopBar } from '@/components/dashboard/TopBar'
-import { redirect } from 'next/navigation'
+import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { formatZAR } from '@/lib/format'
 import { buildSalesIntel } from '@/lib/sales/signal'
 import { getSetupState } from '@/lib/tenant/setup-state'
 import { publishSignal } from '@/lib/signals/bus'
+import { checkPermission } from '@/lib/auth/permissions'
 import {
   MessageSquare, ArrowRight, Users, TrendingUp, Snowflake,
   ChevronRight, Radio, Zap, UserPlus, AlertTriangle,
@@ -17,6 +18,11 @@ export default async function SalesCockpit() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  // Pipeline value and lifetime revenue per contact — a business-intelligence
+  // rollup, same boundary as health/page.tsx (view_analytics).
+  if (!(await checkPermission('view_analytics'))) notFound()
+
   const tenantId = user.app_metadata?.tenant_id as string
 
   const [intel, setup] = await Promise.all([buildSalesIntel(tenantId), getSetupState(tenantId)])

@@ -31,6 +31,7 @@ export type Permission =
   | 'manage_documents'
   | 'manage_inventory'
   | 'view_own_data_only'
+  | 'view_communications'
 
 export type RoleName = 'owner' | 'admin' | 'manager' | 'staff' | 'field_agent' | 'client'
 
@@ -48,6 +49,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   'manage_documents',
   'manage_inventory',
   'view_own_data_only',
+  'view_communications',
 ]
 
 // ─── Default role permission sets ────────────────────────────────────────────
@@ -57,11 +59,13 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<RoleName, Permission[]> = {
     'manage_staff', 'view_financials', 'approve_leave', 'view_payroll',
     'manage_settings', 'manage_billing', 'view_analytics', 'send_broadcasts',
     'manage_invoices', 'manage_contacts', 'manage_documents', 'manage_inventory',
+    'view_communications',
   ],
   admin: [
     'manage_staff', 'view_financials', 'approve_leave', 'view_payroll',
     'manage_settings', 'view_analytics', 'send_broadcasts',
     'manage_invoices', 'manage_contacts', 'manage_documents', 'manage_inventory',
+    'view_communications',
   ],
   manager: [
     'view_financials', 'approve_leave', 'view_analytics',

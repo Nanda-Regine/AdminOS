@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { ArrowLeft, Package, History } from 'lucide-react'
 import { formatZAR } from '@/lib/format'
 import { RecordTransactionModal } from './RecordTransactionModal'
+import { checkPermission } from '@/lib/auth/permissions'
 
 type Product = {
   id:            string
@@ -51,6 +52,10 @@ export default async function ProductDetailPage({
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  // Same manage_inventory boundary as the inventory list page — per-product
+  // cost/selling prices and stock movement history.
+  if (!(await checkPermission('manage_inventory'))) notFound()
 
   const tenantId = user.app_metadata?.tenant_id as string
 
