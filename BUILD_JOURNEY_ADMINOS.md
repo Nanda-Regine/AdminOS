@@ -1376,3 +1376,161 @@ the correct `document_uploaded` payload with `storage_url` populated.
 Codified as `supabase/migrations/20260819_fix_doc_pipeline_trigger.sql` so
 it's reproducible for local dev / any future environment, not just a live
 prod patch. `documents` for Mzansi Test Traders: 0 → 5.
+
+## Session 10 (2026-08-20) — post-conference: battle-testing before real onboarding
+
+Conference (19 Aug) is over. First live signal back: **Jael actually used it and
+loved it** — the first real, unprompted positive reaction from outside the
+build. Nanda is now onboarding real interested attendees, not just demoing —
+so this session's mandate shifted from "doesn't embarrass on stage" to "holds
+up under a real stranger with curl and bad intentions." Nanda is separately
+rotating `RESEND_API_KEY` (dead since before the conference, see
+[[adminos-resend-key-dead]]) — that is the one blocking item explicitly
+**not** covered this session.
+
+Plan written to memory + here before building, per the project golden rule.
+
+### Fixed this session
+
+**Licences page queried a nonexistent `staff.name` column**
+(`app/dashboard/licenses/page.tsx:34,36`, confirmed via
+`supabase/schema.sql:180-195` — the column is `full_name`). Silent failure,
+not a crash: `staffOptions` came back empty, so every licence row's assigned-
+staff display and the "assign staff" dropdown in the Report/Add modal have
+been empty since the Licences page shipped (16 Aug). Session 8 (18 Aug) had
+already spotted the same wrong-column mistake while building Safety
+Incidents and left a comment flagging it as "a live bug in the shipped
+Licences page, pre-existing and out of scope" — this session closed that
+loop. Fixed with a PostgREST select alias (`select('id, name:full_name')`,
+`.order('full_name')`) so `StaffOption`/`LicensesClient` need no changes.
+`tsc --noEmit` clean.
+**STATUS: fix is in the working tree, NOT committed — Nanda paused the
+session before the commit landed. Pick this up first tomorrow: review the
+diff, commit, push.**
+
+**"called? called?" onboarding duplicate-text bug (14 Aug memory) — already
+fixed, false alarm.** Traced via `git log -S"ownerNamePrompt"
+lib/onboarding/messages.ts`: commit `cf64d28` (14 Aug, same day as the bug
+report) added a dedicated per-language `ownerNamePrompt` specifically to fix
+this — it was a `businessNamePrompt.replace('business', ...)` string hack
+producing the duplicate. Not reproducible in current source. No action taken;
+correcting the record so it isn't chased again.
+
+### W6 audit — SA compliance proof surface (ordered by the conference plan, never actually run)
+
+Full findings in memory: [[adminos-post-conference-audit-2026-08-20]]. Headline:
+**several landing-page compliance claims (`app/page.tsx`) are not backed by
+the product** — the exact risk profile that burns trust with a real
+prospect rather than a demo audience:
+
+- **Formalization pathway claimed, zero UI.** `app/api/formalization/route.ts`
+  is a complete, working API against a real `formalization_progress` table
+  (CIPC/SARS/VAT/UIF registration tracking, achievement events on
+  milestones) — grepped the entire `app/`/`components/` tree, **nothing
+  calls it.** Textbook "backend exists, no UI," just one level further
+  upstream than the ones already closed this sprint (Suppliers, Licences,
+  Safety, EE all followed the exact same shape).
+- **EME B-BBEE affidavit generator claimed "high demo value" in the
+  readiness plan — never built.** Zero affidavit template/PDF/route exists
+  anywhere.
+- **B-BBEE "ownership… as you go" claim overstated** — only supplier-side
+  B-BBEE tier data exists (who you buy from); no field anywhere captures the
+  tenant's own ownership % / scorecard.
+- **Compliance page claims a per-contact POPIA export that doesn't exist**
+  (`app/dashboard/settings/compliance/page.tsx:142`) — no export button, no
+  API.
+- **VAT computed and stored on every invoice, never displayed after
+  creation** — no compliant "Tax Invoice" (VAT breakdown + tenant VAT
+  number) can be produced anywhere in the product today, on the invoices
+  list, the client portal, or as a download. The VAT201 accountant export
+  (`/api/money/export?type=vat201`) is real and solid, though — genuinely
+  under-marketed relative to how well it works.
+- **Confirmed still working, well:** VAT201/journal/income-statement CSV
+  exports, immutable `audit_log` (DB-level `REVOKE UPDATE, DELETE`), POPIA
+  erasure flow (`/api/compliance/delete-contact`, role-gated, audited, real
+  end to end), EEA2 report, compliance calendar seed data.
+- **POPIA soft-delete vs. hard-delete tension — still never resolved.**
+  Flagged as an open decision in `CONFERENCE_READINESS_PLAN.md` (audit 3 was
+  supposed to resolve it) and recorded but not decided in an earlier audit
+  (`BUILD_JOURNEY_ADMINOS.md:1096-1098` per the auditor's citation). The
+  erasure route itself uses three different strategies in one function (hard
+  delete on `messages`/`conversations`, null-in-place on `staff`) — it works,
+  but the contradiction with Global Rule #3 ("soft delete only") was never
+  written down as an intentional exception. Needs a one-paragraph decision
+  documented, not new code.
+- **Also flagged, unverified this session:** an earlier audit's claim that
+  POPIA consent flags are never written by any route (columns + badge exist,
+  badge always reads "no consent") — worth a fresh check before repeating
+  the claim to a prospect.
+
+### W7 audit — security hardening (independent, adversarial pass)
+
+Full findings in memory: [[adminos-post-conference-audit-2026-08-20]]. Headline:
+**tenant isolation itself is solid** — swept production `pg_policies`
+directly this session, confirmed 0 policies reference the spoofable
+`user_metadata` path (still holding since the 14 Aug Phase 0 followup), and
+every sampled `supabaseAdmin` call across ~40 routes derives `tenant_id`
+from session `app_metadata`, never client input. Both new tables from
+session 8 (`safety_incidents`, `employment_equity_data`) have correct RLS.
+Production Supabase confirmed `ACTIVE_HEALTHY` (not paused, see
+[[adminos-supabase-db-autopauses]]).
+
+Two real, exploitable-with-just-a-valid-account gaps found — **fix these
+first tomorrow, before fixing anything else**:
+
+1. **Any authenticated tenant member can mass-blast WhatsApp broadcasts to
+   the entire contact list.** `app/api/reach/send/route.ts`,
+   `app/api/reach/campaigns/route.ts` (POST), and
+   `app/api/reach/campaigns/[id]/send/route.ts` only check the tenant *has*
+   the Reach add-on — none check the `send_broadcasts` permission that
+   already exists in `lib/auth/permissions.ts` and is scoped to
+   owner/admin. A `staff` or `field_agent`-role account (or a
+   mis-provisioned `client` role) can POST directly and spam every contact —
+   real WhatsApp-number reputation/ban risk for the tenant.
+2. **Any authenticated tenant member can view any colleague's salary.**
+   `app/api/staff/[id]/payslips/route.ts` confirms tenant match but never
+   checks `view_payroll` or self-ownership of the record.
+
+Medium: `staff/[id]/documents` has the same missing-permission-check shape
+(view/upload any colleague's staff documents); `/api/langa` (Claude chat) has
+no `checkRateLimit` call unlike its sibling `/api/agents/[agentType]` route —
+bounded by `checkBudget()` but that's a daily token meter, not a
+request-rate limiter, and is a real cost-abuse surface once this is
+public-facing to strangers rather than invited beta users; the
+Paystack/PayFast webhook hub-forward path shares one static
+`HUB_INTERNAL_SECRET` across 4+ money-moving endpoints with no HMAC/replay
+protection of its own (by design — a separate hub is supposed to have
+already verified the real provider signature — but worth Nanda's eyes on
+whether that secret has ever been logged/shared broadly, since a leak there
+is one curl command away from activating any tenant's paid plan for free).
+Low: an unescaped `search` param spliced into a PostgREST `.or()` filter in
+`contacts/route.ts` (tenant-scoped, so no cross-tenant reach, but can distort
+the caller's own query); a missing `tenantId` null-guard in
+`onboarding/add-staff/route.ts` (inconsistent with sibling onboarding
+routes); a stale `plan_type` enum in `master_schema.sql` not matching the
+live 5-tier billing model (docs-only risk, zod schemas are correct
+everywhere they're actually used).
+
+### Tomorrow's plan (in priority order)
+
+1. Commit + push the Licences fix (already in the working tree).
+2. Fix the two HIGH security findings (broadcast permission check,
+   payslips permission check) — both are one-line `requirePermission` /
+   `checkPermission` additions, well inside the pattern already used
+   everywhere else in the codebase.
+3. Fix the MEDIUM security findings (staff documents permission check,
+   `/api/langa` rate limit) if time allows.
+4. Decide + write down the soft-delete/hard-delete POPIA resolution
+   (documentation only, no code risk).
+5. Re-verify the POPIA-consent-never-written claim; fix if still real.
+6. Bring the compliance-page/landing-page overclaims in line with reality —
+   either wire the existing `/api/formalization` API into a real page (same
+   shape as Suppliers/Licences/Safety — the API is already done, this is
+   the cheapest of the compliance gaps to close for real rather than just
+   soften copy on), or correct the marketing copy for whichever claims
+   aren't getting built this week. Nanda's call on which items get a real
+   build vs. a copy correction — flag both options per item rather than
+   deciding unilaterally, since affidavit content especially has legal
+   accuracy stakes.
+7. `HUB_INTERNAL_SECRET` — flag to Nanda for a judgement call on rotation
+   scope; not a code fix.

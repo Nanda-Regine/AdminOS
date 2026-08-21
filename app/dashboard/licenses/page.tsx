@@ -31,9 +31,11 @@ export default async function LicensesPage() {
       .order('expiry_date', { ascending: true, nullsFirst: false }),
     supabaseAdmin
       .from('staff')
-      .select('id, name')
+      // staff has no `name` column (it's `full_name` — see supabase/schema.sql:183);
+      // aliased here so StaffOption/LicensesClient can keep using `.name` untouched.
+      .select('id, name:full_name')
       .eq('tenant_id', tenantId)
-      .order('name'),
+      .order('full_name'),
   ])
 
   const staffOptions = (staff ?? []) as StaffOption[]
