@@ -167,9 +167,9 @@ export default async function CompliancePage() {
                 { item: 'Password authentication with JWT',              done: true  },
                 { item: 'WhatsApp message deduplication',                done: true  },
                 { item: 'Webhook HMAC-SHA256 verification',              done: true  },
-                { item: 'Information Officer registered with ICLG',      done: false },
-                { item: 'Privacy Policy published on adminos.co.za',     done: false },
-                { item: 'Data breach response plan documented',          done: false },
+                { item: 'Information Officer registered with ICLG',      done: true },
+                { item: 'Privacy Policy published on adminos.co.za',     done: true },
+                { item: 'Data breach response plan documented',          done: true },
               ].map((check) => (
                 <div key={check.item} className="flex items-center gap-3 text-sm">
                   <span className={check.done ? 'text-emerald-600' : 'text-[var(--text-dim)]'}>
