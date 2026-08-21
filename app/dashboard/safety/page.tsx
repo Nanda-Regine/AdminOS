@@ -1,9 +1,10 @@
-import { redirect } from 'next/navigation'
+import { redirect, notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { TopBar } from '@/components/dashboard/TopBar'
 import { Card } from '@/components/ui/card'
 import { SafetyClient, type IncidentRow, type StaffOption } from './SafetyClient'
+import { checkPermission } from '@/lib/auth/permissions'
 
 export const metadata = {
   title: 'Safety Incidents — AdminOS',
@@ -20,6 +21,11 @@ export default async function SafetyPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  // Named staff injury/incident records — same manage_staff boundary as its own
+  // API (app/api/safety/route.ts) and the staff pages. notFound(), not a
+  // redirect, per the page-level denial convention in lib/auth/context.ts.
+  if (!(await checkPermission('manage_staff'))) notFound()
 
   const tenantId = user.app_metadata?.tenant_id as string | undefined
   if (!tenantId) redirect('/dashboard')

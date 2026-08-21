@@ -2,8 +2,9 @@ import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { TopBar } from '@/components/dashboard/TopBar'
 import { Card } from '@/components/ui/card'
-import { redirect } from 'next/navigation'
+import { redirect, notFound } from 'next/navigation'
 import { RefreshButton } from '@/components/ui/RefreshButton'
+import { checkPermission } from '@/lib/auth/permissions'
 
 type Driver = {
   revenue_growth: number
@@ -62,6 +63,12 @@ export default async function ValuationPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  // An estimate of what the business is worth — arguably the single most
+  // exit/ownership-sensitive page in the dashboard. Same view_financials
+  // boundary as the rest of the money-facing pages. notFound(), not a
+  // redirect, per the page-level denial convention in lib/auth/context.ts.
+  if (!(await checkPermission('view_financials'))) notFound()
 
   const tenantId = user.app_metadata?.tenant_id as string
 

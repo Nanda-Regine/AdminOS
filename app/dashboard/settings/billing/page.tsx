@@ -2,11 +2,12 @@ import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { TopBar } from '@/components/dashboard/TopBar'
 import { PlanBadge } from '@/components/ui/PlanBadge'
-import { redirect } from 'next/navigation'
+import { redirect, notFound } from 'next/navigation'
 import { CheckCircle2, Zap, Phone, Radio, BookOpen, Languages, Globe, AlertTriangle } from 'lucide-react'
 import { CancelSubscriptionButton } from '@/components/billing/CancelSubscriptionButton'
 import { CancelAddonButton } from '@/components/billing/CancelAddonButton'
 import { ADDON_SLUGS, type AddonSlug } from '@/lib/billing/addons'
+import { checkPermission } from '@/lib/auth/permissions'
 
 // Presentational only — icon + accent per add-on slug. Prices, names, descriptions
 // and the bundle map all come from the DB catalogue (single source of truth).
@@ -55,6 +56,12 @@ export default async function BillingPage({
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  // Payment history + amounts, and the plan-switch/cancel actions below — same
+  // manage_billing boundary the write-side routes (checkout, cancel, addons/cancel,
+  // plan) already enforce. notFound(), not a redirect, per the page-level denial
+  // convention in lib/auth/context.ts.
+  if (!(await checkPermission('manage_billing'))) notFound()
 
   const tenantId = user.app_metadata?.tenant_id as string
 

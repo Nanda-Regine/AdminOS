@@ -6,8 +6,9 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ConfirmSubmit } from '@/components/ui/ConfirmSubmit'
 import { EmptyState } from '@/components/ui/EmptyState'
-import { redirect } from 'next/navigation'
+import { redirect, notFound } from 'next/navigation'
 import { Wallet } from 'lucide-react'
+import { checkPermission } from '@/lib/auth/permissions'
 
 const statusVariant: Record<string, 'gray' | 'yellow' | 'green' | 'blue'> = {
   draft: 'gray',
@@ -20,6 +21,12 @@ export default async function PayrollPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  // Gross/net payroll totals per run — the same salary-sensitivity boundary as
+  // the staff pages (view_payroll, not manage_staff: someone can run payroll
+  // without seeing every individual's HR record, and vice versa). notFound(),
+  // not a redirect — matches the page-level denial convention in lib/auth/context.ts.
+  if (!(await checkPermission('view_payroll'))) notFound()
 
   const tenantId = user.app_metadata?.tenant_id as string
 

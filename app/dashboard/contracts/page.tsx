@@ -2,14 +2,20 @@ import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { TopBar } from '@/components/dashboard/TopBar'
 import { Card } from '@/components/ui/card'
-import { redirect } from 'next/navigation'
+import { redirect, notFound } from 'next/navigation'
 import { CreateContractModal } from './CreateContractModal'
 import { ContractsTable, type ContractRow } from './ContractsTable'
+import { checkPermission } from '@/lib/auth/permissions'
 
 export default async function ContractsPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  // Contract values and counterparties — same view_financials boundary as the
+  // rest of the money-facing dashboard. notFound(), not a redirect, per the
+  // page-level denial convention in lib/auth/context.ts.
+  if (!(await checkPermission('view_financials'))) notFound()
 
   const tenantId = user.app_metadata?.tenant_id as string
 

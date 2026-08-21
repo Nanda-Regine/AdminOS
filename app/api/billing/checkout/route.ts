@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { checkPermission } from '@/lib/auth/permissions'
 import { createHash } from 'crypto'
 
 // PayFast plan amounts in ZAR — must match plan_catalogue table
@@ -46,6 +47,11 @@ export async function GET(request: Request) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new NextResponse('Unauthorized', { status: 401 })
+
+  // Same manage_billing boundary as every other write path in this router
+  // (cancel, addons/cancel, plan) — this one was the odd one out, reachable by
+  // any authenticated tenant member to kick off a real plan/add-on purchase.
+  if (!(await checkPermission('manage_billing'))) return new NextResponse('Forbidden', { status: 403 })
 
   const { searchParams } = new URL(request.url)
   const plan  = searchParams.get('plan')

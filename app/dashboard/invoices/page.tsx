@@ -2,16 +2,22 @@ import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { TopBar } from '@/components/dashboard/TopBar'
 import { Card } from '@/components/ui/card'
-import { redirect } from 'next/navigation'
+import { redirect, notFound } from 'next/navigation'
 import { CreateInvoiceModal } from './CreateInvoiceModal'
 import { RecoveryReviewQueue } from '@/components/invoices/RecoveryReviewQueue'
 import { InvoicesTable, type InvoiceRow } from './InvoicesTable'
 import { formatZAR } from '@/lib/format'
+import { checkPermission } from '@/lib/auth/permissions'
 
 export default async function InvoicesPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  // The full debt register — same manage_invoices boundary the write-side API
+  // (app/api/invoices/route.ts) already enforces. notFound(), not a redirect,
+  // per the page-level denial convention in lib/auth/context.ts.
+  if (!(await checkPermission('manage_invoices'))) notFound()
 
   const tenantId = user.app_metadata?.tenant_id as string
 

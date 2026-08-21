@@ -1,10 +1,11 @@
-import { redirect } from 'next/navigation'
+import { redirect, notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { TopBar } from '@/components/dashboard/TopBar'
 import { Card } from '@/components/ui/card'
 import { SuppliersTable, type SupplierRow } from './SuppliersTable'
 import { AddSupplierModal } from './AddSupplierModal'
+import { checkPermission } from '@/lib/auth/permissions'
 
 export const metadata = {
   title: 'Suppliers — AdminOS',
@@ -22,6 +23,12 @@ export default async function SuppliersPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  // Procurement/vendor data — gated on manage_inventory, the closest existing
+  // catalogue permission (owner/admin/manager, not staff/field_agent/client).
+  // notFound(), not a redirect, per the page-level denial convention in
+  // lib/auth/context.ts.
+  if (!(await checkPermission('manage_inventory'))) notFound()
 
   const tenantId = user.app_metadata?.tenant_id as string | undefined
   if (!tenantId) redirect('/dashboard')

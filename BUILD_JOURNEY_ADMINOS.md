@@ -1643,11 +1643,51 @@ an optional `plan` field, threaded from the route's already-fetched
 tenant plan); the streaming path reads usage via `stream.finalMessage()`
 after the stream drains, since token counts aren't available mid-stream.
 
-**Not touched, still open:** Build list P0 #3 (31 unprotected pages) —
-natural next item. Also still open per Build list P1: deciding the
-orchestrator's fate (only `pen` has a real caller; `alex`/`care` have no
-working equivalent; `chase`/`doc`/`insight`'s real logic still lives
-solely in the Inngest pipelines, duplicated from same-named personas).
+Also made a start on **Build list P0 #3 (31 unprotected pages)** — fixed
+the 10 pages the original audit named as highest-sensitivity by data
+type (2 more, staff list/detail, were already fixed Session 11):
+`payroll` (`view_payroll`), `settings/billing` (`manage_billing`),
+`cashflow`/`compliance`/`contracts`/`valuation` (`view_financials`),
+`expenses` (`approve_leave` — matches its own approve API route's
+established reuse), `invoices` (`manage_invoices` — matches its own API
+route), `safety` (`manage_staff` — matches its own API route),
+`suppliers` (`manage_inventory` — closest existing catalogue fit, no
+suppliers API route exists yet to match against). Same `checkPermission`
++ `notFound()` pattern as the two staff pages fixed Session 11. **Found
+in passing:** `app/api/billing/checkout/route.ts` had zero permission
+check at all (any authenticated tenant member could kick off a real
+plan/add-on purchase redirect) — fixed with the same `manage_billing`
+gate its sibling billing routes already use.
+
+12 of 31 pages now fixed. **Deliberately stopped here rather than sweep
+the remaining 19** (analytics, announcements, board-pack, bookings,
+calendar, contacts, dashboard root, getting-started, handbook, health,
+inventory, ir-log, knowledge-base, licenses, reach, ring, settings,
+sequences, stokvel, tasks, team, workflow-monitor) — Nanda's call to end
+the session there rather than push through lower-sensitivity pages.
+Each of those still needs its own permission judgement call against
+`DEFAULT_ROLE_PERMISSIONS`, same as this batch — not a blanket
+find-replace. `tsc --noEmit` clean after every batch.
+
+**The original 31-page count is itself an undercount, found while
+checking this list against the filesystem:** the original sweep's grep
+only checked one directory level (`app/dashboard/*/page.tsx`) and
+counted the single `settings` entry as one page. There are actually 7
+page.tsx files under `app/dashboard/settings/` — root, `autonomy`,
+`billing` (fixed this session), `compliance` (a distinct settings/POPIA
+page, NOT the Compliance Calendar page fixed this session — different
+file, different content), `employment-equity`, `onboarding`,
+`referrals` — and 6 of those 7 still have zero permission check. Not
+fixed this session (Nanda's call to stop); flagging so the next sweep
+counts from the real total rather than the stale 31, and doesn't
+conflate the two differently-named "compliance" pages.
+
+**Not touched, still open:** the remaining 19 pages from the original
+list, plus the 6 newly-found unprotected `settings/*` subpages above.
+Also still open per Build list P1: deciding the orchestrator's fate
+(only `pen` has a real caller; `alex`/`care` have no working
+equivalent; `chase`/`doc`/`insight`'s real logic still lives solely in
+the Inngest pipelines, duplicated from same-named personas).
 
 ---
 
@@ -1673,14 +1713,23 @@ detail this list intentionally compresses.
    fixed in the same pass: `orchestrator.ts`'s `run()`/`stream()` never
    called `recordUsage` — `pen`'s real live traffic was unmetered too.
    → same memory file for original audit detail.
-3. **31 dashboard pages have zero permission check** — auth-only, not
-   authorization. Two of them (staff list/detail) already fixed this
-   session; payroll, billing, compliance, cashflow, expenses, invoices,
-   safety, contracts, valuation, suppliers and 21 others are not. Each page
-   needs its permission picked deliberately from `DEFAULT_ROLE_PERMISSIONS`
-   (`lib/auth/permissions.ts`), not a blanket find-replace — payroll and
-   billing first by data sensitivity. → memory
-   `adminos-page-level-authorization-gap`.
+3. **31+ dashboard pages have zero permission check** — auth-only, not
+   authorization, and the original "31" count is itself stale: the
+   sweep behind it only checked one directory level and missed 6 more
+   unprotected pages nested under `app/dashboard/settings/*`. **12 of
+   the original 31 fixed** (staff list/detail Session 11; payroll,
+   settings/billing, cashflow, compliance [Compliance Calendar — not
+   the distinct settings/compliance page], contracts, expenses,
+   invoices, safety, suppliers, valuation Session 12). **Remaining:**
+   the other 19 from the original list (analytics, announcements,
+   board-pack, bookings, calendar, contacts, dashboard root,
+   getting-started, handbook, health, inventory, ir-log,
+   knowledge-base, licenses, reach, ring, settings, sequences, stokvel,
+   tasks, team, workflow-monitor) **plus** 6 newly-found ones
+   (`settings/{root,autonomy,compliance,employment-equity,onboarding,
+   referrals}`). Each still needs its permission picked deliberately
+   from `DEFAULT_ROLE_PERMISSIONS` (`lib/auth/permissions.ts`), not a
+   blanket find-replace. → memory `adminos-page-level-authorization-gap`.
 
 ### P1 — decide the AI agent system's shape
 

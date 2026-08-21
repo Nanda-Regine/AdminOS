@@ -6,8 +6,9 @@ import { Badge } from '@/components/ui/badge'
 import { ConfirmSubmit } from '@/components/ui/ConfirmSubmit'
 import { CreateExpenseModal } from './CreateExpenseModal'
 import { EmptyState } from '@/components/ui/EmptyState'
-import { redirect } from 'next/navigation'
+import { redirect, notFound } from 'next/navigation'
 import { Receipt, Clock, CheckCircle } from 'lucide-react'
+import { checkPermission } from '@/lib/auth/permissions'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,6 +16,12 @@ export default async function ExpensesPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  // The whole team's expense claims (amounts, descriptions, receipts) — reuses
+  // approve_leave, same as the approve/reject API route below (that route's own
+  // comment: "reuse — covers expense approval too"). notFound(), not a redirect,
+  // per the page-level denial convention in lib/auth/context.ts.
+  if (!(await checkPermission('approve_leave'))) notFound()
 
   const tenantId = user.app_metadata?.tenant_id as string
 
