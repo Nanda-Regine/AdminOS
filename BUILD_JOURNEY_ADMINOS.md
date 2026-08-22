@@ -1691,6 +1691,114 @@ the Inngest pipelines, duplicated from same-named personas).
 
 ---
 
+## Session 14 (2026-08-22) — live-schema drift sweep, calendar rebuild, forms audit
+
+Three pieces of work, all from Nanda's instruction: "the chrome tab is
+loggedin... you can use supabase pat in env.local for migrations. lets make
+the best calendar, forms cant be broken, its important that they work, all
+of them."
+
+**1. Schema-drift sweep.** Supabase MCP tools don't have this project
+connected (different org/account), so pulled a live `information_schema.
+columns` dump (104 tables, 1181 columns) via the Management API + the PAT
+in `.env.local`, then regex-scanned every `.from()` call app-wide against
+it — every migration-file assumption gets stale the moment a later
+migration renames/drops a column, so only a live dump is trustworthy.
+Found and fixed ~30+ real drift bugs, the two worst being silent
+production failures with zero visible error (PostgREST 400s on an unknown
+column just make `.data` come back `null`, and the calling code silently
+falls back to empty/zero):
+- `staff.status`/`tenants.status` don't exist — the real column is a
+  boolean `active` — was broken across ~12 files (`dailyBrief.ts`,
+  `wellnessFanOut.ts`, `boardPack.ts`, `impactSnapshot.ts`,
+  `payrollReminder.ts`, `benchmarkCalculate.ts`, `cashflowForecast.ts`,
+  `valuationSnapshot.ts`, `lib/intelligence/valuation.ts`, payslip
+  generation, and others) — meaning every active/inactive staff or tenant
+  filter in these automations was silently returning nothing.
+- `app/dashboard/bookings/page.tsx` was reading `booking_date`/
+  `start_time`/flat `contact_name`/`staff_name`/`service_name` — none of
+  which exist; real columns are `start_at`/`end_at` plus real joins. The
+  bookings page has been silently empty.
+- `inngest/functions/processQueue.ts` was writing `status: 'running'`,
+  which violates the table's own CHECK constraint (valid value is
+  `'processing'`) — every queued job attempt was failing at the DB layer.
+- `inngest/functions/docIntelligence.ts` had 3 separate column-name bugs
+  (`storage_path`→`storage_url`, `file_name`→`original_filename`, a
+  `status`/`processed_at` update targeting columns that don't exist).
+- Four functions needed a full rewrite, not a rename, because the tables
+  they targeted don't exist under those names: `contextualTrigger.ts`
+  (`context_triggers`→`contextual_triggers`, `academy_notifications`→
+  `triggered_lessons`), `sopAcknowledgement.ts` (`sops`→`sop_documents`,
+  keyed on `user_id` not a nonexistent `staff_id`), `loyaltyExpiry.ts`
+  (`loyalty_accounts`/`loyalty_transactions` don't exist — real schema is
+  a single `loyalty_points` ledger, rewritten to derive latest balance
+  per contact/programme from it), `benchmarkCalculate.ts`
+  (`industry_benchmarks`→`sector_benchmarks`, switched from `.upsert()`
+  to select-then-write because the composite unique index includes
+  always-null columns — NULL≠NULL in Postgres, so upserts against it were
+  silently accumulating duplicates instead of updating).
+- `app/api/email-drafts/[id]/route.ts`'s PATCH handler was spreading the
+  raw request body straight into `.update()` — added a zod allowlist.
+
+**Flagged, not fixed — genuine missing data model, not a rename:**
+`tenants.women_owned` (no such column), `goals` has no target/deadline
+column (`healthScore.ts`'s `scoreStrategic()` degraded to an
+active-count-only proxy), `cashflow_entries` referenced but the table's
+real shape doesn't support what `cashflowForecast.ts` needs from it,
+`socialSync.ts` is calling columns (`last_synced_at`) that don't exist —
+left as a stub, and a **fully-built, zero-row, zero-reference
+`calendar_events` table** exists in the schema (see calendar rebuild
+below). Also surfaced, out of scope for this sweep: a contacts-deletion
+path performs a real hard `DELETE`, violating Global Rule #3 (soft-delete
+only) — no `deleted_at` column exists on `contacts` yet, needs a migration
+first.
+
+Full detail: memory `adminos-schema-drift-sweep-2026-08-22`. Commit
+`6b7861f`.
+
+**2. Calendar rebuild (closes P4 #24).** `/dashboard/calendar` was two
+stacked lists (leave requests, invoices due). Rebuilt as a real
+Monday-first month-grid: new `lib/calendar/monthGrid.ts` (pure date-grid
+math, `?month=`/`?day=` query-param navigation) and `lib/calendar/
+events.ts` (aggregates `leave_requests`, `invoices`, `bookings`,
+`compliance_items`, `professional_licenses`, `contracts` into one feed).
+Server-rendered, `next/link` for all navigation — no client JS. Kept the
+existing `approve_leave` gate. **Deliberately does not use the
+`calendar_events` table** found during the schema-drift sweep — it's
+fully designed (polymorphic `event_type`/`source_type`/`source_id` shape)
+but has zero rows and zero code references anywhere; wiring six real
+tables directly was the correct call given nothing populates it. Full
+detail: memory `adminos-calendar-rebuild-2026-08-22`. `tsc --noEmit`
+clean. Commit `0e03646`.
+
+**3. Forms audit — 5 parallel batches.** All 5 background agents died
+mid-task on an account-level session-limit API error; per Nanda's
+instruction, resumed each via `SendMessage` to its original agent ID
+(not restarted) once the limit reset, so each continued from its own
+transcript rather than redoing work. Fixed:
+- `app/api/expenses/[id]/approve/route.ts` — was `PATCH` + `request.
+  json()` but the UI posts a native `<form>` (can't send PATCH, wrong
+  body encoding) — approve/reject silently 405'd. Now `POST` +
+  `request.formData()` + redirect response.
+- `app/api/payroll/run/route.ts` — `writeAuditLog()`'s `tenantId` was
+  only nested in `metadata`, not at the top level the function actually
+  reads from — payroll audit-log rows were being written tenant-less.
+- `app/api/staff/route.ts` + `AddStaffModal.tsx` — `department`/
+  `leaveBalance` were collected by the form but absent from the zod
+  schema, so silently stripped before insert on every new hire.
+- `app/dashboard/tasks/TaskActions.tsx`'s `MoveTaskButton` refreshed the
+  UI even on a failed request — added an `res.ok` check.
+
+**Flagged, not fixed — need Nanda's product call, not a bug fix:**
+knowledge-base article `category`/`slug` fields are silently dropped
+(API schema doesn't declare them — unclear if slug should be
+server-generated); stokvel `AddMemberModal`'s phone field is optional in
+the UI but required by the API schema (400s with no explanation on
+submit). Full detail: memory `adminos-forms-audit-2026-08-22`. Commit
+`9923feb`.
+
+---
+
 ## Build list — everything open, for a fresh session
 
 Written 2026-08-21 as a standing punch list so a new chat can start straight
@@ -1736,10 +1844,10 @@ detail this list intentionally compresses.
    - `tasks` needs a new `view_tasks`-shaped permission that doesn't
      exist yet; nothing in the current union fits without misapplying.
    - New `view_communications` permission (owner/admin only) added for
-     `/dashboard/ring`. **Backfill migration
+     `/dashboard/ring`. ~~Backfill migration
      `20260821_add_view_communications_permission.sql` written but not
-     yet applied to prod** — do that before relying on the gate for
-     tenants provisioned before 2026-08-21.
+     yet applied to prod~~ **applied to prod 2026-08-22 via Management API
+     PAT (8 rows updated).**
    → memory `adminos-page-level-authorization-gap` for full detail.
 
 ### P1 — decide the AI agent system's shape
@@ -1824,8 +1932,24 @@ this list has been built since:
 20. **Migration templates still carry the old spoofable `user_metadata` RLS
     shape** — live policies are fixed, but any new table copy-pasted from
     the templates reintroduces the hole. Fix the templates themselves.
+20a. **Contacts deletion hard-deletes** (found during Session 14's schema
+    sweep) — violates Global Rule #3 (soft-delete only) same as #17, but a
+    separate code path (contacts, not the POPIA erasure route). No
+    `deleted_at` column exists on `contacts` yet — needs a migration
+    before this can be fixed. → memory `adminos-schema-drift-sweep-2026-08-22`.
+20b. **Knowledge-base article `category`/`slug` silently dropped on
+    create** (found during Session 14's forms audit) — the form collects
+    both, the API's zod schema declares neither. Needs a decision: is
+    `slug` server-generated from the title, or user-entered? Is
+    `category` free-text or a lookup table? → memory
+    `adminos-forms-audit-2026-08-22`.
+20c. **Stokvel `AddMemberModal` phone field: optional in UI, required by
+    API schema** (found during Session 14's forms audit) — a member added
+    without a phone number 400s with no UI explanation. Decide whether
+    phone becomes genuinely optional end-to-end or the UI should require
+    + validate it. → memory `adminos-forms-audit-2026-08-22`.
 
-### P4 — known dead-end bugs (verified 2026-08-21 Session 13 — 21–23 fixed since 16 Aug, 24–25 still true)
+### P4 — known dead-end bugs (verified 2026-08-21 Session 13 — 21–23 fixed since 16 Aug, 24 fixed Session 14, 25 still true)
 
 21. ~~`/dashboard/valuation` "Recalculate" navigates to raw JSON.~~
     **Confirmed fixed** — now `components/ui/RefreshButton.tsx`, a proper
@@ -1839,8 +1963,12 @@ this list has been built since:
     `CreateInvoiceModal.tsx`, which reads all three params correctly via
     `useSearchParams`. The old Edit/overflow buttons no longer exist on the
     page at all.
-24. **Still true.** `/dashboard/calendar` renders a 2-column grid + `<table>`
-    (leave requests + invoices due), not a month/week calendar view.
+24. ~~`/dashboard/calendar` renders a 2-column grid + `<table>` (leave
+    requests + invoices due), not a month/week calendar view.~~ **Fixed
+    Session 14 (2026-08-22, commit `0e03646`)** — real Monday-first
+    month-grid aggregating 6 tables (leave, invoices, bookings,
+    compliance, licences, contracts). → memory
+    `adminos-calendar-rebuild-2026-08-22`.
 25. **Still true.** No `ref=`/`referred_by`/`referral_code` read anywhere in
     signup or onboarding — `app/dashboard/settings/referrals/page.tsx` shows
     the tenant's own code and rewards, but nothing captures an incoming
@@ -1857,6 +1985,28 @@ this list has been built since:
 29. No per-tenant request rate limiting outside AI routes.
 30. No document virus scan on upload.
 31. No automated tenant-isolation test suite (RLS-leak regression guard).
+32. **Missing data model, flagged not fixed (Session 14 schema-drift
+    sweep)** — five small gaps, each needs a migration + real
+    implementation, not a rename:
+    - `tenants.women_owned` — no such column; nothing captures this today.
+    - `goals` has no target/deadline column — `healthScore.ts`'s
+      `scoreStrategic()` is currently degraded to an active-count-only
+      proxy because of this.
+    - `cashflow_entries`'s real shape doesn't support what
+      `cashflowForecast.ts` needs from it — forecast function is running
+      against a schema mismatch.
+    - `inngest/functions/socialSync.ts` references `last_synced_at`,
+      which doesn't exist — left as a stub, not a working sync.
+    - `call_logs` has no column to dedupe a Twilio-retried WhatsApp-sent
+      flag against — `app/api/voice/status/route.ts`'s dead update call
+      was removed rather than fixed; a retry could still double-send.
+    → memory `adminos-schema-drift-sweep-2026-08-22`.
+33. **Orphaned `calendar_events` table** — fully designed (`event_type`/
+    `source_type`/`source_id` polymorphic shape) but zero rows, zero code
+    references anywhere. The new calendar (P4#24) deliberately reads from
+    6 real source tables instead. If anything is ever built to populate
+    `calendar_events`, the calendar page should be revisited to read from
+    it directly instead. → memory `adminos-calendar-rebuild-2026-08-22`.
 
 Source memory files for full detail behind every item above:
 `adminos-post-conference-audit-2026-08-20`,
