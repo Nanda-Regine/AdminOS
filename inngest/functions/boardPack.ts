@@ -192,9 +192,12 @@ export const boardPackMonthlyCron = inngest.createFunction(
     const monthEnd   = new Date(today.getFullYear(), today.getMonth(), 0)
     const monthLabel = lastMonth.toLocaleDateString('en-ZA', { month: 'long', year: 'numeric' })
 
+    // tenants has no created_by column — the owner is recorded inside the
+    // settings JSONB blob (settings.owner_user_id) at tenant-creation time,
+    // not as a top-level FK.
     const { data: eligibleTenants } = await supabaseAdmin
       .from('tenants')
-      .select('id, owner_id:created_by')
+      .select('id, settings')
       .in('plan', ['scale', 'partner'])
 
     if (!eligibleTenants?.length) return { generated: 0 }
@@ -207,7 +210,7 @@ export const boardPackMonthlyCron = inngest.createFunction(
           .from('board_packs')
           .insert({
             tenant_id:     tenant.id,
-            generated_by:  tenant.owner_id ?? tenant.id,
+            generated_by:  (tenant.settings as { owner_user_id?: string } | null)?.owner_user_id ?? tenant.id,
             period_label:  monthLabel,
             period_start:  lastMonth.toISOString().split('T')[0],
             period_end:    monthEnd.toISOString().split('T')[0],
@@ -294,7 +297,7 @@ async function gatherCustomers(tenantId: string, from: string, to: string) {
     .from('contacts')
     .select('*', { count: 'exact', head: true })
     .eq('tenant_id', tenantId)
-    .eq('type', 'customer')
+    .eq('contact_type', 'customer')
     .gte('created_at', from)
     .lte('created_at', to)
 
@@ -302,7 +305,7 @@ async function gatherCustomers(tenantId: string, from: string, to: string) {
     .from('contacts')
     .select('*', { count: 'exact', head: true })
     .eq('tenant_id', tenantId)
-    .eq('type', 'customer')
+    .eq('contact_type', 'customer')
 
   const { data: npsData } = await supabaseAdmin
     .from('nps_surveys')
@@ -346,7 +349,7 @@ async function gatherStaff(tenantId: string, from: string, to: string) {
     .from('staff')
     .select('*', { count: 'exact', head: true })
     .eq('tenant_id', tenantId)
-    .eq('employment_status', 'active')
+    .eq('active', true)
 
   const { count: leaves } = await supabaseAdmin
     .from('leave_requests')
@@ -356,11 +359,14 @@ async function gatherStaff(tenantId: string, from: string, to: string) {
     .gte('created_at', from)
     .lte('created_at', to)
 
+  // Table is disciplinary_records, not ir_cases, and has no status column —
+  // "open" matches the convention already established in
+  // app/dashboard/ir-log/page.tsx: not yet acknowledged by the staff member.
   const { count: irCases } = await supabaseAdmin
-    .from('ir_cases')
+    .from('disciplinary_records')
     .select('*', { count: 'exact', head: true })
     .eq('tenant_id', tenantId)
-    .in('status', ['open', 'in_progress'])
+    .is('acknowledged_at', null)
 
   return {
     headcount:       headcount ?? 0,
@@ -394,17 +400,22 @@ async function gatherCompliance(tenantId: string, to: string) {
 }
 
 async function gatherGoals(tenantId: string) {
+  // `goals` has no target_date column (nor any other date-typed deadline —
+  // only a free-text `quarter`, which the create route doesn't even
+  // populate) — this select used to error on every run, so completion_rate
+  // and overdue were always 0. Degraded rather than guess-fixed: overdue is
+  // reported as unknown (0) until a real deadline column exists, instead of
+  // silently fabricating a number from a field that isn't there.
   const { data } = await supabaseAdmin
     .from('goals')
-    .select('status, target_date')
+    .select('status')
     .eq('tenant_id', tenantId)
     .in('status', ['active', 'completed', 'cancelled'])
 
   const goals           = data ?? []
   const completed       = goals.filter(g => g.status === 'completed').length
   const total           = goals.length
-  const today           = new Date().toISOString().split('T')[0]
-  const overdue         = goals.filter(g => g.status === 'active' && g.target_date && g.target_date < today).length
+  const overdue         = 0 // unknown — no deadline column to compute this from
   const completionRate  = total > 0 ? completed / total : 0
 
   return { total, completed, overdue, completion_rate: completionRate }

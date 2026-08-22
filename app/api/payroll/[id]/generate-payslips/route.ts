@@ -41,7 +41,7 @@ export async function POST(
     .from('staff')
     .select('id')
     .eq('tenant_id', tenantId)
-    .eq('status', 'active')
+    .eq('active', true)
 
   if (staffErr) return NextResponse.json({ error: staffErr.message }, { status: 400 })
   if (!staffList || staffList.length === 0) {

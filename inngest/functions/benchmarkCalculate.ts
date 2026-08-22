@@ -20,7 +20,7 @@ export const benchmarkCalculateFunction = inngest.createFunction(
       const { data } = await supabaseAdmin
         .from('tenants')
         .select('id, business_type, plan')
-        .eq('status', 'active')
+        .eq('active', true)
         .not('business_type', 'is', null)
 
       return (data ?? []) as Array<{ id: string; business_type: string; plan: string }>
@@ -106,18 +106,38 @@ export const benchmarkCalculateFunction = inngest.createFunction(
         for (const { metric, value } of metrics) {
           if (value === null) continue
 
-          const { error } = await supabaseAdmin
-            .from('industry_benchmarks')
-            .upsert(
-              {
-                business_type: businessType,
-                metric,
-                value,
-                sample_size: sampleSize,
-                calculated_at: now,
-              },
-              { onConflict: 'business_type,metric' }
-            )
+          // Table is sector_benchmarks, not industry_benchmarks; its value
+          // column is split into value_p25/p50/p75 (this job only computes
+          // a median, so it maps to value_p50) and `metric` is `metric_name`.
+          // Its UNIQUE constraint is (business_type, metric_name, province,
+          // revenue_tier) — this job doesn't populate province/revenue_tier,
+          // and Postgres treats NULL != NULL for uniqueness/ON CONFLICT
+          // matching, so a plain upsert against that constraint would never
+          // match an existing row and would just accumulate a fresh
+          // duplicate every week. Explicit select-then-write instead.
+          const { data: existing } = await supabaseAdmin
+            .from('sector_benchmarks')
+            .select('id')
+            .eq('business_type', businessType)
+            .eq('metric_name', metric)
+            .is('province', null)
+            .is('revenue_tier', null)
+            .maybeSingle()
+
+          const { error } = existing
+            ? await supabaseAdmin
+                .from('sector_benchmarks')
+                .update({ value_p50: value, sample_size: sampleSize, calculated_at: now })
+                .eq('id', existing.id)
+            : await supabaseAdmin
+                .from('sector_benchmarks')
+                .insert({
+                  business_type: businessType,
+                  metric_name: metric,
+                  value_p50: value,
+                  sample_size: sampleSize,
+                  calculated_at: now,
+                })
 
           if (error) {
             console.error(`Benchmark upsert failed for ${businessType}/${metric}:`, error.message)

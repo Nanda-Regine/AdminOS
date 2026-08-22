@@ -18,7 +18,7 @@ export const processQueueCron = inngest.createFunction(
         .from('workflow_queue')
         .select('*')
         .eq('status', 'pending')
-        .lte('scheduled_for', new Date().toISOString())
+        .lte('next_attempt_at', new Date().toISOString())
         .limit(50)
       return data ?? []
     })
@@ -28,9 +28,13 @@ export const processQueueCron = inngest.createFunction(
     const results = await step.run('fire-events', async () => {
       const settled = await Promise.allSettled(
         jobs.map(async (job: { id: string; workflow_type: string; payload: Record<string, unknown>; tenant_id: string }) => {
+          // 'running' isn't a valid status (the table's CHECK constraint only
+          // allows pending/processing/complete/failed/cancelled) and there's
+          // no started_at column (it's processing_started_at) — this update
+          // has always failed silently since its result was never checked.
           await supabaseAdmin
             .from('workflow_queue')
-            .update({ status: 'running', started_at: new Date().toISOString() })
+            .update({ status: 'processing', processing_started_at: new Date().toISOString() })
             .eq('id', job.id)
 
           const eventName = EVENT_MAP[job.workflow_type]
@@ -54,7 +58,7 @@ export const processQueueCron = inngest.createFunction(
         failed.map((f) =>
           supabaseAdmin
             .from('workflow_queue')
-            .update({ status: 'failed', error_message: f!.reason })
+            .update({ status: 'failed', error: f!.reason })
             .eq('id', f!.job.id)
         )
       )

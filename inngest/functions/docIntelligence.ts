@@ -18,9 +18,13 @@ export const docIntelligencePipeline = inngest.createFunction(
     }
 
     const rawText = await step.run('extract-text', async () => {
+      // documents has no storage_path/file_name columns — they're storage_url
+      // and original_filename. This select was erroring on every run
+      // (unknown column), so rawText was always '' and every uploaded
+      // document silently fell straight to the 'failed' branch below.
       const docRes = await supabaseAdmin
         .from('documents')
-        .select('storage_path, file_type, file_name')
+        .select('storage_url, file_type, original_filename')
         .eq('id', document_id)
         .single()
 
@@ -28,7 +32,7 @@ export const docIntelligencePipeline = inngest.createFunction(
 
       const { data: fileData } = await supabaseAdmin.storage
         .from('documents')
-        .download(docRes.data.storage_path)
+        .download(docRes.data.storage_url)
 
       if (!fileData) return ''
 
@@ -57,7 +61,7 @@ export const docIntelligencePipeline = inngest.createFunction(
     })
 
     if (!rawText) {
-      await supabaseAdmin.from('documents').update({ status: 'failed' }).eq('id', document_id)
+      await supabaseAdmin.from('documents').update({ processing_status: 'failed' }).eq('id', document_id)
       return { status: 'failed', reason: 'empty_text' }
     }
 
@@ -228,12 +232,15 @@ Document: ${rawText.slice(0, 3000)}`,
     })
 
     await step.run('mark-complete', async () => {
+      // No processed_at column exists on `documents` (not even under another
+      // name) — dropped rather than guessed. processing_status is the real
+      // status column (matches app/api/documents/upload/route.ts, which was
+      // already fixed for this same drift).
       await supabaseAdmin.from('documents').update({
-        status: 'done',
+        processing_status: 'done',
         document_type: classification.type,
         ai_summary: summary,
         extracted_data: extracted,
-        processed_at: new Date().toISOString(),
       }).eq('id', document_id)
     })
 

@@ -23,7 +23,7 @@ export const dailyBriefEngine = inngest.createFunction(
         supabaseAdmin.from('tenants').select('name, plan, settings, language_primary').eq('id', tenant_id).single(),
         supabaseAdmin.from('conversations').select('id, status, intent, sentiment').eq('tenant_id', tenant_id).eq('status', 'open'),
         supabaseAdmin.from('invoices').select('amount, days_overdue, status').eq('tenant_id', tenant_id).in('status', ['unpaid', 'partial']).gt('days_overdue', 0),
-        supabaseAdmin.from('staff').select('id, full_name, wellness_scores').eq('tenant_id', tenant_id).eq('status', 'active'),
+        supabaseAdmin.from('staff').select('id, full_name, wellness_scores').eq('tenant_id', tenant_id).eq('active', true),
         supabaseAdmin.from('goals').select('title, progress_pct, status').eq('tenant_id', tenant_id).eq('status', 'active').limit(5),
         supabaseAdmin.from('workflow_queue').select('workflow_type, status, created_at').eq('tenant_id', tenant_id).gte('created_at', today.toISOString()).order('created_at', { ascending: false }).limit(20),
         // Compliance items due in the next 7 days

@@ -25,6 +25,17 @@ export async function GET(_req: Request, { params }: Params) {
   return NextResponse.json(data)
 }
 
+// Editable fields only — the old handler spread the raw request body
+// straight into .update(), so any caller could also try to overwrite
+// tenant_id/id/created_at etc. Narrowed while fixing the updated_at bug
+// below, since nothing here was validated at all.
+const patchSchema = z.object({
+  subject: z.string().max(300).optional(),
+  body: z.string().max(20000).optional(),
+  recipient_name: z.string().max(200).optional(),
+  recipient_email: z.string().email().optional(),
+})
+
 export async function PATCH(request: Request, { params }: Params) {
   const { id } = await params
   const supabase = await createClient()
@@ -32,11 +43,16 @@ export async function PATCH(request: Request, { params }: Params) {
   if (!user) return new NextResponse('Unauthorized', { status: 401 })
 
   const tenantId = user.app_metadata?.tenant_id as string
-  const body = await request.json()
+  let body: z.infer<typeof patchSchema>
+  try { body = patchSchema.parse(await request.json()) } catch (e) {
+    return NextResponse.json({ error: 'Invalid request', detail: e }, { status: 400 })
+  }
 
+  // email_drafts has no updated_at column — this update always 400'd
+  // (unknown column), so no draft edit has ever actually saved.
   const { data, error } = await supabase
     .from('email_drafts')
-    .update({ ...body, updated_at: new Date().toISOString() })
+    .update(body)
     .eq('id', id)
     .eq('tenant_id', tenantId)
     .select()

@@ -62,11 +62,17 @@ export const bookingReminderFunction = inngest.createFunction(
       const [contactResult, serviceResult] = await Promise.all([
         supabaseAdmin
           .from('contacts')
-          .select('id, full_name, phone, whatsapp_number')
+          // contacts has no whatsapp_number column — wa_id is the WhatsApp-
+          // specific identifier (falls back to phone if a contact was never
+          // reached over WhatsApp before).
+          .select('id, full_name, phone, wa_id')
           .eq('id', freshBooking.contact_id)
           .maybeSingle(),
         supabaseAdmin
-          .from('services')
+          // Table is booking_services, not services — this lookup always
+          // errored (relation does not exist), so `service` was always
+          // undefined below.
+          .from('booking_services')
           .select('id, name, duration_minutes, price')
           .eq('id', freshBooking.service_id)
           .maybeSingle(),

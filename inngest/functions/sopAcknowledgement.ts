@@ -5,12 +5,13 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 export const sopAcknowledgementFunction = inngest.createFunction(
   { id: 'sop-acknowledgement-weekly', retries: 2, triggers: [{ cron: '0 9 * * 5' }] },
   async ({ step }: any) => {
-    // Step 1: Fetch all SOPs that require acknowledgement (across all tenants)
+    // Step 1: Fetch all SOPs that require acknowledgement (across all tenants).
+    // Table is sop_documents, not sops; the flag is requires_acknowledgement.
     const sops = await step.run('get-required-sops', async () => {
       const { data } = await supabaseAdmin
-        .from('sops')
-        .select('id, tenant_id, title, acknowledgement_required')
-        .eq('acknowledgement_required', true)
+        .from('sop_documents')
+        .select('id, tenant_id, title, requires_acknowledgement')
+        .eq('requires_acknowledgement', true)
 
       return data ?? []
     })
@@ -22,24 +23,28 @@ export const sopAcknowledgementFunction = inngest.createFunction(
     for (const sop of sops) {
       // eslint-disable-next-line no-await-in-loop
       const count = await step.run(`check-sop-${sop.id}`, async () => {
-        // Get all staff for this tenant
+        // Get all staff for this tenant who have a linked login — sop_
+        // acknowledgements keys on user_id, not staff_id (it has no
+        // staff_id column at all), so a staff row with no user_id can't be
+        // tracked for acknowledgement either way.
         const { data: allStaff } = await supabaseAdmin
           .from('staff')
           .select('id, tenant_id, user_id, full_name, phone')
           .eq('tenant_id', sop.tenant_id)
+          .not('user_id', 'is', null)
 
         if (!allStaff || allStaff.length === 0) return 0
 
-        // Get staff who have already acknowledged this SOP
+        // Get users who have already acknowledged this SOP
         const { data: acks } = await supabaseAdmin
           .from('sop_acknowledgements')
-          .select('staff_id')
+          .select('user_id')
           .eq('sop_id', sop.id)
 
-        const acknowledgedIds = new Set((acks ?? []).map((a) => a.staff_id as string))
+        const acknowledgedUserIds = new Set((acks ?? []).map((a) => a.user_id as string))
 
         // Find unacknowledged staff
-        const unacknowledged = allStaff.filter((s) => !acknowledgedIds.has(s.id))
+        const unacknowledged = allStaff.filter((s) => !acknowledgedUserIds.has(s.user_id as string))
 
         if (unacknowledged.length === 0) return 0
 
@@ -47,12 +52,12 @@ export const sopAcknowledgementFunction = inngest.createFunction(
         const now = new Date().toISOString()
         const notifications = unacknowledged.map((s) => ({
           tenant_id: sop.tenant_id,
-          user_id: s.user_id ?? null,
+          user_id: s.user_id,
           type: 'sop_acknowledgement_reminder',
           title: `Please acknowledge: ${sop.title}`,
           body: `You have a required SOP to acknowledge: "${sop.title}". Please read and confirm you understand this procedure.`,
           read: false,
-          metadata: { sop_id: sop.id, staff_id: s.id },
+          data: { sop_id: sop.id, staff_id: s.id },
           created_at: now,
         }))
 

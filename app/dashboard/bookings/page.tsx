@@ -27,9 +27,16 @@ function getWeekBounds() {
   sunday.setDate(monday.getDate() + 6)
   sunday.setHours(23, 59, 59, 999)
   return {
+    // Display strings (date-only, matches the rest of the page's copy)
     start: monday.toISOString().slice(0, 10),
     end: sunday.toISOString().slice(0, 10),
     todayStr: now.toISOString().slice(0, 10),
+    // Real query bounds — `bookings.start_at` is a timestamptz, so filtering
+    // with date-only strings against it silently drops anything after
+    // midnight on the end day. Match the ISO-instant convention already used
+    // by app/api/bookings/route.ts.
+    startAtFrom: monday.toISOString(),
+    startAtTo:   sunday.toISOString(),
   }
 }
 
@@ -54,17 +61,23 @@ export default async function BookingsPage() {
   if (!(await checkPermission('manage_contacts'))) notFound()
 
   const tenantId = user.app_metadata?.tenant_id as string
-  const { start, end, todayStr } = getWeekBounds()
+  const { start, end, todayStr, startAtFrom, startAtTo } = getWeekBounds()
 
+  // Schema note: `bookings` has no booking_date/start_time/contact_name/
+  // staff_name columns — it's start_at/end_at (timestamptz) plus contact_id/
+  // staff_id FKs, exactly like app/api/bookings/route.ts and app/api/book/
+  // [slug]/route.ts already query it. This page had drifted from that and
+  // was filtering on columns that don't exist — PostgREST errors on an
+  // unknown-column filter, so `bookingsResult.data` was always null and this
+  // page silently showed "no bookings" every week regardless of real data.
   const [bookingsResult, servicesResult] = await Promise.all([
     supabaseAdmin
       .from('bookings')
-      .select('*, booking_services(service_name:name, duration_minutes, price)')
+      .select('*, service:booking_services(name, duration_minutes, price), contact:contacts(name:full_name), staff:staff(full_name)')
       .eq('tenant_id', tenantId)
-      .gte('booking_date', start)
-      .lte('booking_date', end)
-      .order('booking_date')
-      .order('start_time'),
+      .gte('start_at', startAtFrom)
+      .lte('start_at', startAtTo)
+      .order('start_at'),
     supabaseAdmin
       .from('booking_services')
       .select('id, service_name:name, duration_minutes, price')
@@ -75,7 +88,7 @@ export default async function BookingsPage() {
   const bookings = bookingsResult.data || []
   const services = servicesResult.data || []
 
-  const todayBookings = bookings.filter(b => b.booking_date === todayStr)
+  const todayBookings = bookings.filter(b => b.start_at?.slice(0, 10) === todayStr)
   const confirmedCount = bookings.filter(b => b.status === 'confirmed').length
   const pendingCount = bookings.filter(b => b.status === 'pending').length
   const cancelledCount = bookings.filter(b => b.status === 'cancelled').length
@@ -116,22 +129,22 @@ export default async function BookingsPage() {
               <p className="px-5 py-8 text-center text-sm text-[var(--text-dim)]">No bookings today.</p>
             )}
             {todayBookings.map((booking) => {
-              const service = Array.isArray(booking.booking_services)
-                ? booking.booking_services[0]
-                : booking.booking_services
+              const service = Array.isArray(booking.service) ? booking.service[0] : booking.service
+              const contact = Array.isArray(booking.contact) ? booking.contact[0] : booking.contact
+              const staff   = Array.isArray(booking.staff)   ? booking.staff[0]   : booking.staff
               return (
                 <div key={booking.id} className="flex items-center justify-between px-5 py-3">
                   <div className="flex items-center gap-4">
                     <div className="text-center w-14 shrink-0">
-                      <p className="text-sm font-bold text-[var(--text-primary)]">{formatTime(booking.start_time)}</p>
+                      <p className="text-sm font-bold text-[var(--text-primary)]">{formatTime(booking.start_at)}</p>
                     </div>
                     <div>
                       <p className="text-sm font-medium text-[var(--text-primary)]">
-                        {service?.service_name || booking.service_name || 'Appointment'}
+                        {service?.name || 'Appointment'}
                       </p>
                       <p className="text-xs text-[var(--text-muted)]">
-                        {booking.contact_name || '—'}
-                        {booking.staff_name && <span> · {booking.staff_name}</span>}
+                        {contact?.name || '—'}
+                        {staff?.full_name && <span> · {staff.full_name}</span>}
                       </p>
                     </div>
                   </div>
@@ -163,20 +176,20 @@ export default async function BookingsPage() {
               </thead>
               <tbody className="divide-y divide-[var(--border)]">
                 {bookings.map((booking) => {
-                  const service = Array.isArray(booking.booking_services)
-                    ? booking.booking_services[0]
-                    : booking.booking_services
+                  const service = Array.isArray(booking.service) ? booking.service[0] : booking.service
+                  const contact = Array.isArray(booking.contact) ? booking.contact[0] : booking.contact
+                  const staff   = Array.isArray(booking.staff)   ? booking.staff[0]   : booking.staff
                   return (
                     <tr key={booking.id} className="hover:bg-[var(--surface-hover)] transition-colors">
                       <td className="px-5 py-3">
-                        <p className="font-medium text-[var(--text-primary)]">{booking.booking_date}</p>
-                        <p className="text-xs text-[var(--text-dim)]">{formatTime(booking.start_time)}</p>
+                        <p className="font-medium text-[var(--text-primary)]">{booking.start_at?.slice(0, 10)}</p>
+                        <p className="text-xs text-[var(--text-dim)]">{formatTime(booking.start_at)}</p>
                       </td>
                       <td className="px-5 py-3 text-[var(--text-secondary)]">
-                        {service?.service_name || booking.service_name || '—'}
+                        {service?.name || '—'}
                       </td>
-                      <td className="px-5 py-3 text-[var(--text-secondary)]">{booking.contact_name || '—'}</td>
-                      <td className="px-5 py-3 text-[var(--text-muted)]">{booking.staff_name || '—'}</td>
+                      <td className="px-5 py-3 text-[var(--text-secondary)]">{contact?.name || '—'}</td>
+                      <td className="px-5 py-3 text-[var(--text-muted)]">{staff?.full_name || '—'}</td>
                       <td className="px-5 py-3">
                         <Badge variant={statusVariant[booking.status] || 'gray'}>
                           {booking.status?.replace('_', ' ') || 'pending'}

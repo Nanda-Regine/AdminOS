@@ -5,12 +5,17 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 export const formalizationNudgeFunction = inngest.createFunction(
   { id: 'formalization-nudge-weekly', retries: 2, triggers: [{ cron: '0 9 * * 1' }] },
   async ({ step }: any) => {
-    // Step 1: Fetch all tenants at 'informal' stage
+    // Step 1: Fetch all tenants not yet fully formalized. There's no `stage`
+    // column (formalization_progress tracks individual boolean flags, not a
+    // named stage) — "informal" means the journey hasn't been marked
+    // complete yet. tax_registered/bank_account/first_staff_added were also
+    // stale names; the real columns are sars_registered/
+    // business_account_opened/first_employee_hired.
     const targets = await step.run('get-informal-tenants', async () => {
       const { data } = await supabaseAdmin
         .from('formalization_progress')
-        .select('tenant_id, stage, cipc_registered, tax_registered, bank_account, first_invoice_sent, first_staff_added')
-        .eq('stage', 'informal')
+        .select('tenant_id, cipc_registered, sars_registered, business_account_opened, first_invoice_sent, first_employee_hired')
+        .is('completed_at', null)
 
       return data ?? []
     })
@@ -33,14 +38,14 @@ export const formalizationNudgeFunction = inngest.createFunction(
             body: 'Formal registration protects your brand, unlocks business banking, and is required for most contracts. It only takes a few days.',
           })
         }
-        if (!tenant.tax_registered) {
+        if (!tenant.sars_registered) {
           incompleteSteps.push({
             step: 'tax_registration',
             title: 'Register for tax with SARS',
             body: 'Getting your Income Tax number lets you issue valid invoices and access tax benefits. Register on eFiling — it\'s free.',
           })
         }
-        if (!tenant.bank_account) {
+        if (!tenant.business_account_opened) {
           incompleteSteps.push({
             step: 'bank_account',
             title: 'Open a business bank account',
@@ -54,7 +59,7 @@ export const formalizationNudgeFunction = inngest.createFunction(
             body: 'You can create and send a professional invoice right here in AdminOS. Make it official.',
           })
         }
-        if (!tenant.first_staff_added) {
+        if (!tenant.first_employee_hired) {
           incompleteSteps.push({
             step: 'first_staff',
             title: 'Add your team to AdminOS',

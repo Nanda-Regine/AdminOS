@@ -81,7 +81,7 @@ async function getExitReadiness(tenantId: string): Promise<ExitReadinessResult> 
     supabaseAdmin.from('business_health_snapshots').select('overall_score')
       .eq('tenant_id', tenantId).order('snapshot_date', { ascending: false }).limit(1).single(),
     supabaseAdmin.from('staff').select('id', { count: 'exact', head: true })
-      .eq('tenant_id', tenantId).eq('status', 'active'),
+      .eq('tenant_id', tenantId).eq('active', true),
   ])
 
   const sopCount    = sopResult.count ?? 0

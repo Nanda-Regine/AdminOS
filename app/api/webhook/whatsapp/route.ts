@@ -122,11 +122,16 @@ async function handleStatusUpdates(
     const msgUpdate: Record<string, unknown> = { delivery_status: s.status }
     if (s.status === 'delivered') msgUpdate.delivered_at = ts
     if (s.status === 'read')      msgUpdate.read_at      = ts
+    // messages has no `direction` column — outbound (business → customer) is
+    // recorded as role='assistant', matching the chat-log shape used
+    // everywhere messages get inserted (see app/api/conversations/reply,
+    // lib/workflow/engine.ts). Delivery/read receipts only ever apply to
+    // messages AdminOS itself sent, so this must stay scoped to 'assistant'.
     await supabaseAdmin
       .from('messages')
       .update(msgUpdate)
       .eq('whatsapp_message_id', s.id)
-      .eq('direction', 'outbound')
+      .eq('role', 'assistant')
       .then(() => {}, () => {})
 
     // Update broadcast_recipients for Reach campaigns

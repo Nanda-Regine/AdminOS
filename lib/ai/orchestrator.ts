@@ -145,7 +145,7 @@ export class AgentOrchestrator {
     if (req.documentId) {
       const { data: doc } = await supabaseAdmin
         .from('documents')
-        .select('file_name, document_type, ai_summary, extracted_data')
+        .select('original_filename, document_type, ai_summary, extracted_data')
         .eq('id', req.documentId)
         .single()
       if (doc) parts.push(`DOCUMENT: ${JSON.stringify(doc)}`)

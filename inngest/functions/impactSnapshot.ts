@@ -19,9 +19,18 @@ export const impactSnapshotFunction = inngest.createFunction(
       debtRecovered,
     ] = await Promise.all([
       supabaseAdmin.from('tenants').select('id', { count: 'exact', head: true }),
-      supabaseAdmin.from('tenants').select('id', { count: 'exact', head: true }).eq('status', 'active'),
-      supabaseAdmin.from('staff').select('id', { count: 'exact', head: true }).eq('status', 'active'),
-      supabaseAdmin.from('formalization_progress').select('id', { count: 'exact', head: true }).not('completed_at', 'is', null),
+      supabaseAdmin.from('tenants').select('id', { count: 'exact', head: true }).eq('active', true),
+      supabaseAdmin.from('staff').select('id', { count: 'exact', head: true }).eq('active', true),
+      // formalization_progress has no `id` column — tenant_id is the key.
+      supabaseAdmin.from('formalization_progress').select('tenant_id', { count: 'exact', head: true }).not('completed_at', 'is', null),
+      // BROKEN, left as-is rather than guess-fixed: `tenants` has no
+      // women_owned column — that field only exists on `suppliers` (a
+      // tenant's own supplier list), which measures a different thing
+      // entirely. There's currently no way to know if a *tenant* itself is
+      // women-owned. This count has always silently been 0 in every impact
+      // snapshot to date; needs a real `tenants.women_owned` (or similar
+      // self-declared demographic) column before this can report correctly —
+      // Nanda's call, not a mechanical rename like its neighbours above.
       supabaseAdmin.from('tenants').select('id', { count: 'exact', head: true }).eq('women_owned', true),
       supabaseAdmin.from('stokvel_groups').select('id', { count: 'exact', head: true }).eq('status', 'active'),
       supabaseAdmin.from('academy_certificates').select('id', { count: 'exact', head: true }),

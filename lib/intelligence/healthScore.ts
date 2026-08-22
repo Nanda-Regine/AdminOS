@@ -160,11 +160,13 @@ async function scoreLegal(tenantId: string): Promise<HealthDimension> {
 async function scorePeople(tenantId: string): Promise<HealthDimension> {
   const [staffRes, wellnessRes, leaveRes] = await Promise.all([
     supabaseAdmin.from('staff').select('id, active').eq('tenant_id', tenantId),
+    // No wellness_checkins table (no per-event history at all) — wellness_
+    // summary is a pre-aggregated per-staff view with a fixed 14-day window
+    // (avg_score_14d), not a raw event log filterable to 30 days.
     supabaseAdmin
-      .from('wellness_checkins')
-      .select('score')
-      .eq('tenant_id', tenantId)
-      .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()),
+      .from('wellness_summary')
+      .select('avg_score_14d')
+      .eq('tenant_id', tenantId),
     supabaseAdmin
       .from('leave_requests')
       .select('status')
@@ -178,7 +180,7 @@ async function scorePeople(tenantId: string): Promise<HealthDimension> {
 
   const activeStaff   = staff.filter((s) => s.active !== false).length
   const avgWellness   = wellnessItems.length > 0
-    ? wellnessItems.reduce((s, w) => s + (w.score ?? 3), 0) / wellnessItems.length
+    ? wellnessItems.reduce((s, w) => s + (w.avg_score_14d ?? 3), 0) / wellnessItems.length
     : null
 
   let score = 70  // Base
@@ -286,34 +288,31 @@ async function scoreOperational(tenantId: string): Promise<HealthDimension> {
 // ─── Strategic Readiness ──────────────────────────────────────────────────────
 
 async function scoreStrategic(tenantId: string): Promise<HealthDimension> {
+  // `goals` has no target_date column (no date-typed deadline field at
+  // all) — this query used to error on every run, so future/overdue were
+  // always empty and this dimension silently scored every tenant the same
+  // flat 60. Degraded rather than guess-fixed: scores on active-goal
+  // count only, the one thing actually knowable from this table today.
+  // Restore future/overdue once a real deadline column exists.
   const [goalsRes] = await Promise.all([
-    supabaseAdmin.from('goals').select('status, target_date').eq('tenant_id', tenantId),
+    supabaseAdmin.from('goals').select('status').eq('tenant_id', tenantId),
   ])
 
   const goals = goalsRes.data ?? []
-  const now   = new Date()
-
-  const futureGoals = goals.filter(
-    (g) => g.target_date && new Date(g.target_date) > now
-  )
-  const overdueGoals = goals.filter(
-    (g) => g.target_date && new Date(g.target_date) < now && g.status !== 'completed'
-  )
+  const activeGoals = goals.filter((g) => g.status === 'active')
 
   let score = 60
 
-  if (futureGoals.length >= 3)    score += 20
-  if (futureGoals.length >= 1)    score += 10
-  if (overdueGoals.length > 0)    score -= overdueGoals.length * 8
+  if (activeGoals.length >= 3)    score += 20
+  if (activeGoals.length >= 1)    score += 10
 
   const signals: string[] = []
-  if (futureGoals.length > 0)     signals.push(`${futureGoals.length} future goal${futureGoals.length > 1 ? 's' : ''} defined`)
-  if (overdueGoals.length > 0)    signals.push(`${overdueGoals.length} overdue goal${overdueGoals.length > 1 ? 's' : ''}`)
+  if (activeGoals.length > 0)     signals.push(`${activeGoals.length} active goal${activeGoals.length > 1 ? 's' : ''} defined`)
   if (goals.length === 0)         signals.push('Set your first strategic goals to improve this score')
 
   return {
     score: Math.max(0, Math.min(100, score)),
-    details: { totalGoals: goals.length, futureGoals: futureGoals.length, overdueGoals: overdueGoals.length },
+    details: { totalGoals: goals.length, futureGoals: activeGoals.length, overdueGoals: 0 },
     signals,
   }
 }

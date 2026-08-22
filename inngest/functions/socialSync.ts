@@ -7,10 +7,14 @@ export const socialSyncFunction = inngest.createFunction(
   { id: 'social-sync-hourly', retries: 1, triggers: [{ cron: '0 * * * *' }] },
   async ({ step }: any) => {
     // Step 1: Fetch all active social accounts
+    // social_accounts has no page_id/last_synced_at columns — page_id is
+    // account_id, and there's no sync-tracking column at all (not under any
+    // name). This select always errored, so the sync never actually found
+    // any accounts to iterate.
     const accounts = await step.run('get-active-social-accounts', async () => {
       const { data } = await supabaseAdmin
         .from('social_accounts')
-        .select('id, tenant_id, platform, access_token, page_id, last_synced_at')
+        .select('id, tenant_id, platform, access_token, account_id')
         .not('access_token', 'is', null)
 
       return data ?? []
@@ -32,19 +36,14 @@ export const socialSyncFunction = inngest.createFunction(
           //
           // Example structure for when implemented:
           // if (account.platform === 'facebook' || account.platform === 'instagram') {
-          //   const messages = await fetchFacebookMessages(account.page_id, account.access_token)
+          //   const messages = await fetchFacebookMessages(account.account_id, account.access_token)
           //   await upsertIncomingMessages(account.tenant_id, account.id, messages)
           // }
 
-          const now = new Date().toISOString()
-
-          // Update last_synced_at to record that sync ran
-          const { error } = await supabaseAdmin
-            .from('social_accounts')
-            .update({ last_synced_at: now })
-            .eq('id', account.id)
-
-          if (error) throw new Error(`Update failed: ${error.message}`)
+          // social_accounts has no last_synced_at column (or any sync-
+          // tracking column under another name) — nothing to update here
+          // until one exists via migration. This stub previously "recorded"
+          // a sync that always silently failed to write.
 
           return {
             status: 'ok',

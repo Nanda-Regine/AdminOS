@@ -55,7 +55,9 @@ export default function CreativeAssetsPage() {
     const qs = filterCategory !== 'all' ? `?category=${filterCategory}` : ''
     const [assetsRes, contactsRes] = await Promise.all([
       fetch(`/api/creative-assets${qs}`).then((r) => r.json()),
-      supabase.from('contacts').select('id, name').order('name'),
+      // contacts has no `name` column — it's full_name. Aliased so every
+      // downstream `c.name`/`contact.name` read below keeps working.
+      supabase.from('contacts').select('id, name:full_name').order('full_name'),
     ])
     setAssets(assetsRes.assets ?? [])
     setContacts(contactsRes.data ?? [])

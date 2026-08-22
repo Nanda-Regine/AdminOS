@@ -10,28 +10,38 @@ export const wellnessFanOut = inngest.createFunction(
   async ({ event, step }: any) => {
     const { tenant_id } = event.data as { tenant_id: string }
 
-    const staff = await step.run('load-staff', async () => {
-      const { data } = await supabaseAdmin
-        .from('staff')
-        .select('id, full_name, phone, language')
-        .eq('tenant_id', tenant_id)
-        .eq('status', 'active')
-        .not('phone', 'is', null)
-      return data ?? []
-    })
+    // staff has no per-member `language` column — language preference is only
+    // tracked at the tenant level. Load it once and use it for every checkin
+    // rather than a (nonexistent) per-staff value.
+    const [staff, tenant] = await Promise.all([
+      step.run('load-staff', async () => {
+        const { data } = await supabaseAdmin
+          .from('staff')
+          .select('id, full_name, phone')
+          .eq('tenant_id', tenant_id)
+          .eq('active', true)
+          .not('phone', 'is', null)
+        return data ?? []
+      }),
+      step.run('load-tenant-language', async () => {
+        const { data } = await supabaseAdmin.from('tenants').select('language_primary').eq('id', tenant_id).single()
+        return data
+      }),
+    ])
 
     const results = await step.run('send-checkins', async () => {
       const phoneNumberId = process.env.META_PHONE_NUMBER_ID!
+      // Valid Meta template language codes only (en/af/zu/xh) — the old
+      // `${lang}_ZA` produced en_ZA/zu_ZA, which WhatsApp rejects.
+      const lang = ['af', 'zu', 'xh'].includes(tenant?.language_primary ?? '') ? tenant!.language_primary : 'en'
 
       const outcomes = await Promise.allSettled(
-        staff.map((member: { id: string; full_name?: string; phone: string; language?: string }) =>
+        staff.map((member: { id: string; full_name?: string; phone: string }) =>
           sendWhatsAppTemplate(
             phoneNumberId,
             member.phone,
             WHATSAPP_TEMPLATES.WELLNESS_CHECKIN,
-            // Valid Meta template language codes only (en/af/zu/xh) — the old
-            // `${lang}_ZA` produced en_ZA/zu_ZA, which WhatsApp rejects.
-            (['af', 'zu', 'xh'].includes(member.language ?? '') ? member.language! : 'en'),
+            lang,
             [{ type: 'body', parameters: [{ type: 'text', text: member.full_name ?? 'there' }] }]
           )
         )

@@ -13,7 +13,7 @@ export const payrollReminderCron = inngest.createFunction(
     const { data: tenants } = await supabaseAdmin
       .from('tenants')
       .select('id, name')
-      .eq('status', 'active')
+      .eq('active', true)
 
     let reminded = 0
     for (const tenant of tenants ?? []) {
@@ -22,7 +22,7 @@ export const payrollReminderCron = inngest.createFunction(
         .from('staff')
         .select('id', { count: 'exact', head: true })
         .eq('tenant_id', tenant.id)
-        .eq('status', 'active')
+        .eq('active', true)
         .not('salary', 'is', null)
 
       if (!staffCount) continue

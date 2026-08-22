@@ -63,11 +63,11 @@ export async function POST(request: NextRequest) {
 
     await sendWhatsApp({ to: from, message }).catch(() => {})
 
-    await supabaseAdmin
-      .from('call_logs')
-      .update({ whatsapp_sent: true })
-      .eq('twilio_call_sid', callSid)
-      .then(() => {}, () => {})
+    // call_logs has no whatsapp_sent column (no idempotency flag at all) —
+    // this update always silently failed. Removed rather than left as dead
+    // code; note this means a Twilio webhook retry for the same call would
+    // re-send the WhatsApp follow-up. Needs a real column (migration) to
+    // fix properly — flagging rather than guessing a workaround.
   }
 
   return new NextResponse('OK', { status: 200 })

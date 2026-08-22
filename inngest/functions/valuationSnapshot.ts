@@ -15,7 +15,7 @@ export const valuationSnapshotFunction = inngest.createFunction(
         .from('tenants')
         .select('id, plan')
         .in('plan', ['scale', 'partner'])
-        .eq('status', 'active')
+        .eq('active', true)
 
       return data ?? []
     })

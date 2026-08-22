@@ -7,14 +7,26 @@ export const loyaltyExpiryFunction = inngest.createFunction(
   async ({ step }: any) => {
     const year = new Date().getFullYear()
 
-    // Step 1: Fetch all accounts with a positive points balance
+    // There's no loyalty_accounts/loyalty_transactions table — loyalty is a
+    // single ledger table (loyalty_points) where each row carries the
+    // running balance AT THAT ENTRY, not a separate persistent-balance
+    // account row. "Current balance" per contact+programme is the most
+    // recent entry's `balance`. Fetch the whole ledger and reduce to the
+    // latest row per (tenant_id, contact_id, programme_id) client-side —
+    // Supabase's JS client has no DISTINCT ON.
     const accounts = await step.run('get-accounts-with-points', async () => {
       const { data } = await supabaseAdmin
-        .from('loyalty_accounts')
-        .select('id, tenant_id, contact_id, points_balance, total_earned, total_redeemed')
-        .gt('points_balance', 0)
+        .from('loyalty_points')
+        .select('tenant_id, contact_id, programme_id, balance, created_at')
+        .order('created_at', { ascending: true })
 
-      return data ?? []
+      const latestByGroup = new Map<string, { tenant_id: string; contact_id: string; programme_id: string; balance: number }>()
+      for (const row of data ?? []) {
+        const key = `${row.tenant_id}:${row.contact_id}:${row.programme_id}`
+        latestByGroup.set(key, row) // ascending order means the last write per key wins
+      }
+
+      return [...latestByGroup.values()].filter((r) => Number(r.balance) > 0)
     })
 
     if (accounts.length === 0) return { year, expired: 0 }
@@ -24,33 +36,28 @@ export const loyaltyExpiryFunction = inngest.createFunction(
     const errors: string[] = []
 
     for (const account of accounts) {
+      const stepKey = `${account.tenant_id}-${account.contact_id}-${account.programme_id}`
       // eslint-disable-next-line no-await-in-loop
-      const result = await step.run(`expire-account-${account.id}`, async () => {
-        const pointsToExpire = account.points_balance as number
+      const result = await step.run(`expire-account-${stepKey}`, async () => {
+        const pointsToExpire = Number(account.balance)
         const now = new Date().toISOString()
 
-        // Record the expiry transaction
+        // Record the expiry as a new ledger entry that zeroes the balance —
+        // there's no separate account row to update.
         const { error: txError } = await supabaseAdmin
-          .from('loyalty_transactions')
+          .from('loyalty_points')
           .insert({
-            loyalty_account_id: account.id,
             tenant_id: account.tenant_id,
             contact_id: account.contact_id,
-            type: 'expiry',
+            programme_id: account.programme_id,
+            transaction_type: 'expiry',
             points: -pointsToExpire,
-            description: `Year-end points expiry (${year})`,
+            balance: 0,
+            notes: `Year-end points expiry (${year})`,
             created_at: now,
           })
 
         if (txError) throw new Error(`Transaction insert failed: ${txError.message}`)
-
-        // Zero out the balance
-        const { error: updateError } = await supabaseAdmin
-          .from('loyalty_accounts')
-          .update({ points_balance: 0, updated_at: now })
-          .eq('id', account.id)
-
-        if (updateError) throw new Error(`Balance update failed: ${updateError.message}`)
 
         // Send notification to tenant
         const { error: notifError } = await supabaseAdmin
@@ -76,7 +83,7 @@ export const loyaltyExpiryFunction = inngest.createFunction(
       if (result.status === 'ok') expired++
       else {
         failed++
-        errors.push(`account ${account.id}: ${result.error}`)
+        errors.push(`account ${stepKey}: ${result.error}`)
       }
     }
 
