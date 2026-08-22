@@ -47,6 +47,12 @@ export function AddStaffModal() {
       if (form.phone) body.phone = form.phone
       if (form.email) body.email = form.email
       if (form.salary) body.salary = Number(form.salary)
+      // Department and Leave Balance are collected above but were never added
+      // to the request body — staff.department and staff.leave_balance are
+      // real columns (and /api/staff's zod schema now accepts them), so they
+      // were silently dropped on every submit until this fix.
+      if (form.department) body.department = form.department
+      if (form.leaveBalance) body.leaveBalance = Number(form.leaveBalance)
 
       const res = await fetch('/api/staff', {
         method: 'POST',

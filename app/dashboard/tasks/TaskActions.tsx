@@ -258,11 +258,19 @@ export function MoveTaskButton({
     if (busy) return
     setBusy(true)
     try {
-      await fetch(`/api/tasks/${taskId}`, {
+      const res = await fetch(`/api/tasks/${taskId}`, {
         method:  'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ status: nextStatus }),
       })
+      // Previously this ignored the response entirely — a failed PATCH (403,
+      // 400, etc.) still called router.refresh() as if it had worked, so the
+      // button silently did nothing with no error surfaced anywhere.
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        console.error('Failed to move task:', body?.error ?? `HTTP ${res.status}`)
+        return
+      }
       router.refresh()
     } finally {
       setBusy(false)

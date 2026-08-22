@@ -12,6 +12,11 @@ const createSchema = z.object({
   email:                z.string().email().optional(),
   phone:                z.string().max(30).optional(),
   jobTitle:             z.string().max(200).optional(),
+  // staff.department and staff.leave_balance are real columns (verified against
+  // live schema) but were missing from this schema, so AddStaffModal's
+  // Department and Leave Balance fields were silently dropped on submit.
+  department:           z.string().max(200).optional(),
+  leaveBalance:         z.number().int().nonnegative().optional(),
   role:                 z.enum(['admin','manager','staff','field_agent']).default('staff'),
   employmentType:       z.enum(['full_time','part_time','contract','casual','intern']).default('full_time'),
   startDate:            z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
@@ -67,6 +72,8 @@ export async function POST(request: Request) {
       email:                  body.email             ?? null,
       phone:                  body.phone             ?? null,
       job_title:              body.jobTitle           ?? null,
+      department:             body.department         ?? null,
+      leave_balance:          body.leaveBalance       ?? undefined,
       role:                   body.role,
       employment_type:        body.employmentType,
       start_date:             body.startDate          ?? null,

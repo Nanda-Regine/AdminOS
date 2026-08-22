@@ -52,6 +52,23 @@ export function CreateArticleModal() {
 
     const resolvedSlug = slug.trim() || generateSlug(title)
 
+    // FLAGGED (needs a decision, not guess-fixed): app/api/kb POST's zod schema
+    // takes `categoryId` (a uuid FK into kb_categories) and has no `slug` field
+    // at all (kb_articles has no slug column — see KnowledgeBaseTable.tsx and
+    // page.tsx, fixed earlier this session to read category_id/kb_categories.name
+    // instead). Because z.object().parse() silently drops unrecognised keys
+    // instead of erroring, `category` and `slug` below are both discarded
+    // server-side on every submit — the POST still succeeds (201), but the
+    // article is always created with category_id = null regardless of what the
+    // user picks here, and the Slug field does nothing. The CATEGORIES list
+    // above is a hardcoded stand-in (general/policy/hr/...) that doesn't
+    // correspond to any real kb_categories row/id, so simply renaming `category`
+    // to `categoryId` would just turn this into a 400 on every submit instead
+    // (categoryId must be a real uuid). Fixing this needs a real decision: fetch
+    // actual kb_categories rows server-side and pass them into this modal as
+    // {id, name} options (the pattern LicensesClient/CreateInvoiceModal use for
+    // staff/contacts), or change the schema to accept a category name instead of
+    // a FK. Not guessed here — left as-is pending that call.
     try {
       const res = await fetch('/api/kb', {
         method: 'POST',

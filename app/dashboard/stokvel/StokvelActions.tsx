@@ -283,6 +283,14 @@ export function AddMemberModal({ stokvelId }: { stokvelId: string }) {
           </div>
 
           <div>
+            {/* FLAG (needs a decision, not fixed): this field is presented as
+                optional, but /api/stokvel/[id]'s memberSchema declares
+                phone: z.string().min(7).max(20) with no .optional() — so
+                submitting a member with no phone number 400s with a generic
+                "Invalid" error instead of the member being created. Unclear
+                whether the intended fix is to make phone optional in the API
+                (and nullable in stokvel_members) or to make it required here
+                — left as-is pending a decision. */}
             <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
               Phone <span className="text-[var(--text-dim)]">(optional)</span>
             </label>

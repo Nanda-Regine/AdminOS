@@ -145,12 +145,17 @@ export async function POST(request: Request) {
   )
 
   await writeAuditLog({
+    // tenantId was missing here — writeAuditLog defaults tenant_id to null when
+    // omitted, so every payroll.run entry was being written with a null
+    // tenant_id (audit_log.tenant_id is a real, tenant-scoped column) and would
+    // never show up in a tenant-filtered audit trail query.
+    tenantId,
     actor:        user.id,
     action:       'payroll.run',
     resourceType: 'payroll_run',
     resourceId:   run.id,
     ipAddress:    getClientIp(request),
-    metadata:     { tenantId, periodMonth: body.periodMonth, periodYear: body.periodYear, staffCount: staffList.length },
+    metadata:     { periodMonth: body.periodMonth, periodYear: body.periodYear, staffCount: staffList.length },
   })
 
   // First payroll run — award achievement and trigger learning
