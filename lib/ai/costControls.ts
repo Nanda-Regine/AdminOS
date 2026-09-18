@@ -95,6 +95,44 @@ function isPremiumEnterprisePlan(plan: string): boolean {
   return ['scale', 'enterprise', 'partner', 'white_label'].includes(plan)
 }
 
+// ─── Provider routing (cost) ──────────────────────────────────────────────────
+// Hybrid strategy: high-volume/low-stakes features route to free-tier Groq/
+// Gemini; anything compliance-sensitive or customer-facing-under-our-wording
+// (debt recovery, briefs, board packs, HR/wellness) stays on Claude regardless
+// of cost pressure. callClaudeAgent/callClaudeWithCache fall back to Claude
+// automatically if the free provider errors (key missing/invalid, rate
+// limited) — a free-tier outage degrades quality, it never breaks the feature.
+
+export type AIProvider = 'anthropic' | 'groq' | 'gemini'
+
+const FREE_TIER_FEATURES = new Set<string>([
+  'conversation', // main WhatsApp/chat inbound — highest volume by far
+  'intent_classify',
+  'sentiment_classify',
+  'faq_answer',
+  'widget_reply',
+  'announcement_draft',
+  'agent_lookup',
+  'document_classify',
+  'document_extract',
+  'document_reference_schema',
+  'agent_draft',
+  'agent_summarise',
+])
+
+/**
+ * Get which provider a feature should use. Free-tier features fall back to
+ * Anthropic if neither GROQ_API_KEY nor GEMINI_API_KEY is configured, so
+ * this is always safe to call even before those keys are set up.
+ */
+export function getProviderForFeature(feature: string): AIProvider {
+  if (FREE_TIER_FEATURES.has(feature)) {
+    if (process.env.GROQ_API_KEY) return 'groq'
+    if (process.env.GEMINI_API_KEY) return 'gemini'
+  }
+  return 'anthropic'
+}
+
 /**
  * Get the correct Claude model for a feature given the tenant's plan.
  * Defaults to Haiku for unknown features to protect costs.
@@ -275,6 +313,7 @@ const COST_RATES: Record<string, { in: number; out: number }> = {
 }
 
 export function estimateCost(model: string, tokensIn: number, tokensOut: number): number {
+  if (model === 'groq' || model === 'gemini') return 0 // free-tier providers
   const rate = COST_RATES[model] ?? COST_RATES[MODELS.SONNET]
   return tokensIn * rate.in + tokensOut * rate.out
 }

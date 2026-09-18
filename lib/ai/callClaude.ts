@@ -4,8 +4,11 @@ import {
   checkBudget,
   recordUsage,
   getModelForFeature,
+  getProviderForFeature,
   MODELS,
 } from '@/lib/ai/costControls'
+import { callGroq } from '@/lib/ai/providers/groq'
+import { callGemini } from '@/lib/ai/providers/gemini'
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
@@ -64,8 +67,6 @@ export async function callClaudeWithCache(
     }
   }
 
-  const model = getModelForFeature(feature, tenant.plan ?? 'trial')
-
   // Keep last 10 messages to cap context size and cost
   const history = conversationHistory.slice(-10).map((m) => ({
     role: m.role as 'user' | 'assistant',
@@ -73,6 +74,47 @@ export async function callClaudeWithCache(
   }))
 
   const t0 = Date.now()
+
+  // Free-tier providers (Groq/Gemini) — 'conversation' is the highest-volume
+  // feature by far, so this is where the hybrid routing saves the most.
+  // Prompt caching (below) is Anthropic-specific; free providers just don't
+  // get that optimisation, which is fine since they're free either way.
+  // Falls through to Claude on any error.
+  const provider = getProviderForFeature(feature)
+  if (provider === 'groq' || provider === 'gemini') {
+    try {
+      const flatHistory = history.map((m) => `${m.role}: ${m.content}`).join('\n')
+      const combinedUserMessage = flatHistory
+        ? `${flatHistory}\nuser: ${userMessage}`
+        : userMessage
+      const result = provider === 'groq'
+        ? await callGroq(tenant.system_prompt_cache || '', combinedUserMessage, 1000)
+        : await callGemini(tenant.system_prompt_cache || '', combinedUserMessage, 1000)
+
+      void recordUsage({
+        tenantId:   tenant.id,
+        plan:       tenant.plan ?? 'trial',
+        feature,
+        model:      provider,
+        tokensIn:   result.tokensIn,
+        tokensOut:  result.tokensOut,
+        durationMs: Date.now() - t0,
+      })
+
+      return {
+        text: result.text,
+        tokens: result.tokensIn + result.tokensOut,
+        cacheReadTokens: 0,
+        cacheWriteTokens: 0,
+        fromCache: false,
+        budgetExceeded: false,
+      }
+    } catch (err) {
+      console.error(`[AI:${provider}-failed] falling back to Claude for feature=${feature}`, err)
+    }
+  }
+
+  const model = getModelForFeature(feature, tenant.plan ?? 'trial')
 
   const response = await withRetry(() =>
     anthropic.messages.create({
@@ -134,7 +176,6 @@ export async function callClaudeAgent(
 ) {
   const plan    = opts?.plan    ?? 'trial'
   const feature = opts?.feature ?? 'agent_call'
-  const model   = opts?.model   ?? getModelForFeature(feature, plan)
 
   // Budget check if we have a tenant context
   if (opts?.tenantId) {
@@ -146,6 +187,36 @@ export async function callClaudeAgent(
   }
 
   const t0 = Date.now()
+
+  // Free-tier providers (Groq/Gemini) for high-volume, low-stakes features —
+  // falls through to Claude below on any error (key missing/invalid, rate
+  // limited), so a free-tier outage degrades quality rather than breaking
+  // the feature outright.
+  const provider = opts?.model ? 'anthropic' : getProviderForFeature(feature)
+  if (provider === 'groq' || provider === 'gemini') {
+    try {
+      const result = provider === 'groq'
+        ? await callGroq(systemPrompt, userMessage, maxTokens)
+        : await callGemini(systemPrompt, userMessage, maxTokens)
+
+      if (opts?.tenantId) {
+        void recordUsage({
+          tenantId:   opts.tenantId,
+          plan,
+          feature,
+          model:      provider,
+          tokensIn:   result.tokensIn,
+          tokensOut:  result.tokensOut,
+          durationMs: Date.now() - t0,
+        })
+      }
+      return result.text
+    } catch (err) {
+      console.error(`[AI:${provider}-failed] falling back to Claude for feature=${feature}`, err)
+    }
+  }
+
+  const model = opts?.model ?? getModelForFeature(feature, plan)
 
   const response = await withRetry(() =>
     anthropic.messages.create({
@@ -208,7 +279,8 @@ export async function classifyDocument(extractedText: string): Promise<{
   const result = await callClaudeAgent(
     'Classify this document into ONE of: strategy, invoice, hr, report, contract. Reply with JSON only: {"category":"...", "confidence": 0.0-1.0}',
     extractedText.slice(0, 3000),
-    100
+    100,
+    { feature: 'document_classify' }
   )
   try {
     const jsonMatch = result.match(/\{[\s\S]*\}/)
@@ -232,7 +304,8 @@ export async function extractGoalsFromDoc(
   const result = await callClaudeAgent(
     'Extract all business goals, KPIs, and milestones from this document. Reply with a JSON array only: [{"title":"...","description":"...","quarter":"...","target_metric":"...","target_value":0}]',
     text.slice(0, 5000),
-    1000
+    1000,
+    { feature: 'document_extract' }
   )
   try {
     const jsonMatch = result.match(/\[[\s\S]*\]/)
@@ -264,7 +337,12 @@ You must NOT:
 
 State only: what is owed, how overdue it is, and how to make contact or pay. Always offer to discuss a payment arrangement. The customer may be in genuine difficulty and may dispute the debt.`,
     `Contact: ${params.contact}\nAmount owed: R${params.amount}\nDays overdue: ${params.daysOverdue}\nInclude payment link: ${params.includePaymentLink}`,
-    300
+    300,
+    // Explicit feature tag — was previously untagged and silently fell into
+    // the generic 'agent_call' bucket. 'chase_message' is deliberately kept
+    // off the free-provider list (costControls.ts) — this wording carries
+    // hard legal must-nots and is not a place to risk a weaker model.
+    { feature: 'chase_message' }
   )
 }
 
@@ -281,6 +359,10 @@ export async function generateDailyBrief(tenantData: {
   return callClaudeAgent(
     `You are a world-class business advisor with deep knowledge of South African SME operations. Generate a concise daily brief. Be direct, data-driven, and actionable. Connect insights to company goals. If FX rates are provided, briefly note USD/ZAR and EUR/ZAR impact on import-dependent businesses. Max 300 words.`,
     JSON.stringify(tenantData),
-    600
+    600,
+    // Was previously untagged (silently used Haiku via the 'agent_call'
+    // default) instead of the Sonnet-tier 'daily_brief' routing this
+    // feature was actually built for.
+    { feature: 'daily_brief' }
   )
 }
