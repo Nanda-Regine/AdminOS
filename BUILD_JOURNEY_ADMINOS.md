@@ -2121,3 +2121,84 @@ Starter/Growth/Enterprise pricing (renamed, see
 the wrong things.
 
 Full detail: memory `adminos-session15-production-push-2026-09-18`.
+
+---
+
+## Session 15 (Phase 3) — 2026-09-18 — Mobile off-screen fix + design elevation
+
+Nanda listed ~24 dashboard pages as "off screen" on mobile in one message,
+plus "accountant report page dont work" and "does autonomy even work,"
+plus a broad design ask: glassmorphism, color-coded data, "modern
+high-tech," away from generic flat boxes, "max proactivity across pages."
+
+**Root cause, one line, fixes the majority of the list:**
+`app/dashboard/layout.tsx`'s `<main>` was a flex item with no `min-w-0`.
+Flex items default to `min-width: auto` — they refuse to shrink below
+their content's intrinsic width, so any page with wide content (a
+populated table, the calendar grid) forced the whole page wider than the
+viewport. `globals.css`'s `overflow-x: hidden` on `html`/`body` didn't
+fix that — it silently clipped the overflow instead of making it
+scrollable, which is exactly the "off screen, can't reach it" symptom.
+This also explains why the earlier Playwright crawl (Phase 1) found zero
+overflow: it ran on an empty QA tenant with no wide content, and
+`overflow-x: hidden` hides the signal from a naive `scrollWidth` check
+too. The team had already hit and fixed this identical mechanism once,
+locally, on `TopBar.tsx` (`min-w-0 flex-1`) — it just was never applied
+to the outer shell.
+
+**Remaining specific bugs fixed (not covered by the shell fix):**
+- Calendar month-grid (`grid-cols-7`, no mobile override) — wrapped in a
+  horizontal-scroll container below `md:`.
+- Three hand-rolled modals were missing the `max-h-[90vh] overflow-y-auto`
+  the shared `Modal` primitive already has: `TaskActions.tsx`
+  (`CreateTaskModal` — the reported "create task form is off the page"),
+  `StokvelActions.tsx` (the reported "stokvel form off screen"), and
+  `email-studio/page.tsx`'s inline confirmation dialog.
+- `PenStream.tsx` had `maxWidth: 380` with no `width: '100%'` — could
+  render wider than a 360-375px real phone.
+
+**Accountant Reports:** no reproducible bug found by static reading, but
+`app/api/money/export/route.ts` was missing the `checkPermission
+('view_financials')` check every sibling export route has — fixed as a
+real (independent) security gap. Two candidate explanations remain for
+what Nanda is actually seeing (page 404ing vs. a silent near-empty CSV
+download) — asked her directly rather than guessing further.
+
+**Autonomy — honest finding, not fixed this pass:** only 2 of 8
+configurable decisions in `/dashboard/settings/autonomy` are genuinely
+wired (`money/invoice_reminder`, `ops/booking_reminder`). The other 6 save
+to the DB and round-trip in the UI but nothing reads them — the
+underlying automations (low-stock reorder, cold-lead nudge, etc.) were
+never built. Intentional partial rollout per `LAUNCH_TODO_SPINE_AUTONOMY.md`,
+not a regression. Notifications half of that same page is fully wired.
+
+**Design elevation:** the codebase already had a mature token system and
+glass/blur utilities (`.glass`, `.glass-strong`) — they just weren't
+applied consistently. Gave `Card` (32 imports — the highest-leverage
+primitive in the app) a `variant: 'glass' | 'flat'` prop, defaulting to
+glass; deleted `GlassCard.tsx` (zero usages, superseded). Set `variant="flat"`
+on the 4 pages (Suppliers, Safety, Licenses, Compliance) whose `Card` wraps
+an already-glass `DataTable`, to avoid glass-on-glass. Fixed hardcoded,
+non-token colors on the Health page (delta badge, dimension colors, trend
+row highlight) and `RefreshButton`'s hardcoded emerald to ride the
+existing chip/token system. Rebuilt the Health page as the flagship
+example — replaced the flat dimension-bar list and plain history table
+with real `recharts` (`HealthRadarChart`, `HealthTrendChart` in new
+`components/dashboard/HealthCharts.tsx`), styled to match
+`CashflowChart.tsx`'s existing theme-aware chrome. Deliberately did not
+hand-redesign all 24 listed pages — the `Card` change cascades across
+them automatically; Health is the one bespoke flagship change other pages
+can be brought up to later.
+
+**Not done this pass (explicitly deferred):** per-table mobile
+column-hiding, migrating the 3 fixed modals onto the shared `Modal`
+component, the 6 unwired autonomy automations, auth/marketing pages'
+hardcoded gray/white styling + stray `#2D4A22` green on `signup/page.tsx`,
+hand-redesigning individual pages beyond Health + the shared-primitive
+cascade.
+
+Commits: `e3db91c` (mobile fixes + accountant-report permission gap),
+`32eebaa` (glassmorphism-by-default Card + real charts on Health) — both
+pushed to `origin/main`.
+
+Full detail: memory `adminos-mobile-and-design-elevation-2026-09-18`.
