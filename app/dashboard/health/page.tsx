@@ -6,6 +6,7 @@ import { redirect, notFound } from 'next/navigation'
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react'
 import { RefreshButton } from '@/components/ui/RefreshButton'
 import { checkPermission } from '@/lib/auth/permissions'
+import { HealthRadarChart, HealthTrendChart } from '@/components/dashboard/HealthCharts'
 
 export const dynamic = 'force-dynamic'
 
@@ -30,13 +31,15 @@ type Snapshot = Dimensions & {
   created_at: string
 }
 
+// Colors sourced from the existing token/chip system (not arbitrary hex) so
+// they stay theme-consistent between dark and light mode.
 const DIMENSION_LABELS: { key: keyof Dimensions; label: string; color: string }[] = [
-  { key: 'financial_health',     label: 'Financial',   color: '#22C55E' },
-  { key: 'operational_maturity', label: 'Operational', color: '#6366F1' },
-  { key: 'people_management',    label: 'Team',        color: '#F59E0B' },
-  { key: 'customer_relations',   label: 'Customer',    color: '#38BDF8' },
-  { key: 'legal_compliance',     label: 'Compliance',  color: '#A78BFA' },
-  { key: 'strategic_readiness',  label: 'Growth',       color: '#EC4899' },
+  { key: 'financial_health',     label: 'Financial',   color: 'var(--chip-green-fg)' },
+  { key: 'operational_maturity', label: 'Operational', color: 'var(--indigo)' },
+  { key: 'people_management',    label: 'Team',        color: 'var(--chip-amber-fg)' },
+  { key: 'customer_relations',   label: 'Customer',    color: 'var(--chip-blue-fg)' },
+  { key: 'legal_compliance',     label: 'Compliance',  color: 'var(--chip-purple-fg)' },
+  { key: 'strategic_readiness',  label: 'Growth',       color: 'var(--gold)' },
 ]
 
 function ScoreRing({ score }: { score: number }) {
@@ -70,24 +73,6 @@ function ScoreRing({ score }: { score: number }) {
         </div>
       </div>
       <p className="text-sm font-semibold text-[var(--text-secondary)] mt-2">Overall Health Score</p>
-    </div>
-  )
-}
-
-function DimensionBar({ label, score, color }: { label: string; score: number; color: string }) {
-  const pct = Math.max(0, Math.min(100, score))
-  return (
-    <div>
-      <div className="flex justify-between items-center mb-1.5">
-        <p className="text-sm text-[var(--text-secondary)] font-medium">{label}</p>
-        <span className="text-sm font-bold text-[var(--text-primary)]">{pct}</span>
-      </div>
-      <div className="h-2 rounded-full bg-[var(--surface-2)] overflow-hidden">
-        <div
-          className="h-full rounded-full transition-all duration-700"
-          style={{ width: `${pct}%`, background: color }}
-        />
-      </div>
     </div>
   )
 }
@@ -162,9 +147,9 @@ export default async function HealthPage() {
                       <span
                         className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${
                           scoreDelta > 0
-                            ? 'bg-emerald-100 text-emerald-700'
+                            ? 'bg-[var(--chip-green-bg)] text-[var(--chip-green-fg)]'
                             : scoreDelta < 0
-                            ? 'bg-red-100 text-red-700'
+                            ? 'bg-[var(--chip-red-bg)] text-[var(--chip-red-fg)]'
                             : 'bg-[var(--surface-2)] text-[var(--text-muted)]'
                         }`}
                       >
@@ -203,26 +188,35 @@ export default async function HealthPage() {
               </div>
             </Card>
 
-            {/* Dimension progress bars */}
+            {/* Dimension breakdown — radar */}
             <Card>
-              <h3 className="font-semibold text-[var(--text-primary)] mb-5">Dimension Breakdown</h3>
-              <div className="space-y-4">
+              <h3 className="font-semibold text-[var(--text-primary)] mb-1">Dimension Breakdown</h3>
+              <p className="text-xs text-[var(--text-muted)] mb-2">How the six dimensions compare against each other right now.</p>
+              <HealthRadarChart
+                data={DIMENSION_LABELS.map(({ key, label }) => ({ label, score: dimensions[key] ?? 0 }))}
+              />
+              <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1.5">
                 {DIMENSION_LABELS.map(({ key, label, color }) => (
-                  <DimensionBar
-                    key={key}
-                    label={label}
-                    score={dimensions[key] ?? 0}
-                    color={color}
-                  />
+                  <div key={key} className="flex items-center gap-1.5 text-xs">
+                    <span className="w-2 h-2 rounded-full shrink-0" style={{ background: color }} />
+                    <span className="text-[var(--text-muted)]">{label}</span>
+                    <span className="ml-auto font-semibold text-[var(--text-primary)]">{dimensions[key] ?? 0}</span>
+                  </div>
                 ))}
               </div>
             </Card>
 
-            {/* Score trend table */}
+            {/* Score trend — line chart */}
             {trend.length > 1 && (
               <Card>
                 <h3 className="font-semibold text-[var(--text-primary)] mb-4">Score Trend (Last {trend.length} Snapshots)</h3>
-                <div className="overflow-x-auto">
+                <HealthTrendChart
+                  data={trend.map((snap) => ({
+                    label: new Date(snap.created_at).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short' }),
+                    score: snap.overall_score,
+                  }))}
+                />
+                <div className="overflow-x-auto mt-4">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="text-left text-xs text-[var(--text-muted)] border-b border-[var(--border)]">
@@ -240,7 +234,8 @@ export default async function HealthPage() {
                         return (
                           <tr
                             key={snap.id}
-                            className={isLatest ? 'bg-indigo-500/15 font-semibold' : 'hover:bg-[var(--surface-hover)]'}
+                            className={isLatest ? 'font-semibold' : 'hover:bg-[var(--surface-hover)]'}
+                            style={isLatest ? { background: 'var(--indigo-muted)' } : undefined}
                           >
                             <td className="py-2 text-[var(--text-secondary)]">
                               {new Date(snap.created_at).toLocaleDateString('en-ZA', {

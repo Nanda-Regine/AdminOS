@@ -76,7 +76,7 @@ export default async function SafetyPage() {
           ))}
         </div>
 
-        <Card>
+        <Card variant="flat">
           <div className="p-3 md:p-5 overflow-x-auto">
             <SafetyClient rows={rows} staff={staffOptions} />
           </div>

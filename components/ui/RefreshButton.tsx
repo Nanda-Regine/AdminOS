@@ -47,7 +47,7 @@ export function RefreshButton({ endpoint, label, loadingLabel = 'Calculating…'
         type="button"
         onClick={handleClick}
         disabled={loading}
-        className={className ?? 'px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white text-sm font-semibold rounded-lg transition-colors'}
+        className={className ?? 'px-5 py-2.5 bg-[var(--indigo)] hover:bg-[var(--indigo-light)] disabled:opacity-60 text-white text-sm font-semibold rounded-lg transition-colors'}
       >
         {loading ? loadingLabel : label}
       </button>

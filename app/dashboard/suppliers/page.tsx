@@ -87,7 +87,7 @@ export default async function SuppliersPage() {
           </Card>
         )}
 
-        <Card>
+        <Card variant="flat">
           <div className="p-3 md:p-5 overflow-x-auto">
             <SuppliersTable rows={rows} />
           </div>

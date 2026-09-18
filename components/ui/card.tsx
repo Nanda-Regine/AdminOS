@@ -2,6 +2,10 @@ import { HTMLAttributes } from 'react'
 
 interface CardProps extends HTMLAttributes<HTMLDivElement> {
   padding?: 'none' | 'sm' | 'md' | 'lg'
+  /** 'glass' (default) — frosted, blurred surface for top-level page cards.
+   *  'flat' — plain surface, no blur; for dense nested contexts (a stat
+   *  tile inside a card) where another layer of blur would look muddy. */
+  variant?: 'glass' | 'flat'
 }
 
 const paddingClasses = {
@@ -11,10 +15,15 @@ const paddingClasses = {
   lg: 'p-8',
 }
 
-export function Card({ padding = 'md', children, className = '', ...props }: CardProps) {
+const variantClasses = {
+  glass: 'glass',
+  flat: 'bg-[var(--surface-1)] border border-[var(--border)] shadow-sm',
+}
+
+export function Card({ padding = 'md', variant = 'glass', children, className = '', ...props }: CardProps) {
   return (
     <div
-      className={`bg-[var(--surface-1)] rounded-xl border border-[var(--border)] shadow-sm ${paddingClasses[padding]} ${className}`}
+      className={`${variantClasses[variant]} rounded-xl ${paddingClasses[padding]} ${className}`}
       {...props}
     >
       {children}
