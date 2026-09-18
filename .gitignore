@@ -48,3 +48,6 @@ next-env.d.ts
 
 # Raw background source library (originals); app uses public/backgrounds/*
 public/dark-and-light-theme-backgrounds/
+
+# Playwright screen-audit output (screenshots + report, regenerated per run)
+/scripts/audit-out/
