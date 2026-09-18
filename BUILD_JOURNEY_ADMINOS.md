@@ -2202,3 +2202,57 @@ Commits: `e3db91c` (mobile fixes + accountant-report permission gap),
 pushed to `origin/main`.
 
 Full detail: memory `adminos-mobile-and-design-elevation-2026-09-18`.
+
+---
+
+## Session 15 (Phase 4) — 2026-09-18 — Wired the remaining 6 autonomy decisions
+
+Only `money/invoice_reminder` and `ops/booking_reminder` actually did
+anything when toggled in `/dashboard/settings/autonomy`; the other 6
+round-tripped through the DB but nothing read them (see Phase 3's honest
+finding). Wired all 6, tier-gated (A=auto-act, B=draft+notify owner,
+C=surface-only), reusing the domain-signal builders that already existed
+for the cockpits rather than re-deriving the data:
+
+- **`money/payment_receipt`** — auto-thanks the customer by WhatsApp when
+  an invoice is marked paid. Along the way, fixed a real bug in
+  `app/api/invoices/[id]/route.ts`: the `amountPaid` branch selected
+  columns (`total`, `amount_due`) that don't exist on `invoices` (real
+  columns are `amount`/`amount_paid`), so it always silently no-op'd.
+  Also added a `wasAlreadyPaid` guard so the payment-received notify/
+  receipt/formalization block can't re-fire on a later no-op PATCH.
+- **`money/final_demand`** — still never auto-sent (Debt Collectors Act,
+  unchanged hard rule). Tier A/B now pre-drafts a firm-but-lawful message
+  into the owner's review notification (reusing `draftRecoveryMessage`,
+  content-guarded) instead of a blank "decide how to proceed."
+- **`ops/low_stock_reorder_alert`** — new daily cron
+  (`inngest/functions/opsAlerts.ts`), reuses `buildOpsIntel`'s existing
+  low-stock computation.
+- **`sales/going_cold_nudge`** — new weekly cron
+  (`inngest/functions/salesColdLeads.ts`), reuses `buildSalesIntel`'s
+  `staleContacts`; new `draftColdLeadMessage` AI helper, capped to 3
+  contacts/tenant/run to bound cost. Extended `StaleContact` with
+  `id`/`phone` so the automation can act on it (was display-only before).
+- **`people/approval_reminder`** — new daily cron
+  (`inngest/functions/peopleApprovals.ts`), nudges on leave/expense
+  approvals pending 48h+ (separate from the existing submit-time alert).
+- **`governance/deadline_alert`** — new daily cron
+  (`inngest/functions/governanceDeadlines.ts`), reuses
+  `buildGovernanceIntel`'s deadlines, fires only at 14/7/3/1/0-day
+  checkpoints to avoid daily noise on a deadline still weeks out.
+
+New `lib/autonomy/tiers.ts` helper `tierAllowsWhatsapp()` — for the
+owner-facing (non-customer) alerts, tier C means bell-only, A/B also
+mirror to WhatsApp. All 4 new crons registered in
+`app/api/inngest/route.ts`. **No schema changes** — everything reuses
+existing columns/tables. `npx tsc --noEmit` clean; `tests/autonomy.test.ts`
+5/5 pass.
+
+**Not done:** the settings UI already renders all 8 decisions from
+`DECISION_CATALOGUE` (no UI change needed). Production verification of the
+4 new crons (they won't fire until their next scheduled run) is still
+pending — check Inngest dashboard after first scheduled run.
+
+Commit: `974d37d`, pushed to `origin/main`.
+
+Full detail: memory `adminos-autonomy-fully-wired-2026-09-18`.
