@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useOpenOnParam } from '@/lib/hooks/useOpenOnParam'
+import { Modal, FormField, inputCls, inputSty, Btn } from '@/components/ui/modal'
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                               */
@@ -94,6 +95,8 @@ export function CreateTaskModal({ staff }: { staff: StaffMember[] }) {
     }
   }
 
+  function handleClose() { if (!loading) { resetForm(); setOpen(false) } }
+
   return (
     <>
       {/* Trigger */}
@@ -105,135 +108,85 @@ export function CreateTaskModal({ staff }: { staff: StaffMember[] }) {
         New Task
       </button>
 
-      {/* Backdrop + Modal */}
-      {open && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
-          onClick={(e) => { if (e.target === e.currentTarget) { resetForm(); setOpen(false) } }}
-        >
-          <div className="w-full max-w-md rounded-2xl shadow-xl overflow-y-auto max-h-[90vh] border"
-            style={{ backgroundColor: 'var(--navy-800)', backgroundImage: 'var(--modal-scrim), var(--modal-image)', backgroundSize: 'cover', backgroundPosition: 'center', borderColor: 'var(--border-hover)' }}>
-            {/* Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]">
-              <h2 className="text-base font-semibold text-[var(--text-primary)]">New Task</h2>
-              <button
-                onClick={() => { resetForm(); setOpen(false) }}
-                className="text-[var(--text-dim)] hover:text-[var(--text-muted)] text-xl leading-none"
-                aria-label="Close"
+      <Modal open={open} onClose={handleClose} title="New Task" size="md">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <FormField label="Title *">
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              required
+              placeholder="What needs to be done?"
+              className={inputCls}
+              style={inputSty}
+            />
+          </FormField>
+
+          <FormField label="Description">
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={3}
+              placeholder="Optional details..."
+              className={inputCls}
+              style={inputSty}
+            />
+          </FormField>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <FormField label="Priority">
+              <select
+                value={priority}
+                onChange={(e) => setPriority(e.target.value as typeof priority)}
+                className={inputCls}
+                style={inputSty}
               >
-                &times;
-              </button>
-            </div>
+                <option value="urgent">Urgent</option>
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
+              </select>
+            </FormField>
 
-            {/* Form */}
-            <form onSubmit={handleSubmit} className="px-5 py-4 space-y-4">
-              {/* Title */}
-              <div>
-                <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
-                  Title <span className="text-red-400">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  required
-                  placeholder="What needs to be done?"
-                  className="w-full rounded-lg border border-[var(--border)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-dim)] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                />
-              </div>
-
-              {/* Description */}
-              <div>
-                <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
-                  Description
-                </label>
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  rows={3}
-                  placeholder="Optional details..."
-                  className="w-full rounded-lg border border-[var(--border)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-dim)] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
-                />
-              </div>
-
-              {/* Priority + Due Date (side by side) */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
-                    Priority
-                  </label>
-                  <select
-                    value={priority}
-                    onChange={(e) => setPriority(e.target.value as typeof priority)}
-                    className="w-full rounded-lg border border-[var(--border)] px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                  >
-                    <option value="urgent">Urgent</option>
-                    <option value="high">High</option>
-                    <option value="medium">Medium</option>
-                    <option value="low">Low</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
-                    Due Date
-                  </label>
-                  <input
-                    type="date"
-                    value={dueDate}
-                    onChange={(e) => setDueDate(e.target.value)}
-                    className="w-full rounded-lg border border-[var(--border)] px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                  />
-                </div>
-              </div>
-
-              {/* Assign To */}
-              <div>
-                <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
-                  Assign To
-                </label>
-                <select
-                  value={assignedTo}
-                  onChange={(e) => setAssignedTo(e.target.value)}
-                  className="w-full rounded-lg border border-[var(--border)] px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                >
-                  <option value="">(Unassigned)</option>
-                  {staff.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.full_name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Error */}
-              {error && (
-                <p className="text-xs text-red-500 on-light bg-red-50 border border-red-100 rounded-lg px-3 py-2">
-                  {error}
-                </p>
-              )}
-
-              {/* Actions */}
-              <div className="flex items-center justify-end gap-2 pt-1">
-                <button
-                  type="button"
-                  onClick={() => { resetForm(); setOpen(false) }}
-                  className="rounded-lg border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--text-muted)] hover:bg-[var(--surface-hover)] transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading || !title.trim()}
-                  className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  {loading ? 'Creating...' : 'Create Task'}
-                </button>
-              </div>
-            </form>
+            <FormField label="Due Date">
+              <input
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+                className={inputCls}
+                style={inputSty}
+              />
+            </FormField>
           </div>
-        </div>
-      )}
+
+          <FormField label="Assign To">
+            <select
+              value={assignedTo}
+              onChange={(e) => setAssignedTo(e.target.value)}
+              className={inputCls}
+              style={inputSty}
+            >
+              <option value="">(Unassigned)</option>
+              {staff.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.full_name}
+                </option>
+              ))}
+            </select>
+          </FormField>
+
+          {error && (
+            <p className="text-xs text-red-500 on-light bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+              {error}
+            </p>
+          )}
+
+          <div className="flex items-center justify-end gap-3 pt-2">
+            <Btn type="button" variant="ghost" onClick={handleClose}>Cancel</Btn>
+            <Btn type="submit" loading={loading}>{loading ? 'Creating…' : 'Create Task'}</Btn>
+          </div>
+        </form>
+      </Modal>
     </>
   )
 }
