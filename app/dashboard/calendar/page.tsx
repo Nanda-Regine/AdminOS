@@ -80,6 +80,10 @@ export default async function CalendarPage({
             </Link>
           </div>
 
+          {/* 7 fixed columns don't fit a phone screen — scroll horizontally
+              below md: rather than squeezing cells unreadably thin. */}
+          <div className="overflow-x-auto">
+          <div className="min-w-[640px]">
           {/* Weekday header */}
           <div className="grid grid-cols-7 border-b border-[var(--border)] bg-[var(--surface-2)]">
             {WEEKDAY_LABELS.map((d) => (
@@ -136,6 +140,8 @@ export default async function CalendarPage({
                 })}
               </div>
             ))}
+          </div>
+          </div>
           </div>
 
           {/* Legend */}

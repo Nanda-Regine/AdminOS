@@ -426,7 +426,7 @@ export default function EmailStudioPage() {
         <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: 'rgba(4,6,20,0.7)', backdropFilter: 'blur(4px)' }}
           onClick={(e) => { if (e.target === e.currentTarget) setPendingAction(null) }}>
-          <div className="w-full max-w-sm rounded-2xl p-6"
+          <div className="w-full max-w-sm max-h-[90vh] overflow-y-auto rounded-2xl p-6"
             style={{ background: 'var(--surface-1)', border: '1px solid var(--border-hover)', backdropFilter: 'blur(24px)' }}>
             <h3 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
               {pendingAction.kind === 'send' ? 'Send this email?' : 'Delete this draft?'}

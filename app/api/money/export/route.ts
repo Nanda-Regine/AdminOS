@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { checkPermission } from '@/lib/auth/permissions'
 import {
   buildVat201WorkingPaper, buildJournalCsv,
   buildIncomeStatement, buildExpensesByCategory, buildIncomeBySource, buildArAging,
@@ -16,6 +17,8 @@ export async function GET(request: Request) {
 
   const tenantId = user.app_metadata?.tenant_id as string
   if (!tenantId) return new NextResponse('No tenant', { status: 400 })
+
+  if (!(await checkPermission('view_financials'))) return new NextResponse('Forbidden', { status: 403 })
 
   const url = new URL(request.url)
   const type = url.searchParams.get('type') ?? 'vat201'

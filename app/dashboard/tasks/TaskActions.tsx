@@ -111,7 +111,7 @@ export function CreateTaskModal({ staff }: { staff: StaffMember[] }) {
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
           onClick={(e) => { if (e.target === e.currentTarget) { resetForm(); setOpen(false) } }}
         >
-          <div className="w-full max-w-md rounded-2xl shadow-xl overflow-hidden border"
+          <div className="w-full max-w-md rounded-2xl shadow-xl overflow-y-auto max-h-[90vh] border"
             style={{ backgroundColor: 'var(--navy-800)', backgroundImage: 'var(--modal-scrim), var(--modal-image)', backgroundSize: 'cover', backgroundPosition: 'center', borderColor: 'var(--border-hover)' }}>
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]">

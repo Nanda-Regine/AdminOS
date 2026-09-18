@@ -23,7 +23,7 @@ function Modal({
       onClick={onClose}
     >
       <div
-        className="rounded-xl shadow-xl w-full max-w-md p-6 border"
+        className="rounded-xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto p-6 border"
         style={{ backgroundColor: 'var(--navy-800)', backgroundImage: 'var(--modal-scrim), var(--modal-image)', backgroundSize: 'cover', backgroundPosition: 'center', borderColor: 'var(--border-hover)' }}
         onClick={(e) => e.stopPropagation()}
       >

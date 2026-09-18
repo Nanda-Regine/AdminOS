@@ -31,7 +31,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     <div className="flex min-h-screen app-shell">
       <DomainGround />
       <Sidebar businessType={businessType} />
-      <main className="flex-1 md:ml-60 flex flex-col min-h-screen">
+      <main className="flex-1 min-w-0 md:ml-60 flex flex-col min-h-screen">
         <TrialBanner />
         <RealtimeNotificationBar />
         {children}

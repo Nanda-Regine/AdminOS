@@ -97,7 +97,7 @@ export function PenStream({ recipientName, businessName, ownerName, language }: 
     >
       <div
         className="mx-auto rounded-2xl overflow-hidden shadow-xl"
-        style={{ maxWidth: 380, background: '#fff', border: '2px solid #E8E0C8' }}
+        style={{ maxWidth: 380, width: '100%', background: '#fff', border: '2px solid #E8E0C8' }}
       >
         {/* Email header */}
         <div className="px-4 py-3" style={{ background: '#1a1a2e', borderBottom: '1px solid #2a2a4e' }}>
