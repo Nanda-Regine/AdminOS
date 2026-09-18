@@ -62,7 +62,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   // state (e.g. editing notes on an invoice that was already paid).
   const { data: before } = await supabaseAdmin
     .from('invoices')
-    .select('status, amount')
+    .select('status, amount, total')
     .eq('id', id)
     .eq('tenant_id', tenantId)
     .maybeSingle()
@@ -78,12 +78,14 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   }
 
   if (body.amountPaid !== undefined && before) {
-    // Columns are `amount`/`amount_paid` on this table — the previous
-    // `total`/`amount_due` select named columns that don't exist, so this
-    // branch always errored and silently no-op'd (amountPaid updates were
-    // never actually applied unless `status` was also passed explicitly).
-    const remaining = Number(before.amount) - body.amountPaid
+    // `total` is what app/api/invoices/route.ts's POST writes alongside the
+    // canonical `amount` (always kept equal at creation) — `amount_due` is a
+    // real, separately-read column (healthScore.ts, boardPack.ts, invoice
+    // documents), so it must stay in sync whenever a payment is recorded.
+    const invoiceTotal = Number(before.total ?? before.amount)
+    const remaining = invoiceTotal - body.amountPaid
     updates.amount_paid = body.amountPaid
+    updates.amount_due  = Math.max(0, remaining)
     if (remaining <= 0)      updates.status = 'paid'
     else if (body.amountPaid > 0) updates.status = 'partial'
   }
@@ -126,7 +128,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       const tier = resolveTier(await getTenantAutonomy(tenantId), 'money', 'payment_receipt')
       if (tier === 'A') {
         const amountStr = `R${Number(data.amount_paid ?? data.amount).toLocaleString('en-ZA')}`
-        const ref = data.invoice_reference ?? String(data.id).slice(0, 8)
+        const ref = data.reference ?? String(data.id).slice(0, 8)
         const thankYou = `Hi ${data.contact_name ?? 'there'}, thank you — we've received your payment of ${amountStr} for invoice ${ref}. Much appreciated!`
         try {
           await sendWhatsApp({ to: data.contact_phone, message: thankYou })
