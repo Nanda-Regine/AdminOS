@@ -7,7 +7,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { publishSignal, type SalesSignal } from '@/lib/signals/bus'
 
 export interface AttentionConvo { name: string; sentiment: string; when: string }
-export interface StaleContact { name: string; lastContacted: string | null; value: number }
+export interface StaleContact { id: string; name: string; lastContacted: string | null; value: number; phone: string | null }
 
 export interface SalesIntel {
   signal: SalesSignal
@@ -25,7 +25,7 @@ export async function buildSalesIntel(tenantId: string): Promise<SalesIntel> {
 
   const [convRes, contactRes, invRes] = await Promise.all([
     supabaseAdmin.from('conversations').select('contact_name, sentiment, status, updated_at').eq('tenant_id', tenantId).eq('status', 'open').order('updated_at', { ascending: false }),
-    supabaseAdmin.from('contacts').select('full_name, contact_type, total_paid, last_contacted_at').eq('tenant_id', tenantId).order('total_paid', { ascending: false }).limit(2000),
+    supabaseAdmin.from('contacts').select('id, full_name, contact_type, total_paid, last_contacted_at, phone, wa_id').eq('tenant_id', tenantId).order('total_paid', { ascending: false }).limit(2000),
     supabaseAdmin.from('invoices').select('amount, amount_paid, status').eq('tenant_id', tenantId).neq('status', 'paid'),
   ])
 
@@ -46,7 +46,13 @@ export async function buildSalesIntel(tenantId: string): Promise<SalesIntel> {
     .filter(c => (c.contact_type ?? 'unknown') !== 'staff' && (c.contact_type ?? 'unknown') !== 'supplier')
     .sort((a, b) => Number(b.total_paid || 0) - Number(a.total_paid || 0))
     .slice(0, 6)
-    .map(c => ({ name: c.full_name || '(unnamed)', lastContacted: c.last_contacted_at, value: Number(c.total_paid || 0) }))
+    .map(c => ({
+      id: c.id,
+      name: c.full_name || '(unnamed)',
+      lastContacted: c.last_contacted_at,
+      value: Number(c.total_paid || 0),
+      phone: (c.phone || c.wa_id) ?? null,
+    }))
 
   const lifetimeRevenue = contacts.reduce((s, c) => s + Number(c.total_paid || 0), 0)
   const pipelineValue = invoices.reduce((s, i) => s + Math.max(0, Number(i.amount || 0) - Number(i.amount_paid || 0)), 0)

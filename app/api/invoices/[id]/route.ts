@@ -5,6 +5,9 @@ import { z } from 'zod'
 import { fireBusinessEvent } from '@/lib/academy/knowledgeGraph'
 import { checkPermission } from '@/lib/auth/permissions'
 import { notifyTenant } from '@/lib/notifications/notify'
+import { sendWhatsApp } from '@/lib/whatsapp/send'
+import { getTenantAutonomy } from '@/lib/autonomy/config'
+import { resolveTier } from '@/lib/autonomy/tiers'
 
 const updateSchema = z.object({
   status:   z.enum(['draft','sent','unpaid','partial','paid','overdue','cancelled']).optional(),
@@ -53,6 +56,18 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     return NextResponse.json({ error: 'Invalid request', detail: e }, { status: 400 })
   }
 
+  // Snapshot the paid status before applying any update — guards the
+  // payment-receipt thank-you (and the owner alert / formalization bump)
+  // from re-firing on a later PATCH that doesn't actually change payment
+  // state (e.g. editing notes on an invoice that was already paid).
+  const { data: before } = await supabaseAdmin
+    .from('invoices')
+    .select('status, amount')
+    .eq('id', id)
+    .eq('tenant_id', tenantId)
+    .maybeSingle()
+  const wasAlreadyPaid = before?.status === 'paid'
+
   const updates: Record<string, unknown> = {}
   if (body.dueDate  !== undefined) updates.due_date  = body.dueDate
   if (body.notes    !== undefined) updates.notes     = body.notes
@@ -62,21 +77,15 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     if (body.status === 'paid') updates.paid_at = new Date().toISOString()
   }
 
-  if (body.amountPaid !== undefined) {
-    const { data: inv } = await supabaseAdmin
-      .from('invoices')
-      .select('total, amount_due')
-      .eq('id', id)
-      .eq('tenant_id', tenantId)   // scope the read to the caller's tenant
-      .single()
-
-    if (inv) {
-      const remaining = inv.total - body.amountPaid
-      updates.amount_paid = body.amountPaid
-      updates.amount_due  = Math.max(0, remaining)
-      if (remaining <= 0)      updates.status = 'paid'
-      else if (body.amountPaid > 0) updates.status = 'partial'
-    }
+  if (body.amountPaid !== undefined && before) {
+    // Columns are `amount`/`amount_paid` on this table — the previous
+    // `total`/`amount_due` select named columns that don't exist, so this
+    // branch always errored and silently no-op'd (amountPaid updates were
+    // never actually applied unless `status` was also passed explicitly).
+    const remaining = Number(before.amount) - body.amountPaid
+    updates.amount_paid = body.amountPaid
+    if (remaining <= 0)      updates.status = 'paid'
+    else if (body.amountPaid > 0) updates.status = 'partial'
   }
 
   const { data, error } = await supabaseAdmin
@@ -91,7 +100,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
   // Fire events for status changes
   if (body.status === 'sent') fireBusinessEvent('invoice.sent', tenantId, user.id)
-  if (body.status === 'paid' || (body.amountPaid !== undefined && data.status === 'paid')) {
+  const justPaid = !wasAlreadyPaid && data.status === 'paid'
+  if (justPaid) {
     fireBusinessEvent('invoice.paid', tenantId, user.id)
     // Celebrate the win — the owner gets pushed the moment money lands.
     await notifyTenant(tenantId, {
@@ -108,6 +118,23 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       .update({ first_invoice_sent: true })
       .eq('tenant_id', tenantId)
       .eq('first_invoice_sent', false)
+
+    // Autonomy: money/payment_receipt — thank the customer automatically.
+    // Default tier is 'A' (send). 'B'/'C' hold — the owner alert above
+    // already tells them the payment landed, so no extra draft is needed.
+    if (data.contact_phone) {
+      const tier = resolveTier(await getTenantAutonomy(tenantId), 'money', 'payment_receipt')
+      if (tier === 'A') {
+        const amountStr = `R${Number(data.amount_paid ?? data.amount).toLocaleString('en-ZA')}`
+        const ref = data.invoice_reference ?? String(data.id).slice(0, 8)
+        const thankYou = `Hi ${data.contact_name ?? 'there'}, thank you — we've received your payment of ${amountStr} for invoice ${ref}. Much appreciated!`
+        try {
+          await sendWhatsApp({ to: data.contact_phone, message: thankYou })
+        } catch (err) {
+          console.error('[invoices] payment receipt send failed (non-fatal)', err)
+        }
+      }
+    }
   }
 
   return NextResponse.json(data)

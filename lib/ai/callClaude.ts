@@ -346,6 +346,21 @@ State only: what is owed, how overdue it is, and how to make contact or pay. Alw
   )
 }
 
+export async function draftColdLeadMessage(params: {
+  tenantName: string
+  contact: string
+  daysSinceContact: number | null
+}): Promise<string> {
+  return callClaudeAgent(
+    `You draft short, warm WhatsApp re-engagement messages for ${params.tenantName}, a South African business, to send to its own past customer or lead who has gone quiet.
+
+Draft a friendly, low-pressure check-in under 200 characters. No sales pitch, no discount codes, no urgency language. Just a genuine "we haven't heard from you in a while, how can we help" tone. Reply ONLY with the message text.`,
+    `Contact: ${params.contact}\nDays since last contact: ${params.daysSinceContact ?? 'unknown (never contacted)'}`,
+    150,
+    { feature: 'cold_lead_nudge' }
+  )
+}
+
 export async function generateDailyBrief(tenantData: {
   tenantName: string
   openConversations: number

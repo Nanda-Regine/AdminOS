@@ -67,6 +67,7 @@ const FEATURE_MODEL_MAP: Record<string, FeatureRouter> = {
   document_classify:        (_) => MODELS.HAIKU,
   document_extract:         (_) => MODELS.HAIKU,
   document_reference_schema: (_) => MODELS.HAIKU,
+  cold_lead_nudge:          (_) => MODELS.HAIKU,
   agent_draft:           (_) => MODELS.HAIKU,
   agent_summarise:       (_) => MODELS.HAIKU,
   agent_lookup:          (_) => MODELS.HAIKU,
@@ -118,6 +119,7 @@ const FREE_TIER_FEATURES = new Set<string>([
   'document_reference_schema',
   'agent_draft',
   'agent_summarise',
+  'cold_lead_nudge', // re-engagement drafts — routine, not legally sensitive
 ])
 
 /**

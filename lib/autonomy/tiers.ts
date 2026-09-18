@@ -51,6 +51,9 @@ export const canAutoAct = (t: Tier): boolean => t === 'A'
 export const shouldDraftAndAwait = (t: Tier): boolean => t === 'B'
 export const isSurfaceOnly = (t: Tier): boolean => t === 'C'
 
+/** For owner-facing (non-customer) alerts: C means bell-only, A/B still mirror to WhatsApp. */
+export const tierAllowsWhatsapp = (t: Tier): boolean => t !== 'C'
+
 /** Quiet hours as minutes-since-midnight; handles overnight wrap (e.g. 21:00→06:00). */
 export function isWithinQuietHours(nowMinutes: number, window?: { start: number; end: number } | null): boolean {
   if (!window) return false

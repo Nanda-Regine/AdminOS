@@ -9,6 +9,7 @@ import { notifyTenant } from '@/lib/notifications/notify'
 import { getTenantAutonomy } from '@/lib/autonomy/config'
 import { resolveTier } from '@/lib/autonomy/tiers'
 import { checkBudget, recordUsage, getModelForFeature } from '@/lib/ai/costControls'
+import { draftRecoveryMessage } from '@/lib/ai/callClaude'
 import Anthropic from '@anthropic-ai/sdk'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
@@ -102,16 +103,48 @@ export const debtRecoveryEngine = inngest.createFunction(
         // see it. Silence here means an escalation quietly disappears.
         if (error) throw new Error(`[DebtRecovery] could not flag invoice ${invoice_id} for owner review: ${error.message}`)
       })
+      // Autonomy: money/final_demand — AdminOS NEVER auto-sends this tier,
+      // full stop, regardless of what the tenant's tier config says (that's
+      // enforced above: the send path below is unreachable for tier > 3).
+      // What the config DOES govern is whether we save the owner a draft:
+      // A/B pre-write a firm-but-lawful message they can copy and send
+      // themselves; C (the default) leaves the plain notice as-is. Only
+      // relevant for genuine final-demand territory, not a merely-held
+      // gentle reminder.
+      const finalDemandDraft = await step.run('draft-final-demand', async () => {
+        if (heldByAutonomy) return null
+        const rows = await getTenantAutonomy(tenant_id)
+        if (resolveTier(rows, 'money', 'final_demand') === 'C') return null
+
+        const inv = context.invoice!
+        const plan = context.tenant?.plan ?? 'trial'
+        const budget = await checkBudget(tenant_id, plan, 300)
+        if (!budget.allowed) return null
+
+        const text = await draftRecoveryMessage({
+          tenantName: context.tenant?.name ?? 'our business',
+          contact: inv.contact_name ?? 'the customer',
+          amount: Number(inv.amount),
+          daysOverdue: daysOverdue(inv.due_date),
+          tone: 'firm and serious — this account is significantly overdue — while remaining respectful and lawful',
+          includePaymentLink: false,
+        })
+
+        const guard = checkRecoveryMessage(text)
+        return guard.safe ? text : null
+      })
+
       // Surface it to the owner (in-app bell + WhatsApp if a notify phone is set).
       // Best-effort — never blocks the escalation flag above.
       await step.run('notify-owner-review', async () => {
         const inv = context.invoice!
+        const baseBody = heldByAutonomy
+          ? `${inv.contact_name ?? 'A customer'}'s invoice (R${inv.amount}) is overdue. Auto-send is off for reminders, so it's waiting for you to send.`
+          : `${inv.contact_name ?? 'A customer'}'s invoice (R${inv.amount}) is past the gentle-reminder stage. Decide how to proceed — AdminOS won't chase harder on its own.`
         await notifyTenant(tenant_id, {
           type: 'recovery.escalation',
           title: heldByAutonomy ? 'Reminder ready to send' : 'Invoice needs your review',
-          body: heldByAutonomy
-            ? `${inv.contact_name ?? 'A customer'}'s invoice (R${inv.amount}) is overdue. Auto-send is off for reminders, so it's waiting for you to send.`
-            : `${inv.contact_name ?? 'A customer'}'s invoice (R${inv.amount}) is past the gentle-reminder stage. Decide how to proceed — AdminOS won't chase harder on its own.`,
+          body: finalDemandDraft ? `${baseBody}\n\nDraft you can send yourself:\n"${finalDemandDraft}"` : baseBody,
           actionUrl: '/dashboard/invoices',
           dedupeKey: `recovery-review-${invoice_id}`,
           dedupeHours: 72,
@@ -119,7 +152,7 @@ export const debtRecoveryEngine = inngest.createFunction(
         })
         return { notified: true }
       })
-      return { status: heldByAutonomy ? 'held_by_autonomy' : 'awaiting_owner_review', tier, autonomy }
+      return { status: heldByAutonomy ? 'held_by_autonomy' : 'awaiting_owner_review', tier, autonomy, drafted: Boolean(finalDemandDraft) }
     }
 
     const message = await step.run('generate-message', async () => {

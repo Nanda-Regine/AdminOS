@@ -33,6 +33,10 @@ import { sequencesCronFunction }                           from '@/inngest/funct
 import { licenseRemindersCronFunction }                    from '@/inngest/functions/licenseRemindersCron'
 import { signalRefreshCron, signalRefreshEngine }          from '@/inngest/functions/signalRefresh'
 import { trialExpiryCron }                                  from '@/inngest/functions/trialExpiry'
+import { lowStockAlertCron, lowStockAlertEngine }           from '@/inngest/functions/opsAlerts'
+import { coldLeadNudgeCron, coldLeadNudgeEngine }           from '@/inngest/functions/salesColdLeads'
+import { approvalReminderCron, approvalReminderEngine }     from '@/inngest/functions/peopleApprovals'
+import { deadlineAlertCron, deadlineAlertEngine }           from '@/inngest/functions/governanceDeadlines'
 
 export const { GET, POST, PUT } = serve({
   client: inngest,
@@ -78,5 +82,14 @@ export const { GET, POST, PUT } = serve({
     trialExpiryCron,
     sequencesCronFunction,
     licenseRemindersCronFunction,
+    // Autonomy-gated alert crons (the remaining tenant_autonomy_config decisions)
+    lowStockAlertCron,
+    lowStockAlertEngine,
+    coldLeadNudgeCron,
+    coldLeadNudgeEngine,
+    approvalReminderCron,
+    approvalReminderEngine,
+    deadlineAlertCron,
+    deadlineAlertEngine,
   ],
 })
