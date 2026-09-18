@@ -2014,3 +2014,96 @@ Source memory files for full detail behind every item above:
 `adminos-agent-system-disconnected-2026-08-21`,
 `adminos-automations-layer-audit-2026-08-21`.
    scope; not a code fix.
+
+---
+
+## Session 15 (2026-09-18) — production-readiness push: DB outage, screen audit, AI cost routing
+
+Nanda asked for a production-readiness checklist, confused WhatsApp setup,
+noted mobile issues + broken features, and asked for a Playwright-driven
+screen audit + a fix so the DB stops sleeping. Mid-session she also added
+`GEMINI_API_KEY` and asked to route AI to free models since she can't
+sustain Claude API cost.
+
+**1. Found AdminOS's production DB down live, mid-session** (commit
+`067f5c6`). `/api/health` returned `"database":"error"` (503) — the same
+auto-pause bug as [[adminos-supabase-db-autopauses]], recurring a month
+later. Restored via the Management API (`INACTIVE` → `ACTIVE_HEALTHY` in
+~3 min, confirmed via polling). Shipped a daily Vercel Cron hitting
+`/api/health` (already does a real Supabase query) so this shouldn't
+recur — self-contained, no JarvisOS dependency.
+
+**2. WhatsApp setup diagnosed, not fixed** (Rule Zero — `.env.local` is
+off-limits). `META_WHATSAPP_ACCESS_TOKEN` and `META_WEBHOOK_SECRET` are
+empty; `META_WEBHOOK_VERIFY_TOKEN` is missing entirely (a third, separate
+secret from `META_WEBHOOK_SECRET` — easy to conflate, see
+`app/api/webhook/whatsapp/route.ts`'s `GET` handler vs `verifyWebhookSignature`
+in `lib/whatsapp/send.ts`); `WHATSAPP_BUSINESS_ACCOUNT_ID` has a stray
+leading colon. Nanda needs to fill these in Vercel env vars herself.
+
+**3. Playwright installed + a reusable screen-audit script written**
+(`scripts/screen-audit.mjs`, commit `067f5c6`). Signs up one disposable
+QA tenant via the real `/signup` form (same approach as
+[[adminos-signup-e2e-verified]]), skips onboarding via
+`POST /api/onboarding/complete`, then crawls all ~48 dashboard routes ×
+desktop/mobile — read-only, no mutating clicks. Local `next dev` fails on
+this machine with the same OneDrive file-read error `next build` already
+had (`UNKNOWN: read` on `next.config.ts`) — the script defaults to
+auditing production instead; pass a URL as argv[1] or `AUDIT_BASE_URL` to
+point elsewhere. Output goes to `scripts/audit-out/` (gitignored).
+
+**Findings from the crawl (102 page-loads):**
+- **Zero horizontal-scroll/overflow at 390px on any page** — the Aug
+  16-17 mobile pass held up; did not reproduce "mobile issues" from
+  Nanda's report. Need her to name the specific screen.
+- **Sentry has been silently dead on every page since it was added** —
+  `next.config.ts`'s CSP had no `js.sentry-cdn.com` in `script-src` (nor
+  `*.sentry.io` in `connect-src`), so the loader script in `app/layout.tsx`
+  was blocked on every single load. Fixed, commit `067f5c6`.
+- **New: `/dashboard/creative-assets` 400s on load** (both viewports) —
+  not root-caused; likely the client-side `contacts` select in
+  `CreativeAssetsPage`'s `load()`, not yet isolated from the
+  `/api/creative-assets` GET (which only ever returns 401/403/500, ruled
+  out).
+- **New: `/dashboard/suppliers` throws React hydration error #418 on
+  mobile only** — not root-caused; `SuppliersTable`/`SuppliersPage`
+  themselves look clean (rendered against an empty QA tenant → EmptyState
+  path), so the mismatch likely lives in `TopBar` or `AddSupplierModal`
+  at mobile width. Needs focused repro, ideally with React dev build.
+- 55/102 loads never reached Playwright's `networkidle` (timed out at
+  20s) but still rendered and screenshotted fine — almost certainly
+  Supabase Realtime holding a websocket open (`conversations`,
+  `documents`, `invoices`, `audit_logs` per `DEPLOYMENT_CHECKLIST.md`).
+  Not a functional bug; flagged for SA mobile-data/battery context.
+
+**4. Hybrid Groq/Gemini + Claude AI cost routing built** (commit
+`5df2eb8`). `GROQ_API_KEY` was NOT actually added despite Nanda believing
+she had — only `GEMINI_API_KEY` (+ `GEMINI_PROJECT_NUMBER`/`_NAME`, which
+may mean she's actually on Vertex AI rather than the AI-Studio API-key
+path `lib/ai/providers/gemini.ts` targets — unverified, will 401 if so).
+`lib/ai/costControls.ts`'s `getProviderForFeature()` routes high-volume/
+low-stakes features (chat conversation, classification, document
+classify/extract, agent draft/summarise/lookup) to Groq (preferred) or
+Gemini when configured; compliance-sensitive features (debt wording,
+briefs, board packs, langa mentor) stay hard-pinned to Claude regardless.
+`callClaudeAgent`/`callClaudeWithCache` fall back to Claude automatically
+on any provider error. Also fixed two pre-existing gaps found while in
+here: `draftRecoveryMessage` and `generateDailyBrief` never passed an
+explicit `feature`, silently defaulting to the generic `agent_call`
+bucket instead of their intended routing tier.
+
+**Known gap, not yet built:** `lib/ai/orchestrator.ts` (the `pen` agent /
+Inbox AI panel, per [[adminos-agent-system-disconnected-2026-08-21]]) has
+its own separate `anthropic.messages.create` call path with dynamic
+`agent_${name}` feature keys — does not go through `getProviderForFeature`,
+so Inbox AI panel traffic is not yet covered by the free-tier routing.
+
+**Also found, not yet fixed:** `DEPLOYMENT_CHECKLIST.md` is stale (last
+updated April 2026) — references dead `/api/cron/*` routes ([[adminos-automations-layer-audit-2026-08-21]] already confirmed these
+dead, Inngest replaced them), `DIALOG360_API_KEY` (WhatsApp migrated to
+Meta Cloud API directly, per `WHATSAPP_TEMPLATE_SETUP.md`), and old
+Starter/Growth/Enterprise pricing (renamed, see
+[[adminos-pricing-tiers-renamed]]). Anyone following it today would set up
+the wrong things.
+
+Full detail: memory `adminos-session15-production-push-2026-09-18`.
