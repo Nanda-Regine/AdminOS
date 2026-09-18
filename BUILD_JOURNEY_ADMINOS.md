@@ -1886,11 +1886,25 @@ detail this list intentionally compresses.
 From the Aug 16 six-way audit, still the accurate diagnosis — nothing on
 this list has been built since:
 
-7. **Deposits + payment links on tenant invoices/bookings** (~5d). PayFast
-   and Paystack are wired for AdminOS's own billing only
-   (`app/api/billing/payfast-itn`, `app/api/paystack/webhook`) — nothing
-   exposes them to a tenant's own customers. Highest product value on this
-   list: turns AdminOS from a record of money into a mover of money.
+7. ~~**Deposits + payment links on tenant invoices/bookings**~~ **Split
+   2026-09-18 (Session 15).** Scoped the payment-gateway half and Nanda
+   held it — no way to test it, and routing a tenant's customer's money
+   through AdminOS's own PayFast/Paystack account (the only way it works
+   today; there's no per-tenant merchant credential mechanism, see
+   [[adminos-session15-production-push-2026-09-18]]) is a real
+   payment-facilitation question under PayFast/Paystack's own merchant
+   terms and possibly SARB's NPS Act — needs a professional opinion before
+   any code gets written, not an engineering assumption. **The document
+   half shipped instead** (commit `0ce1f30`): branded "TAX INVOICE"/
+   "INVOICE" (SARS-correct — the heading + VAT breakdown only render when
+   `tenant.settings.vat_number` is set) with the tenant's own logo, plus a
+   payment-confirmation receipt once an invoice shows a payment. New
+   Settings card captures address/VAT number/banking details, which the
+   payslip generator was already silently reading with no UI anywhere to
+   set them. Still fully open: the gateway itself (tenant-owned PayFast/
+   Paystack credentials, once Nanda has a legal answer) and booking
+   deposits (bookings has zero money columns today — bigger lift than
+   invoices, which already had the schema).
 8. **Job costing** — `time_entries` rolling into `projects.budget` (~8d).
    Nothing currently answers "which jobs made money."
 9. **Polymorphic asset/vehicle register** (~7d) — vehicles, plant, kit,
