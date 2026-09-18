@@ -5,10 +5,11 @@ import { useRouter } from 'next/navigation'
 import { Modal, FormField, inputCls, inputSty, Btn } from '@/components/ui/modal'
 import { useOpenOnParam } from '@/lib/hooks/useOpenOnParam'
 import { Plus } from 'lucide-react'
+import { EXPENSE_ACCOUNTS, DEFAULT_EXPENSE_KEY } from '@/lib/finance/chartOfAccounts'
 
 interface StaffOption { id: string; full_name: string | null }
 
-const EMPTY = { staffId: '', amount: '', category: 'travel', description: '', receiptUrl: '' }
+const EMPTY = { staffId: '', amount: '', category: DEFAULT_EXPENSE_KEY, description: '', receiptUrl: '' }
 type FormState = typeof EMPTY
 
 export function CreateExpenseModal({ staff }: { staff: StaffOption[] }) {
@@ -81,11 +82,9 @@ export function CreateExpenseModal({ staff }: { staff: StaffOption[] }) {
             </FormField>
             <FormField label="Category">
               <select name="category" value={form.category} onChange={handleChange} className={inputCls} style={inputSty}>
-                <option value="travel">Travel</option>
-                <option value="meals">Meals</option>
-                <option value="equipment">Equipment</option>
-                <option value="accommodation">Accommodation</option>
-                <option value="other">Other</option>
+                {EXPENSE_ACCOUNTS.map(a => (
+                  <option key={a.key} value={a.key}>{a.label}</option>
+                ))}
               </select>
             </FormField>
           </div>

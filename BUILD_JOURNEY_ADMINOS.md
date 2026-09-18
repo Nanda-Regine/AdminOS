@@ -2263,3 +2263,88 @@ pending — check Inngest dashboard after first scheduled run.
 Commit: `974d37d`, pushed to `origin/main`.
 
 Full detail: memory `adminos-autonomy-fully-wired-2026-09-18`.
+
+---
+
+## Session 15 (Phase 5) — 2026-09-18 — Cash sales + chart-of-accounts categorization
+
+Nanda asked for (a) various ways to log a cash sale, since "business types
+and operations are unique and vast", and (b) light bookkeeping structure
+("so people's finances are in order from day one") — she picked the
+recommended depth via AskUserQuestion: chart-of-accounts categorization
+feeding the existing exports, not a full double-entry ledger (that stays a
+deliberately out-of-scope, much bigger build).
+
+**Chart of accounts** — `lib/finance/chartOfAccounts.ts`: 7 income
+categories (Sales, Service Income, Rental, Membership/Subscription,
+Grants & Donations, Interest, Other) and 20 expense categories (was 5:
+travel/meals/equipment/accommodation/other — kept those 5 keys unchanged
+so existing expense rows still resolve correctly, added COGS, Salaries,
+Rent, Utilities, Bank Charges, Professional Fees, Marketing, etc.), each
+with a simplified GL-style code matching what `buildJournalCsv` already
+hardcoded (Sales 4000, VAT Control 2200, etc.). Validated at the
+application layer, not a DB CHECK — same approach `expenses.category`
+already used, so the list can grow without a migration.
+
+**Schema** — `supabase/migrations/20260918_chart_of_accounts.sql`
+(applied to prod via the Management API, `scripts/apply-coa-migration.mjs`,
+after explicit confirmation — auto mode classifier flagged it):
+`invoices.category` (default `'sales'`), `invoices.channel` (`'invoice'`
+default, or `'cash_sale'`), `invoices.payment_method` (nullable). All
+additive/defaulted, no existing column touched.
+
+**Cash sales** — `POST /api/invoices` extended (not a separate endpoint)
+with `channel:'cash_sale'` (server forces `status:'paid'`,
+`amount_paid=amount_due=0` immediately — the client can't set this
+itself), `category`, `paymentMethod`, and line items that can carry a
+`productId` instead of description/unitPrice — server resolves the real
+name/price, validates stock for ALL items before creating anything, then
+decrements `products.current_stock` + logs an `inventory_transactions`
+row per item (mirrors `/api/inventory/transactions`'s existing 'sell'
+path). New `app/dashboard/invoices/QuickSaleModal.tsx`: a "From stock"
+mode (cart-style, picks products, live total) and a "Quick amount" mode
+(single description+amount, for services) — which one shows by default is
+driven by whether the tenant has any active products, not hardcoded per
+industry. `lib/finance/chartOfAccounts.ts`'s
+`defaultIncomeKeyForBusinessType()` pre-selects a sensible income category
+per vertical (property→rental, ngo→grants, school→membership,
+consulting/legal/accounting/trades/creative/cleaning→service, else sales).
+
+**Shared paid-invoice side effects** — extracted the owner-notify /
+formalization-bump / autonomy-gated customer-thank-you block (built in
+Phase 4 for `money/payment_receipt`) out of the PATCH route into
+`lib/invoices/onPaid.ts`'s `handleInvoicePaid()`, called from both the
+PATCH route (an invoice being marked paid) and the new cash-sale POST
+path (paid at creation) — so a Quick Sale gets the exact same automation
+an invoice payment does, not a second hand-rolled copy. Also populated
+`contact_phone` on invoice creation when a contact is linked (previously
+never set on POST at all — a pre-existing gap that meant `payment_receipt`
+could never fire for a normally-created invoice tied to a contact) so
+that a linked-contact cash sale can now also send the receipt thank-you.
+
+**Reports** — `lib/money/exports.ts`: `buildIncomeStatement` now breaks
+revenue down by category (previously one lump "Sales revenue" line, while
+expenses were always categorized — asymmetric); new
+`buildIncomeByCategory()` parallels the existing `buildExpensesByCategory`;
+`buildJournalCsv` now posts each sale to its real income account instead
+of always "Sales (4000)". New `income_by_category` report type wired
+through `app/api/money/export/route.ts` and listed on
+`/dashboard/money/reports`. `humanCat()` now prefers the canonical
+chart-of-accounts label over title-casing raw text, for both invoices and
+expenses.
+
+**Self-correction along the way (see Phase 4's entry above for the root
+incident):** discovered while reading the invoice insert path that
+`total`/`amount_due` are real, live columns — this is what surfaced the
+Phase 4 schema misdiagnosis and triggered its same-session fix.
+
+**Not done:** no double-entry ledger (explicitly declined depth); no
+UI surfacing of category/channel/payment_method on `InvoicesTable`
+itself (the reports are where the categorization shows up); recurring/
+subscription billing (school fees, memberships) was named as a cash-sale
+scenario but scoped out — Quick Sale handles the one-off capture, a
+recurring-billing engine is a separate, larger feature.
+
+`npx tsc --noEmit` clean throughout.
+
+Full detail: memory `adminos-cash-sales-chart-of-accounts-2026-09-18`.

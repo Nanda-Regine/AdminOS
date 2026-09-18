@@ -8,9 +8,11 @@
  * bookkeeper to confirm, not a filed return.
  */
 
+import { labelFor, codeFor, isValidKey } from '@/lib/finance/chartOfAccounts'
+
 export const VAT_RATE = 0.15
 
-export interface ExportInvoice { contact_name: string | null; amount: number; amount_paid: number; status: string; created_at: string; due_date?: string | null }
+export interface ExportInvoice { contact_name: string | null; amount: number; amount_paid: number; status: string; created_at: string; due_date?: string | null; category?: string | null }
 export interface ExportExpense { category: string | null; description: string | null; amount: number; created_at: string; status: string }
 
 const vatFromInclusive = (incl: number) => (incl * VAT_RATE) / (1 + VAT_RATE)
@@ -71,9 +73,10 @@ export function buildJournalCsv(
     const vat = vatFromInclusive(gross)
     const net = gross - vat
     const ref = (i.contact_name || 'SALE').slice(0, 20)
+    const incomeAcct = `${labelFor('income', i.category)} (${codeFor('income', i.category)})`
     // AR debit gross; revenue credit net; VAT output credit
     lines.push([d, ref, `Invoice — ${i.contact_name ?? 'customer'}`, 'Accounts Receivable (1100)', zar(gross), ''])
-    lines.push([d, ref, 'Sales revenue', 'Sales (4000)', '', zar(net)])
+    lines.push([d, ref, 'Sales revenue', incomeAcct, '', zar(net)])
     lines.push([d, ref, 'Output VAT', 'VAT Control (2200)', '', zar(vat)])
   }
 
@@ -83,8 +86,8 @@ export function buildJournalCsv(
     const gross = Number(e.amount || 0)
     const vat = vatFromInclusive(gross)
     const net = gross - vat
-    const acct = (e.category || 'General expenses').replace(/[_-]/g, ' ')
-    lines.push([d, 'EXP', e.description || acct, `${acct} (5000)`, zar(net), ''])
+    const acct = `${labelFor('expense', e.category)} (${codeFor('expense', e.category)})`
+    lines.push([d, 'EXP', e.description || acct, acct, zar(net), ''])
     lines.push([d, 'EXP', 'Input VAT', 'VAT Control (2200)', zar(vat), ''])
     lines.push([d, 'EXP', 'Payable', 'Accounts Payable (2100)', '', zar(gross)])
   }
@@ -93,10 +96,16 @@ export function buildJournalCsv(
 }
 
 // ── Monthly accountant pack (task #13) — each a clean, categorised working paper ──
-const humanCat = (c: string | null) =>
-  (c || 'Uncategorised').replace(/[_-]/g, ' ').replace(/\b\w/g, ch => ch.toUpperCase())
+// Prefers the real chart-of-accounts label (lib/finance/chartOfAccounts.ts);
+// falls back to title-casing whatever's actually stored so pre-chart-of-
+// accounts rows (or any free-text category) still read cleanly.
+const humanCat = (c: string | null, kind: 'income' | 'expense' = 'expense') => {
+  if (!c) return 'Uncategorised'
+  if (isValidKey(kind, c)) return labelFor(kind, c)
+  return c.replace(/[_-]/g, ' ').replace(/\b\w/g, ch => ch.toUpperCase())
+}
 
-/** Income Statement (P&L): revenue net of VAT, expenses by category (net), net profit. */
+/** Income Statement (P&L): revenue by category (net of VAT), expenses by category (net), net profit. */
 export function buildIncomeStatement(
   invoices: ExportInvoice[],
   expenses: ExportExpense[],
@@ -104,13 +113,20 @@ export function buildIncomeStatement(
 ): string {
   const sales = invoices.filter(i => inWindow(i.created_at, period.from, period.to))
   const purch = expenses.filter(e => e.status !== 'rejected' && inWindow(e.created_at, period.from, period.to))
-  const salesIncl = sales.reduce((s, i) => s + Number(i.amount || 0), 0)
-  const revenueNet = salesIncl - vatFromInclusive(salesIncl)
+
+  const revByCat = new Map<string, number>()
+  for (const i of sales) {
+    const g = Number(i.amount || 0)
+    const k = humanCat(i.category ?? 'sales', 'income')
+    revByCat.set(k, (revByCat.get(k) || 0) + (g - vatFromInclusive(g)))
+  }
+  const revenueNet = [...revByCat.values()].reduce((a, b) => a + b, 0)
 
   const byCat = new Map<string, number>()
   for (const e of purch) {
     const g = Number(e.amount || 0)
-    byCat.set(humanCat(e.category), (byCat.get(humanCat(e.category)) || 0) + (g - vatFromInclusive(g)))
+    const k = humanCat(e.category)
+    byCat.set(k, (byCat.get(k) || 0) + (g - vatFromInclusive(g)))
   }
   const totalExpNet = [...byCat.values()].reduce((a, b) => a + b, 0)
   const netProfit = revenueNet - totalExpNet
@@ -121,7 +137,8 @@ export function buildIncomeStatement(
     ['Basis', 'Amounts treated as VAT-inclusive at 15%; figures shown net of VAT'],
     [],
     ['REVENUE', 'Amount (ZAR)'],
-    ['Sales revenue (net of VAT)', zar(revenueNet)],
+    ...[...revByCat.entries()].sort((a, b) => b[1] - a[1]).map(([cat, amt]) => [cat, zar(amt)] as (string | number)[]),
+    ['Total revenue', zar(revenueNet)],
     [],
     ['EXPENSES', 'Amount (ZAR)'],
     ...[...byCat.entries()].sort((a, b) => b[1] - a[1]).map(([cat, amt]) => [cat, zar(amt)] as (string | number)[]),
@@ -130,6 +147,29 @@ export function buildIncomeStatement(
     ['NET PROFIT / (LOSS)', zar(netProfit)],
   ]
   return lines.map(l => (l.length === 0 ? '' : row(l))).join('\n')
+}
+
+/** Revenue grouped by income category — count, VAT-inclusive total, VAT, net. */
+export function buildIncomeByCategory(
+  invoices: ExportInvoice[],
+  period: { from?: string; to?: string } = {},
+): string {
+  const sales = invoices.filter(i => inWindow(i.created_at, period.from, period.to))
+  const map = new Map<string, { count: number; incl: number }>()
+  for (const i of sales) {
+    const k = humanCat(i.category ?? 'sales', 'income')
+    const cur = map.get(k) ?? { count: 0, incl: 0 }
+    cur.count++; cur.incl += Number(i.amount || 0)
+    map.set(k, cur)
+  }
+  const lines: (string | number)[][] = [
+    ['Category', 'Count', 'Total (incl VAT)', 'VAT', 'Net'],
+    ...[...map.entries()].sort((a, b) => b[1].incl - a[1].incl).map(([cat, v]) =>
+      [cat, v.count, zar(v.incl), zar(vatFromInclusive(v.incl)), zar(v.incl - vatFromInclusive(v.incl))] as (string | number)[]),
+  ]
+  const totalIncl = [...map.values()].reduce((s, v) => s + v.incl, 0)
+  lines.push(['TOTAL', sales.length, zar(totalIncl), zar(vatFromInclusive(totalIncl)), zar(totalIncl - vatFromInclusive(totalIncl))])
+  return lines.map(row).join('\n')
 }
 
 /** Expenses grouped by category — count, VAT-inclusive total, VAT, net. */

@@ -9,6 +9,7 @@ const REPORTS = [
   { type: 'journal',             label: 'General Journal',         desc: 'Double-entry lines, Xero/Sage-importable.', icon: FileSpreadsheet, monthly: true },
   { type: 'expenses_by_category',label: 'Expenses by Category',    desc: 'Every expense grouped + VAT split.', icon: Receipt, monthly: true },
   { type: 'income_by_source',    label: 'Income by Customer',      desc: 'Billed, paid and outstanding per customer.', icon: Users, monthly: true },
+  { type: 'income_by_category',  label: 'Income by Category',      desc: 'Sales, services, rental, grants etc. + VAT split.', icon: TrendingUp, monthly: true },
   { type: 'ar_aging',            label: 'AR Aging',                desc: 'Outstanding balances bucketed by age (as of today).', icon: Clock, monthly: false },
 ] as const
 

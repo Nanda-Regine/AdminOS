@@ -4,11 +4,11 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { checkPermission } from '@/lib/auth/permissions'
 import {
   buildVat201WorkingPaper, buildJournalCsv,
-  buildIncomeStatement, buildExpensesByCategory, buildIncomeBySource, buildArAging,
+  buildIncomeStatement, buildExpensesByCategory, buildIncomeBySource, buildIncomeByCategory, buildArAging,
 } from '@/lib/money/exports'
 
 // GET /api/money/export?type=vat201|journal|income_statement|expenses_by_category|
-//   income_by_source|ar_aging [&month=YYYY-MM | &from=YYYY-MM-DD&to=YYYY-MM-DD]
+//   income_by_source|income_by_category|ar_aging [&month=YYYY-MM | &from=YYYY-MM-DD&to=YYYY-MM-DD]
 // Returns an accountant-ready CSV working paper for the tenant.
 export async function GET(request: Request) {
   const supabase = await createClient()
@@ -38,7 +38,7 @@ export async function GET(request: Request) {
   }
 
   const [invRes, expRes] = await Promise.all([
-    supabaseAdmin.from('invoices').select('contact_name, amount, amount_paid, status, created_at, due_date').eq('tenant_id', tenantId),
+    supabaseAdmin.from('invoices').select('contact_name, amount, amount_paid, status, created_at, due_date, category').eq('tenant_id', tenantId),
     supabaseAdmin.from('expenses').select('category, description, amount, created_at, status').eq('tenant_id', tenantId),
   ])
   const invoices = invRes.data ?? []
@@ -62,6 +62,9 @@ export async function GET(request: Request) {
     case 'income_by_source':
       csv = buildIncomeBySource(invoices, { from, to })
       filename = `adminos-income-by-source-${stamp}.csv`; break
+    case 'income_by_category':
+      csv = buildIncomeByCategory(invoices, { from, to })
+      filename = `adminos-income-by-category-${stamp}.csv`; break
     case 'ar_aging':
       csv = buildArAging(invoices)
       filename = `adminos-ar-aging-${stamp}.csv`; break

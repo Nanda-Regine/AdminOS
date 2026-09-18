@@ -4,10 +4,12 @@ import { TopBar } from '@/components/dashboard/TopBar'
 import { Card } from '@/components/ui/card'
 import { redirect, notFound } from 'next/navigation'
 import { CreateInvoiceModal } from './CreateInvoiceModal'
+import { QuickSaleModal } from './QuickSaleModal'
 import { RecoveryReviewQueue } from '@/components/invoices/RecoveryReviewQueue'
 import { InvoicesTable, type InvoiceRow } from './InvoicesTable'
 import { formatZAR } from '@/lib/format'
 import { checkPermission } from '@/lib/auth/permissions'
+import { defaultIncomeKeyForBusinessType } from '@/lib/finance/chartOfAccounts'
 
 export default async function InvoicesPage() {
   const supabase = await createClient()
@@ -21,12 +23,11 @@ export default async function InvoicesPage() {
 
   const tenantId = user.app_metadata?.tenant_id as string
 
-  const { data: contacts } = await supabaseAdmin
-    .from('contacts')
-    .select('id, full_name')
-    .eq('tenant_id', tenantId)
-    .order('full_name')
-    .limit(100)
+  const [{ data: contacts }, { data: products }, { data: tenant }] = await Promise.all([
+    supabaseAdmin.from('contacts').select('id, full_name').eq('tenant_id', tenantId).order('full_name').limit(100),
+    supabaseAdmin.from('products').select('id, name, unit_price, current_stock').eq('tenant_id', tenantId).eq('active', true).order('name').limit(500),
+    supabaseAdmin.from('tenants').select('business_type').eq('id', tenantId).maybeSingle(),
+  ])
 
   const { data: invoices } = await supabaseAdmin
     .from('invoices')
@@ -42,7 +43,20 @@ export default async function InvoicesPage() {
 
   return (
     <div>
-      <TopBar title="Invoices" subtitle="Debt register and recovery" actions={<CreateInvoiceModal contacts={contacts || []} />} />
+      <TopBar
+        title="Invoices"
+        subtitle="Debt register and recovery"
+        actions={
+          <div className="flex items-center gap-2">
+            <QuickSaleModal
+              contacts={contacts || []}
+              products={products || []}
+              defaultCategory={defaultIncomeKeyForBusinessType(tenant?.business_type)}
+            />
+            <CreateInvoiceModal contacts={contacts || []} />
+          </div>
+        }
+      />
       <div className="p-4 md:p-6 space-y-6">
 
         {/* Summary */}

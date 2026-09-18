@@ -4,10 +4,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
 import { fireBusinessEvent } from '@/lib/academy/knowledgeGraph'
 import { checkPermission } from '@/lib/auth/permissions'
-import { notifyTenant } from '@/lib/notifications/notify'
-import { sendWhatsApp } from '@/lib/whatsapp/send'
-import { getTenantAutonomy } from '@/lib/autonomy/config'
-import { resolveTier } from '@/lib/autonomy/tiers'
+import { handleInvoicePaid } from '@/lib/invoices/onPaid'
 
 const updateSchema = z.object({
   status:   z.enum(['draft','sent','unpaid','partial','paid','overdue','cancelled']).optional(),
@@ -104,39 +101,15 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (body.status === 'sent') fireBusinessEvent('invoice.sent', tenantId, user.id)
   const justPaid = !wasAlreadyPaid && data.status === 'paid'
   if (justPaid) {
-    fireBusinessEvent('invoice.paid', tenantId, user.id)
-    // Celebrate the win — the owner gets pushed the moment money lands.
-    await notifyTenant(tenantId, {
-      type: 'payment.received',
-      title: 'Payment received 🎉',
-      body: `${data.contact_name ?? 'A customer'} paid ${data.amount ? 'R' + Number(data.amount).toLocaleString('en-ZA') : 'their invoice'}.`,
-      actionUrl: '/dashboard/money',
-      dedupeKey: `paid-${id}`,
-      whatsapp: true,
-    })
-    // Update formalization progress
-    await supabaseAdmin
-      .from('formalization_progress')
-      .update({ first_invoice_sent: true })
-      .eq('tenant_id', tenantId)
-      .eq('first_invoice_sent', false)
-
-    // Autonomy: money/payment_receipt — thank the customer automatically.
-    // Default tier is 'A' (send). 'B'/'C' hold — the owner alert above
-    // already tells them the payment landed, so no extra draft is needed.
-    if (data.contact_phone) {
-      const tier = resolveTier(await getTenantAutonomy(tenantId), 'money', 'payment_receipt')
-      if (tier === 'A') {
-        const amountStr = `R${Number(data.amount_paid ?? data.amount).toLocaleString('en-ZA')}`
-        const ref = data.reference ?? String(data.id).slice(0, 8)
-        const thankYou = `Hi ${data.contact_name ?? 'there'}, thank you — we've received your payment of ${amountStr} for invoice ${ref}. Much appreciated!`
-        try {
-          await sendWhatsApp({ to: data.contact_phone, message: thankYou })
-        } catch (err) {
-          console.error('[invoices] payment receipt send failed (non-fatal)', err)
-        }
-      }
-    }
+    await handleInvoicePaid({
+      id: data.id,
+      tenant_id: tenantId,
+      contact_name: data.contact_name,
+      contact_phone: data.contact_phone,
+      amount: data.amount,
+      amount_paid: data.amount_paid,
+      reference: data.reference,
+    }, user.id)
   }
 
   return NextResponse.json(data)
