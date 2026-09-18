@@ -7,6 +7,7 @@ import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { BotTrainingForm } from './BotTrainingForm'
 import { LogoUpload } from './LogoUpload'
+import { BusinessDocumentsForm } from './BusinessDocumentsForm'
 import { checkPermission } from '@/lib/auth/permissions'
 
 const integrations = [
@@ -85,6 +86,22 @@ export default async function SettingsPage() {
           <h3 className="font-semibold text-[var(--text-primary)] mb-1">Business Logo</h3>
           <p className="text-xs text-[var(--text-muted)] mb-4">Appears on payslips, board packs and other documents you export.</p>
           <LogoUpload initialLogo={typeof tenant.settings?.logo_url === 'string' ? tenant.settings.logo_url : null} />
+        </Card>
+
+        {/* Invoice/receipt details */}
+        <Card>
+          <h3 className="font-semibold text-[var(--text-primary)] mb-1">Invoice &amp; Receipt Details</h3>
+          <p className="text-xs text-[var(--text-muted)] mb-4">
+            Shown on generated invoices, receipts and payslips.
+          </p>
+          <BusinessDocumentsForm initial={{
+            address: tenant.settings?.address || '',
+            vatNumber: tenant.settings?.vat_number || '',
+            bankName: tenant.settings?.bank_name || '',
+            bankAccountHolder: tenant.settings?.bank_account_holder || '',
+            bankAccountNumber: tenant.settings?.bank_account_number || '',
+            bankBranchCode: tenant.settings?.bank_branch_code || '',
+          }} />
         </Card>
 
         {/* Bot training */}

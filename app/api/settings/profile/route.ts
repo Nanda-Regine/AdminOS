@@ -14,7 +14,10 @@ export async function POST(request: Request) {
   const tenantId = user.app_metadata?.tenant_id as string
   const body = await request.json()
 
-  const { name, businessType, country, language, timezone, whatsappNumber, faqs, policies, tone, services } = body
+  const {
+    name, businessType, country, language, timezone, whatsappNumber, faqs, policies, tone, services,
+    address, vatNumber, bankName, bankAccountHolder, bankAccountNumber, bankBranchCode,
+  } = body
 
   // Build updated settings
   const { data: existing } = await supabaseAdmin
@@ -34,6 +37,12 @@ export async function POST(request: Request) {
     policies: policies !== undefined ? policies : (existingSettings.policies ?? ''),
     tone: tone !== undefined ? tone : (existingSettings.tone ?? 'warm'),
     services: services !== undefined ? services : (existingSettings.services ?? ''),
+    address: address !== undefined ? address : (existingSettings.address ?? ''),
+    vat_number: vatNumber !== undefined ? vatNumber : (existingSettings.vat_number ?? ''),
+    bank_name: bankName !== undefined ? bankName : (existingSettings.bank_name ?? ''),
+    bank_account_holder: bankAccountHolder !== undefined ? bankAccountHolder : (existingSettings.bank_account_holder ?? ''),
+    bank_account_number: bankAccountNumber !== undefined ? bankAccountNumber : (existingSettings.bank_account_number ?? ''),
+    bank_branch_code: bankBranchCode !== undefined ? bankBranchCode : (existingSettings.bank_branch_code ?? ''),
   }
 
   const { data: updatedTenant, error } = await supabaseAdmin

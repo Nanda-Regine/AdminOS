@@ -127,6 +127,35 @@ export function InvoicesTable({ rows }: { rows: InvoiceRow[] }) {
       csv: i => recoveryLabel(i),
       render: i => <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{recoveryLabel(i)}</span>,
     },
+    {
+      key: 'documents',
+      header: 'Documents',
+      sortable: false,
+      render: i => (
+        <div className="flex items-center gap-3 text-xs whitespace-nowrap">
+          <a
+            href={`/api/invoices/${i.id}/document`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:underline"
+            style={{ color: 'var(--indigo)' }}
+          >
+            Invoice
+          </a>
+          {Number(i.amount_paid) > 0 && (
+            <a
+              href={`/api/invoices/${i.id}/receipt`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:underline"
+              style={{ color: '#22C55E' }}
+            >
+              Receipt
+            </a>
+          )}
+        </div>
+      ),
+    },
   ]
 
   const filters: FilterDef<InvoiceRow>[] = [
@@ -185,7 +214,7 @@ export function InvoicesTable({ rows }: { rows: InvoiceRow[] }) {
             <td className="px-5 py-3 text-right tabular-nums" style={{ color: '#F87171' }}>
               {formatZAR(totalOut)}
             </td>
-            <td className="px-5 py-3" colSpan={4} />
+            <td className="px-5 py-3" colSpan={5} />
           </>
         )
       }}
