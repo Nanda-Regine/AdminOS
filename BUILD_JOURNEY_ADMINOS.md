@@ -2215,12 +2215,19 @@ C=surface-only), reusing the domain-signal builders that already existed
 for the cockpits rather than re-deriving the data:
 
 - **`money/payment_receipt`** — auto-thanks the customer by WhatsApp when
-  an invoice is marked paid. Along the way, fixed a real bug in
-  `app/api/invoices/[id]/route.ts`: the `amountPaid` branch selected
-  columns (`total`, `amount_due`) that don't exist on `invoices` (real
-  columns are `amount`/`amount_paid`), so it always silently no-op'd.
-  Also added a `wasAlreadyPaid` guard so the payment-received notify/
-  receipt/formalization block can't re-fire on a later no-op PATCH.
+  an invoice is marked paid. Also added a `wasAlreadyPaid` guard so the
+  payment-received notify/receipt/formalization block can't re-fire on a
+  later no-op PATCH of an already-paid invoice. **Self-correction (commit
+  `30bb886`):** the first pass of this change wrongly "fixed"
+  `app/api/invoices/[id]/route.ts`'s `amountPaid` branch based on an
+  incomplete schema read — `total`/`amount_due` ARE real, live columns
+  (added by `20260614_schema_bugfixes.sql`, actively read by
+  `healthScore.ts` and `boardPack.ts`), and the original code selecting
+  them was correct. My "fix" deleted the `amount_due` update entirely,
+  which would have let it silently go stale on every payment. Restored in
+  the same session before anyone hit it in production; also fixed a typo'd
+  `invoice_reference` (real column: `reference`) introduced in the same
+  new code.
 - **`money/final_demand`** — still never auto-sent (Debt Collectors Act,
   unchanged hard rule). Tier A/B now pre-drafts a firm-but-lawful message
   into the owner's review notification (reusing `draftRecoveryMessage`,
