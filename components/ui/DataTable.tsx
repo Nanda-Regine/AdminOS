@@ -173,7 +173,12 @@ export function DataTable<T>({
     const a = document.createElement('a')
     a.href = url
     a.download = csvFilename
+    // Some mobile browsers (iOS Safari in particular) silently no-op a
+    // click() on an anchor that was never attached to the document — it
+    // has to actually be in the DOM for the download to fire there.
+    document.body.appendChild(a)
     a.click()
+    document.body.removeChild(a)
     URL.revokeObjectURL(url)
   }
 

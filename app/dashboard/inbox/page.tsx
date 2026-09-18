@@ -214,8 +214,11 @@ export default function InboxPage() {
       <TopBar title="Inbox" subtitle="All inbound conversations" />
       <div className="flex flex-1 overflow-hidden">
 
-        {/* Conversation list */}
-        <div className="w-72 border-r border-[var(--border)] bg-[var(--surface-1)] flex flex-col overflow-hidden">
+        {/* Conversation list — full-width on mobile, fixed sidebar from md up.
+            Hidden on mobile once a conversation is open (one pane at a time,
+            like every mobile chat app) so it doesn't cram next to the message
+            panel in ~90px of leftover width. */}
+        <div className={`${selected ? 'hidden md:flex' : 'flex'} w-full md:w-72 border-r border-[var(--border)] bg-[var(--surface-1)] flex-col overflow-hidden`}>
           <div className="p-3 border-b border-[var(--border)]">
             <input
               className="w-full px-3 py-2 text-sm bg-[var(--surface-2)] border border-[var(--border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-[var(--text-primary)] placeholder:text-[var(--text-muted)]"
@@ -268,18 +271,28 @@ export default function InboxPage() {
           </div>
         </div>
 
-        {/* Messages panel */}
+        {/* Messages panel — full-width on mobile (list is hidden while a
+            conversation is open); back button below returns to the list. */}
         {selected ? (
-          <div className="flex-1 flex flex-col overflow-hidden">
+          <div className="flex flex-1 flex-col overflow-hidden">
             {/* Conversation header */}
             <div className="px-5 py-3 border-b border-[var(--border)] bg-[var(--surface-1)] flex items-center justify-between">
-              <div>
-                <p className="font-semibold text-[var(--text-primary)]">
-                  {selected.contact_name || selected.contact_identifier}
-                </p>
-                <p className="text-xs text-[var(--text-muted)] capitalize">
-                  {selected.channel} · {selected.intent} · {selected.sentiment || 'neutral'}
-                </p>
+              <div className="flex items-center gap-2 min-w-0">
+                <button
+                  onClick={() => setSelected(null)}
+                  className="md:hidden shrink-0 rounded-lg p-2 -ml-2 text-[var(--text-muted)] hover:bg-[var(--surface-hover)]"
+                  aria-label="Back to conversations"
+                >
+                  ←
+                </button>
+                <div className="min-w-0">
+                  <p className="font-semibold text-[var(--text-primary)] truncate">
+                    {selected.contact_name || selected.contact_identifier}
+                  </p>
+                  <p className="text-xs text-[var(--text-muted)] capitalize truncate">
+                    {selected.channel} · {selected.intent} · {selected.sentiment || 'neutral'}
+                  </p>
+                </div>
               </div>
               <div className="flex gap-2">
                 {selected.status !== 'auto_resolved' && (
@@ -397,7 +410,7 @@ export default function InboxPage() {
             </div>
           </div>
         ) : (
-          <div className="flex-1 flex items-center justify-center text-[var(--text-dim)]">
+          <div className="hidden md:flex flex-1 items-center justify-center text-[var(--text-dim)]">
             <div className="text-center">
               <p className="text-4xl mb-3">💬</p>
               <p className="text-sm">Select a conversation to view messages</p>
