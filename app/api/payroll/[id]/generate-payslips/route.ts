@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { requirePermission } from '@/lib/auth/permissions'
 
 // POST /api/payroll/[id]/generate-payslips
 // Triggers payslip generation for a payroll run. The run must be in 'draft' or 'processing'
@@ -16,6 +17,11 @@ export async function POST(
 
   const tenantId = user.app_metadata?.tenant_id as string
   if (!tenantId) return new NextResponse('No tenant', { status: 400 })
+
+  // Tenant-scoped but previously role-blind: any staff member could trigger it.
+  try { await requirePermission('view_payroll') } catch {
+    return new NextResponse('Forbidden', { status: 403 })
+  }
 
   const { id: payrollRunId } = await params
 

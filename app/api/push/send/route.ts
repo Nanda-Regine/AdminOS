@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
+import { requirePermission } from '@/lib/auth/permissions'
 
 const schema = z.object({
   userIds: z.array(z.string().uuid()).min(1).max(500),
@@ -35,6 +36,12 @@ export async function POST(request: Request) {
 
   const tenantId = user.app_metadata?.tenant_id as string
   if (!tenantId) return new NextResponse('No tenant', { status: 400 })
+
+  // Previously any staff member could push arbitrary text to any colleague's
+  // phone, looking like an official AdminOS notification.
+  try { await requirePermission('send_broadcasts') } catch {
+    return new NextResponse('Forbidden', { status: 403 })
+  }
 
   let body: z.infer<typeof schema>
   try {

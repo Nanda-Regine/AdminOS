@@ -2624,3 +2624,86 @@ protection + shorten OTP expiry in Auth settings.
 7. S3–S5 cron rewrites, S10 advisor cleanup, then Q-items.
 
 Full detail: memory `adminos-scale-store-readiness-audit-2026-10-04`.
+
+### Session 16b — whole-app engineering baseline (same day)
+
+Nanda's direction: **AdminOS must be industry-grade in every tab, and the
+Expo app will be finished (not TWA).** The list above is *not* exhaustive —
+it covered the riskiest paths. This is the app-wide baseline.
+
+Surface: **57 dashboard tabs, 149 API routes (121 with writes), 37 Inngest
+functions, 43 components, 78 lib files, 7 unit-test files, no CI.**
+
+Scanner committed as `scripts/quality-scan.cjs` (heuristic — verify before
+acting). Re-run after each tab sweep; these numbers are the scoreboard.
+
+| Signal (baseline 2026-10-04) | Count |
+|---|---|
+| Non-public routes with no role/permission check | 88 / 149 |
+| Write routes with no schema (zod) validation | 27 |
+| Routes returning raw DB `error.message` to the client | 85 |
+| Hard `.delete()` (violates Rule #3) | 10 routes |
+| `select('*')` in routes | 49 |
+| Write routes with no audit log | 98 / 121 |
+| Rate-limited routes | 11 |
+| Tabs with no permission check | 17 / 57 |
+| Tabs with no empty state | 23 |
+| Tabs with a possibly unbounded list query | 27 |
+| CI pipeline | **none** (no `.github/`) |
+| API/integration tests | **none** (7 unit tests of pure logic) |
+
+**Verified by reading, not just scanned:**
+- **Role authorization inside a tenant is the systemic gap.** Tenant
+  isolation is solid (routes filter by `app_metadata.tenant_id`), but
+  most routes never check *role*. Confirmed: any staff-role user can
+  `POST /api/payroll/[id]/distribute` (sends everyone's payslips) and
+  `POST /api/push/send` (push any text to any colleague — phishing
+  channel). Some of the 88 are correctly open to all roles (clock-in, own
+  profile, mark-read) → needs a **role matrix**, not a blanket gate.
+- False positive confirmed: `payroll/payslip/[id]` does its own ownership
+  check. But its manager list is `['admin','hr_manager','owner']` — the
+  `manager` role can't view staff payslips. Roles are inconsistent across
+  routes; the matrix must settle the canonical role set.
+- Hard deletes: contacts, contacts/merge, creative-assets, documents,
+  email-drafts, kb, portal, sequences, social/accounts, tasks.
+- CSP allows `js.sentry-cdn.com`/`*.sentry.io` but Sentry isn't installed
+  — errors go to PostHog via `instrumentation.ts onRequestError`. Dead CSP
+  entries; decide on one error tracker.
+
+**Definition of done — every tab must pass all of these:**
+1. Role-authorized on page *and* every route it calls, per the role matrix.
+2. Every write validated with zod; friendly 4xx messages, never raw DB text.
+3. Soft delete only; every write audit-logged.
+4. Lists paginated server-side, with search/filter where the data grows.
+5. Loading, empty, error and mobile states all designed.
+6. Tests: an authz test (wrong role → 403, other tenant → 404) + happy path.
+7. Errors captured by the error tracker; no silent `.catch(() => {})` on
+   user-facing actions.
+
+**Plan (each phase = one or more fresh sessions):**
+- **Phase 0 — exposure, now:** apply the P0 RLS migration; role-gate
+  `payroll/*` and `push/send`.
+- **Phase 1 — foundations, so per-tab work is cheap and consistent:**
+  (a) GitHub Actions CI: tsc + tests + scanner on every push.
+  (b) Role matrix (`lib/auth/roleMatrix.ts`) — canonical roles × actions.
+  (c) One `withRoute()` wrapper: auth + tenant + role + zod + error mapping
+      + audit log; migrate routes onto it tab by tab.
+  (d) Soft-delete helper + `deleted_at` columns where missing.
+  (e) Shared paginated `DataTable` server contract.
+  (f) Route test harness (authz + happy path) against a Supabase branch.
+- **Phase 2 — tab-by-tab sweep by domain** (one session each, DoD above):
+  Money (invoices, money, cashflow, expenses, payroll, valuation,
+  stokvel, suppliers, inventory) → People/HR (staff, team, leave,
+  performance, disciplinary, ee, safety, ir-log, handbook, shifts) →
+  Customers & comms (inbox, contacts, reach, sequences, ring, bookings,
+  email-studio) → Ops (tasks, projects, calendar, documents, contracts,
+  creative-assets, workflow-monitor) → Compliance & governance → AI
+  (langa, agents, board-pack, analytics, health) → Growth (academy,
+  community, getting-started, onboarding) → Settings & billing.
+- **Phase 3 — Expo app to store-ready:** current SDK + `expo install
+  --fix`, assets, EAS project, signup → tenant provisioning, staff↔login
+  linking (A7), bearer auth in middleware (S9), account deletion (A1),
+  push incl. Huawei HMS (A4), offline queue QA, EAS builds, store listings.
+- **Phase 4 — scale proof:** Supabase Pro + PITR, S2–S8 cron/campaign
+  rewrites, performance-advisor cleanup, then a load test with synthetic
+  1000-tenant data before claiming "ready for thousands".
