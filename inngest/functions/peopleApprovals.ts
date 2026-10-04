@@ -1,5 +1,6 @@
 import { inngest } from '@/inngest/client'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { fetchAll } from '@/lib/supabase/fetchAll'
 import { notifyTenant } from '@/lib/notifications/notify'
 import { getTenantAutonomy } from '@/lib/autonomy/config'
 import { resolveTier, tierAllowsWhatsapp } from '@/lib/autonomy/tiers'
@@ -15,8 +16,8 @@ export const approvalReminderCron = inngest.createFunction(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async ({ step }: any) => {
     const tenants = await step.run('fetch-tenants', async () => {
-      const { data } = await supabaseAdmin.from('tenants').select('id').eq('active', true)
-      return data ?? []
+      return fetchAll<{ id: string }>((from, to) =>
+        supabaseAdmin.from('tenants').select('id').eq('active', true).order('id').range(from, to))
     })
     if (!tenants.length) return { fanned: 0 }
 

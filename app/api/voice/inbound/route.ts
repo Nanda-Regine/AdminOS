@@ -13,11 +13,23 @@ function twiml(xml: string): NextResponse {
   })
 }
 
+// Everything interpolated into TwiML must be XML-escaped. A tenant named
+// "Smith & Sons", or an AI reply containing "&" or "<", otherwise produces
+// malformed XML and Twilio plays its "application error" message instead.
+function xml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;')
+}
+
 function buildGreetTwiML(greeting: string, gatherUrl: string): string {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Gather input="speech" action="${gatherUrl}" method="POST" speechTimeout="3" language="en-ZA">
-    <Say voice="Polly.Ayanda-Neural">${greeting}</Say>
+  <Gather input="speech" action="${xml(gatherUrl)}" method="POST" speechTimeout="3" language="en-ZA">
+    <Say voice="Polly.Ayanda-Neural">${xml(greeting)}</Say>
   </Gather>
   <Say voice="Polly.Ayanda-Neural">Sorry, I didn't catch that. Please call back and try again.</Say>
   <Hangup/>
@@ -27,8 +39,8 @@ function buildGreetTwiML(greeting: string, gatherUrl: string): string {
 function buildResponseTwiML(response: string, continueUrl: string): string {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Gather input="speech" action="${continueUrl}" method="POST" speechTimeout="3" language="en-ZA">
-    <Say voice="Polly.Ayanda-Neural">${response}</Say>
+  <Gather input="speech" action="${xml(continueUrl)}" method="POST" speechTimeout="3" language="en-ZA">
+    <Say voice="Polly.Ayanda-Neural">${xml(response)}</Say>
   </Gather>
   <Say voice="Polly.Ayanda-Neural">Thank you for calling. Goodbye.</Say>
   <Hangup/>
@@ -38,8 +50,8 @@ function buildResponseTwiML(response: string, continueUrl: string): string {
 function buildTransferTwiML(transferTo: string, message: string): string {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Say voice="Polly.Ayanda-Neural">${message}</Say>
-  <Dial>${transferTo}</Dial>
+  <Say voice="Polly.Ayanda-Neural">${xml(message)}</Say>
+  <Dial>${xml(transferTo)}</Dial>
 </Response>`
 }
 
@@ -74,7 +86,7 @@ export async function POST(request: NextRequest) {
   // entitled (paid or bundled) gets a polite hangup — no AI spend on their behalf.
   if (!(await tenantHasAddon(tenant.id, 'ring'))) {
     return twiml(`<?xml version="1.0" encoding="UTF-8"?>
-<Response><Say voice="Polly.Ayanda-Neural">Thank you for calling ${tenant.name}. Please reach us on WhatsApp or email. Goodbye.</Say><Hangup/></Response>`)
+<Response><Say voice="Polly.Ayanda-Neural">Thank you for calling ${xml(tenant.name)}. Please reach us on WhatsApp or email. Goodbye.</Say><Hangup/></Response>`)
   }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://adminos.co.za'
@@ -156,9 +168,17 @@ ${updatedTranscript}`
       .limit(1)
       .single()
 
-    const transferTo = staffMember?.phone || to
+    // No management phone on file: end the call politely. The old fallback
+    // dialled `to` — the tenant's own Twilio number — which routes straight
+    // back into this webhook and loops the caller.
+    if (!staffMember?.phone) {
+      const sorry = `Sorry, no one is available to take your call right now. Please contact ${tenant.name} on WhatsApp or email. Goodbye.`
+      return twiml(`<?xml version="1.0" encoding="UTF-8"?>
+<Response><Say voice="Polly.Ayanda-Neural">${xml(sorry)}</Say><Hangup/></Response>`)
+    }
+
     const transferMsg = aiResponse || 'Let me transfer you to a team member who can help.'
-    return twiml(buildTransferTwiML(transferTo, transferMsg))
+    return twiml(buildTransferTwiML(staffMember.phone, transferMsg))
   }
 
   return twiml(buildResponseTwiML(aiResponse, continueUrl))

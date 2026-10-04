@@ -1,5 +1,6 @@
 import { inngest } from '@/inngest/client'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { fetchAll } from '@/lib/supabase/fetchAll'
 
 // Calculates the median of a numeric array (returns null if empty)
 function median(values: number[]): number | null {
@@ -17,13 +18,8 @@ export const benchmarkCalculateFunction = inngest.createFunction(
   async ({ step }: any) => {
     // Step 1: Get all active tenants with their business type
     const tenants = await step.run('get-tenants', async () => {
-      const { data } = await supabaseAdmin
-        .from('tenants')
-        .select('id, business_type, plan')
-        .eq('active', true)
-        .not('business_type', 'is', null)
-
-      return (data ?? []) as Array<{ id: string; business_type: string; plan: string }>
+      return fetchAll<{ id: string; business_type: string; plan: string }>((from, to) =>
+        supabaseAdmin.from('tenants').select('id, business_type, plan').eq('active', true).not('business_type', 'is', null).order('id').range(from, to))
     })
 
     if (tenants.length === 0) return { business_types: 0, metrics_upserted: 0 }

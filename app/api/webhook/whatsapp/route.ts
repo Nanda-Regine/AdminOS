@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse, after } from 'next/server'
 import {
   workflowEngine,
   getTenantByWhatsAppNumber,
@@ -48,10 +48,14 @@ export async function POST(request: NextRequest) {
 
   const { phoneNumberId, messages, statuses } = parseMetaWebhookPayload(body)
 
-  // 2. Handle delivery/read status updates (non-blocking)
+  // 2. Handle delivery/read status updates after the response is sent.
+  // `after()` keeps the serverless function alive until this finishes — a bare
+  // un-awaited promise is frozen/killed by Vercel once the 200 goes out.
   if (statuses.length > 0) {
-    void handleStatusUpdates(statuses).catch((err) =>
-      console.error('[WhatsApp Webhook] Status update error:', err)
+    after(() =>
+      handleStatusUpdates(statuses).catch((err) =>
+        console.error('[WhatsApp Webhook] Status update error:', err)
+      )
     )
   }
 
@@ -67,7 +71,13 @@ export async function POST(request: NextRequest) {
     const tenant = await getTenantByWhatsAppNumber(phoneNumberId)
     if (!tenant) continue
 
-    // 5. Rate limit per tenant
+    // 5. Deduplicate first — Meta retries deliveries it thinks failed. Running
+    // this after the usage increment counted every retry against the tenant's
+    // monthly plan limit and re-sent the "limit reached" notice.
+    const isDuplicate = await checkDuplicate(messageId)
+    if (isDuplicate) continue
+
+    // 5a. Rate limit per tenant
     const { success } = await checkRateLimit('whatsapp', tenant.id)
     if (!success) continue
 
@@ -84,29 +94,29 @@ export async function POST(request: NextRequest) {
     }
 
     // 5c. Increment usage counter
-    void incrementUsage(tenant.id)
+    await incrementUsage(tenant.id).catch(() => undefined)
 
-    // 6. Deduplicate — prevent replaying the same messageId
-    const isDuplicate = await checkDuplicate(messageId)
-    if (isDuplicate) continue
+    // 6. Mark message as read (blue ticks to sender) — non-critical
+    after(() => markMessageRead(phoneNumberId, messageId).catch(() => undefined))
 
-    // 7. Mark message as read (blue ticks to sender) — non-critical
-    void markMessageRead(phoneNumberId, messageId).catch(() => undefined)
-
-    // 8. Run workflow non-blocking — respond to Meta immediately
+    // 7. Run the AI workflow after responding to Meta. This used to be an
+    // un-awaited promise: Vercel freezes the function once the 200 is
+    // returned, so customer replies were intermittently never generated/sent.
     const conversationHistory = await getConversationHistory(tenant.id, from)
 
-    workflowEngine
-      .run('whatsapp.inbound', {
-        tenant,
-        from,
-        text,
-        mediaUrl: mediaId,
-        conversationHistory,
-        contactName,
-        phoneNumberId,
-      })
-      .catch((err) => console.error('[WhatsApp Webhook] Workflow error:', err))
+    after(() =>
+      workflowEngine
+        .run('whatsapp.inbound', {
+          tenant,
+          from,
+          text,
+          mediaUrl: mediaId,
+          conversationHistory,
+          contactName,
+          phoneNumberId,
+        })
+        .catch((err) => console.error('[WhatsApp Webhook] Workflow error:', err))
+    )
   }
 
   return new NextResponse('OK', { status: 200 })
@@ -150,7 +160,7 @@ async function handleStatusUpdates(
 
       // Refresh campaign aggregate counters
       if (recipient?.campaign_id) {
-        void refreshCampaignCounts(recipient.campaign_id)
+        await refreshCampaignCounts(recipient.campaign_id).catch(() => undefined)
       }
     }
   }

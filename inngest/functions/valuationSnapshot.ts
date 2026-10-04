@@ -1,5 +1,6 @@
 import { inngest } from '@/inngest/client'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { fetchAll } from '@/lib/supabase/fetchAll'
 import { calculateValuation, saveValuationSnapshot } from '@/lib/intelligence/valuation'
 
 // Runs weekly on Sunday at 3am — refreshes valuation snapshots for active Scale/Partner tenants
@@ -11,13 +12,8 @@ export const valuationSnapshotFunction = inngest.createFunction(
 
     // Get Scale+ tenants (valuation tracking is a Scale/Partner feature)
     const targets = await step.run('get-target-tenants', async () => {
-      const { data } = await supabaseAdmin
-        .from('tenants')
-        .select('id, plan')
-        .in('plan', ['scale', 'partner'])
-        .eq('active', true)
-
-      return data ?? []
+      return fetchAll<{ id: string; plan: string }>((from, to) =>
+        supabaseAdmin.from('tenants').select('id, plan').in('plan', ['scale', 'partner']).eq('active', true).order('id').range(from, to))
     })
 
     let processed = 0

@@ -1,5 +1,6 @@
 import { inngest } from '@/inngest/client'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { fetchAll } from '@/lib/supabase/fetchAll'
 
 // Calculates a 90-day cashflow forecast for a single tenant
 //
@@ -43,12 +44,8 @@ export const cashflowForecastFunction = inngest.createFunction(
   async ({ step }: any) => {
     // Step 1: Fetch all active tenant IDs
     const tenants = await step.run('get-active-tenants', async () => {
-      const { data } = await supabaseAdmin
-        .from('tenants')
-        .select('id')
-        .eq('active', true)
-
-      return (data ?? []) as Array<{ id: string }>
+      return fetchAll<{ id: string }>((from, to) =>
+        supabaseAdmin.from('tenants').select('id').eq('active', true).order('id').range(from, to))
     })
 
     if (tenants.length === 0) return { processed: 0 }
