@@ -67,7 +67,7 @@ export function harness(initial: FakeCaller | null = { role: 'owner' }): Harness
   }
 }
 
-type RouteFn = (request: Request, segment?: { params: Promise<Record<string, string>> }) => Promise<Response>
+type RouteFn = (request: Request, segment: { params: Promise<Record<string, string>> }) => Promise<Response>
 
 /** Call a route the way Next does. Returns status + parsed JSON (or text). */
 export async function call(

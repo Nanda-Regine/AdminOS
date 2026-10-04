@@ -187,7 +187,9 @@ export function createRouteFactory<C extends BaseContext>(deps: RouteDeps<C>) {
     config: RouteConfig<B, Q>,
     handler: (args: HandlerArgs<C, Out<B>, Out<Q>>) => Promise<unknown>,
   ) {
-    return async function route(request: Request, segment?: Segment): Promise<Response> {
+    // segment must be required: Next's build-time route validator rejects an
+    // optional second argument ("Expected RouteContext, got Segment | undefined").
+    return async function route(request: Request, segment: Segment): Promise<Response> {
       let ctx: C | null = null
       try {
         // 1. Identity + tenant. Same 401 for every failure mode — telling a
@@ -207,7 +209,7 @@ export function createRouteFactory<C extends BaseContext>(deps: RouteDeps<C>) {
         }
 
         // 4. Input.
-        const params: RouteParams = (await segment?.params) ?? {}
+        const params: RouteParams = (await segment.params) ?? {}
 
         let query = undefined as Out<Q>
         if (config.query) {
