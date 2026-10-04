@@ -1,69 +1,56 @@
-import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { inngest } from '@/inngest/client'
-import { requirePermission } from '@/lib/auth/permissions'
+import { withRoute, unwrap, conflict } from '@/lib/api/withRoute'
 
 // POST /api/payroll/[id]/distribute
-// Marks a completed payroll run as 'distributed', fires the Inngest
-// 'adminos/payroll.distribute' event to handle payslip delivery, and returns
-// the updated run id.
-export async function POST(
-  _request: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new NextResponse('Unauthorized', { status: 401 })
+// Marks a completed payroll run as 'distributed' and fires the Inngest
+// 'adminos/payroll.run.approved' event that delivers every payslip
+// (WhatsApp / email / push). payroll.distribute = view_payroll.
+export const POST = withRoute({
+  action: 'payroll.distribute',
+  audit: 'payroll.distributed',
+  resourceType: 'payroll_run',
+}, async ({ ctx, params }) => {
+  const { tenantId } = ctx
+  const payrollRunId = params.id
 
-  const tenantId = user.app_metadata?.tenant_id as string
-  if (!tenantId) return new NextResponse('No tenant', { status: 400 })
-
-  // Tenant-scoped but previously role-blind: any staff member could send
-  // every employee's payslip out.
-  try { await requirePermission('view_payroll') } catch {
-    return new NextResponse('Forbidden', { status: 403 })
-  }
-
-  const { id: payrollRunId } = await params
-
-  // Fetch the payroll run and verify tenant ownership
   // Only status is used below; period_start/period_end/staff_count don't exist
   // on payroll_runs (the select errored → distribution always 404'd).
-  const { data: run, error: runErr } = await supabaseAdmin
+  const run = unwrap(await supabaseAdmin
     .from('payroll_runs')
-    .select('id, tenant_id, status')
+    .select('id, status')
     .eq('id', payrollRunId)
     .eq('tenant_id', tenantId)
-    .single()
-
-  if (runErr || !run) return new NextResponse('Payroll run not found', { status: 404 })
+    .maybeSingle(), { required: true, what: 'Payroll run not found' })
 
   if (run.status !== 'completed') {
-    return NextResponse.json(
-      { error: `Payroll run must be 'completed' before distribution. Current status: '${run.status}'` },
-      { status: 400 },
-    )
+    throw conflict(`Payroll run must be 'completed' before distribution. Current status: '${run.status}'`)
   }
 
-  // Fire Inngest event to handle actual payslip distribution (WhatsApp / email / push)
-  await inngest.send({
-    name: 'adminos/payroll.run.approved',
-    data: {
-      tenant_id:      tenantId,
-      payroll_run_id: payrollRunId,
-    },
-  })
-
-  // Mark the run as distributed
-  const { data: updated, error: updateErr } = await supabaseAdmin
+  // Claim the run first, conditionally on it still being 'completed'. This
+  // used to send the event and *then* mark it — a double-click (or two
+  // managers at once) sent every employee's payslip twice.
+  const updated = unwrap(await supabaseAdmin
     .from('payroll_runs')
     .update({ status: 'distributed' })
     .eq('id', payrollRunId)
+    .eq('tenant_id', tenantId)
+    .eq('status', 'completed')
     .select()
-    .single()
+    .maybeSingle())
+  if (!updated) throw conflict('This payroll run is already being distributed.')
 
-  if (updateErr) return NextResponse.json({ error: updateErr.message }, { status: 400 })
+  try {
+    await inngest.send({
+      name: 'adminos/payroll.run.approved',
+      data: { tenant_id: tenantId, payroll_run_id: payrollRunId },
+    })
+  } catch (e) {
+    // Nothing went out — release the claim so it can be retried.
+    await supabaseAdmin.from('payroll_runs').update({ status: 'completed' })
+      .eq('id', payrollRunId).eq('tenant_id', tenantId)
+    throw e
+  }
 
-  return NextResponse.json(updated)
-}
+  return updated
+})

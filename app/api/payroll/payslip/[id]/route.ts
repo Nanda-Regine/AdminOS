@@ -1,20 +1,16 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { generatePayslipHTML } from '@/lib/payroll/payslipTemplate'
+import { withRoute, notFound, RouteError } from '@/lib/api/withRoute'
+import { can } from '@/lib/auth/roleMatrix'
 
 // GET /api/payroll/payslip/[id]
-// Returns a printable HTML payslip. Employees see only their own; HR managers see all.
+// Returns a printable HTML payslip. Employees see only their own; anyone with
+// payroll.read (owner/admin by default) sees all.
 // Add ?download=true to get Content-Disposition: attachment (triggers browser download)
-export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new NextResponse('Unauthorized', { status: 401 })
-
-  const tenantId = user.app_metadata?.tenant_id as string
-  if (!tenantId) return new NextResponse('No tenant', { status: 400 })
-
-  const { id } = await params
+export const GET = withRoute({ action: 'payslip.read_own' }, async ({ request, ctx, params }) => {
+  const { tenantId, userId } = ctx
+  const { id } = params
 
   const { data: payslip, error } = await supabaseAdmin
     .from('payslips')
@@ -27,7 +23,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     .eq('tenant_id', tenantId)
     .single()
 
-  if (error || !payslip) return new NextResponse('Not found', { status: 404 })
+  if (error || !payslip) throw notFound()
 
   // Employees can only view their own payslip.
   //
@@ -36,7 +32,11 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   // member could set it to a colleague's staff id and read that colleague's
   // salary. The caller's staff record is now resolved from the DB via
   // staff.user_id (unique per tenant), which they cannot forge.
-  const isManager = ['admin', 'hr_manager', 'owner'].includes(user.app_metadata?.role ?? '')
+  //
+  // The manager test used to be a role-name list including 'hr_manager' — a
+  // role that does not exist — read from app_metadata rather than the tenant's
+  // roles table. It is now the role matrix's payroll.read.
+  const isManager = can(ctx, 'payroll.read')
   const staffRecord = payslip.staff as Record<string, unknown> | null
 
   if (!isManager) {
@@ -44,11 +44,11 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       .from('staff')
       .select('id')
       .eq('tenant_id', tenantId)
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .maybeSingle()
 
     if (!ownStaff || staffRecord?.id !== ownStaff.id) {
-      return new NextResponse('Forbidden', { status: 403 })
+      throw new RouteError(403, 'You can only view your own payslip.', 'forbidden')
     }
   }
 
@@ -107,4 +107,4 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   }
 
   return new NextResponse(html, { headers })
-}
+})

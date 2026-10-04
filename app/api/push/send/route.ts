@@ -1,8 +1,6 @@
-import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
-import { requirePermission } from '@/lib/auth/permissions'
+import { withRoute } from '@/lib/api/withRoute'
 
 const schema = z.object({
   userIds: z.array(z.string().uuid()).min(1).max(500),
@@ -29,26 +27,15 @@ interface ExpoReceiptOk {
 
 type ExpoReceipt = ExpoReceiptOk | ExpoReceiptError
 
-export async function POST(request: Request) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new NextResponse('Unauthorized', { status: 401 })
-
-  const tenantId = user.app_metadata?.tenant_id as string
-  if (!tenantId) return new NextResponse('No tenant', { status: 400 })
-
-  // Previously any staff member could push arbitrary text to any colleague's
-  // phone, looking like an official AdminOS notification.
-  try { await requirePermission('send_broadcasts') } catch {
-    return new NextResponse('Forbidden', { status: 403 })
-  }
-
-  let body: z.infer<typeof schema>
-  try {
-    body = schema.parse(await request.json())
-  } catch (e) {
-    return NextResponse.json({ error: 'Invalid request', detail: e }, { status: 400 })
-  }
+// Was role-blind until 82e643b: any staff member could push arbitrary text to
+// any colleague's phone, looking like an official AdminOS notification.
+// broadcasts.send = send_broadcasts (owner/admin by default).
+export const POST = withRoute({
+  action: 'broadcasts.send',
+  body: schema,
+  rateLimit: 'api',
+}, async ({ ctx, body, audit }) => {
+  const { tenantId } = ctx
 
   // Fetch push tokens for the target users (within this tenant only)
   const { data: tokens } = await supabaseAdmin
@@ -58,7 +45,7 @@ export async function POST(request: Request) {
     .in('user_id', body.userIds)
 
   if (!tokens || tokens.length === 0) {
-    return NextResponse.json({ sent: 0, message: 'No push tokens found' })
+    return { sent: 0, message: 'No push tokens found' }
   }
 
   // Expo Push API — batch up to 100 per request
@@ -96,5 +83,11 @@ export async function POST(request: Request) {
     }
   }
 
-  return NextResponse.json({ sent, failed, total: messages.length })
-}
+  await audit({
+    action: 'push.sent',
+    resourceType: 'push_notification',
+    metadata: { recipients: body.userIds.length, sent, failed, title: body.title },
+  })
+
+  return { sent, failed, total: messages.length }
+})

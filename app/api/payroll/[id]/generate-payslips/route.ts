@@ -1,81 +1,52 @@
-import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import { requirePermission } from '@/lib/auth/permissions'
+import { withRoute, unwrap, badRequest, conflict } from '@/lib/api/withRoute'
 
 // POST /api/payroll/[id]/generate-payslips
 // Triggers payslip generation for a payroll run. The run must be in 'draft' or 'processing'
 // status. A payslip record (status='generating') is inserted for every active staff member
-// in the tenant. The payroll run is set to 'processing'.
-export async function POST(
-  _request: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new NextResponse('Unauthorized', { status: 401 })
+// in the tenant. The payroll run is set to 'processing'. payroll.run = view_payroll.
+export const POST = withRoute({
+  action: 'payroll.run',
+  audit: 'payroll.payslips_generated',
+  resourceType: 'payroll_run',
+}, async ({ ctx, params }) => {
+  const { tenantId } = ctx
+  const payrollRunId = params.id
 
-  const tenantId = user.app_metadata?.tenant_id as string
-  if (!tenantId) return new NextResponse('No tenant', { status: 400 })
-
-  // Tenant-scoped but previously role-blind: any staff member could trigger it.
-  try { await requirePermission('view_payroll') } catch {
-    return new NextResponse('Forbidden', { status: 403 })
-  }
-
-  const { id: payrollRunId } = await params
-
-  // Fetch the payroll run and verify tenant ownership
-  const { data: run, error: runErr } = await supabaseAdmin
+  const run = unwrap(await supabaseAdmin
     .from('payroll_runs')
-    .select('id, tenant_id, status')
+    .select('id, status')
     .eq('id', payrollRunId)
     .eq('tenant_id', tenantId)
-    .single()
-
-  if (runErr || !run) return new NextResponse('Payroll run not found', { status: 404 })
+    .maybeSingle(), { required: true, what: 'Payroll run not found' })
 
   if (run.status !== 'draft' && run.status !== 'processing') {
-    return NextResponse.json(
-      { error: `Cannot generate payslips for a run with status '${run.status}'` },
-      { status: 400 },
-    )
+    throw conflict(`Cannot generate payslips for a run with status '${run.status}'`)
   }
 
-  // Fetch all active staff for this tenant
-  const { data: staffList, error: staffErr } = await supabaseAdmin
+  const staffList = unwrap(await supabaseAdmin
     .from('staff')
     .select('id')
     .eq('tenant_id', tenantId)
     .eq('active', true)
+    .is('deleted_at', null)) ?? []
 
-  if (staffErr) return NextResponse.json({ error: staffErr.message }, { status: 400 })
-  if (!staffList || staffList.length === 0) {
-    return NextResponse.json({ error: 'No active staff found for this tenant' }, { status: 400 })
-  }
+  if (staffList.length === 0) throw badRequest('No active staff found for this business.')
 
-  // Build payslip rows — one per active staff member
-  const payslipRows = staffList.map((st) => ({
-    tenant_id:      tenantId,
-    payroll_run_id: payrollRunId,
-    staff_id:       st.id,
-    status:         'generating',
-  }))
-
-  const { error: insertErr } = await supabaseAdmin
+  unwrap(await supabaseAdmin
     .from('payslips')
-    .insert(payslipRows)
+    .insert(staffList.map((st) => ({
+      tenant_id:      tenantId,
+      payroll_run_id: payrollRunId,
+      staff_id:       st.id,
+      status:         'generating',
+    }))))
 
-  if (insertErr) return NextResponse.json({ error: insertErr.message }, { status: 400 })
-
-  // Move the run to 'processing'
-  await supabaseAdmin
+  unwrap(await supabaseAdmin
     .from('payroll_runs')
     .update({ status: 'processing' })
     .eq('id', payrollRunId)
+    .eq('tenant_id', tenantId))
 
-  return NextResponse.json({
-    payroll_run_id:  payrollRunId,
-    payslips_queued: staffList.length,
-  })
-}
+  return { id: payrollRunId, payroll_run_id: payrollRunId, payslips_queued: staffList.length }
+})

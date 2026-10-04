@@ -4,6 +4,10 @@
  * Defines all permissions in AdminOS, maps them to default roles,
  * and provides enforcement functions for API routes.
  *
+ * New routes: use withRoute({ action }) from lib/api/withRoute.ts — it calls
+ * the role matrix for you. The functions below remain for routes not yet
+ * migrated.
+ *
  * Usage in an API route:
  *   const allowed = await checkPermission('approve_leave')
  *   if (!allowed) return new NextResponse('Forbidden', { status: 403 })
@@ -14,73 +18,13 @@
 
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { createClient }  from '@/lib/supabase/server'
+import { type Permission, type RoleName, DEFAULT_ROLE_PERMISSIONS } from '@/lib/auth/roleMatrix'
 
-// ─── Permission types ─────────────────────────────────────────────────────────
+// ─── Roles, permissions, defaults ────────────────────────────────────────────
+// Canonical definitions live in roleMatrix.ts (import-free so tests can load
+// it). Re-exported here so existing imports keep working.
 
-export type Permission =
-  | 'manage_staff'
-  | 'view_financials'
-  | 'approve_leave'
-  | 'view_payroll'
-  | 'manage_settings'
-  | 'manage_billing'
-  | 'view_analytics'
-  | 'send_broadcasts'
-  | 'manage_invoices'
-  | 'manage_contacts'
-  | 'manage_documents'
-  | 'manage_inventory'
-  | 'view_own_data_only'
-  | 'view_communications'
-
-export type RoleName = 'owner' | 'admin' | 'manager' | 'staff' | 'field_agent' | 'client'
-
-export const ALL_PERMISSIONS: Permission[] = [
-  'manage_staff',
-  'view_financials',
-  'approve_leave',
-  'view_payroll',
-  'manage_settings',
-  'manage_billing',
-  'view_analytics',
-  'send_broadcasts',
-  'manage_invoices',
-  'manage_contacts',
-  'manage_documents',
-  'manage_inventory',
-  'view_own_data_only',
-  'view_communications',
-]
-
-// ─── Default role permission sets ────────────────────────────────────────────
-
-export const DEFAULT_ROLE_PERMISSIONS: Record<RoleName, Permission[]> = {
-  owner: [
-    'manage_staff', 'view_financials', 'approve_leave', 'view_payroll',
-    'manage_settings', 'manage_billing', 'view_analytics', 'send_broadcasts',
-    'manage_invoices', 'manage_contacts', 'manage_documents', 'manage_inventory',
-    'view_communications',
-  ],
-  admin: [
-    'manage_staff', 'view_financials', 'approve_leave', 'view_payroll',
-    'manage_settings', 'view_analytics', 'send_broadcasts',
-    'manage_invoices', 'manage_contacts', 'manage_documents', 'manage_inventory',
-    'view_communications',
-  ],
-  manager: [
-    'view_financials', 'approve_leave', 'view_analytics',
-    'manage_invoices', 'manage_contacts', 'manage_documents', 'manage_inventory',
-  ],
-  staff: [
-    'manage_contacts', 'manage_documents', 'view_own_data_only',
-  ],
-  field_agent: [
-    'manage_contacts', 'view_own_data_only',
-  ],
-  client: [
-    'view_own_data_only',
-  ],
-}
+export { type Permission, type RoleName, ALL_PERMISSIONS, DEFAULT_ROLE_PERMISSIONS } from '@/lib/auth/roleMatrix'
 
 // ─── Errors ───────────────────────────────────────────────────────────────────
 

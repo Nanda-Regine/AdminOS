@@ -56,6 +56,12 @@ CREATE POLICY academy_lessons_read ON public.academy_lessons
   FOR SELECT TO authenticated
   USING (true);
 
+-- expo-app training.tsx embeds academy_modules through academy_lessons.
+DROP POLICY IF EXISTS academy_modules_read ON public.academy_modules;
+CREATE POLICY academy_modules_read ON public.academy_modules
+  FOR SELECT TO authenticated
+  USING (true);
+
 -- 4. Definer views ran as their owner and skipped RLS on invoices/staff.
 -- Make them respect the caller's RLS, and take them off the client roles
 -- entirely (only lib/intelligence/healthScore.ts reads wellness_summary, via

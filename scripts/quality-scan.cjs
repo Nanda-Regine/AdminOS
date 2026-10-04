@@ -1,6 +1,8 @@
 ﻿// Quality scan: heuristic signals per API route + dashboard page (permission
 // checks, input validation, hard deletes, raw DB error leaks, empty states,
 // unbounded queries). Heuristic - verify before acting. Run: node scripts/quality-scan.cjs
+//   --check            exit 1 if any score is worse than scripts/quality-baseline.json (CI)
+//   --write-baseline   record current scores as the new baseline (after an improvement)
 // Baseline 2026-10-04: see BUILD_JOURNEY_ADMINOS.md Session 16.
 const fs = require('fs'), path = require('path')
 const root = path.resolve(__dirname, '..').replace(/\\/g, '/')
@@ -16,17 +18,20 @@ const rel = (f) => f.replace(/\\/g, '/').replace(root + '/', '')
 // â”€â”€ API routes
 const routes = walk(root + '/app/api', 'route.ts').map((f) => {
   const s = fs.readFileSync(f, 'utf8')
-  const methods = (s.match(/export async function (GET|POST|PUT|PATCH|DELETE)/g) || []).map((m) => m.split(' ').pop())
+  const methods = (s.match(/export (?:async function|const) (GET|POST|PUT|PATCH|DELETE)\b/g) || []).map((m) => m.split(' ').pop())
+  // withRoute({ action, body, audit, rateLimit }) declares these in its config.
+  const cfg = (s.match(/withRoute\(\{[\s\S]*?\}\s*,\s*async/g) || []).join('\n')
   return {
     f: rel(f).replace('app/api/', ''),
     writes: methods.some((m) => m !== 'GET'),
-    perm: /requirePermission|checkPermission|requireSuperAdmin/.test(s),
-    zod: /z\.object|safeParse|\.parse\(/.test(s),
+    wrapped: /withRoute\(/.test(s),
+    perm: /requirePermission|checkPermission|requireSuperAdmin|withRoute\(/.test(s),
+    zod: /z\.object|safeParse|\.parse\(/.test(s) || /\bbody:/.test(cfg),
     hardDel: /\.delete\(\)/.test(s),
     selStar: /select\('\*'/.test(s),
     leak: /NextResponse\.json\(\s*\{\s*error:\s*(error|err|e)\.message/.test(s),
-    audit: /writeAuditLog/.test(s),
-    rl: /checkRateLimit/.test(s),
+    audit: /writeAuditLog|\baudit\(\{/.test(s) || /\baudit:/.test(cfg),
+    rl: /checkRateLimit/.test(s) || /\brateLimit:/.test(cfg),
     pub: /^(webhook|book|widget|voice|billing\/webhook|billing\/payfast-itn|paystack\/webhook|health|auth|onboarding)/.test(rel(f).replace('app/api/', '')),
   }
 })
@@ -65,4 +70,42 @@ console.log('\nuses browser alert()/confirm():', c(pages, 'alert'), '\n ', pages
 console.log('\npossibly unbounded list query:', c(pages, 'unbounded'), '\n ', pages.filter((p) => p.unbounded).map((p) => p.f).join(', '))
 console.log('\n`any` usages total:', pages.reduce((a, p) => a + p.anyCount, 0))
 console.log('\nlargest pages (lines):', pages.sort((a, b) => b.lines - a.lines).slice(0, 10).map((p) => `${p.f}:${p.lines}`).join(', '))
+
+// ── Scores + ratchet. Lower is better unless in HIGHER_IS_BETTER.
+const metrics = {
+  routes_no_permission: noPerm.length,
+  write_routes_no_zod: noZod.length,
+  routes_hard_delete: c(routes, 'hardDel'),
+  routes_leak_db_error: c(routes, 'leak'),
+  routes_select_star: c(routes, 'selStar'),
+  write_routes_no_audit: routes.filter((r) => r.writes && !r.audit).length,
+  routes_rate_limited: c(routes, 'rl'),
+  routes_on_withRoute: c(routes, 'wrapped'),
+  pages_no_permission: pages.filter((p) => !p.perm).length,
+  pages_no_empty_state: pages.filter((p) => !p.empty).length,
+  pages_unbounded_query: c(pages, 'unbounded'),
+}
+const HIGHER_IS_BETTER = new Set(['routes_rate_limited', 'routes_on_withRoute'])
+const baselinePath = path.join(__dirname, 'quality-baseline.json')
+console.log('\n\nSCORES', JSON.stringify(metrics, null, 2))
+
+if (process.argv.includes('--write-baseline')) {
+  fs.writeFileSync(baselinePath, JSON.stringify(metrics, null, 2) + '\n')
+  console.log('baseline written:', rel(baselinePath))
+} else if (process.argv.includes('--check')) {
+  const base = JSON.parse(fs.readFileSync(baselinePath, 'utf8'))
+  const cmp = (k, v) => (HIGHER_IS_BETTER.has(k) ? base[k] - v : v - base[k])
+  const entries = Object.entries(metrics).filter(([k]) => base[k] !== undefined)
+  for (const [k, v] of entries.filter(([k, v]) => cmp(k, v) < 0)) {
+    console.log(`improved: ${k} ${base[k]} -> ${v} (run --write-baseline to lock it in)`)
+  }
+  const worse = entries.filter(([k, v]) => cmp(k, v) > 0)
+  if (worse.length) {
+    for (const [k, v] of worse) console.error(`REGRESSION: ${k} ${base[k]} -> ${v}`)
+    console.error('\nQuality ratchet failed. Fix the new route/page, or if the change is intentional,')
+    console.error('update scripts/quality-baseline.json in the same commit and say why in the message.')
+    process.exit(1)
+  }
+  console.log('quality ratchet: no regressions')
+}
 

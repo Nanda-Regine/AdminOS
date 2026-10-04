@@ -12,10 +12,23 @@
  * the rows, then hand them to a small `'use client'` wrapper that defines the
  * `columns` (render fns can't cross the server→client boundary) and renders
  * <DataTable>. See app/dashboard/contacts/ContactsTable.tsx for the reference.
+ *
+ * Two modes:
+ *  - client (default): the page passes every row; search/sort/filter/paginate
+ *    happen in the browser. Fine for lists that stay small (staff, branches).
+ *  - server: pass `server={listResult(...)}` from lib/api/list.ts and only the
+ *    current page's rows. Search, sort, filters and paging are written to the
+ *    URL (?q=&sort=&dir=&page=&<filter>=) and the server component re-queries
+ *    with .range(). Use it for anything that grows — invoices, contacts,
+ *    messages — because PostgREST silently caps a full fetch at 1000 rows.
+ *    In server mode a filter's `predicate` is unused (the server filters on
+ *    the same `key`, which must be in parseListParams' `filters` list), and
+ *    sortable column keys must be in its `sortable` list.
  */
 
-import { useMemo, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
+import { usePathname, useRouter } from 'next/navigation'
+import type { ListResult } from '@/lib/api/list'
 import { Search, ChevronUp, ChevronDown, ChevronsUpDown, Download, ChevronLeft, ChevronRight } from 'lucide-react'
 
 export type Column<T> = {
@@ -65,6 +78,11 @@ type DataTableProps<T> = {
    * emit exactly `columns.length` cells.
    */
   renderFooter?: (rows: T[]) => React.ReactNode
+  /**
+   * Server mode: the list state the server rendered (lib/api/list.ts
+   * listResult minus rows). `rows` is then just the current page.
+   */
+  server?: Omit<ListResult<unknown>, 'rows'>
 }
 
 function rawValue<T>(row: T, col: Column<T>): string | number | null | undefined {
@@ -92,15 +110,51 @@ export function DataTable<T>({
   initialSort,
   toolbarExtra,
   renderFooter,
+  server,
 }: DataTableProps<T>) {
   const router = useRouter()
-  const [query, setQuery] = useState('')
-  const [sort, setSort] = useState<{ key: string; dir: 'asc' | 'desc' } | null>(initialSort ?? null)
-  const [activeFilters, setActiveFilters] = useState<Record<string, string>>({})
-  const [page, setPage] = useState(0)
+  const pathname = usePathname()
+  const [isPending, startTransition] = useTransition()
+  const [query, setQuery] = useState(server?.q ?? '')
+  const [sort, setSort] = useState<{ key: string; dir: 'asc' | 'desc' } | null>(
+    server ? (server.sort ? { key: server.sort, dir: server.dir } : null) : (initialSort ?? null),
+  )
+  const [activeFilters, setActiveFilters] = useState<Record<string, string>>(server?.filters ?? {})
+  const [page, setPage] = useState(server ? server.page - 1 : 0)
+
+  // --- Server mode: state lives in the URL ---------------------------------
+  // Read the live query string at call time (not useSearchParams, which would
+  // force every page using DataTable into a Suspense boundary).
+  function pushParams(patch: Record<string, string | null>) {
+    const params = new URLSearchParams(window.location.search)
+    for (const [k, v] of Object.entries(patch)) {
+      if (v === null || v === '') params.delete(k)
+      else params.set(k, v)
+    }
+    const qs = params.toString()
+    startTransition(() => router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false }))
+  }
+
+  // Back/forward navigation changes the URL without going through goToPage.
+  useEffect(() => {
+    if (server) setPage(server.page - 1)
+  }, [server?.page]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Debounce search so typing "acme" is one query, not four.
+  const firstRender = useRef(true)
+  useEffect(() => {
+    if (!server) return
+    if (firstRender.current) { firstRender.current = false; return }
+    const t = setTimeout(() => {
+      if (query.trim() !== server.q) pushParams({ q: query.trim() || null, page: null })
+    }, 300)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query])
 
   // --- Filter ---------------------------------------------------------------
   const filtered = useMemo(() => {
+    if (server) return rows
     let out = rows
 
     for (const f of filters) {
@@ -122,11 +176,11 @@ export function DataTable<T>({
       })
     }
     return out
-  }, [rows, columns, filters, activeFilters, query, searchExtra])
+  }, [rows, columns, filters, activeFilters, query, searchExtra, server])
 
   // --- Sort -----------------------------------------------------------------
   const sorted = useMemo(() => {
-    if (!sort) return filtered
+    if (server || !sort) return filtered
     const col = columns.find(c => c.key === sort.key)
     if (!col) return filtered
     const dir = sort.dir === 'asc' ? 1 : -1
@@ -141,21 +195,49 @@ export function DataTable<T>({
       }
       return String(av).localeCompare(String(bv), 'en-ZA', { numeric: true }) * dir
     })
-  }, [filtered, columns, sort])
+  }, [filtered, columns, sort, server])
 
   // --- Paginate -------------------------------------------------------------
-  const pageCount = Math.max(1, Math.ceil(sorted.length / pageSize))
+  const size = server ? server.pageSize : pageSize
+  const totalRows = server ? server.total : sorted.length
+  const pageCount = server ? server.pageCount : Math.max(1, Math.ceil(sorted.length / pageSize))
   const safePage = Math.min(page, pageCount - 1)
-  const pageRows = sorted.slice(safePage * pageSize, safePage * pageSize + pageSize)
-  const firstRow = sorted.length === 0 ? 0 : safePage * pageSize + 1
-  const lastRow = Math.min(sorted.length, safePage * pageSize + pageSize)
+  const pageRows = server ? sorted : sorted.slice(safePage * pageSize, safePage * pageSize + pageSize)
+  const firstRow = totalRows === 0 ? 0 : safePage * size + 1
+  const lastRow = Math.min(totalRows, safePage * size + (server ? sorted.length : size))
+
+  function nextSort(prev: { key: string; dir: 'asc' | 'desc' } | null, key: string) {
+    if (!prev || prev.key !== key) return { key, dir: 'asc' as const }
+    if (prev.dir === 'asc') return { key, dir: 'desc' as const }
+    return null
+  }
 
   function toggleSort(key: string) {
-    setSort(prev => {
-      if (!prev || prev.key !== key) return { key, dir: 'asc' }
-      if (prev.dir === 'asc') return { key, dir: 'desc' }
-      return null
-    })
+    const next = nextSort(sort, key)
+    setSort(next)
+    if (server) pushParams({ sort: next?.key ?? null, dir: next?.dir ?? null, page: null })
+  }
+
+  function goToPage(p: number) {
+    setPage(p)
+    if (server) pushParams({ page: p === 0 ? null : String(p + 1) })
+  }
+
+  function setFilter(key: string, value: string) {
+    setActiveFilters(prev => ({ ...prev, [key]: value }))
+    setPage(0)
+    if (server) pushParams({ [key]: value || null, page: null })
+  }
+
+  function clearAll() {
+    setQuery('')
+    setActiveFilters({})
+    setPage(0)
+    if (server) {
+      const patch: Record<string, null> = { q: null, page: null }
+      for (const f of filters) patch[f.key] = null
+      pushParams(patch)
+    }
   }
 
   function exportCsv() {
@@ -191,7 +273,11 @@ export function DataTable<T>({
   const hasActiveFilters = Object.values(activeFilters).some(Boolean) || query.trim().length > 0
 
   return (
-    <div className="glass rounded-2xl overflow-hidden">
+    <div
+      className="glass rounded-2xl overflow-hidden transition-opacity"
+      style={isPending ? { opacity: 0.6 } : undefined}
+      aria-busy={isPending || undefined}
+    >
       {/* Toolbar */}
       <div
         className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-4"
@@ -226,10 +312,7 @@ export function DataTable<T>({
             <select
               key={f.key}
               value={activeFilters[f.key] ?? ''}
-              onChange={e => {
-                setActiveFilters(prev => ({ ...prev, [f.key]: e.target.value }))
-                setPage(0)
-              }}
+              onChange={e => setFilter(f.key, e.target.value)}
               aria-label={f.label}
               className="py-1.5 px-3 rounded-lg text-sm outline-none focus:ring-2 focus:ring-[var(--indigo)] cursor-pointer"
               style={{
@@ -249,11 +332,7 @@ export function DataTable<T>({
 
           {hasActiveFilters && (
             <button
-              onClick={() => {
-                setQuery('')
-                setActiveFilters({})
-                setPage(0)
-              }}
+              onClick={clearAll}
               className="text-xs font-medium px-2 py-1 rounded-md transition-colors"
               style={{ color: 'var(--text-muted)' }}
             >
@@ -272,7 +351,7 @@ export function DataTable<T>({
               border: '1px solid var(--border)',
               color: 'var(--text-secondary)',
             }}
-            title="Export current view to CSV"
+            title={server ? 'Export this page to CSV' : 'Export current view to CSV'}
           >
             <Download className="w-3.5 h-3.5" />
             Export
@@ -350,7 +429,7 @@ export function DataTable<T>({
               </tr>
             ))}
 
-            {sorted.length === 0 && (
+            {totalRows === 0 && (
               <tr>
                 <td colSpan={columns.length} className="px-5 py-16 text-center">
                   {hasActiveFilters ? (
@@ -387,18 +466,18 @@ export function DataTable<T>({
       </div>
 
       {/* Footer / pagination */}
-      {sorted.length > 0 && (
+      {totalRows > 0 && (
         <div
           className="flex items-center justify-between px-6 py-3 text-xs"
           style={{ borderTop: '1px solid var(--border)', color: 'var(--text-muted)' }}
         >
           <span>
-            {firstRow}–{lastRow} of {sorted.length}
+            {firstRow}–{lastRow} of {totalRows}
           </span>
           {pageCount > 1 && (
             <div className="flex items-center gap-1">
               <button
-                onClick={() => setPage(p => Math.max(0, p - 1))}
+                onClick={() => goToPage(Math.max(0, safePage - 1))}
                 disabled={safePage === 0}
                 className="inline-flex items-center justify-center w-7 h-7 rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[var(--surface-hover)]"
                 aria-label="Previous page"
@@ -409,7 +488,7 @@ export function DataTable<T>({
                 {safePage + 1} / {pageCount}
               </span>
               <button
-                onClick={() => setPage(p => Math.min(pageCount - 1, p + 1))}
+                onClick={() => goToPage(Math.min(pageCount - 1, safePage + 1))}
                 disabled={safePage >= pageCount - 1}
                 className="inline-flex items-center justify-center w-7 h-7 rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[var(--surface-hover)]"
                 aria-label="Next page"
