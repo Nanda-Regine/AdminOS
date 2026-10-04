@@ -2842,3 +2842,97 @@ staff app with no logins spreads *bad* word of mouth just as fast):**
 **Open inputs needed from Nanda to turn this into a concrete plan:**
 current tier prices (solo/grow/operate/scale/partner amounts) and which
 competitor she loses deals to most often.
+
+## Session 17 (2026-10-05) — Phase 1: foundations
+
+Commits `2c798d1` + `6e81f50` (build fix). Verification: `tsc --noEmit` exit 0,
+tests 36 → **77/77**, CI green on GitHub Actions.
+
+**Built — all six Phase 1 items:**
+- **(a) CI** — `.github/workflows/ci.yml`: `npm ci` → `next typegen` → `tsc`
+  → `npm test` → `quality-scan --check`. The scan is now a **ratchet**:
+  `scripts/quality-baseline.json` holds the scores, and CI fails if any of
+  them get worse. After an improvement, lock it in with
+  `node scripts/quality-scan.cjs --write-baseline`.
+- **(b) Role matrix** — `lib/auth/roleMatrix.ts`. It defines the 6 canonical
+  roles, the 14 permissions, the default role sets, and ~35 route **actions**
+  (`payroll.distribute` → `view_payroll`, `clock.self` → any member). Routes
+  declare an action and never name a role. It has no imports, so tests load
+  it directly. `permissions.ts` re-exports from it.
+- **(c) `withRoute()`** — `lib/api/withRoute.ts`, with a framework-free core
+  in `lib/api/handler.ts`. One wrapper handles:
+  - auth + tenant (fail-closed) and the matrix check
+  - zod body/query validation, with per-field 400s
+  - DB errors mapped to friendly 4xx (constraint names never reach the client)
+  - an audit row on success, and per-tenant rate limiting
+  - unexpected errors reported to PostHog
+  - helpers: `unwrap()`, `notFound()`, `conflict()`
+- **(d) Soft delete** — `lib/db/softDelete.ts` (`softDelete`, `restore`,
+  `live`). Migration `20261005_soft_delete_columns.sql` was **applied to prod**.
+  It adds `deleted_at` to 40 business tables; before it, **no table had the
+  column**. Converting a route means swapping `.delete()` for
+  `softDelete()` **and** adding `live()` to every read of that table.
+- **(e) Server lists** — `lib/api/list.ts`:
+  - `parseListParams` with allow-listed sort and filters
+  - `applyList`, whose search is safe against PostgREST `or()` injection and
+    which adds an `id` tiebreak
+  - `listResult`
+
+  `DataTable` also has a `server` prop now: its state lives in the URL and the
+  server pages with `.range()`. **No page uses it yet.** Contacts or invoices
+  is the first adopter (Phase 2).
+- **(f) Route test harness** — `tests/helpers/routeHarness.ts` drives the
+  real `withRoute` core with fake callers per role, so the 401/403/400
+  contract is testable for every route. **Not covered:** cross-tenant → 404
+  needs a real DB. Supabase branching needs Pro (S1), so this is blocked on
+  that decision.
+
+**Pilots on withRoute (4 routes):**
+- `payroll/[id]/distribute` now claims the run atomically. Before, a
+  double-click sent every payslip twice.
+- `generate-payslips`
+- `push/send` no longer echoes the raw zod error.
+- `payroll/payslip/[id]`: its manager check used `'hr_manager'`, a role that
+  doesn't exist, read from `app_metadata`. It now uses the matrix's
+  `payroll.read`.
+
+**Lesson (cost one failed deploy):** Next's build-time route validator
+rejects an *optional* second argument on route handlers, and plain `tsc`
+doesn't run it. CI now runs `next typegen` first. `next typegen` crashes
+locally with the OneDrive `UNKNOWN read` error, so it has to run in CI.
+
+**Scores after Phase 1** (`scripts/quality-baseline.json`):
+- routes with no permission check: 84
+- write routes without zod: 27
+- hard deletes: 10
+- raw DB error leaks: 85
+- `select('*')`: 49
+- unaudited writes: 95
+- rate-limited routes: 12
+- routes on withRoute: 4
+- pages with no permission check: 17
+- pages with no empty state: 23
+- pages with unbounded queries: 27
+
+**Still open / found this session:**
+- 🔴 **P0 RLS migration still NOT applied.** The auto-mode classifier blocked
+  the RLS change via the Management API, again. It was re-verified live:
+  the 13 tables still have RLS off. The file also gained an
+  `academy_modules` read policy, which the Expo training screen needs.
+  **Nanda: paste `supabase/migrations/20261004_lock_down_rls_disabled_tables.sql`
+  into the SQL editor.**
+- `test@adminos.co.za` (tenant "Test Business ZA") has **no `user_roles`
+  row**. getContext fails closed for it, so every withRoute call returns 401.
+  It's a test account; delete or seed it. Nanda's own login is unaffected
+  because super-admin bypasses the check.
+- Middleware gates `/api/admin/*` on `app_metadata.role === 'super_admin'`,
+  but Nanda's role there is `admin`, and the real check is the `admins`
+  table. Align it during the Settings/admin sweep.
+- Phase 3 / A7: the staff-invite flow must also write a `user_roles` row.
+  withRoute fails closed without one, so a linked staff login would get 401.
+- The payroll page posts plain HTML `<form>`s to the distribute and generate
+  routes, so the browser lands on raw JSON. Fix this in the Money sweep.
+
+**Next:** Phase 2, domain by domain. Start with Money. In each tab, move its
+routes onto withRoute, adopt soft delete and server lists where they apply,
+then run `--write-baseline`.
