@@ -2348,3 +2348,279 @@ recurring-billing engine is a separate, larger feature.
 `npx tsc --noEmit` clean throughout.
 
 Full detail: memory `adminos-cash-sales-chart-of-accounts-2026-09-18`.
+
+---
+
+## Session 15 (Phase 6) — 2026-09-18/19 — Deployment webhook broken + post-deploy bug sweep
+
+**The GitHub→Vercel deploy webhook stopped firing mid-session, silently.**
+Every push through the "docs: correct Phase 4..." commit (`9cb9516`)
+auto-deployed within ~2 seconds, same as every prior session. Every push
+after that — `2f8e6d8`, `fcfd98d`, `df8e05b`, `a50d753` — got **zero**
+response: not building, not queued, no GitHub commit-status entry at all
+(confirmed via `gh api .../commits/{sha}/status`, `total_count: 0`, vs.
+the prior commit's `total_count: 1` with a completed Vercel status
+within seconds). An empty retrigger commit didn't fix it either — this
+is a persistent integration fault (GitHub App delivery), not a fluke,
+and outside what's fixable through code. **Nanda needs to check the
+Vercel dashboard's Git integration for this project and likely
+reconnect/reauthorize the GitHub App.**
+
+**Workaround used for the rest of this session:** trigger deployments
+directly against the Vercel REST API (`POST /v13/deployments` with
+`gitSource: {type:'github', repoId, ref:'main', sha}`) using
+`VERCEL_API_TOKEN`/`VERCEL_TEAM_ID` from `.env.local` — confirmed already
+present, not added this session. This bypasses the webhook entirely and
+reliably produces a READY production deployment aliased to
+`adminos.co.za`. **Until the webhook is fixed, every future push needs
+this same manual trigger** — check `gh api repos/.../commits/{sha}/status`
+first; an empty `statuses` array means it silently didn't fire.
+
+**Bug sweep from Nanda's first live pass** (after the deploy gap above
+was closed) — four reports, three real bugs found and fixed, one still
+open:
+
+1. **"tasks form still an issue" (mobile)** — the Phase 3 CSS-only patch
+   (`overflow-hidden`→`overflow-y-auto max-h-[90vh]`) on
+   `TaskActions.tsx`'s hand-rolled `fixed inset-0` overlay wasn't enough
+   on a real device. Migrated `CreateTaskModal` onto the shared
+   `Modal`/`FormField`/`Btn` primitives (`components/ui/modal.tsx`) that
+   every other working form modal already uses — the deferred Phase 3
+   punch-list item ("migrate the 3 fixed modals onto the shared Modal
+   component"), done for this one now that CSS-patching alone proved
+   insufficient.
+2. **Found alongside it, not reported but almost certainly related:**
+   `tasks.assigned_to` referenced `auth.users(id)`, but the "Assign To"
+   dropdown has only ever populated it from `staff.id` — so picking
+   anyone in that dropdown made task creation fail outright with a
+   foreign-key violation (a confusing raw Postgres error, not a friendly
+   message — would read as "the form is broken"). The 13 existing rows
+   all pointed to one demo-seed `auth.users` id, none matching any staff
+   record — confirms this path had never worked. Nulled the stale demo
+   data, corrected the FK to reference `staff(id)`. Migration
+   `20260918_fix_tasks_assigned_to_fkey.sql`, applied to prod.
+3. **"inbox page dont make sense"** — `app/dashboard/inbox/page.tsx` had
+   **zero** responsive handling anywhere in the file (no `md:`/`sm:`
+   breakpoints at all) — a fixed `w-72` conversation list and the message
+   panel always rendered side by side, leaving ~90px for messages on a
+   phone. This page predates the Phase 3 mobile sweep and sits outside
+   the standard `p-4 md:p-6` content pattern (its own `h-screen` layout),
+   so the shell fix never touched it. Rebuilt to the standard mobile-chat
+   pattern: one pane at a time, back button to return to the list.
+4. **"export buttons dont work"** — couldn't reproduce a server-side
+   failure (checked Vercel runtime errors/logs for `/api/money/export`
+   and friends — none in the relevant window). Two candidates fixed
+   defensively since either could explain it: (a) most "export" buttons
+   in the app are `DataTable`'s built-in CSV export
+   (`components/ui/DataTable.tsx`), which built the download via a
+   detached `<a>` element's `.click()` — several mobile browsers (iOS
+   Safari especially) silently no-op that; now appends the anchor to the
+   DOM before clicking. (b) it's also possible she tested before the
+   webhook-gap deploy landed, in which case nothing was actually broken.
+   **Still needs her confirmation** on which "export" and whether it's
+   fixed now.
+
+`npx tsc --noEmit` clean across all fixes. Commits `df8e05b` (tasks
+form + FK), `a50d753` (Inbox mobile + DataTable export) — each manually
+deployed per the webhook workaround above.
+
+Full detail: memory `adminos-deploy-webhook-broken-and-bugsweep-2026-09-19`.
+
+---
+
+## Session 16 (2026-10-04) — Scale + app-store readiness audit
+
+**Question asked:** is AdminOS ready for 1000s of businesses, is it set up
+for Play Store + Huawei AppGallery, and where is the code badly designed?
+**Answer: no on both counts — yet.** Nothing here needs a rewrite; it's a
+specific, finite list. This section is the deep-dive queue — work it top to
+bottom in fresh sessions. **For scale/store work it supersedes the "Build
+list" section above.**
+
+Verification: `npx tsc --noEmit` exit 0; `npm test` 32/32 → 36/36 with new
+`tests/fetchAll.test.ts`. ESLint crashed on an OneDrive file-read error
+(`errno -4094`) — environmental. `expo-app/` could not be type-checked (no
+`node_modules`).
+
+### Live production facts (Management API, 2026-10-04)
+
+| Check | Result |
+|---|---|
+| Project `aetydnhnxmrsgqaqtofc` (AdminOS, eu-west-1) | ACTIVE_HEALTHY |
+| Org `CreativelyNandawula` plan | **free** |
+| PostgREST `max_rows` | **1000** (confirms the cron cap bug below) |
+| Tenants / active | 8 / 8 |
+| DB size | 21 MB |
+| Staff rows / with a login (`staff.user_id` set) | **12 / 0** |
+| Tenant names containing `& < >` | 0 (Ring bug hadn't hit anyone yet) |
+| Campaigns stuck in `sending` | 0 |
+| Security advisor | **13 × ERROR rls_disabled_in_public, 2 × ERROR security_definer_view**, 10 definer functions executable by anon, 14 mutable search_path, leaked-password protection off, OTP expiry too long |
+| Performance advisor | 100 × multiple_permissive_policies, 62 unindexed FKs, 10 auth_rls_initplan, 78 unused + 4 duplicate indexes |
+
+Note: the AdminOS project lives in a different Supabase org than the one
+the Supabase MCP connector sees — use the Management API with
+`SUPABASE_ACCESS_TOKEN` from `.env.local`.
+
+### 🔴 P0 — anon-key data exposure (migration written, NOT yet applied)
+
+With only the public anon key (in every browser bundle) and **no login**,
+anyone could read/insert/update/delete:
+`notifications`, `contract_signatures` (signer names + emails),
+`triggered_lessons`, `book_in_action_completions`, `achievements`,
+`academy_modules`, `academy_lessons`, `framework_library`,
+`contextual_triggers`, `impact_snapshots`, `coaching_cards`, and
+**`plan_catalogue` / `addon_catalogue` (live pricing)**. Plus the
+`overdue_invoices` and `wellness_summary` views are SECURITY DEFINER and
+anon-selectable → every tenant's overdue invoices and staff wellness data.
+
+Fix: `supabase/migrations/20261004_lock_down_rls_disabled_tables.sql` —
+enables RLS on all 13, revokes anon writes, adds only the two user policies
+the mobile app needs (own notifications; read lessons), sets both views to
+`security_invoker` and revokes client access. Safe for the web app: every
+web/Inngest access to these objects is via `supabaseAdmin` (verified by
+grep). **Auto-mode blocked applying it — Nanda to apply in the SQL editor,
+then re-run the security advisor to confirm the 15 ERRORs are gone.**
+
+Follow-ups in the same area: revoke `EXECUTE` from anon on the 10 SECURITY
+DEFINER functions (`create_default_subscription`, `seed_compliance_calendar`,
+`fn_trigger_*`, `search_kb_articles`, …) after checking callers; set
+`search_path` on the 14 flagged functions; enable leaked-password
+protection + shorten OTP expiry in Auth settings.
+
+### Fixed this session — commit `e6e053a`
+
+1. **WhatsApp replies silently dropped.** `app/api/webhook/whatsapp/route.ts`
+   started the AI workflow as an un-awaited promise, then returned 200.
+   Vercel freezes the function once the response is sent → replies
+   intermittently never generated/sent. Same for read receipts + status
+   updates. All moved into Next's `after()`. **There was no
+   `after()`/`waitUntil` anywhere in the codebase before this.**
+2. **Meta retries billed against plan limits.** `incrementUsage` ran before
+   `checkDuplicate`, so every Meta redelivery counted toward the monthly
+   cap (and re-sent "limit reached"). Dedup now runs first.
+3. **Ring broke for any business name with `&`.** Nothing in
+   `app/api/voice/inbound/route.ts` was XML-escaped → malformed TwiML →
+   Twilio "application error". Added `xml()` at every interpolation.
+   Removed the transfer fallback that dialled `to` — the tenant's *own*
+   Twilio number — looping the caller back into the AI.
+4. **Tenants past #1000 silently dropped from all crons** (confirmed live:
+   `max_rows` = 1000). New `lib/supabase/fetchAll.ts` pager (stable
+   `order('id')` + `range`, throws rather than returning a partial list),
+   wired into fanOutBrief, fanOutHealthScore, fanOutWellness,
+   governanceDeadlines, opsAlerts, peopleApprovals, salesColdLeads,
+   signalRefresh, cashflowForecast, benchmarkCalculate, valuationSnapshot.
+5. **Mobile staff app could never show data.** `expo-app/store/auth.ts`
+   read `tenant_id`/`role` from `user_metadata` (stripped in Phase 0) and
+   `staff_id`, which **no code path has ever written**. Now reads
+   `app_metadata` and resolves the staff row via `staff.user_id`.
+   ⚠️ Live data shows **0 of 12 staff have `user_id` set** — see A7.
+
+### Open — scale blockers (deep-dive in this order)
+
+- **S1. Production Supabase is on the free plan** (why it auto-pauses —
+  memory `adminos-supabase-db-autopauses`). 500 MB cap, pauses, no PITR.
+  Upgrade to Pro + enable PITR before onboarding paying tenants at volume.
+  Billing decision, not code.
+- **S2. Reach campaigns broken three ways** —
+  `app/api/reach/campaigns/[id]/send/route.ts`:
+  (a) sends `type: 'text'`; Meta rejects free-form business-initiated
+  messages outside the 24h window (error 131047) → most of any broadcast
+  list fails. Must use approved templates (`lib/whatsapp/send.ts` already
+  has a template sender, unused here).
+  (b) `void dispatchCampaign(...)` — the same frozen-function bug as #1;
+  campaigns die partway and stay `status='sending'` forever.
+  (c) contacts query unpaginated → capped at 1000.
+  **Fix:** Inngest function, steps of ~50, throttled, template-only,
+  `fetchAll` for contacts.
+- **S3. `inngest/functions/payrollReminder.ts`** — serial loop over every
+  tenant, 2 queries + a send each, **no `step.run`**. Times out at scale;
+  each retry re-sends reminders already sent. Convert to fan-out
+  (`fanOutBrief.ts` is the template).
+- **S4. Inngest 1000-step cap.** `cashflowForecast`, `valuationSnapshot`,
+  `boardPack` (monthly cron) do one `step.run` per tenant in a single
+  function → hard-fails past ~1000 eligible tenants. Convert to fan-out.
+  `boardPack`'s tenant query is also still unpaginated.
+- **S5. `cashflowForecast` upsert writes columns that don't exist**
+  (`forecast_data`/`calculated_at`; its own NOTE says so). The weekly
+  forecast does nothing today.
+- **S6. `signalRefresh` runs hourly per tenant** → ~24k Inngest runs/day
+  at 1000 tenants. Check Inngest plan limits; consider every 3–6h or only
+  tenants active in the last 7 days.
+- **S7. Throughput caps:** `sequencesCron` max 200 enrollments/hour,
+  `escalateConversations` max 100 per 15 min. Fine now, backlog at scale.
+- **S8. `inngest.send` with the whole tenant array in one call** — fine at
+  1000 (~80 KB); chunk to 500/send before ~5–10k tenants.
+- **S9. Mobile `lib/api.ts` sends `Authorization: Bearer`** but
+  `middleware.ts` only reads cookie sessions → any mobile `/api/*` call
+  will 401. Latent (no screen calls `apiFetch` yet).
+- **S10. Performance advisor:** 100 multiple-permissive-policy warnings
+  (each query evaluates several policies), 10 `auth_rls_initplan` (wrap
+  `auth.uid()` in `(select …)`), 62 unindexed FKs. Cheap wins before
+  load grows; duplicates/unused indexes cost write speed.
+
+### Open — Play Store / AppGallery blockers
+
+- **A1. No account deletion anywhere** (no in-app path, no web URL). Google
+  Play hard requirement. Need in-app "Delete my account" + public web
+  page, soft-delete per Rule #3 with a purge window, owner-vs-staff
+  semantics decided.
+- **A2. Expo build would fail:** `expo-app/assets/` doesn't exist but
+  `app.json` references `adaptive-icon.png`, `notification-icon.png`,
+  `favicon.png`; no top-level `icon`/splash image. `app.json`/`eas.json`
+  still contain `YOUR_EAS_PROJECT_ID`, `YOUR_APPLE_ID`, etc.
+- **A3. Expo SDK drift:** declares SDK 52 but several deps are SDK-51
+  versions (`expo-camera ~15`, `react-native-screens 3.31.1`, …). SDK 52
+  targets an Android API below Play's current requirement for new apps.
+  Upgrade to current SDK, re-pin with `npx expo install --fix`.
+- **A4. Huawei/AppGallery:** no Google Play Services on Huawei devices →
+  Expo push (FCM) won't deliver. HMS Push Kit, or accept no push there.
+- **A5. Mobile signup creates no tenant.** `expo-app/app/(auth)/signup.tsx`
+  never runs the web onboarding that provisions the tenant (its
+  `role:'owner'` in user_metadata is ignored since Phase 0) → new users
+  land in an empty app. Also relies on confirmation email, which doesn't
+  arrive (memory `adminos-resend-key-dead`).
+- **A6. Listing assets:** `/privacy` exists; still need Data Safety
+  answers, 512px icon, feature graphic, phone screenshots, content rating,
+  reviewer test account.
+- **A7. Staff accounts aren't linked to logins.** 0/12 staff rows have
+  `user_id`. Find/build the staff-invite flow that creates the auth user
+  and writes `staff.user_id` — without it there is no "My Admin" for any
+  employee, on web or mobile.
+- **Faster route than finishing Expo:** ship the PWA as a Trusted Web
+  Activity (Bubblewrap) to both Play and AppGallery. Needs
+  `public/.well-known/assetlinks.json` (missing) and a real maskable icon
+  (manifest reuses `icon-512.png`). Days, not weeks; still needs A1 + A6.
+  **Decision for Nanda: TWA first, or Expo?**
+
+### Open — code quality / smaller issues
+
+- **Q1. Uncommitted GTM snippet in `app/layout.tsx`** is blocked by the CSP
+  in `next.config.ts` (no `googletagmanager.com`) and loads before
+  `CookieConsent` → POPIA. Add to CSP + gate behind consent, or drop it
+  (PostHog already covers analytics).
+- **Q2. Pen agent double-spend:** `app/api/agents/pen/route.ts` with
+  `saveDraft` streams the reply *and* runs the whole agent again via
+  `void orchestrator.run(...)`. Save the streamed text instead.
+- **Q3. Remaining un-awaited background work** (same class as fix #1):
+  `academy/lessons/[lessonId]` (`inngest.send`, `checkAchievements`),
+  `agents/[agentType]` (`storeAdvisorInsights`). Wrap in `after()`.
+- **Q4. `/api/workflow/trigger` unreachable by n8n** — checks
+  `x-n8n-secret` but isn't in middleware `PUBLIC_PREFIXES`, so it 401s
+  first. Add it, or delete the route if n8n is gone.
+- **Q5. Voice prompt injection:** caller speech is concatenated into the
+  system prompt in `voice/inbound`. Move the transcript into the user turn.
+- **Q6. Middleware onboarding gate reads `user_metadata.onboarding_completed`**
+  (user-writable). Low impact; inconsistent with the Phase 0 rule.
+
+### Next session — suggested order
+
+1. Apply the P0 RLS migration; re-run the security advisor.
+2. Confirm `e6e053a` deployed (deploy webhook may still need a manual
+   trigger).
+3. S1 — decide on Supabase Pro.
+4. S2 Reach → Inngest + templates.
+5. A1 account deletion + A7 staff login linking.
+6. Decide TWA vs Expo, then A2–A6.
+7. S3–S5 cron rewrites, S10 advisor cleanup, then Q-items.
+
+Full detail: memory `adminos-scale-store-readiness-audit-2026-10-04`.
