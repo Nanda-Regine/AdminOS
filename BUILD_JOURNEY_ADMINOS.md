@@ -2707,3 +2707,68 @@ acting). Re-run after each tab sweep; these numbers are the scoreboard.
 - **Phase 4 — scale proof:** Supabase Pro + PITR, S2–S8 cron/campaign
   rewrites, performance-advisor cleanup, then a load test with synthetic
   1000-tenant data before claiming "ready for thousands".
+
+### Session 16c — SA market fit + product roadmap (2026-10-04/05)
+
+Nanda asked which industries AdminOS really helps and whether it addresses
+SA's current economic bottlenecks. Answer grounded in the code (not the
+marketing copy) and in current data.
+
+**SA conditions (sourced, Oct 2026):**
+- Unemployment **33.6%** Q2 2026 (+345k unemployed); Eastern Cape
+  **47.5%**, highest province (Stats SA QLFS Q2 2026).
+- SARB hiked repo **+25bp to 7.25%** on 2026-09-23 → credit dearer, so
+  collecting your own debtors matters more.
+- **91%** of SA SMEs hurt by late payments; ~half call cash flow their #1
+  growth threat (Xero survey). 117 municipalities averaged **286 days** to
+  pay suppliers; national departments paid R35.1bn of invoices late.
+- Red tape: IMF (Mar 2026) flagged regulatory complexity; for firms with
+  <20 staff, compliance burden hits productivity ~2× harder.
+- Load shedding largely over: 341 days without it, none in winter 2026.
+
+**Fit — bottleneck → what the code has → verdict:**
+
+| Bottleneck | AdminOS today | Fit |
+|---|---|---|
+| Late payment / cash flow | Invoices & AR, WhatsApp debt-recovery automation, Cash Cockpit, Quick Sale | Strong — but no pay-from-invoice (gateway held off) and cashflow forecast is dead (S5) |
+| Red tape / compliance | Compliance calendar, licences, EMP201, VAT201 working paper, EE, POPIA, IR log, safety, e-sign contracts | **Strongest differentiator** vs Xero/Sage — mind the open compliance-overclaims decision |
+| Owner admin overload | WhatsApp-first AI inbox, autonomy tiers, agents, multilingual (isiXhosa, isiZulu, Afrikaans…) | Strong once the `after()` webhook fix is live |
+| Access to finance | Valuation, health score, board pack, accountant reports, formalisation nudges | Medium — lender-ready info, no lender connection |
+| Unemployment | Nothing direct | Indirect only (SME survival/growth). Don't market as a jobs fix; AI can read as replacing admin jobs |
+| Load shedding | Offline caching, load-shedding integration | Now secondary — don't lead marketing with it |
+
+**Industries:**
+- *Best fit* (staff + recurring customers + invoices + WhatsApp
+  customers): salons, cleaning, trades, private clinics, private/ECD
+  schools, consulting, accounting, legal, property management, NGOs,
+  events, creative agencies.
+- *Weaker today:* retail/spaza (no POS/Yoco — Quick Sale is manual),
+  logistics (no fleet/POD).
+- *Not covered:* restaurants/hospitality, manufacturing, agriculture,
+  most of the informal sector (price + formality — Formalisation and
+  Stokvel are the on-ramps).
+
+**Product roadmap — the four SA-bottleneck features (after Phase 1–2):**
+- **R1. Pay-from-invoice / pay-from-reminder.** Directly attacks the #1
+  SME problem. Revisit the held-off gateway decision (memory
+  `adminos-invoice-payment-gateway-held-off-2026-09-18`) — PayFast/Paystack
+  are already integrated for AdminOS's own billing.
+- **R2. Bank feeds** (e.g. Stitch or statement import) → makes the cashflow
+  forecast real (fixes S5 properly) and auto-reconciles invoices.
+- **R3. The business's *own* B-BBEE + CSD.** Today B-BBEE level exists only
+  on *suppliers* (`app/dashboard/suppliers`). Add EME/QSE affidavit or
+  certificate with expiry tracking + CSD registration number to the
+  compliance calendar — this is what lets SMEs sell to corporates and
+  government.
+- **R4. Government-debtor recovery track.** Municipalities average 286
+  days. A debt-recovery variant for government/municipal clients: formal
+  escalation letters citing the 30-day payment rule, accounting-officer
+  escalation path.
+- Also noted, lower priority: POS/Yoco integration (opens retail),
+  SARS eFiling submission (VAT201 is export-only today).
+
+**Positioning caveat:** several of the features that make AdminOS strongest
+for SA are the ones the audit found broken (WhatsApp replies — fixed in
+`e6e053a`; Reach campaigns S2; cashflow S5; staff logins A7; email —
+Resend key dead). The positioning is right; Phase 1–2 is what makes it
+trustworthy.
