@@ -1,53 +1,42 @@
-import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
 import { fireBusinessEvent } from '@/lib/academy/knowledgeGraph'
+import { withRoute, unwrap } from '@/lib/api/withRoute'
+
+// Stokvel groups the business administers — members' money, so finance-only
+// (same view_financials boundary as the stokvel page). Both handlers used to
+// be open to any logged-in member.
 
 const createSchema = z.object({
-  name:               z.string().min(1).max(300),
-  contributionAmount: z.number().positive(),
+  name:               z.string().trim().min(1).max(300),
+  contributionAmount: z.number().positive().max(10_000_000),
   frequency:          z.enum(['weekly','fortnightly','monthly']).default('monthly'),
   payoutOrder:        z.enum(['rotation','lottery','fixed']).default('rotation'),
   startDate:          z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   rules:              z.string().max(5000).optional(),
 })
 
-export async function GET(request: Request) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new NextResponse('Unauthorized', { status: 401 })
-
-  const tenantId = user.app_metadata?.tenant_id as string
-  if (!tenantId) return new NextResponse('No tenant', { status: 400 })
-
-  const { data, error } = await supabaseAdmin
+export const GET = withRoute({ action: 'money.read' }, async ({ ctx }) =>
+  unwrap(await supabaseAdmin
     .from('stokvel_groups')
-    .select('*, members:stokvel_members(count)')
-    .eq('tenant_id', tenantId)
+    .select('id, name, contribution_amount, frequency, payout_order, start_date, status, rules, created_at, members:stokvel_members(count)')
+    .eq('tenant_id', ctx.tenantId)
+    .is('deleted_at', null)
     .order('created_at', { ascending: false })
+    .limit(200)) ?? [],
+)
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
-  return NextResponse.json(data)
-}
-
-export async function POST(request: Request) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new NextResponse('Unauthorized', { status: 401 })
-
-  const tenantId = user.app_metadata?.tenant_id as string
-  if (!tenantId) return new NextResponse('No tenant', { status: 400 })
-
-  let body: z.infer<typeof createSchema>
-  try { body = createSchema.parse(await request.json()) } catch (e) {
-    return NextResponse.json({ error: 'Invalid request', detail: e }, { status: 400 })
-  }
-
-  const { data, error } = await supabaseAdmin
+export const POST = withRoute({
+  action: 'money.write',
+  body: createSchema,
+  status: 201,
+  audit: 'stokvel.created',
+  resourceType: 'stokvel_group',
+}, async ({ ctx, body }) => {
+  const data = unwrap(await supabaseAdmin
     .from('stokvel_groups')
     .insert({
-      tenant_id:           tenantId,
+      tenant_id:           ctx.tenantId,
       name:                body.name,
       contribution_amount: body.contributionAmount,
       frequency:           body.frequency,
@@ -56,10 +45,8 @@ export async function POST(request: Request) {
       rules:               body.rules     ?? null,
     })
     .select()
-    .single()
+    .single())
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
-
-  fireBusinessEvent('stokvel.created', tenantId, user.id)
-  return NextResponse.json(data, { status: 201 })
-}
+  fireBusinessEvent('stokvel.created', ctx.tenantId, ctx.userId)
+  return data
+})

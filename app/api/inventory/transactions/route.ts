@@ -1,114 +1,85 @@
-import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
+import { adjustStock } from '@/lib/inventory/stock'
+import { withRoute, unwrap, RouteError } from '@/lib/api/withRoute'
 
 const txSchema = z.object({
   productId:       z.string().uuid(),
   transactionType: z.enum(['receive','sell','adjust','return','damage','transfer']),
-  quantity:        z.number().int(),
-  unitCost:        z.number().nonnegative().optional(),
+  quantity:        z.number().int().refine(n => n !== 0, 'Quantity cannot be zero').refine(n => Math.abs(n) <= 1_000_000, 'Quantity is too large'),
+  unitCost:        z.number().nonnegative().max(100_000_000).optional(),
   reference:       z.string().max(200).optional(),
   notes:           z.string().max(1000).optional(),
 })
 
-export async function GET(request: Request) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new NextResponse('Unauthorized', { status: 401 })
+const listQuery = z.object({
+  productId: z.string().uuid().optional(),
+  from:      z.string().regex(/^\d{4}-\d{2}-\d{2}/).optional(),
+  to:        z.string().regex(/^\d{4}-\d{2}-\d{2}/).optional(),
+})
 
-  const tenantId  = user.app_metadata?.tenant_id as string
-  if (!tenantId)  return new NextResponse('No tenant', { status: 400 })
-
-  const url       = new URL(request.url)
-  const productId = url.searchParams.get('productId')
-  const from      = url.searchParams.get('from')
-  const to        = url.searchParams.get('to')
-
-  let query = supabaseAdmin
+export const GET = withRoute({ action: 'inventory.read', query: listQuery }, async ({ ctx, query }) => {
+  let q = supabaseAdmin
     .from('inventory_transactions')
-    .select('*, product:products(name, sku, unit)')
-    .eq('tenant_id', tenantId)
+    .select('id, product_id, transaction_type, quantity, unit_cost, reference, notes, created_by, created_at, product:products(name, sku, unit)')
+    .eq('tenant_id', ctx.tenantId)
     .order('created_at', { ascending: false })
     .limit(200)
 
-  if (productId) query = query.eq('product_id', productId)
-  if (from)      query = query.gte('created_at', from)
-  if (to)        query = query.lte('created_at', to)
+  if (query.productId) q = q.eq('product_id', query.productId)
+  if (query.from)      q = q.gte('created_at', query.from)
+  if (query.to)        q = q.lte('created_at', query.to)
 
-  const { data, error } = await query
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
-  return NextResponse.json(data)
-}
+  return unwrap(await q) ?? []
+})
 
-export async function POST(request: Request) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new NextResponse('Unauthorized', { status: 401 })
+const OUT = ['sell', 'damage', 'transfer']
+const IN = ['receive', 'return']
 
-  const tenantId = user.app_metadata?.tenant_id as string
-  if (!tenantId) return new NextResponse('No tenant', { status: 400 })
+export const POST = withRoute({
+  action: 'inventory.write',
+  body: txSchema,
+  status: 201,
+  audit: 'inventory.moved',
+  resourceType: 'product',
+}, async ({ ctx, body }) => {
+  // 'adjust' (stocktake correction) keeps its sign — a count can go either way.
+  const delta = OUT.includes(body.transactionType) ? -Math.abs(body.quantity)
+    : IN.includes(body.transactionType) ? Math.abs(body.quantity)
+    : body.quantity
 
-  let body: z.infer<typeof txSchema>
-  try { body = txSchema.parse(await request.json()) } catch (e) {
-    return NextResponse.json({ error: 'Invalid request', detail: e }, { status: 400 })
+  // Move stock first, atomically and tenant-scoped (lib/inventory/stock). The
+  // old code read stock, checked it in JS, wrote the ledger, then wrote
+  // current_stock = (stale read) + delta with no tenant filter — two movements
+  // at once lost one, and a failed stock write left the ledger out of step.
+  const newStock = await adjustStock(ctx.tenantId, body.productId, delta)
+  if (newStock === null) {
+    const exists = unwrap(await supabaseAdmin.from('products').select('id').eq('id', body.productId)
+      .eq('tenant_id', ctx.tenantId).is('deleted_at', null).maybeSingle())
+    throw exists
+      ? new RouteError(422, 'Not enough stock for that movement.', 'insufficient_stock')
+      : new RouteError(404, 'Product not found', 'not_found')
   }
 
-  // Verify product belongs to tenant
-  const { data: product } = await supabaseAdmin
-    .from('products')
-    .select('id, current_stock')
-    .eq('id', body.productId)
-    .eq('tenant_id', tenantId)
+  const { data: tx, error } = await supabaseAdmin
+    .from('inventory_transactions')
+    .insert({
+      tenant_id:        ctx.tenantId,
+      product_id:       body.productId,
+      transaction_type: body.transactionType,
+      quantity:         delta,
+      unit_cost:        body.unitCost   ?? null,
+      reference:        body.reference  ?? null,
+      notes:            body.notes      ?? null,
+      created_by:       ctx.userId,
+    })
+    .select()
     .single()
-
-  if (!product) return new NextResponse('Product not found', { status: 404 })
-
-  // Compute stock delta. 'adjust' (stocktake correction) is the one type
-  // that must go either way, so it keeps the caller's signed quantity as-is
-  // rather than being forced positive — a stocktake finding less stock than
-  // the system thinks needs to correct DOWN, not just up.
-  const sells   = ['sell','damage','transfer']
-  const receives = ['receive','return']
-  let delta = body.quantity
-
-  if (sells.includes(body.transactionType)) {
-    delta = -Math.abs(body.quantity)
-  } else if (receives.includes(body.transactionType)) {
-    delta = Math.abs(body.quantity)
-  }
-  // else 'adjust': delta stays as the raw signed quantity submitted.
-
-  if (product.current_stock + delta < 0) {
-    return NextResponse.json({ error: 'Insufficient stock' }, { status: 422 })
+  if (error) {
+    // Undo the movement so stock and ledger stay in step.
+    await adjustStock(ctx.tenantId, body.productId, -delta).catch(() => null)
+    throw error
   }
 
-  // Insert transaction + update stock atomically via RPC
-  const newStock = product.current_stock + delta
-
-  const [{ data: tx, error: txError }] = await Promise.all([
-    supabaseAdmin
-      .from('inventory_transactions')
-      .insert({
-        tenant_id:        tenantId,
-        product_id:       body.productId,
-        transaction_type: body.transactionType,
-        quantity:         delta,
-        unit_cost:        body.unitCost   ?? null,
-        reference:        body.reference  ?? null,
-        notes:            body.notes      ?? null,
-        created_by:       user.id,
-      })
-      .select()
-      .single(),
-  ])
-
-  if (txError) return NextResponse.json({ error: txError.message }, { status: 400 })
-
-  await supabaseAdmin
-    .from('products')
-    .update({ current_stock: newStock })
-    .eq('id', body.productId)
-
-  return NextResponse.json({ transaction: tx, new_stock: newStock }, { status: 201 })
-}
+  return { id: body.productId, transaction: tx, new_stock: newStock }
+})

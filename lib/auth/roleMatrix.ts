@@ -96,7 +96,9 @@ export const ACTIONS = {
   'payslip.read_own':     MEMBER,
   'inventory.read':       'manage_inventory',
   'inventory.write':      'manage_inventory',
-  'suppliers.write':      'view_financials',
+  // Procurement sits with stock: same permission the suppliers page checks.
+  'suppliers.read':       'manage_inventory',
+  'suppliers.write':      'manage_inventory',
 
   // ── People / HR ─────────────────────────────────────────────────────────
   'staff.read':           'manage_staff',      // staff rows carry salary + ID numbers

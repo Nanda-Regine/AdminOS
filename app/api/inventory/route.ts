@@ -1,87 +1,74 @@
-import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
+import { withRoute, unwrap } from '@/lib/api/withRoute'
+
+// Both handlers used to be open to any logged-in member of the tenant.
 
 const createSchema = z.object({
-  name:            z.string().min(1).max(500),
-  sku:             z.string().max(100).optional(),
+  name:            z.string().trim().min(1).max(500),
+  sku:             z.string().trim().max(100).optional(),
   description:     z.string().max(2000).optional(),
   category:        z.string().max(100).optional(),
-  unitPrice:       z.number().nonnegative().optional(),
-  costPrice:       z.number().nonnegative().optional(),
-  currentStock:    z.number().int().default(0),
-  reorderLevel:    z.number().int().nonnegative().default(0),
-  reorderQuantity: z.number().int().positive().optional(),
-  unit:            z.string().default('unit'),
+  unitPrice:       z.number().nonnegative().max(100_000_000).optional(),
+  costPrice:       z.number().nonnegative().max(100_000_000).optional(),
+  // Opening stock can't be negative (it could before).
+  currentStock:    z.number().int().nonnegative().max(100_000_000).default(0),
+  reorderLevel:    z.number().int().nonnegative().max(100_000_000).default(0),
+  reorderQuantity: z.number().int().positive().max(100_000_000).optional(),
+  unit:            z.string().trim().min(1).max(30).default('unit'),
 })
 
-export async function GET(request: Request) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new NextResponse('Unauthorized', { status: 401 })
+const listQuery = z.object({
+  lowStock: z.enum(['true', 'false']).optional(),
+  category: z.string().max(100).optional(),
+  active:   z.enum(['true', 'false']).optional(),
+})
 
-  const tenantId = user.app_metadata?.tenant_id as string
-  if (!tenantId) return new NextResponse('No tenant', { status: 400 })
-
-  const url      = new URL(request.url)
-  const lowStock = url.searchParams.get('lowStock') === 'true'
-  const category = url.searchParams.get('category')
-  const active   = url.searchParams.get('active')
-
-  let query = supabaseAdmin
+export const GET = withRoute({ action: 'inventory.read', query: listQuery }, async ({ ctx, query }) => {
+  let q = supabaseAdmin
     .from('products')
-    .select('*')
-    .eq('tenant_id', tenantId)
+    .select('id, name, sku, description, category, unit_price, cost_price, current_stock, reorder_level, reorder_quantity, unit, active, image_url, created_at')
+    .eq('tenant_id', ctx.tenantId)
+    .is('deleted_at', null)
     .order('name')
+    .limit(1000)
 
-  if (lowStock)              query = query.filter('current_stock', 'lte', 'reorder_level')
-  if (category)              query = query.eq('category', category)
-  if (active !== null)       query = query.eq('active', active === 'true')
+  if (query.category) q = q.eq('category', query.category)
+  if (query.active)   q = q.eq('active', query.active === 'true')
 
-  const { data, error } = await query
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
-
-  // Flag items that need reordering
-  const enriched = (data ?? []).map(p => ({
+  const enriched = (unwrap(await q) ?? []).map(p => ({
     ...p,
     needs_reorder: p.current_stock <= p.reorder_level && p.reorder_level > 0,
   }))
 
-  return NextResponse.json(enriched)
-}
+  // Column-to-column comparison can't be expressed in a PostgREST filter; the
+  // old `.filter('current_stock', 'lte', 'reorder_level')` compared stock to
+  // the STRING 'reorder_level' and errored on every call.
+  return query.lowStock === 'true' ? enriched.filter(p => p.needs_reorder) : enriched
+})
 
-export async function POST(request: Request) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new NextResponse('Unauthorized', { status: 401 })
-
-  const tenantId = user.app_metadata?.tenant_id as string
-  if (!tenantId) return new NextResponse('No tenant', { status: 400 })
-
-  let body: z.infer<typeof createSchema>
-  try { body = createSchema.parse(await request.json()) } catch (e) {
-    return NextResponse.json({ error: 'Invalid request', detail: e }, { status: 400 })
-  }
-
-  const { data, error } = await supabaseAdmin
+export const POST = withRoute({
+  action: 'inventory.write',
+  body: createSchema,
+  status: 201,
+  audit: 'product.created',
+  resourceType: 'product',
+}, async ({ ctx, body }) =>
+  unwrap(await supabaseAdmin
     .from('products')
     .insert({
-      tenant_id:       tenantId,
-      name:            body.name,
-      sku:             body.sku             ?? null,
-      description:     body.description     ?? null,
-      category:        body.category        ?? null,
-      unit_price:      body.unitPrice       ?? null,
-      cost_price:      body.costPrice       ?? null,
-      current_stock:   body.currentStock,
-      reorder_level:   body.reorderLevel,
+      tenant_id:        ctx.tenantId,
+      name:             body.name,
+      sku:              body.sku || null,
+      description:      body.description     ?? null,
+      category:         body.category        ?? null,
+      unit_price:       body.unitPrice       ?? null,
+      cost_price:       body.costPrice       ?? null,
+      current_stock:    body.currentStock,
+      reorder_level:    body.reorderLevel,
       reorder_quantity: body.reorderQuantity ?? null,
-      unit:            body.unit,
+      unit:             body.unit,
     })
     .select()
-    .single()
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
-  return NextResponse.json(data, { status: 201 })
-}
+    .single()),
+)

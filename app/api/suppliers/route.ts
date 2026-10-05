@@ -1,69 +1,59 @@
-import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
+import { withRoute, unwrap } from '@/lib/api/withRoute'
+
+// Both handlers used to be open to any logged-in member of the tenant.
 
 const createSchema = z.object({
-  name:          z.string().min(1).max(300),
+  name:          z.string().trim().min(1).max(300),
   category:      z.string().max(100).optional(),
   phone:         z.string().max(20).optional(),
-  email:         z.string().email().optional(),
-  website:       z.string().url().optional(),
+  email:         z.string().email().max(320).optional(),
+  website:       z.string().url().max(500).optional(),
   contactPerson: z.string().max(200).optional(),
-  paymentTerms:  z.number().int().nonnegative().default(30),
+  paymentTerms:  z.number().int().nonnegative().max(365).default(30),
+  // Typo kept: `bbbbeeLlevel` is the shipped contract the Add Supplier form sends.
   bbbbeeLlevel:  z.number().int().min(1).max(8).optional(),
   womenOwned:    z.boolean().default(false),
   youthOwned:    z.boolean().default(false),
   notes:         z.string().max(2000).optional(),
 })
 
-export async function GET(request: Request) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new NextResponse('Unauthorized', { status: 401 })
+const listQuery = z.object({
+  category:   z.string().max(100).optional(),
+  bbbee:      z.coerce.number().int().min(1).max(8).optional(),   // max B-BBEE level
+  womenOwned: z.enum(['true', 'false']).optional(),
+  youthOwned: z.enum(['true', 'false']).optional(),
+})
 
-  const tenantId = user.app_metadata?.tenant_id as string
-  if (!tenantId) return new NextResponse('No tenant', { status: 400 })
-
-  const url      = new URL(request.url)
-  const category = url.searchParams.get('category')
-  const bbbee    = url.searchParams.get('bbbee')        // filter by max BBBEE level
-  const womenOwned = url.searchParams.get('womenOwned') === 'true'
-  const youthOwned = url.searchParams.get('youthOwned') === 'true'
-
-  let query = supabaseAdmin
+export const GET = withRoute({ action: 'suppliers.read', query: listQuery }, async ({ ctx, query }) => {
+  let q = supabaseAdmin
     .from('suppliers')
-    .select('*')
-    .eq('tenant_id', tenantId)
+    .select('id, name, category, phone, email, website, contact_person, payment_terms, rating, is_community_verified, bbbbee_level, women_owned, youth_owned, notes, created_at')
+    .eq('tenant_id', ctx.tenantId)
+    .is('deleted_at', null)
     .order('name')
+    .limit(500)
 
-  if (category)  query = query.eq('category', category)
-  if (bbbee)     query = query.lte('bbbbee_level', parseInt(bbbee))
-  if (womenOwned) query = query.eq('women_owned', true)
-  if (youthOwned) query = query.eq('youth_owned', true)
+  if (query.category)              q = q.eq('category', query.category)
+  if (query.bbbee)                 q = q.lte('bbbbee_level', query.bbbee)
+  if (query.womenOwned === 'true') q = q.eq('women_owned', true)
+  if (query.youthOwned === 'true') q = q.eq('youth_owned', true)
 
-  const { data, error } = await query
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
-  return NextResponse.json(data)
-}
+  return unwrap(await q) ?? []
+})
 
-export async function POST(request: Request) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new NextResponse('Unauthorized', { status: 401 })
-
-  const tenantId = user.app_metadata?.tenant_id as string
-  if (!tenantId) return new NextResponse('No tenant', { status: 400 })
-
-  let body: z.infer<typeof createSchema>
-  try { body = createSchema.parse(await request.json()) } catch (e) {
-    return NextResponse.json({ error: 'Invalid request', detail: e }, { status: 400 })
-  }
-
-  const { data, error } = await supabaseAdmin
+export const POST = withRoute({
+  action: 'suppliers.write',
+  body: createSchema,
+  status: 201,
+  audit: 'supplier.created',
+  resourceType: 'supplier',
+}, async ({ ctx, body }) =>
+  unwrap(await supabaseAdmin
     .from('suppliers')
     .insert({
-      tenant_id:      tenantId,
+      tenant_id:      ctx.tenantId,
       name:           body.name,
       category:       body.category      ?? null,
       phone:          body.phone         ?? null,
@@ -77,8 +67,5 @@ export async function POST(request: Request) {
       notes:          body.notes         ?? null,
     })
     .select()
-    .single()
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
-  return NextResponse.json(data, { status: 201 })
-}
+    .single()),
+)
