@@ -24,10 +24,12 @@ const newRow = (): ProductRow => ({ key: `r${++rowSeq}`, productId: '', quantity
  * amount for a service. Posts to the same POST /api/invoices with
  * channel:'cash_sale', which forces status=paid server-side.
  */
-export function QuickSaleModal({ contacts, products, defaultCategory }: {
+export function QuickSaleModal({ contacts, products, defaultCategory, vatRegistered }: {
   contacts: Contact[]
   products: Product[]
   defaultCategory: string
+  /** Only a business with a VAT number on file may charge VAT (see app/api/invoices). */
+  vatRegistered: boolean
 }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
@@ -38,7 +40,7 @@ export function QuickSaleModal({ contacts, products, defaultCategory }: {
   const [contactId, setContactId] = useState('')
   const [category, setCategory] = useState(defaultCategory)
   const [paymentMethod, setPaymentMethod] = useState('cash')
-  const [includeVat, setIncludeVat] = useState(true)
+  const [includeVat, setIncludeVat] = useState(vatRegistered)
   const [notes, setNotes] = useState('')
 
   const [rows, setRows] = useState<ProductRow[]>([newRow()])
@@ -217,11 +219,13 @@ export function QuickSaleModal({ contacts, products, defaultCategory }: {
             </FormField>
           </div>
 
-          <label className="flex items-center gap-2 cursor-pointer select-none">
-            <input type="checkbox" checked={includeVat} onChange={e => setIncludeVat(e.target.checked)}
-              className="w-4 h-4 rounded accent-indigo-600" />
-            <span className="text-sm" style={{ color: 'var(--text-primary)' }}>Include 15% VAT</span>
-          </label>
+          {vatRegistered && (
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input type="checkbox" checked={includeVat} onChange={e => setIncludeVat(e.target.checked)}
+                className="w-4 h-4 rounded accent-indigo-600" />
+              <span className="text-sm" style={{ color: 'var(--text-primary)' }}>Include 15% VAT</span>
+            </label>
+          )}
 
           {subtotal > 0 && (
             <div className="rounded-xl px-4 py-3 text-sm space-y-1" style={{ background: 'var(--surface-2)', border: '1px solid var(--border)' }}>

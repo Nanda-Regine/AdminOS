@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { daysOverdue } from '@/lib/debt/overdue'
 
 type ReviewInvoice = {
   id: string
@@ -10,7 +11,6 @@ type ReviewInvoice = {
   amount: number
   amount_paid: number | null
   due_date: string | null
-  days_overdue: number | null
   recovery_tier: number | null
   reference: string | null
 }
@@ -66,7 +66,7 @@ export function RecoveryReviewQueue() {
               </div>
               <div className="min-w-[120px]">
                 <p className="font-semibold text-[var(--text-primary)]">R{owed.toLocaleString('en-ZA')}</p>
-                <p className="text-xs text-red-600">{inv.days_overdue ?? 0} days overdue</p>
+                <p className="text-xs text-red-600">{daysOverdue(inv.due_date)} days overdue</p>
               </div>
               <div className="text-xs text-[var(--text-muted)] min-w-[90px]">
                 Ref {inv.reference || inv.id.slice(0, 8)}

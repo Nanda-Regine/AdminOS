@@ -1,36 +1,23 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import { checkPermission } from '@/lib/auth/permissions'
 import { generateReceiptHTML } from '@/lib/invoices/receiptTemplate'
+import { withRoute, unwrap, conflict } from '@/lib/api/withRoute'
 
 // GET /api/invoices/[id]/receipt — printable payment-receipt HTML.
 // Only available once the invoice has a payment recorded against it.
 // Add ?download=true for Content-Disposition: attachment.
-export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new NextResponse('Unauthorized', { status: 401 })
+export const GET = withRoute({ action: 'invoices.read' }, async ({ request, ctx, params }) => {
+  const { tenantId } = ctx
 
-  const tenantId = user.app_metadata?.tenant_id as string
-  if (!tenantId) return new NextResponse('No tenant', { status: 400 })
-
-  if (!(await checkPermission('manage_invoices'))) return new NextResponse('Forbidden', { status: 403 })
-
-  const { id } = await params
-
-  const { data: invoice, error } = await supabaseAdmin
+  const invoice = unwrap(await supabaseAdmin
     .from('invoices')
     .select('*, contact:contacts(name:full_name)')
-    .eq('id', id)
+    .eq('id', params.id)
     .eq('tenant_id', tenantId)
-    .single()
+    .is('deleted_at', null)
+    .maybeSingle(), { required: true, what: 'Invoice not found' })
 
-  if (error || !invoice) return new NextResponse('Not found', { status: 404 })
-
-  if (!invoice.amount_paid || invoice.amount_paid <= 0) {
-    return NextResponse.json({ error: 'No payment has been recorded against this invoice yet.' }, { status: 409 })
-  }
+  if (!(Number(invoice.amount_paid) > 0)) throw conflict('No payment has been recorded against this invoice yet.')
 
   const { data: tenant } = await supabaseAdmin
     .from('tenants')
@@ -53,7 +40,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     companyVatNumber: settings?.vat_number ?? null,
     logoUrl:          settings?.logo_url ?? null,
     paidByName:       contact?.name ?? invoice.contact_name ?? 'Customer',
-    amountPaid:       invoice.amount_paid,
+    amountPaid:       Number(invoice.amount_paid),
     isPartial:        invoice.status !== 'paid',
   })
 
@@ -70,4 +57,4 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   }
 
   return new NextResponse(html, { headers })
-}
+})

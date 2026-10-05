@@ -1,31 +1,21 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import { checkPermission } from '@/lib/auth/permissions'
 import { generateInvoiceHTML, type InvoiceLineItem } from '@/lib/invoices/invoiceTemplate'
+import { outstanding } from '@/lib/invoices/status'
+import { withRoute, unwrap } from '@/lib/api/withRoute'
 
 // GET /api/invoices/[id]/document — printable tax invoice HTML.
 // Add ?download=true for Content-Disposition: attachment.
-export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new NextResponse('Unauthorized', { status: 401 })
+export const GET = withRoute({ action: 'invoices.read' }, async ({ request, ctx, params }) => {
+  const { tenantId } = ctx
 
-  const tenantId = user.app_metadata?.tenant_id as string
-  if (!tenantId) return new NextResponse('No tenant', { status: 400 })
-
-  if (!(await checkPermission('manage_invoices'))) return new NextResponse('Forbidden', { status: 403 })
-
-  const { id } = await params
-
-  const { data: invoice, error } = await supabaseAdmin
+  const invoice = unwrap(await supabaseAdmin
     .from('invoices')
     .select('*, contact:contacts(name:full_name, email, phone)')
-    .eq('id', id)
+    .eq('id', params.id)
     .eq('tenant_id', tenantId)
-    .single()
-
-  if (error || !invoice) return new NextResponse('Not found', { status: 404 })
+    .is('deleted_at', null)
+    .maybeSingle(), { required: true, what: 'Invoice not found' })
 
   const { data: tenant } = await supabaseAdmin
     .from('tenants')
@@ -51,9 +41,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     lineItems:         (invoice.line_items as InvoiceLineItem[] | null) ?? [],
     subtotal:          invoice.subtotal ?? invoice.amount ?? 0,
     vatAmount:         invoice.vat_amount ?? 0,
-    total:             invoice.total ?? invoice.amount ?? 0,
+    // amount is canonical; `total` is vestigial and amount_due is stale on older rows.
+    total:             invoice.amount ?? invoice.total ?? 0,
     amountPaid:        invoice.amount_paid ?? 0,
-    amountDue:         invoice.amount_due ?? Math.max(0, (invoice.total ?? invoice.amount ?? 0) - (invoice.amount_paid ?? 0)),
+    amountDue:         invoice.status === 'cancelled' ? 0 : outstanding(invoice),
     notes:             invoice.notes ?? null,
     bankName:          settings?.bank_name ?? null,
     bankAccountHolder: settings?.bank_account_holder ?? null,
@@ -74,4 +65,4 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   }
 
   return new NextResponse(html, { headers })
-}
+})

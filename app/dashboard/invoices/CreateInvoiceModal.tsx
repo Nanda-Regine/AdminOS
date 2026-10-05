@@ -12,9 +12,11 @@ interface Contact {
 
 interface Props {
   contacts: Contact[]
+  /** Only a business with a VAT number on file may charge VAT (see app/api/invoices). */
+  vatRegistered: boolean
 }
 
-export function CreateInvoiceModal({ contacts }: Props) {
+export function CreateInvoiceModal({ contacts, vatRegistered }: Props) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [open, setOpen] = useState(false)
@@ -45,7 +47,7 @@ export function CreateInvoiceModal({ contacts }: Props) {
   const [description, setDescription] = useState('')
   const [unitPrice, setUnitPrice] = useState('')
   const [quantity, setQuantity] = useState('1')
-  const [includeVat, setIncludeVat] = useState(true)
+  const [includeVat, setIncludeVat] = useState(vatRegistered)
   const [dueDate, setDueDate] = useState('')
   const [notes, setNotes] = useState('')
   const [reference, setReference] = useState('')
@@ -221,18 +223,25 @@ export function CreateInvoiceModal({ contacts }: Props) {
             </FormField>
           </div>
 
-          {/* VAT toggle */}
-          <label className="flex items-center gap-2 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={includeVat}
-              onChange={(e) => setIncludeVat(e.target.checked)}
-              className="w-4 h-4 rounded accent-indigo-600"
-            />
-            <span className="text-sm" style={{ color: 'var(--text-primary)' }}>
-              Include 15% VAT
-            </span>
-          </label>
+          {/* VAT toggle — only for VAT-registered businesses */}
+          {vatRegistered ? (
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={includeVat}
+                onChange={(e) => setIncludeVat(e.target.checked)}
+                className="w-4 h-4 rounded accent-indigo-600"
+              />
+              <span className="text-sm" style={{ color: 'var(--text-primary)' }}>
+                Include 15% VAT
+              </span>
+            </label>
+          ) : (
+            <p className="text-xs" style={{ color: 'var(--text-dim)' }}>
+              No VAT charged — only VAT-registered businesses may. Registered? Add your VAT number in{' '}
+              <a href="/dashboard/settings" className="underline">Settings</a>.
+            </p>
+          )}
 
           {/* Totals preview */}
           {price > 0 && (

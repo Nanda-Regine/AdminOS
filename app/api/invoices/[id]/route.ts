@@ -1,116 +1,164 @@
-import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
 import { fireBusinessEvent } from '@/lib/academy/knowledgeGraph'
-import { checkPermission } from '@/lib/auth/permissions'
 import { handleInvoicePaid } from '@/lib/invoices/onPaid'
+import { paymentState } from '@/lib/invoices/status'
+import { softDelete } from '@/lib/db/softDelete'
+import { withRoute, unwrap, notFound, conflict, badRequest } from '@/lib/api/withRoute'
 
-const updateSchema = z.object({
-  status:   z.enum(['draft','sent','unpaid','partial','paid','overdue','cancelled']).optional(),
-  dueDate:  z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  notes:    z.string().max(2000).optional(),
-  amountPaid: z.number().nonnegative().optional(),
-})
-
-export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new NextResponse('Unauthorized', { status: 401 })
-
-  const tenantId = user.app_metadata?.tenant_id as string
-  if (!tenantId) return new NextResponse('No tenant', { status: 400 })
-
-  if (!(await checkPermission('manage_invoices'))) return new NextResponse('Forbidden', { status: 403 })
-
-  const { id } = await params
-
-  const { data, error } = await supabaseAdmin
+export const GET = withRoute({ action: 'invoices.read' }, async ({ ctx, params }) =>
+  unwrap(await supabaseAdmin
     .from('invoices')
     .select('*, contact:contacts(name:full_name, email, phone)')
-    .eq('id', id)
-    .eq('tenant_id', tenantId)
-    .single()
+    .eq('id', params.id)
+    .eq('tenant_id', ctx.tenantId)
+    .is('deleted_at', null)
+    .maybeSingle(), { required: true, what: 'Invoice not found' }),
+)
 
-  if (error) return NextResponse.json({ error: 'Invoice not found' }, { status: 404 })
-  return NextResponse.json(data)
+/**
+ * One change per request:
+ *   { payment: { amount, method? } }  record money received (adds to amount_paid)
+ *   { amountPaid }                    set the cumulative amount paid (correction)
+ *   { status: 'sent' }                issue a draft
+ *   { status: 'paid' }                mark settled in full
+ *   { status: 'cancelled' }           void an unpaid invoice
+ *   { status: 'in_collections' }      handed to a third party — AdminOS stops chasing
+ *   { dueDate } / { notes }           edit
+ *
+ * unpaid/partial/overdue are derived, not set by hand: the old schema let a
+ * client set 'paid' without touching amount_paid, so a "paid" invoice still
+ * showed its full amount_due on documents, AR and the health score.
+ */
+const patchSchema = z.object({
+  status:     z.enum(['sent', 'paid', 'cancelled', 'in_collections']).optional(),
+  dueDate:    z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  notes:      z.string().max(2000).optional(),
+  amountPaid: z.number().nonnegative().optional(),
+  payment:    z.object({
+    amount: z.number().positive(),
+    method: z.enum(['cash', 'card', 'eft', 'mobile_money', 'other']).optional(),
+  }).optional(),
+}).refine((b) => [b.status, b.amountPaid, b.payment].filter((v) => v !== undefined).length <= 1, {
+  message: 'Send one of status, amountPaid or payment per request.',
+})
+
+const TRANSITIONS: Record<string, readonly string[]> = {
+  sent:           ['draft'],
+  paid:           ['sent', 'unpaid', 'partial', 'overdue', 'in_collections'],
+  cancelled:      ['draft', 'sent', 'unpaid', 'overdue'],          // not once money has come in
+  in_collections: ['sent', 'unpaid', 'partial', 'overdue'],
 }
+const PAYABLE = ['sent', 'unpaid', 'partial', 'overdue', 'in_collections']
 
-export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new NextResponse('Unauthorized', { status: 401 })
+export const PATCH = withRoute({
+  action: 'invoices.write',
+  body: patchSchema,
+  resourceType: 'invoice',
+}, async ({ ctx, body, params, audit }) => {
+  const { tenantId, userId } = ctx
+  const id = params.id
 
-  const tenantId = user.app_metadata?.tenant_id as string
-  if (!tenantId) return new NextResponse('No tenant', { status: 400 })
-
-  if (!(await checkPermission('manage_invoices'))) return new NextResponse('Forbidden', { status: 403 })
-
-  const { id } = await params
-
-  let body: z.infer<typeof updateSchema>
-  try { body = updateSchema.parse(await request.json()) } catch (e) {
-    return NextResponse.json({ error: 'Invalid request', detail: e }, { status: 400 })
-  }
-
-  // Snapshot the paid status before applying any update — guards the
-  // payment-receipt thank-you (and the owner alert / formalization bump)
-  // from re-firing on a later PATCH that doesn't actually change payment
-  // state (e.g. editing notes on an invoice that was already paid).
-  const { data: before } = await supabaseAdmin
+  const before = unwrap(await supabaseAdmin
     .from('invoices')
-    .select('status, amount, total')
+    .select('id, status, amount, amount_paid')
     .eq('id', id)
     .eq('tenant_id', tenantId)
-    .maybeSingle()
-  const wasAlreadyPaid = before?.status === 'paid'
+    .is('deleted_at', null)
+    .maybeSingle(), { required: true, what: 'Invoice not found' })
 
+  const amount = Number(before.amount ?? 0)
+  const paidBefore = Number(before.amount_paid ?? 0)
+  const now = new Date().toISOString()
   const updates: Record<string, unknown> = {}
-  if (body.dueDate  !== undefined) updates.due_date  = body.dueDate
-  if (body.notes    !== undefined) updates.notes     = body.notes
-  if (body.status   !== undefined) {
+  let auditAction = 'invoice.updated'
+
+  if (body.dueDate !== undefined) updates.due_date = body.dueDate
+  if (body.notes !== undefined) updates.notes = body.notes
+
+  if (body.status) {
+    if (before.status === body.status) throw conflict(`This invoice is already ${body.status.replace('_', ' ')}.`)
+    if (!TRANSITIONS[body.status].includes(before.status)) {
+      throw conflict(`A ${before.status.replace('_', ' ')} invoice can't be marked ${body.status.replace('_', ' ')}.`)
+    }
     updates.status = body.status
-    if (body.status === 'sent') updates.sent_at = new Date().toISOString()
-    if (body.status === 'paid') updates.paid_at = new Date().toISOString()
+    if (body.status === 'sent') updates.sent_at = now
+    if (body.status === 'paid') {
+      Object.assign(updates, { amount_paid: amount, amount_due: 0, paid_at: now })
+    }
+    if (body.status === 'cancelled') updates.amount_due = 0
+    auditAction = `invoice.${body.status}`
   }
 
-  if (body.amountPaid !== undefined && before) {
-    // `total` is what app/api/invoices/route.ts's POST writes alongside the
-    // canonical `amount` (always kept equal at creation) — `amount_due` is a
-    // real, separately-read column (healthScore.ts, boardPack.ts, invoice
-    // documents), so it must stay in sync whenever a payment is recorded.
-    const invoiceTotal = Number(before.total ?? before.amount)
-    const remaining = invoiceTotal - body.amountPaid
-    updates.amount_paid = body.amountPaid
-    updates.amount_due  = Math.max(0, remaining)
-    if (remaining <= 0)      updates.status = 'paid'
-    else if (body.amountPaid > 0) updates.status = 'partial'
+  if (body.payment || body.amountPaid !== undefined) {
+    if (!PAYABLE.includes(before.status)) {
+      throw conflict(`Payments can't be recorded on a ${before.status.replace('_', ' ')} invoice.`)
+    }
+    const newPaid = body.payment ? Math.round((paidBefore + body.payment.amount) * 100) / 100 : body.amountPaid!
+    if (newPaid > amount + 0.005) {
+      throw badRequest(`That's more than the invoice total. R${(amount - paidBefore).toFixed(2)} is outstanding.`)
+    }
+    const state = paymentState(amount, newPaid)
+    Object.assign(updates, { amount_paid: state.amount_paid, amount_due: state.amount_due })
+    // A correction back to 0 returns it to 'unpaid'; in_collections stays put until paid in full.
+    updates.status = state.status ?? 'unpaid'
+    if (before.status === 'in_collections' && state.status !== 'paid') updates.status = 'in_collections'
+    if (state.status === 'paid') updates.paid_at = now
+    if (body.payment?.method) updates.payment_method = body.payment.method
+    auditAction = body.payment ? 'invoice.payment_recorded' : 'invoice.payment_corrected'
   }
 
-  const { data, error } = await supabaseAdmin
+  if (Object.keys(updates).length === 0) throw badRequest('Nothing to change.')
+
+  // Conditional on amount_paid not having moved since we read it, so two people
+  // recording the same payment at once can't both add it.
+  const data = unwrap(await supabaseAdmin
     .from('invoices')
     .update(updates)
     .eq('id', id)
     .eq('tenant_id', tenantId)
+    .eq('amount_paid', paidBefore)
     .select()
-    .single()
+    .maybeSingle())
+  if (!data) throw conflict('This invoice was just changed by someone else — refresh and try again.')
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  await audit({
+    action: auditAction,
+    resourceType: 'invoice',
+    resourceId: id,
+    metadata: {
+      from_status: before.status,
+      to_status: data.status,
+      ...(body.payment ? { payment: body.payment.amount } : {}),
+      ...(body.amountPaid !== undefined ? { amount_paid: { from: paidBefore, to: body.amountPaid } } : {}),
+    },
+  })
 
-  // Fire events for status changes
-  if (body.status === 'sent') fireBusinessEvent('invoice.sent', tenantId, user.id)
-  const justPaid = !wasAlreadyPaid && data.status === 'paid'
-  if (justPaid) {
+  if (body.status === 'sent') fireBusinessEvent('invoice.sent', tenantId, userId)
+  if (before.status !== 'paid' && data.status === 'paid') {
     await handleInvoicePaid({
-      id: data.id,
-      tenant_id: tenantId,
-      contact_name: data.contact_name,
-      contact_phone: data.contact_phone,
-      amount: data.amount,
-      amount_paid: data.amount_paid,
-      reference: data.reference,
-    }, user.id)
+      id: data.id, tenant_id: tenantId, contact_name: data.contact_name, contact_phone: data.contact_phone,
+      amount: data.amount, amount_paid: data.amount_paid, reference: data.reference,
+    }, userId)
   }
 
-  return NextResponse.json(data)
-}
+  return data
+})
+
+// Drafts only — anything that has been sent is a tax document and is cancelled, not deleted.
+export const DELETE = withRoute({
+  action: 'invoices.write',
+  audit: 'invoice.deleted',
+  resourceType: 'invoice',
+}, async ({ ctx, params }) => {
+  const inv = unwrap(await supabaseAdmin
+    .from('invoices')
+    .select('id, status')
+    .eq('id', params.id)
+    .eq('tenant_id', ctx.tenantId)
+    .is('deleted_at', null)
+    .maybeSingle(), { required: true, what: 'Invoice not found' })
+  if (inv.status !== 'draft') throw conflict('Only drafts can be deleted. Cancel a sent invoice instead.')
+  if (!(await softDelete(supabaseAdmin, 'invoices', { id: params.id, tenantId: ctx.tenantId }))) throw notFound('Invoice not found')
+  return { id: params.id, deleted: true }
+})
