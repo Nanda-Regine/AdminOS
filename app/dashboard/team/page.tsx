@@ -11,14 +11,18 @@ import { checkPermission } from '@/lib/auth/permissions'
 
 export const dynamic = 'force-dynamic'
 
-export default async function TeamPage() {
+export default async function TeamPage({ searchParams }: { searchParams: Promise<{ notice?: string }> }) {
+  const { notice } = await searchParams
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  // Staff roster with phone numbers, department and clock-in status, plus
-  // leave approve/decline actions — the same HR-record boundary as Payroll.
-  if (!(await checkPermission('manage_staff'))) notFound()
+  // Roster, clock-in status and the leave queue. Leave approvers (managers)
+  // belong here: the People cockpit sends them here to approve leave, and the
+  // page used to 404 them because it demanded manage_staff. Building shifts
+  // stays HR-only.
+  const [canManage, canApprove] = await Promise.all([checkPermission('manage_staff'), checkPermission('approve_leave')])
+  if (!canManage && !canApprove) notFound()
 
   const tenantId = user.app_metadata?.tenant_id as string
 
@@ -32,13 +36,18 @@ export default async function TeamPage() {
       .from('staff')
       .select('id, full_name, role, department, phone, employment_type, active')
       .eq('tenant_id', tenantId)
-      .order('full_name'),
+      .is('deleted_at', null)
+      .eq('active', true)
+      .order('full_name')
+      .limit(1000),
     supabaseAdmin
       .from('leave_requests')
-      .select('*, staff(full_name)')
+      .select('id, start_date, end_date, days, reason, staff(full_name)')
       .eq('tenant_id', tenantId)
       .eq('status', 'pending')
-      .order('created_at', { ascending: false }),
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false })
+      .limit(100),
     supabaseAdmin
       .from('clock_events')
       .select('staff_id, event_type, created_at')
@@ -52,12 +61,15 @@ export default async function TeamPage() {
       .eq('tenant_id', tenantId)
       .gte('shift_date', todayISO)
       .lte('shift_date', sevenDaysLater)
-      .order('shift_date'),
+      .is('deleted_at', null)
+      .order('shift_date')
+      .order('start_time'),
     supabaseAdmin
       .from('leave_requests')
       .select('staff_id')
       .eq('tenant_id', tenantId)
       .eq('status', 'approved')
+      .is('deleted_at', null)
       .lte('start_date', todayISO)
       .gte('end_date', todayISO),
   ])
@@ -94,9 +106,15 @@ export default async function TeamPage() {
       <TopBar
         title="Team"
         subtitle={`${staff.length} team member${staff.length !== 1 ? 's' : ''}`}
-        actions={<CreateShiftModal staff={staff.map((s) => ({ id: s.id as string, full_name: (s.full_name as string) ?? null }))} />}
+        actions={canManage ? <CreateShiftModal staff={staff.map((s) => ({ id: s.id as string, full_name: (s.full_name as string) ?? null }))} /> : undefined}
       />
       <div className="p-4 md:p-6 space-y-6">
+
+        {notice && (
+          <div role="status" className="p-3 rounded-lg text-sm border" style={{ background: 'rgba(245,158,11,0.1)', borderColor: 'rgba(245,158,11,0.35)', color: 'var(--text-primary)' }}>
+            {notice}
+          </div>
+        )}
 
         {/* Stat cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -160,7 +178,7 @@ export default async function TeamPage() {
                 >
                   <div>
                     <p className="text-sm font-medium text-[var(--text-primary)]">
-                      {(req.staff as { full_name: string } | null)?.full_name || 'Staff member'}
+                      {(req.staff as unknown as { full_name: string } | null)?.full_name || 'Staff member'}
                     </p>
                     <p className="text-xs text-[var(--text-muted)]">
                       {req.start_date} &rarr; {req.end_date}
@@ -270,7 +288,7 @@ export default async function TeamPage() {
             {staff.length === 0 && (
               <div className="col-span-3 text-center py-12 text-[var(--text-dim)]">
                 <p className="text-3xl mb-2">👥</p>
-                <p className="text-sm">No staff added yet. Add team members in Settings.</p>
+                <p className="text-sm">No staff added yet. Add team members on the Staff page.</p>
               </div>
             )}
           </div>

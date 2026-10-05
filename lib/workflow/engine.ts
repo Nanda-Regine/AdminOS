@@ -273,10 +273,13 @@ const steps = {
     const history: WellnessScore[]      = Array.isArray(staff.wellness_scores) ? staff.wellness_scores : []
     const updatedScores: WellnessScore[] = [...history.slice(-11), newEntry]
 
-    await supabaseAdmin
+    const { error: saveErr } = await supabaseAdmin
       .from('staff')
       .update({ wellness_scores: updatedScores })
       .eq('id', staff.id)
+      .eq('tenant_id', ctx.tenant.id)
+    // Was unchecked — when the burnout trigger errored, check-ins silently stopped saving.
+    if (saveErr) console.error('[wellness] failed to save check-in', { staffId: staff.id, code: saveErr.code })
 
     // If the score is critically low, send a warm follow-up immediately
     if (score <= 2) {

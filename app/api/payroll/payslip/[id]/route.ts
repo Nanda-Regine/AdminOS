@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { renderPayslip, PAYSLIP_SELECT, HTML_HEADERS } from '@/lib/payroll/renderPayslip'
 import { withRoute, notFound, unwrap, RouteError } from '@/lib/api/withRoute'
 import { can } from '@/lib/auth/roleMatrix'
+import { ownStaffId } from '@/lib/people/ownStaff'
 
 // GET /api/payroll/payslip/[id]
 // Printable HTML payslip for a signed-in user. Employees see only their own;
@@ -24,15 +25,12 @@ export const GET = withRoute({ action: 'payslip.read_own' }, async ({ request, c
   // Employees can only view their own. The caller's staff record is resolved
   // from staff.user_id (which they cannot forge), never from user_metadata.
   if (!can(ctx, 'payroll.read')) {
-    const { data: ownStaff } = await supabaseAdmin
-      .from('staff')
-      .select('id')
-      .eq('tenant_id', tenantId)
-      .eq('user_id', userId)
-      .maybeSingle()
-    if (!ownStaff || ownStaff.id !== (payslip as { staff_id: string }).staff_id) {
+    if ((await ownStaffId(tenantId, userId)) !== (payslip as { staff_id: string }).staff_id) {
       throw new RouteError(403, 'You can only view your own payslip.', 'forbidden')
     }
+    // …and only once the run is paid, not while payroll is still reviewing it.
+    const run = (payslip as { payroll_run?: { status?: string } | null }).payroll_run
+    if (run?.status !== 'paid') throw notFound()
   }
 
   const html = await renderPayslip(payslip as unknown as Record<string, unknown>, { masked: false })

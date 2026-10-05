@@ -1,96 +1,54 @@
-import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
-import { requirePermission } from '@/lib/auth/permissions'
+import { withRoute, unwrap, notFound } from '@/lib/api/withRoute'
+import { isTenantStaff } from '@/lib/people/ownStaff'
 
 const createSchema = z.object({
   staffId:      z.string().uuid(),
   reviewPeriod: z.string().max(50).optional(),
-  ratings:      z.record(z.string(), z.number().min(1).max(5)).optional(),
+  ratings:      z.record(z.string().max(100), z.number().min(1).max(5)).optional(),
   comments:     z.string().max(5000).optional(),
   goalsSet:     z.array(z.object({
-    title:       z.string(),
-    target_date: z.string().optional(),
-  })).optional(),
+    title:       z.string().trim().min(1).max(300),
+    target_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  })).max(50).optional(),
 })
 
-export async function GET(request: Request) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new NextResponse('Unauthorized', { status: 401 })
+const listQuery = z.object({ staffId: z.string().uuid().optional() })
+const COLUMNS = 'id, staff_id, reviewer_id, review_period, ratings, comments, goals_set, status, created_at'
 
-  const tenantId = user.app_metadata?.tenant_id as string
-  if (!tenantId) return new NextResponse('No tenant', { status: 400 })
-
-  try { await requirePermission('manage_staff') } catch {
-    return new NextResponse('Forbidden', { status: 403 })
-  }
-
-  const url     = new URL(request.url)
-  const staffId = url.searchParams.get('staffId')
-
-  let query = supabaseAdmin
+export const GET = withRoute({ action: 'hr.records', query: listQuery }, async ({ ctx, query }) => {
+  let q = supabaseAdmin
     .from('performance_reviews')
-    .select('*, staff(full_name, job_title)')
-    .eq('tenant_id', tenantId)
+    .select(`${COLUMNS}, staff(full_name, job_title)`)
+    .eq('tenant_id', ctx.tenantId)
+    .is('deleted_at', null)
     .order('created_at', { ascending: false })
+    .limit(500)
+  if (query.staffId) q = q.eq('staff_id', query.staffId)
+  return unwrap(await q) ?? []
+})
 
-  if (staffId) query = query.eq('staff_id', staffId)
-
-  const { data, error } = await query
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
-
-  return NextResponse.json(data)
-}
-
-export async function POST(request: Request) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new NextResponse('Unauthorized', { status: 401 })
-
-  const tenantId = user.app_metadata?.tenant_id as string
-  if (!tenantId) return new NextResponse('No tenant', { status: 400 })
-
-  try { await requirePermission('manage_staff') } catch {
-    return new NextResponse('Forbidden', { status: 403 })
-  }
-
-  let body: z.infer<typeof createSchema>
-  try {
-    body = createSchema.parse(await request.json())
-  } catch (e) {
-    return NextResponse.json({ error: 'Invalid request', detail: e }, { status: 400 })
-  }
-
-  // staffId is caller-supplied. Confirm it belongs to this tenant before writing
-  // a review that references it — the GET handler embeds staff(full_name,
-  // job_title) via an RLS-bypassing join, so an unvalidated foreign id would
-  // leak another tenant's staff details.
-  const { data: staffRow } = await supabaseAdmin
-    .from('staff')
-    .select('id')
-    .eq('id', body.staffId)
-    .eq('tenant_id', tenantId)
-    .maybeSingle()
-  if (!staffRow) return NextResponse.json({ error: 'Staff member not found' }, { status: 404 })
-
-  const { data, error } = await supabaseAdmin
+export const POST = withRoute({
+  action: 'hr.records',
+  body: createSchema,
+  status: 201,
+  audit: 'performance_review.created',
+  resourceType: 'performance_review',
+}, async ({ ctx, body }) => {
+  if (!(await isTenantStaff(ctx.tenantId, body.staffId))) throw notFound('Staff member not found')
+  return unwrap(await supabaseAdmin
     .from('performance_reviews')
     .insert({
-      tenant_id:     tenantId,
+      tenant_id:     ctx.tenantId,
       staff_id:      body.staffId,
-      reviewer_id:   user.id,
+      reviewer_id:   ctx.userId,
       review_period: body.reviewPeriod ?? null,
       ratings:       body.ratings      ?? null,
       comments:      body.comments     ?? null,
       goals_set:     body.goalsSet     ?? null,
       status:        'draft',
     })
-    .select()
-    .single()
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
-
-  return NextResponse.json(data, { status: 201 })
-}
+    .select(COLUMNS)
+    .single(), { required: true })
+})

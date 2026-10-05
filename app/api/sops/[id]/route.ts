@@ -1,31 +1,39 @@
-import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
+import { withRoute, unwrap, notFound, conflict } from '@/lib/api/withRoute'
 
 const updateSchema = z.object({
-  title:                   z.string().min(1).max(500).optional(),
+  title:                   z.string().trim().min(1).max(500).optional(),
   category:                z.string().max(100).optional(),
   content:                 z.record(z.string(), z.unknown()).optional(),
   status:                  z.enum(['draft','active','archived']).optional(),
   requiresAcknowledgement: z.boolean().optional(),
-  applicableRoles:         z.array(z.string()).optional(),
+  applicableRoles:         z.array(z.string().max(50)).max(20).optional(),
 })
 
-export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new NextResponse('Unauthorized', { status: 401 })
+const SOP_COLUMNS =
+  'id, title, category, content, version, status, requires_acknowledgement, applicable_roles, created_by, published_at, created_at'
 
-  const tenantId = user.app_metadata?.tenant_id as string
-  if (!tenantId) return new NextResponse('No tenant', { status: 400 })
-
-  const { id } = await params
-
-  let body: z.infer<typeof updateSchema>
-  try { body = updateSchema.parse(await request.json()) } catch (e) {
-    return NextResponse.json({ error: 'Invalid request', detail: e }, { status: 400 })
-  }
+// PATCH — HR edits a policy. It was open to every member, so any staff login
+// could rewrite or archive the company's disciplinary code.
+//
+// Versioning: a published SOP's version goes up when its wording changes, or
+// when it is re-published after being archived/drafted. It used to bump on
+// every PATCH that merely repeated status:'active', and not at all when the
+// text of a live policy was edited.
+export const PATCH = withRoute({
+  action: 'handbook.write',
+  body: updateSchema,
+  audit: 'sop.updated',
+  resourceType: 'sop_document',
+}, async ({ ctx, params, body }) => {
+  const current = unwrap(await supabaseAdmin
+    .from('sop_documents')
+    .select('id, version, status, published_at')
+    .eq('id', params.id)
+    .eq('tenant_id', ctx.tenantId)
+    .is('deleted_at', null)
+    .maybeSingle(), { required: true, what: 'SOP not found' })
 
   const updates: Record<string, unknown> = {}
   if (body.title !== undefined)                   updates.title = body.title
@@ -33,65 +41,49 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (body.content !== undefined)                 updates.content = body.content
   if (body.requiresAcknowledgement !== undefined) updates.requires_acknowledgement = body.requiresAcknowledgement
   if (body.applicableRoles !== undefined)         updates.applicable_roles = body.applicableRoles
-  if (body.status !== undefined) {
-    updates.status = body.status
-    if (body.status === 'active') updates.published_at = new Date().toISOString()
+  if (body.status !== undefined)                  updates.status = body.status
+
+  const nextStatus = body.status ?? current.status
+  const wordingChanged = body.title !== undefined || body.content !== undefined
+  const republished = nextStatus === 'active' && current.status !== 'active'
+  if (nextStatus === 'active' && (republished || wordingChanged)) {
+    updates.published_at = new Date().toISOString()
+    // First publish keeps version 1; any later publish or live edit is a new version.
+    if (current.published_at) updates.version = (current.version ?? 1) + 1
   }
+  if (Object.keys(updates).length === 0) return current
 
-  // Version bump: fetch current version first
-  const { data: current } = await supabaseAdmin
-    .from('sop_documents')
-    .select('version')
-    .eq('id', id)
-    .eq('tenant_id', tenantId)
-    .single()
-
-  if (body.status === 'active' && current) {
-    updates.version = (current.version ?? 1) + 1
-  } else {
-    delete updates.version
-  }
-
-  const { data, error } = await supabaseAdmin
+  const data = unwrap(await supabaseAdmin
     .from('sop_documents')
     .update(updates)
-    .eq('id', id)
-    .eq('tenant_id', tenantId)
-    .select()
-    .single()
+    .eq('id', params.id)
+    .eq('tenant_id', ctx.tenantId)
+    .eq('version', current.version)   // two editors at once: the second one retries
+    .select(SOP_COLUMNS)
+    .maybeSingle())
+  if (!data) throw conflict('Someone else just changed this SOP — reload and try again.')
+  return data
+})
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
-  return NextResponse.json(data)
-}
-
-// POST /api/sops/[id]/acknowledge — staff acknowledge they've read it
-export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new NextResponse('Unauthorized', { status: 401 })
-
-  const tenantId = user.app_metadata?.tenant_id as string
-  if (!tenantId) return new NextResponse('No tenant', { status: 400 })
-
-  const { id } = await params
-
-  // Confirm the SOP belongs to the caller's tenant before recording an
-  // acknowledgement — the sop_id is caller-supplied, so an unchecked id would let
-  // a user write an ack row referencing another tenant's SOP.
-  const { data: sop } = await supabaseAdmin
+// POST /api/sops/[id] — the caller acknowledges they've read the current
+// version. Only published SOPs can be acknowledged (it accepted drafts).
+export const POST = withRoute({
+  action: 'handbook.acknowledge',
+  audit: 'sop.acknowledged',
+  resourceType: 'sop_document',
+}, async ({ ctx, params }) => {
+  const sop = unwrap(await supabaseAdmin
     .from('sop_documents')
-    .select('id')
-    .eq('id', id)
-    .eq('tenant_id', tenantId)
-    .maybeSingle()
-  if (!sop) return NextResponse.json({ error: 'SOP not found' }, { status: 404 })
+    .select('id, status')
+    .eq('id', params.id)
+    .eq('tenant_id', ctx.tenantId)
+    .is('deleted_at', null)
+    .maybeSingle())
+  if (!sop || sop.status !== 'active') throw notFound('SOP not found')
 
-  const { data, error } = await supabaseAdmin
+  return unwrap(await supabaseAdmin
     .from('sop_acknowledgements')
-    .upsert({ sop_id: id, user_id: user.id, acknowledged_at: new Date().toISOString() })
-    .select()
-    .single()
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
-  return NextResponse.json(data)
-}
+    .upsert({ sop_id: params.id, user_id: ctx.userId, acknowledged_at: new Date().toISOString() }, { onConflict: 'sop_id,user_id' })
+    .select('sop_id, user_id, acknowledged_at')
+    .single(), { required: true })
+})

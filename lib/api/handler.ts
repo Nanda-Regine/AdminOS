@@ -248,8 +248,10 @@ export function createRouteFactory<C extends BaseContext>(deps: RouteDeps<C>) {
         })
 
         // 6. Audit on success — a handler that returned its own error Response
-        //    did nothing worth recording.
-        const succeeded = !(result instanceof Response) || result.ok
+        //    did nothing worth recording. A handler that turned an error into a
+        //    303-with-notice must audit itself (see app/api/leave/[id]/approve).
+        // A 303 back to the page after a form post is a success too (.ok is 2xx only).
+        const succeeded = !(result instanceof Response) || result.status < 400
         if (config.audit && succeeded) {
           const resultId = (result as { id?: unknown } | null)?.id
           await deps.audit(caller, {

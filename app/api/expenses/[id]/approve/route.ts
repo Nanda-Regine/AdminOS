@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import { withRoute, unwrap, conflict, badRequest } from '@/lib/api/withRoute'
+import { withRoute, unwrap, conflict, badRequest, RouteError } from '@/lib/api/withRoute'
+import { ownStaffId } from '@/lib/people/ownStaff'
 
 // POST /api/expenses/[id]/approve — approve or reject a pending claim.
 //
@@ -27,12 +28,18 @@ export const POST = withRoute({
 
   const existing = unwrap(await supabaseAdmin
     .from('expenses')
-    .select('id, status')
+    .select('id, status, staff_id')
     .eq('id', params.id)
     .eq('tenant_id', ctx.tenantId)
     .is('deleted_at', null)
     .maybeSingle(), { required: true, what: 'Expense claim not found' })
   if (existing.status !== 'pending') throw conflict('This claim has already been dealt with.')
+
+  // Separation of duties: nobody approves their own claim. The owner is the
+  // one exception — there is no one above them to ask.
+  if (ctx.role !== 'owner' && existing.staff_id === await ownStaffId(ctx.tenantId, ctx.userId)) {
+    throw new RouteError(403, 'You cannot approve your own expense claim — ask another approver.', 'self_approval')
+  }
 
   const updated = unwrap(await supabaseAdmin
     .from('expenses')

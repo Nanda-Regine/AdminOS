@@ -5,6 +5,7 @@
 
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { publishSignal, type PeopleSignal } from '@/lib/signals/bus'
+import { recentWellnessAvg } from '@/lib/people/wellness'
 
 export interface Approval { kind: 'leave' | 'expense'; who: string; detail: string }
 export interface WellnessRow { name: string; score: number | null }
@@ -20,17 +21,12 @@ export interface PeopleIntel {
   openIr: number
 }
 
-const recentAvg = (scores: number[] | null | undefined): number | null => {
-  const arr = Array.isArray(scores) ? scores.slice(-7) : []
-  return arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null
-}
-
 export async function buildPeopleIntel(tenantId: string): Promise<PeopleIntel> {
   const [staffRes, leaveRes, expRes, irRes] = await Promise.all([
-    supabaseAdmin.from('staff').select('full_name, wellness_scores').eq('tenant_id', tenantId).eq('active', true),
-    supabaseAdmin.from('leave_requests').select('days, reason, status, staff:staff(full_name)').eq('tenant_id', tenantId).eq('status', 'pending'),
-    supabaseAdmin.from('expenses').select('amount, category, status, staff:staff(full_name)').eq('tenant_id', tenantId).eq('status', 'pending'),
-    supabaseAdmin.from('disciplinary_records').select('id').eq('tenant_id', tenantId).is('acknowledged_at', null),
+    supabaseAdmin.from('staff').select('full_name, wellness_scores').eq('tenant_id', tenantId).eq('active', true).is('deleted_at', null),
+    supabaseAdmin.from('leave_requests').select('days, reason, status, staff:staff(full_name)').eq('tenant_id', tenantId).eq('status', 'pending').is('deleted_at', null),
+    supabaseAdmin.from('expenses').select('amount, category, status, staff:staff(full_name)').eq('tenant_id', tenantId).eq('status', 'pending').is('deleted_at', null),
+    supabaseAdmin.from('disciplinary_records').select('id', { count: 'exact', head: true }).eq('tenant_id', tenantId).is('acknowledged_at', null).is('deleted_at', null),
   ])
 
   const staff = staffRes.data ?? []
@@ -47,12 +43,12 @@ export async function buildPeopleIntel(tenantId: string): Promise<PeopleIntel> {
     ...expenses.map(e => ({ kind: 'expense' as const, who: nameOf(e.staff), detail: `R${Number(e.amount || 0).toLocaleString('en-ZA')} · ${e.category || 'expense'}` })),
   ]
 
-  const wellnessRows: WellnessRow[] = staff.map(s => ({ name: s.full_name, score: recentAvg(s.wellness_scores as number[] | null) }))
+  const wellnessRows: WellnessRow[] = staff.map(s => ({ name: s.full_name, score: recentWellnessAvg(s.wellness_scores) }))
   const scored = wellnessRows.filter(w => w.score !== null) as { name: string; score: number }[]
   const wellnessAvg = scored.length ? Math.round((scored.reduce((a, b) => a + b.score, 0) / scored.length) * 10) / 10 : null
   const lowWellness = scored.filter(w => w.score < 3).sort((a, b) => a.score - b.score).slice(0, 5)
 
-  const openIr = irRes.data?.length ?? 0
+  const openIr = irRes.count ?? 0
 
   const signal: PeopleSignal = {
     activeStaff: staff.length,

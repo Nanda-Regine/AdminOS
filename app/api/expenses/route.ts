@@ -3,18 +3,7 @@ import { notifyTenant } from '@/lib/notifications/notify'
 import { can } from '@/lib/auth/roleMatrix'
 import { z } from 'zod'
 import { withRoute, unwrap, notFound, RouteError } from '@/lib/api/withRoute'
-
-/** The caller's own staff row, via staff.user_id (never user-editable metadata). */
-async function ownStaffId(tenantId: string, userId: string): Promise<string | null> {
-  const { data } = await supabaseAdmin
-    .from('staff')
-    .select('id')
-    .eq('tenant_id', tenantId)
-    .eq('user_id', userId)
-    .is('deleted_at', null)
-    .maybeSingle()
-  return data?.id ?? null
-}
+import { ownStaffId } from '@/lib/people/ownStaff'
 
 const listQuery = z.object({
   status:  z.enum(['pending', 'approved', 'rejected', 'paid']).optional(),

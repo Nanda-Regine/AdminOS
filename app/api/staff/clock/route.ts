@@ -1,8 +1,8 @@
-import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
-import { autoPromoteToTeamMode } from '@/lib/tenant/mode'
+import { can } from '@/lib/auth/roleMatrix'
+import { withRoute, unwrap, notFound, RouteError } from '@/lib/api/withRoute'
+import { ownStaffId, isTenantStaff } from '@/lib/people/ownStaff'
 
 const clockSchema = z.object({
   staffId:      z.string().uuid(),
@@ -13,35 +13,66 @@ const clockSchema = z.object({
   deviceId:     z.string().max(100).optional(),
 })
 
-export async function POST(request: Request) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new NextResponse('Unauthorized', { status: 401 })
+const COLUMNS = 'id, staff_id, event_type, timestamp, lat, lng, location_name, device_id, created_at'
 
-  const tenantId = user.app_metadata?.tenant_id as string
-  if (!tenantId) return new NextResponse('No tenant', { status: 400 })
+const STALE_MS = 16 * 3600_000
 
-  let body: z.infer<typeof clockSchema>
-  try {
-    body = clockSchema.parse(await request.json())
-  } catch (e) {
-    return NextResponse.json({ error: 'Invalid request', detail: e }, { status: 400 })
+// Which event may follow which. Without this, a double-tapped "Clock in"
+// recorded two shifts, and "clock out" with no clock-in counted as attendance.
+const NEXT: Record<string, ReadonlyArray<string>> = {
+  none:        ['clock_in'],
+  clock_in:    ['clock_out', 'break_start'],
+  break_start: ['break_end'],
+  break_end:   ['clock_out', 'break_start'],
+  clock_out:   ['clock_in'],
+}
+
+/**
+ * Who the caller may clock for: HR (staff.write) for anyone in the tenant —
+ * kiosk / supervisor clocking; everyone else only for their own linked row.
+ * It used to accept any staffId from any member, so a colleague could clock
+ * you in (or out) — a payroll-fraud and BCEA-records problem.
+ */
+async function assertMayActFor(ctx: { tenantId: string; userId: string; permissions: readonly string[]; isSuperAdmin: boolean }, staffId: string) {
+  if (can(ctx, 'staff.write')) {
+    if (!(await isTenantStaff(ctx.tenantId, staffId))) throw notFound('Staff member not found')
+    return
+  }
+  const own = await ownStaffId(ctx.tenantId, ctx.userId)
+  if (own !== staffId) throw new RouteError(403, 'You can only clock in or out for yourself.', 'forbidden')
+}
+
+export const POST = withRoute({
+  action: 'clock.self',
+  body: clockSchema,
+  status: 201,
+  audit: 'clock.event',
+  resourceType: 'clock_event',
+  rateLimit: 'api',
+}, async ({ ctx, body }) => {
+  await assertMayActFor(ctx, body.staffId)
+
+  const last = unwrap(await supabaseAdmin
+    .from('clock_events')
+    .select('event_type, timestamp')
+    .eq('tenant_id', ctx.tenantId)
+    .eq('staff_id', body.staffId)
+    .order('timestamp', { ascending: false })
+    .limit(1)
+    .maybeSingle())
+  // A shift left open for 16h+ (forgot to clock out) doesn't lock anyone out
+  // of today — the missing clock-out shows on the team page for HR to fix.
+  const stale = last && Date.now() - new Date(last.timestamp).getTime() > STALE_MS
+  const state = !last || stale ? 'none' : last.event_type
+  const allowed = NEXT[state] ?? NEXT.none
+  if (!allowed.includes(body.eventType)) {
+    throw new RouteError(409, `Can't ${body.eventType.replace('_', ' ')} right now — the last entry was ${(last?.event_type ?? 'none').replace('_', ' ')}.`, 'invalid_sequence')
   }
 
-  // Verify staff member belongs to this tenant
-  const { data: staff } = await supabaseAdmin
-    .from('staff')
-    .select('id')
-    .eq('id', body.staffId)
-    .eq('tenant_id', tenantId)
-    .single()
-
-  if (!staff) return new NextResponse('Staff not found', { status: 404 })
-
-  const { data, error } = await supabaseAdmin
+  return unwrap(await supabaseAdmin
     .from('clock_events')
     .insert({
-      tenant_id:     tenantId,
+      tenant_id:     ctx.tenantId,
       staff_id:      body.staffId,
       event_type:    body.eventType,
       lat:           body.lat ?? null,
@@ -49,40 +80,36 @@ export async function POST(request: Request) {
       location_name: body.locationName ?? null,
       device_id:     body.deviceId ?? null,
     })
-    .select()
-    .single()
+    .select(COLUMNS)
+    .single(), { required: true })
+})
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+const listQuery = z.object({
+  staffId: z.string().uuid().optional(),
+  from:    z.string().datetime({ offset: true }).optional(),
+  to:      z.string().datetime({ offset: true }).optional(),
+})
 
-  return NextResponse.json(data, { status: 201 })
-}
+// GET /api/staff/clock — HR sees everyone; a member sees only their own events.
+// (It returned the whole team's GPS-tagged attendance to any member.)
+export const GET = withRoute({ action: 'clock.self', query: listQuery }, async ({ ctx, query }) => {
+  let staffId = query.staffId
+  if (!can(ctx, 'staff.read')) {
+    const own = await ownStaffId(ctx.tenantId, ctx.userId)
+    if (!own) return []
+    staffId = own
+  }
 
-export async function GET(request: Request) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new NextResponse('Unauthorized', { status: 401 })
-
-  const tenantId = user.app_metadata?.tenant_id as string
-  if (!tenantId) return new NextResponse('No tenant', { status: 400 })
-
-  const url      = new URL(request.url)
-  const staffId  = url.searchParams.get('staffId')
-  const from     = url.searchParams.get('from')
-  const to       = url.searchParams.get('to')
-
-  let query = supabaseAdmin
+  let q = supabaseAdmin
     .from('clock_events')
-    .select('*')
-    .eq('tenant_id', tenantId)
-    .order('created_at', { ascending: false })
+    .select(COLUMNS)
+    .eq('tenant_id', ctx.tenantId)
+    .order('timestamp', { ascending: false })
     .limit(200)
 
-  if (staffId) query = query.eq('staff_id', staffId)
-  if (from)    query = query.gte('created_at', from)
-  if (to)      query = query.lte('created_at', to)
+  if (staffId)    q = q.eq('staff_id', staffId)
+  if (query.from) q = q.gte('timestamp', query.from)
+  if (query.to)   q = q.lte('timestamp', query.to)
 
-  const { data, error } = await query
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
-
-  return NextResponse.json(data)
-}
+  return unwrap(await q) ?? []
+})

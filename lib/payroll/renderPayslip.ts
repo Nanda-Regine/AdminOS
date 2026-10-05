@@ -6,7 +6,7 @@ export const PAYSLIP_SELECT = `
   id, tenant_id, staff_id, gross_salary, paye, uif_employee, pension_deduction, other_deductions_total,
   net_pay, components, view_token_expires_at,
   staff:staff(id, full_name, id_number, job_title, department, employee_number, bank_name, bank_account_number),
-  payroll_run:payroll_runs(period_month, period_year, processed_at)
+  payroll_run:payroll_runs(period_month, period_year, processed_at, status)
 `
 // The previous select asked for payroll_runs.period_start/period_end/pay_date
 // and staff.position — none of which exist — so every payslip request errored

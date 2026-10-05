@@ -35,11 +35,14 @@ export default async function SafetyPage() {
       .from('safety_incidents')
       .select('id, staff_id, incident_date, incident_type, description, location, witnesses, immediate_action, root_cause, corrective_action, iod_reported, iod_reference, staff:staff(full_name)')
       .eq('tenant_id', tenantId)
-      .order('incident_date', { ascending: false }),
+      .is('deleted_at', null)
+      .order('incident_date', { ascending: false })
+      .limit(500),
     supabaseAdmin
       .from('staff')
       .select('id, full_name')
       .eq('tenant_id', tenantId)
+      .is('deleted_at', null)
       .order('full_name'),
   ])
 

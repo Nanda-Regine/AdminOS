@@ -30,6 +30,7 @@ export default async function IRLogPage() {
     .from('staff')
     .select('id, full_name')
     .eq('tenant_id', tenantId)
+    .is('deleted_at', null)
     .order('full_name')
 
   // Real disciplinary_records schema: record_type / incident_date /
@@ -40,6 +41,7 @@ export default async function IRLogPage() {
     .from('disciplinary_records')
     .select('id, staff_id, type:record_type, description, date:incident_date, outcome, acknowledged_at, created_at, staff(full_name)')
     .eq('tenant_id', tenantId)
+    .is('deleted_at', null)
     .order('incident_date', { ascending: false })
     .limit(100)
 

@@ -1,100 +1,84 @@
-import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
-import { checkPermission } from '@/lib/auth/permissions'
+import { withRoute, unwrap } from '@/lib/api/withRoute'
 
-// Employment Equity — data collection for EEA2/EEA4 reporting
-// SA businesses with 50+ employees must submit annual EE reports to the DoEL
+// Employment Equity — data collection for EEA2/EEA4 reporting.
+// Designated employers (50+ employees) report annually to the DEL.
 
+const count = z.number().int().nonnegative().max(1_000_000).default(0)
 const demographicsSchema = z.object({
-  african_male:    z.number().int().nonnegative().default(0),
-  african_female:  z.number().int().nonnegative().default(0),
-  coloured_male:   z.number().int().nonnegative().default(0),
-  coloured_female: z.number().int().nonnegative().default(0),
-  indian_male:     z.number().int().nonnegative().default(0),
-  indian_female:   z.number().int().nonnegative().default(0),
-  white_male:      z.number().int().nonnegative().default(0),
-  white_female:    z.number().int().nonnegative().default(0),
-  foreign_male:    z.number().int().nonnegative().default(0),
-  foreign_female:  z.number().int().nonnegative().default(0),
-  disabled:        z.number().int().nonnegative().default(0),
+  african_male:    count,
+  african_female:  count,
+  coloured_male:   count,
+  coloured_female: count,
+  indian_male:     count,
+  indian_female:   count,
+  white_male:      count,
+  white_female:    count,
+  foreign_male:    count,
+  foreign_female:  count,
+  disabled:        count,   // a subset of the people above, not an extra group
 })
+
+const POPULATION_KEYS = [
+  'african_male', 'african_female', 'coloured_male', 'coloured_female', 'indian_male',
+  'indian_female', 'white_male', 'white_female', 'foreign_male', 'foreign_female',
+] as const
 
 const updateSchema = z.object({
   reportingYear:      z.number().int().min(2020).max(2099),
-  totalWorkforce:     z.number().int().nonnegative().optional(),
+  totalWorkforce:     z.number().int().nonnegative().max(1_000_000).optional(),
   demographics:       demographicsSchema.optional(),
-  occupationalLevels: z.record(z.string(), z.unknown()).optional(),
+  occupationalLevels: z.record(z.string().max(100), z.unknown()).optional(),
+}).superRefine((b, issue) => {
+  // The EEA2 form rejects a report whose breakdown doesn't add up to the
+  // workforce total — catch it here, not at the DEL.
+  if (!b.demographics) return
+  const sum = POPULATION_KEYS.reduce((s, k) => s + b.demographics![k], 0)
+  if (b.totalWorkforce !== undefined && sum > 0 && sum !== b.totalWorkforce) {
+    issue.addIssue({ code: 'custom', path: ['demographics'], message: `The breakdown adds up to ${sum}, but total workforce is ${b.totalWorkforce}.` })
+  }
+  if (b.demographics.disabled > sum && sum > 0) {
+    issue.addIssue({ code: 'custom', path: ['demographics', 'disabled'], message: 'People with disabilities are counted inside the groups above, so this can’t exceed their total.' })
+  }
 })
 
-export async function GET(request: Request) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new NextResponse('Unauthorized', { status: 401 })
+const yearQuery = z.object({ year: z.coerce.number().int().min(2020).max(2099).optional() })
 
-  const tenantId = user.app_metadata?.tenant_id as string
-  if (!tenantId) return new NextResponse('No tenant', { status: 400 })
-
-  if (!(await checkPermission('manage_staff'))) return new NextResponse('Forbidden', { status: 403 })
-
-  const url  = new URL(request.url)
-  const year = url.searchParams.get('year') ?? new Date().getFullYear().toString()
-
-  const { data, error } = await supabaseAdmin
+export const GET = withRoute({ action: 'hr.records', query: yearQuery }, async ({ ctx, query }) => {
+  const year = query.year ?? new Date().getFullYear()
+  const data = unwrap(await supabaseAdmin
     .from('employment_equity_data')
-    .select('*')
-    .eq('tenant_id', tenantId)
-    .eq('reporting_year', parseInt(year))
-    .maybeSingle()
+    .select('id, reporting_year, total_workforce, demographics, occupational_levels, eea2_generated_at, report_url')
+    .eq('tenant_id', ctx.tenantId)
+    .eq('reporting_year', year)
+    .maybeSingle())
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
-
-  // If no record yet, return empty template
-  if (!data) {
-    return NextResponse.json({
-      reporting_year:     parseInt(year),
-      total_workforce:    null,
-      demographics:       {},
-      occupational_levels: {},
-      eea2_generated_at:  null,
-      message:            'No EE data for this year yet. Use PATCH to populate.',
-    })
+  // No record yet → an empty template for the form.
+  return data ?? {
+    reporting_year:      year,
+    total_workforce:     null,
+    demographics:        {},
+    occupational_levels: {},
+    eea2_generated_at:   null,
   }
+})
 
-  return NextResponse.json(data)
-}
+// PATCH — upsert EE data for a reporting year.
+export const PATCH = withRoute({
+  action: 'hr.records',
+  body: updateSchema,
+  audit: 'ee.data_updated',
+  resourceType: 'employment_equity_data',
+}, async ({ ctx, body }) => {
+  const row: Record<string, unknown> = { tenant_id: ctx.tenantId, reporting_year: body.reportingYear }
+  if (body.totalWorkforce     !== undefined) row.total_workforce     = body.totalWorkforce
+  if (body.demographics       !== undefined) row.demographics        = body.demographics
+  if (body.occupationalLevels !== undefined) row.occupational_levels = body.occupationalLevels
 
-// PATCH — upsert EE data for a reporting year
-export async function PATCH(request: Request) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new NextResponse('Unauthorized', { status: 401 })
-
-  const tenantId = user.app_metadata?.tenant_id as string
-  if (!tenantId) return new NextResponse('No tenant', { status: 400 })
-
-  if (!(await checkPermission('manage_staff'))) return new NextResponse('Forbidden', { status: 403 })
-
-  let body: z.infer<typeof updateSchema>
-  try { body = updateSchema.parse(await request.json()) } catch (e) {
-    return NextResponse.json({ error: 'Invalid request', detail: e }, { status: 400 })
-  }
-
-  const upsertData: Record<string, unknown> = {
-    tenant_id:      tenantId,
-    reporting_year: body.reportingYear,
-  }
-  if (body.totalWorkforce     !== undefined) upsertData.total_workforce     = body.totalWorkforce
-  if (body.demographics       !== undefined) upsertData.demographics        = body.demographics
-  if (body.occupationalLevels !== undefined) upsertData.occupational_levels = body.occupationalLevels
-
-  const { data, error } = await supabaseAdmin
+  return unwrap(await supabaseAdmin
     .from('employment_equity_data')
-    .upsert(upsertData, { onConflict: 'tenant_id,reporting_year' })
-    .select()
-    .single()
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
-  return NextResponse.json(data)
-}
+    .upsert(row, { onConflict: 'tenant_id,reporting_year' })
+    .select('id, reporting_year, total_workforce, demographics, occupational_levels, eea2_generated_at, report_url')
+    .single(), { required: true })
+})

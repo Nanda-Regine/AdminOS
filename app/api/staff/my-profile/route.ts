@@ -1,88 +1,90 @@
-import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
+import { notifyTenant } from '@/lib/notifications/notify'
+import { withRoute, unwrap, notFound, badRequest } from '@/lib/api/withRoute'
 
+// Columns verified against the live schema 2026-10-05. The old schema wrote
+// `emergency_contact` and `bank_branch_code`, which don't exist — any update
+// that included either failed with a raw PostgREST error.
 const patchSchema = z.object({
-  phone:                z.string().max(30).optional(),
-  emergency_contact:    z.string().max(500).optional(),
-  bank_account_number:  z.string().max(50).optional(),
-  bank_name:            z.string().max(100).optional(),
-  bank_branch_code:     z.string().max(20).optional(),
-  address:              z.string().max(500).optional(),
-})
+  phone:                   z.string().max(30).optional(),
+  emergency_contact_name:  z.string().max(200).optional(),
+  emergency_contact_phone: z.string().max(30).optional(),
+  bank_account_number:     z.string().regex(/^\d{6,16}$/, 'Account number must be 6–16 digits').optional(),
+  bank_name:               z.string().max(100).optional(),
+  address:                 z.string().max(500).optional(),
+}).strict()
 
-// GET /api/staff/my-profile
-// Returns the authenticated user's own staff record for their tenant.
-export async function GET(_request: Request) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new NextResponse('Unauthorized', { status: 401 })
+const OWN_COLUMNS =
+  'id, full_name, email, phone, job_title, department, role, employment_type, start_date, ' +
+  'leave_balance, leave_taken, emergency_contact_name, emergency_contact_phone, address, bank_name, bank_account_number'
 
-  const tenantId = user.app_metadata?.tenant_id as string
-  if (!tenantId) return new NextResponse('No tenant', { status: 400 })
-
-  const { data, error } = await supabaseAdmin
+async function ownRow(tenantId: string, userId: string) {
+  return unwrap(await supabaseAdmin
     .from('staff')
-    .select('*')
+    .select('id, full_name, bank_account_number, bank_name')
     .eq('tenant_id', tenantId)
-    .eq('user_id', user.id)
-    .single()
-
-  if (error || !data) return new NextResponse('Staff record not found', { status: 404 })
-
-  return NextResponse.json(data)
+    .eq('user_id', userId)
+    .is('deleted_at', null)
+    .maybeSingle())
 }
 
-// PATCH /api/staff/my-profile
-// Allows the authenticated user to update their own contact and banking details.
-export async function PATCH(request: Request) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new NextResponse('Unauthorized', { status: 401 })
-
-  const tenantId = user.app_metadata?.tenant_id as string
-  if (!tenantId) return new NextResponse('No tenant', { status: 400 })
-
-  // Confirm user has a staff record in this tenant
-  const { data: existing } = await supabaseAdmin
+// GET /api/staff/my-profile — the caller's own staff record.
+export const GET = withRoute({ action: 'profile.own' }, async ({ ctx }) => {
+  const row = unwrap(await supabaseAdmin
     .from('staff')
-    .select('id')
-    .eq('tenant_id', tenantId)
-    .eq('user_id', user.id)
-    .single()
+    .select(OWN_COLUMNS)
+    .eq('tenant_id', ctx.tenantId)
+    .eq('user_id', ctx.userId)
+    .is('deleted_at', null)
+    .maybeSingle())
+  if (!row) throw notFound('Staff record not found')
+  return row
+})
 
-  if (!existing) return new NextResponse('Staff record not found', { status: 404 })
+// PATCH /api/staff/my-profile — update own contact and banking details.
+export const PATCH = withRoute({
+  action: 'profile.own',
+  body: patchSchema,
+  resourceType: 'staff',
+  rateLimit: 'api',
+}, async ({ ctx, body, audit }) => {
+  const existing = await ownRow(ctx.tenantId, ctx.userId)
+  if (!existing) throw notFound('Staff record not found')
 
-  let body: z.infer<typeof patchSchema>
-  try {
-    body = patchSchema.parse(await request.json())
-  } catch (e) {
-    return NextResponse.json({ error: 'Invalid request', detail: e }, { status: 400 })
-  }
+  const updates = Object.fromEntries(Object.entries(body).filter(([, v]) => v !== undefined))
+  if (Object.keys(updates).length === 0) throw badRequest('No updatable fields provided')
 
-  // Only include fields the user actually provided
-  const updates: Record<string, unknown> = {}
-  if (body.phone               !== undefined) updates.phone                = body.phone
-  if (body.emergency_contact   !== undefined) updates.emergency_contact    = body.emergency_contact
-  if (body.bank_account_number !== undefined) updates.bank_account_number  = body.bank_account_number
-  if (body.bank_name           !== undefined) updates.bank_name            = body.bank_name
-  if (body.bank_branch_code    !== undefined) updates.bank_branch_code     = body.bank_branch_code
-  if (body.address             !== undefined) updates.address              = body.address
-
-  if (Object.keys(updates).length === 0) {
-    return NextResponse.json({ error: 'No updatable fields provided' }, { status: 400 })
-  }
-
-  const { data, error } = await supabaseAdmin
+  const data = unwrap(await supabaseAdmin
     .from('staff')
     .update(updates)
     .eq('id', existing.id)
-    .eq('tenant_id', tenantId)
-    .select()
-    .single()
+    .eq('tenant_id', ctx.tenantId)
+    .select(OWN_COLUMNS)
+    .single(), { required: true })
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  const bankChanged =
+    (body.bank_account_number !== undefined && body.bank_account_number !== existing.bank_account_number) ||
+    (body.bank_name !== undefined && body.bank_name !== existing.bank_name)
 
-  return NextResponse.json(data)
-}
+  await audit({
+    action: bankChanged ? 'staff.bank_details_changed' : 'staff.profile_updated',
+    resourceType: 'staff',
+    resourceId: existing.id,
+    metadata: { fields: Object.keys(updates) },
+  })
+
+  // Changing where your salary goes is the classic payroll-diversion fraud
+  // (a phished login redirects the next pay run). Tell the employer every time.
+  if (bankChanged) {
+    await notifyTenant(ctx.tenantId, {
+      type: 'security.alert',
+      title: 'Bank details changed',
+      body: `${existing.full_name} changed the bank account their salary is paid into. Confirm with them in person before the next payroll run.`,
+      actionUrl: `/dashboard/staff/${existing.id}`,
+      whatsapp: true,
+    })
+  }
+
+  return data
+})

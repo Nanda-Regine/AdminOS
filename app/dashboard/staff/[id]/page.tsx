@@ -97,18 +97,21 @@ export default async function StaffDetailPage({
       .select('*')
       .eq('id', id)
       .eq('tenant_id', tenantId)
+      .is('deleted_at', null)
       .single(),
     supabaseAdmin
       .from('staff_documents')
       .select('id, title, file_url, file_type, expires_at, created_at')
       .eq('tenant_id', tenantId)
       .eq('staff_id', id)
+      .is('deleted_at', null)
       .order('created_at', { ascending: false }),
     supabaseAdmin
       .from('payslips')
       .select('id, gross:gross_salary, deductions:other_deductions_total, net:net_pay, pdf_url, created_at')
       .eq('tenant_id', tenantId)
       .eq('staff_id', id)
+      .is('deleted_at', null)
       .order('created_at', { ascending: false })
       .limit(12),
     supabaseAdmin
@@ -116,6 +119,7 @@ export default async function StaffDetailPage({
       .select('id, start_date, end_date, days, reason, status, created_at')
       .eq('tenant_id', tenantId)
       .eq('staff_id', id)
+      .is('deleted_at', null)
       .order('start_date', { ascending: false })
       .limit(10),
   ])

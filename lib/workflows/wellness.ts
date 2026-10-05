@@ -69,12 +69,15 @@ export async function recordWellnessScore(
     .single()
 
   const existing = (staffData?.wellness_scores || []) as Array<{ score: number; date: string }>
-  const updated = [...existing, { score, date: new Date().toISOString() }]
+  // Capped: the array grew forever (the engine keeps 12; 60 ≈ a quarter of daily check-ins).
+  const updated = [...existing, { score, date: new Date().toISOString() }].slice(-60)
 
-  await supabaseAdmin
+  const { error: saveErr } = await supabaseAdmin
     .from('staff')
     .update({ wellness_scores: updated })
     .eq('id', staffId)
+  // Was unchecked — when the burnout trigger errored, check-ins silently stopped saving.
+  if (saveErr) console.error('[wellness] failed to save check-in', { staffId, code: saveErr.code })
 
   // Check burnout risk
   const recentScores = await getRecentWellnessScores(staffId, 7)

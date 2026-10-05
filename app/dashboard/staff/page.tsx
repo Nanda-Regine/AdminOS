@@ -19,7 +19,8 @@ function WellnessDot({ score }: { score: number }) {
   return <span className={`inline-block w-2 h-2 rounded-full ${color}`} />
 }
 
-export default async function StaffPage() {
+export default async function StaffPage({ searchParams }: { searchParams: Promise<{ notice?: string }> }) {
+  const { notice } = await searchParams
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -37,17 +38,22 @@ export default async function StaffPage() {
   const tenantId = user.app_metadata?.tenant_id as string
 
   const [staffResult, leaveResult] = await Promise.all([
+    // Directory columns only — salary / ID / bank stay on the detail page.
     supabaseAdmin
       .from('staff')
-      .select('*')
+      .select('id, full_name, role, department, phone, active, leave_balance, leave_taken, wellness_scores, after_hours_flag')
       .eq('tenant_id', tenantId)
-      .order('full_name'),
+      .is('deleted_at', null)
+      .order('full_name')
+      .limit(1000),
     supabaseAdmin
       .from('leave_requests')
-      .select('*, staff(full_name)')
+      .select('id, start_date, end_date, days, reason, staff(full_name)')
       .eq('tenant_id', tenantId)
       .eq('status', 'pending')
-      .order('created_at', { ascending: false }),
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false })
+      .limit(100),
   ])
 
   const staff = staffResult.data || []
@@ -58,6 +64,12 @@ export default async function StaffPage() {
       <TopBar title="Staff" subtitle={`${staff.length} team members`} actions={<AddStaffModal />} />
       <div className="p-4 md:p-6 space-y-6">
 
+        {notice && (
+          <div role="status" className="p-3 rounded-lg text-sm border" style={{ background: 'rgba(245,158,11,0.1)', borderColor: 'rgba(245,158,11,0.35)', color: 'var(--text-primary)' }}>
+            {notice}
+          </div>
+        )}
+
         {/* Pending leave requests */}
         {pendingLeave.length > 0 && (
           <Card>
@@ -67,7 +79,7 @@ export default async function StaffPage() {
                 <div key={req.id} className="flex items-center justify-between p-3 on-light bg-yellow-50 rounded-lg border border-yellow-200">
                   <div>
                     <p className="text-sm font-medium text-[var(--text-primary)]">
-                      {(req.staff as { full_name: string } | null)?.full_name || 'Staff member'}
+                      {(req.staff as unknown as { full_name: string } | null)?.full_name || 'Staff member'}
                     </p>
                     <p className="text-xs text-[var(--text-muted)]">
                       {req.start_date} → {req.end_date} ({req.days} days) · {req.reason}
@@ -190,7 +202,7 @@ export default async function StaffPage() {
                 <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
                   <div className="bg-[var(--surface-2)] rounded-lg p-2">
                     <p className="text-[var(--text-muted)]">Leave balance</p>
-                    <p className="font-semibold text-[var(--text-secondary)]">{member.leave_balance - member.leave_taken} days</p>
+                    <p className="font-semibold text-[var(--text-secondary)]">{Number(member.leave_balance ?? 0) - Number(member.leave_taken ?? 0)} days</p>
                   </div>
                   <div className="bg-[var(--surface-2)] rounded-lg p-2">
                     <p className="text-[var(--text-muted)]">Wellness (7d avg)</p>

@@ -6,6 +6,7 @@ import { setDailyBrief } from '@/lib/signals/brief'
 import { OPEN_INVOICE_STATUSES, outstanding } from '@/lib/invoices/status'
 import { todayDateString } from '@/lib/debt/overdue'
 import Anthropic from '@anthropic-ai/sdk'
+import { recentWellnessAvg } from '@/lib/people/wellness'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
 
@@ -36,11 +37,11 @@ export const dailyBriefEngine = inngest.createFunction(
       ])
 
       const staffData = staffRes.data ?? []
-      const wellnessAvg = staffData.reduce((sum, s) => {
-        const scores = (s.wellness_scores as number[]) ?? []
-        const avg = scores.length > 0 ? scores.slice(-7).reduce((a, b) => a + b, 0) / Math.min(scores.length, 7) : 0
-        return sum + avg
-      }, 0) / (staffData.length || 1)
+      // wellness_scores holds { score, date } objects — summing them as numbers
+      // gave NaN. Average only staff who have checked in (a 0 for everyone
+      // else dragged the team score down).
+      const perPerson = staffData.map((s) => recentWellnessAvg(s.wellness_scores)).filter((v): v is number => v !== null)
+      const wellnessAvg = perPerson.length ? perPerson.reduce((a, b) => a + b, 0) / perPerson.length : 0
 
       const totalDebt = (invoiceRes.data ?? []).reduce((sum, i) => sum + outstanding(i), 0)
 
@@ -100,7 +101,7 @@ export const dailyBriefEngine = inngest.createFunction(
           content: `Morning brief for ${intelligence.tenantName}:
 - Open conversations: ${intelligence.openConversations}
 - Overdue invoices: ${intelligence.overdueInvoices} (R${intelligence.totalDebt.toLocaleString()} outstanding)
-- Staff: ${intelligence.staffCount} active, wellness avg: ${intelligence.wellnessAvg}/5
+- Staff: ${intelligence.staffCount} active, wellness avg: ${intelligence.wellnessAvg ? `${intelligence.wellnessAvg}/5` : "no check-ins yet"}
 - Active goals: ${intelligence.activeGoals.map((g: { title: string; progress_pct?: number }) => `${g.title} (${Math.round(g.progress_pct ?? 0)}%)`).join(', ') || 'none'}
 - Automations run today: ${intelligence.automationsToday}${complianceSection}${healthSection}
 

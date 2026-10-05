@@ -21,6 +21,11 @@ export default async function PeopleCockpit() {
   // Leave + expense approval queue plus per-staff wellness scores — the same
   // approval-authority boundary as expenses/page.tsx (approve_leave).
   if (!(await checkPermission('approve_leave'))) notFound()
+  // Managers hold approve_leave but not manage_staff / view_payroll — don't
+  // send them to Staff, IR log, Handbook editing or Payroll, which 404 for them.
+  const [canManage, canPayroll] = await Promise.all([
+    checkPermission('manage_staff'), checkPermission('view_payroll'),
+  ])
 
   const tenantId = user.app_metadata?.tenant_id as string
 
@@ -31,8 +36,10 @@ export default async function PeopleCockpit() {
 
   let lead: { line: string; action: string; href: string }
   if (setup.staff === 0) {
-    lead = { line: `Add your team to run payroll, leave and performance reviews in one place — start with your first staff member.`, action: 'Add a staff member', href: '/dashboard/staff?new=1' }
-  } else if (openIr > 0) {
+    lead = canManage
+      ? { line: `Add your team to run payroll, leave and performance reviews in one place — start with your first staff member.`, action: 'Add a staff member', href: '/dashboard/staff?new=1' }
+      : { line: `No staff have been added yet — ask the owner or HR to add the team.`, action: 'View the team', href: '/dashboard/team' }
+  } else if (openIr > 0 && canManage) {
     lead = { line: `${openIr} disciplinary record${openIr > 1 ? 's are' : ' is'} awaiting acknowledgement — close the loop to stay CCMA-defensible.`, action: 'Open IR log', href: '/dashboard/ir-log' }
   } else if (totalApprovals > 0) {
     lead = { line: `${totalApprovals} approval${totalApprovals > 1 ? 's are' : ' is'} waiting — ${pendingLeave} leave, ${pendingExpenses} expense. Clearing them keeps the team moving.`, action: 'Clear approvals', href: pendingLeave >= pendingExpenses ? '/dashboard/team' : '/dashboard/expenses' }
@@ -45,7 +52,7 @@ export default async function PeopleCockpit() {
   const dot = intel.signal.health === 'bad' ? '#F87171' : intel.signal.health === 'watch' ? '#FBBF24' : '#34D399'
 
   const vitals = [
-    { label: 'Active team', value: String(activeStaff), sub: 'on the books', icon: Users, color: '#818CF8', href: '/dashboard/staff' },
+    { label: 'Active team', value: String(activeStaff), sub: 'on the books', icon: Users, color: '#818CF8', href: canManage ? '/dashboard/staff' : '/dashboard/team' },
     { label: 'Pending leave', value: String(pendingLeave), sub: 'to approve', icon: CalendarCheck, color: pendingLeave > 0 ? '#F59E0B' : '#34D399', href: '/dashboard/team' },
     { label: 'Pending expenses', value: String(pendingExpenses), sub: 'to approve', icon: Wallet, color: pendingExpenses > 0 ? '#F59E0B' : '#34D399', href: '/dashboard/expenses' },
     { label: 'Team wellness', value: wellnessAvg !== null ? `${wellnessAvg}/5` : '—', sub: `${lowWellness.length} low`, icon: HeartPulse, color: wellnessAvg !== null && wellnessAvg < 3 ? '#F87171' : '#34D399', href: '/dashboard/team' },
@@ -139,9 +146,9 @@ export default async function PeopleCockpit() {
             <div className="glass rounded-2xl p-5">
               <p className="text-[10px] uppercase tracking-wider mb-3 font-semibold" style={{ color: 'var(--text-muted)' }}>Arsenal</p>
               <div className="space-y-2">
-                <ArsenalLink href="/dashboard/staff" icon={<UserPlus className="w-4 h-4" />} label="Add a staff member" />
-                <ArsenalLink href="/dashboard/payroll" icon={<Wallet className="w-4 h-4" />} label="Run payroll" />
-                <ArsenalLink href="/dashboard/ir-log" icon={<Scale className="w-4 h-4" />} label="Log an incident" />
+                {canManage && <ArsenalLink href="/dashboard/staff" icon={<UserPlus className="w-4 h-4" />} label="Add a staff member" />}
+                {canPayroll && <ArsenalLink href="/dashboard/payroll" icon={<Wallet className="w-4 h-4" />} label="Run payroll" />}
+                {canManage && <ArsenalLink href="/dashboard/ir-log" icon={<Scale className="w-4 h-4" />} label="Log an incident" />}
                 <ArsenalLink href="/dashboard/handbook" icon={<ClipboardCheck className="w-4 h-4" />} label="Handbook & SOPs" />
               </div>
             </div>

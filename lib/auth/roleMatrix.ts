@@ -105,8 +105,16 @@ export const ACTIONS = {
   'staff.write':          'manage_staff',
   'leave.request':        MEMBER,
   'leave.approve':        'approve_leave',
-  'clock.self':           MEMBER,
-  'hr.records':           'manage_staff',      // disciplinary, performance, EE, IR log
+  'clock.self':           MEMBER,              // own clock events; HR (staff.write) may act for anyone
+  'hr.records':           'manage_staff',      // disciplinary, performance, EE, IR log, safety register
+  'safety.report':        MEMBER,              // OHSA: anyone can report an incident…
+  'shifts.read':          MEMBER,              // the roster is the team's to see…
+  'shifts.write':         'manage_staff',      // …HR builds it
+  'announcements.read':   MEMBER,
+  'announcements.write':  'send_broadcasts',
+  'handbook.read':        MEMBER,
+  'handbook.write':       'manage_staff',      // policies are HR documents
+  'handbook.acknowledge': MEMBER,
 
   // ── Customers & comms ───────────────────────────────────────────────────
   'contacts.read':        'manage_contacts',

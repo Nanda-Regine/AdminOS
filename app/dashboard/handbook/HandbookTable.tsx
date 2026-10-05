@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Eye, ClipboardList } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Modal } from '@/components/ui/modal'
@@ -16,6 +17,7 @@ export type SopRow = {
   status:                   string
   requires_acknowledgement: boolean
   ack_count:                number
+  acked_by_me:              boolean
   created_at:               string
 }
 
@@ -39,8 +41,31 @@ function contentText(content: unknown): string {
   return content ? JSON.stringify(content, null, 2) : ''
 }
 
-export function HandbookTable({ rows, totalStaff }: { rows: SopRow[]; totalStaff: number }) {
+export function HandbookTable({ rows, totalStaff, editor }: { rows: SopRow[]; totalStaff: number; editor: boolean }) {
   const [selected, setSelected] = useState<SopRow | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [actionError, setActionError] = useState<string | null>(null)
+  const router = useRouter()
+
+  // SOPs are created as drafts, and there was no way to publish one — so no
+  // policy ever reached staff — and no way to acknowledge one on the web.
+  async function act(sop: SopRow, init: RequestInit) {
+    setBusy(true); setActionError(null)
+    try {
+      const res = await fetch(`/api/sops/${sop.id}`, { headers: { 'Content-Type': 'application/json' }, ...init })
+      if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.error || `Failed (${res.status})`)
+      setSelected(null)
+      router.refresh()
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : 'Something went wrong')
+    } finally {
+      setBusy(false)
+    }
+  }
+  const setStatus = (sop: SopRow, status: 'active' | 'draft' | 'archived') =>
+    act(sop, { method: 'PATCH', body: JSON.stringify({ status }) })
+  const acknowledge = (sop: SopRow) => act(sop, { method: 'POST' })
+  const btn = 'text-sm font-semibold px-4 py-2 rounded-xl transition-opacity disabled:opacity-50'
 
   const categories = Array.from(new Set(rows.map(r => r.category).filter(Boolean))) as string[]
 
@@ -166,6 +191,23 @@ export function HandbookTable({ rows, totalStaff }: { rows: SopRow[]; totalStaff
             >
               {contentText(selected.content) || (
                 <span style={{ color: 'var(--text-dim)' }}>This procedure has no written content yet.</span>
+              )}
+            </div>
+            {actionError && <p className="text-sm" style={{ color: '#F87171' }}>{actionError}</p>}
+            <div className="flex flex-wrap gap-2 justify-end">
+              {selected.status === 'active' && selected.requires_acknowledgement && (
+                selected.acked_by_me
+                  ? <span className="text-sm self-center" style={{ color: '#34D399' }}>You acknowledged this version</span>
+                  : <button type="button" disabled={busy} onClick={() => acknowledge(selected)} className={btn} style={{ background: 'var(--indigo)', color: '#fff' }}>I&apos;ve read and understood this</button>
+              )}
+              {editor && selected.status !== 'active' && (
+                <button type="button" disabled={busy} onClick={() => setStatus(selected, 'active')} className={btn} style={{ background: '#059669', color: '#fff' }}>Publish to team</button>
+              )}
+              {editor && selected.status === 'active' && (
+                <button type="button" disabled={busy} onClick={() => setStatus(selected, 'draft')} className={btn} style={{ background: 'var(--surface-2)', color: 'var(--text-secondary)' }}>Unpublish</button>
+              )}
+              {editor && selected.status !== 'archived' && (
+                <button type="button" disabled={busy} onClick={() => setStatus(selected, 'archived')} className={btn} style={{ background: 'rgba(239,68,68,0.12)', color: '#F87171' }}>Archive</button>
               )}
             </div>
           </div>

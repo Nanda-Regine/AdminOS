@@ -1,36 +1,24 @@
-import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { withRoute, unwrap, notFound } from '@/lib/api/withRoute'
+import { ownStaffId } from '@/lib/people/ownStaff'
+import { canSeeAnnouncement } from '@/lib/people/announcements'
 
-export async function POST(
-  _request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new NextResponse('Unauthorized', { status: 401 })
-
-  const tenantId = user.app_metadata?.tenant_id as string
-  if (!tenantId) return new NextResponse('No tenant', { status: 400 })
-
-  const { id } = await params
-
-  // Confirm the announcement belongs to the caller's tenant before recording a
-  // read receipt against a caller-supplied announcement id.
-  const { data: ann } = await supabaseAdmin
+// POST /api/announcements/[id]/read — record that the caller read it.
+export const POST = withRoute({ action: 'announcements.read' }, async ({ ctx, params }) => {
+  const ann = unwrap(await supabaseAdmin
     .from('announcements')
-    .select('id')
-    .eq('id', id)
-    .eq('tenant_id', tenantId)
-    .maybeSingle()
-  if (!ann) return NextResponse.json({ error: 'Announcement not found' }, { status: 404 })
+    .select('id, audience, audience_ids, expires_at')
+    .eq('id', params.id)
+    .eq('tenant_id', ctx.tenantId)
+    .is('deleted_at', null)
+    .maybeSingle())
+  // Same 404 for "not yours to see" as for "doesn't exist".
+  if (!ann || !canSeeAnnouncement(ann, { ...ctx, staffId: await ownStaffId(ctx.tenantId, ctx.userId) })) {
+    throw notFound('Announcement not found')
+  }
 
-  // Upsert — safe to call multiple times
-  const { error } = await supabaseAdmin
+  unwrap(await supabaseAdmin
     .from('announcement_reads')
-    .upsert({ announcement_id: id, user_id: user.id }, { onConflict: 'announcement_id, user_id' })
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
-
-  return NextResponse.json({ ok: true })
-}
+    .upsert({ announcement_id: params.id, user_id: ctx.userId }, { onConflict: 'announcement_id,user_id', ignoreDuplicates: true }))
+  return { ok: true }
+})

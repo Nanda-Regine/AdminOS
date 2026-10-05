@@ -13,7 +13,9 @@ export async function GET(request: Request) {
   const tenantId = user.app_metadata?.tenant_id as string
   if (!tenantId) return new NextResponse('No tenant', { status: 400 })
 
-  if (!(await checkPermission('manage_settings'))) return new NextResponse('Forbidden', { status: 403 })
+  // Same boundary as /api/ee and the EE page (manage_staff). It was
+  // manage_settings, so HR could fill the form but not print the report.
+  if (!(await checkPermission('manage_staff'))) return new NextResponse('Forbidden', { status: 403 })
 
   const url  = new URL(request.url)
   const year = parseInt(url.searchParams.get('year') ?? String(new Date().getFullYear()))
@@ -41,6 +43,7 @@ export async function GET(request: Request) {
     .select('gender, race, job_level, employment_type')
     .eq('tenant_id', tenantId)
     .eq('active', true)
+    .is('deleted_at', null)
 
   // Aggregate staff by occupational level, race, and gender
   const occupationalLevels = [
@@ -91,14 +94,29 @@ export async function GET(request: Request) {
     tableData[level]['Total'].total++
   }
 
-  const totalStaff  = (staff ?? []).length
-  const totalAfrican = (staff ?? []).filter(s => normaliseRace(s.race) === 'African').length
-  const totalColoured = (staff ?? []).filter(s => normaliseRace(s.race) === 'Coloured').length
-  const totalIndian  = (staff ?? []).filter(s => normaliseRace(s.race) === 'Indian').length
-  const totalWhite   = (staff ?? []).filter(s => normaliseRace(s.race) === 'White').length
-  const totalFemale  = (staff ?? []).filter(s => (s.gender ?? '').toLowerCase() === 'female').length
+  // Headline figures come from the demographics HR entered on the EE page
+  // (employment_equity_data.demographics) when present — that is the
+  // authoritative count. This report used to ignore them entirely, read
+  // ee_target_pct / total_pwd columns that don't exist, and so printed zeros
+  // and "PWD 0" on a statutory form whenever staff records lacked race/gender.
+  const demo = (eeData?.demographics ?? {}) as Record<string, number | undefined>
+  const n = (k: string) => Number(demo[k] ?? 0)
+  const hasDemo = ['african','coloured','indian','white','foreign'].some(r => n(r + '_male') + n(r + '_female') > 0)
+  const fromStaff = (race: string) => (staff ?? []).filter(s => normaliseRace(s.race) === race).length
 
-  const eeTarget = eeData?.ee_target_pct ?? null
+  const totalStaff    = eeData?.total_workforce ?? (staff ?? []).length
+  const totalAfrican  = hasDemo ? n('african_male') + n('african_female')   : fromStaff('African')
+  const totalColoured = hasDemo ? n('coloured_male') + n('coloured_female') : fromStaff('Coloured')
+  const totalIndian   = hasDemo ? n('indian_male') + n('indian_female')     : fromStaff('Indian')
+  const totalWhite    = hasDemo ? n('white_male') + n('white_female')       : fromStaff('White')
+  const totalFemale   = hasDemo
+    ? ['african','coloured','indian','white','foreign'].reduce((t, r) => t + n(r + '_female'), 0)
+    : (staff ?? []).filter(s => (s.gender ?? '').toLowerCase() === 'female').length
+  const totalPwd      = n('disabled')
+
+  // The occupational-level table can only come from staff records. Say so
+  // when they're incomplete rather than printing a silently short table.
+  const unclassified = (staff ?? []).filter(s => !normaliseLevel(s.job_level) || !normaliseRace(s.race) || !s.gender).length
 
   const tableRows = occupationalLevels.map(level => {
     const r = tableData[level]
@@ -111,7 +129,7 @@ export async function GET(request: Request) {
 
   const pwdRows = `<tr>
     <td colspan="2">People with Disabilities</td>
-    <td colspan="3">${eeData?.total_pwd ?? 0}</td>
+    <td colspan="3">${totalPwd}</td>
     <td colspan="15">—</td>
   </tr>`
 
@@ -149,7 +167,7 @@ export async function GET(request: Request) {
   <div class="info-grid">
     <div class="info-item"><div class="label">Company Name</div>${esc(tenant?.name ?? '')}</div>
     <div class="info-item"><div class="label">Registration Number</div>${esc(settings?.registration_number ?? 'N/A')}</div>
-    <div class="info-item"><div class="label">EE Target (%)</div>${eeTarget !== null ? eeTarget + '%' : 'Not set'}</div>
+    <div class="info-item"><div class="label">Staff records classified</div>${(staff ?? []).length - unclassified} of ${(staff ?? []).length}</div>
     <div class="info-item"><div class="label">Total Employees</div>${totalStaff}</div>
   </div>
 
@@ -159,10 +177,11 @@ export async function GET(request: Request) {
     <div class="summary-box"><div class="val">${totalIndian}</div><div>Indian/Asian</div></div>
     <div class="summary-box"><div class="val">${totalWhite}</div><div>White</div></div>
     <div class="summary-box"><div class="val">${totalFemale}</div><div>Female</div></div>
-    <div class="summary-box"><div class="val">${eeData?.total_pwd ?? 0}</div><div>PWD</div></div>
+    <div class="summary-box"><div class="val">${totalPwd}</div><div>PWD</div></div>
   </div>
 
   <h2>Workforce Profile by Occupational Level (EEA2 Form A)</h2>
+  ${unclassified > 0 ? `<p style="margin-bottom:6px;color:#b45309;">${unclassified} staff record${unclassified === 1 ? ' is' : 's are'} missing race, gender or occupational level and ${unclassified === 1 ? 'is' : 'are'} not in this table. Complete them on the Staff page before submitting.</p>` : ''}
   <table>
     <thead>
       <tr>
@@ -212,7 +231,7 @@ export async function GET(request: Request) {
   }
 
   if (download) {
-    headers['Content-Disposition'] = `attachment; filename="EEA2-${year}-${tenant?.name?.replace(/\s+/g, '-') ?? 'report'}.html"`
+    headers['Content-Disposition'] = `attachment; filename="EEA2-${year}-${(tenant?.name ?? 'report').replace(/[^A-Za-z0-9-]+/g, '-')}.html"`
   }
 
   return new NextResponse(html, { headers })
