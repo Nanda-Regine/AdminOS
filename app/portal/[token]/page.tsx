@@ -2,6 +2,8 @@ export const dynamic = 'force-dynamic'
 
 import { notFound } from 'next/navigation'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { OPEN_INVOICE_STATUSES, outstanding } from '@/lib/invoices/status'
+import { daysOverdue } from '@/lib/debt/overdue'
 
 interface Props {
   params: Promise<{ token: string }>
@@ -35,10 +37,11 @@ async function getPortalData(token: string) {
   // Fetch open invoices
   const { data: invoices } = await supabaseAdmin
     .from('invoices')
-    .select('id, invoice_number, amount, status, due_date, created_at')
+    .select('id, invoice_number, amount, amount_paid, status, due_date, created_at')
     .eq('tenant_id', tenantId)
     .eq('contact_id', contactId)
-    .in('status', ['unpaid', 'partial', 'overdue'])
+    .in('status', [...OPEN_INVOICE_STATUSES])
+    .is('deleted_at', null)
     .order('due_date', { ascending: true })
 
   // Fetch recent conversations
@@ -67,7 +70,8 @@ export default async function PortalPage({ params }: Props) {
   if (!data) notFound()
 
   const { contact, invoices, conversations, tenantName } = data
-  const totalOwed = invoices.reduce((sum, inv) => sum + Number((inv as { amount: number }).amount || 0), 0)
+  // What the customer still owes — amount minus anything already paid.
+  const totalOwed = invoices.reduce((sum, inv) => sum + outstanding(inv), 0)
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white">
@@ -100,7 +104,8 @@ export default async function PortalPage({ params }: Props) {
             </p>
             <div className="space-y-3">
               {invoices.map((inv) => {
-                const invoice = inv as { id: string; invoice_number?: string; amount: number; status: string; due_date?: string }
+                const invoice = inv as { id: string; invoice_number?: string; amount: number; amount_paid: number; status: string; due_date?: string }
+                const late = daysOverdue(invoice.due_date) > 0
                 return (
                   <div key={invoice.id} className="flex items-center justify-between py-3 border-t border-white/10">
                     <div>
@@ -110,13 +115,13 @@ export default async function PortalPage({ params }: Props) {
                       )}
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-semibold">R{Number(invoice.amount).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}</p>
+                      <p className="text-sm font-semibold">R{outstanding(invoice).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}</p>
                       <span className={`text-xs px-2 py-0.5 rounded-full ${
-                        invoice.status === 'overdue'
+                        late
                           ? 'bg-red-500/20 text-red-400'
                           : 'bg-amber-500/20 text-amber-400'
                       }`}>
-                        {invoice.status}
+                        {late ? 'overdue' : invoice.status === 'partial' ? 'part paid' : 'due'}
                       </span>
                     </div>
                   </div>

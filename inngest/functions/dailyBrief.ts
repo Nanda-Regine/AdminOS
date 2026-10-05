@@ -3,6 +3,8 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { writeAuditLog } from '@/lib/security/audit'
 import { checkBudget, recordUsage, getModelForFeature } from '@/lib/ai/costControls'
 import { setDailyBrief } from '@/lib/signals/brief'
+import { OPEN_INVOICE_STATUSES, outstanding } from '@/lib/invoices/status'
+import { todayDateString } from '@/lib/debt/overdue'
 import Anthropic from '@anthropic-ai/sdk'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
@@ -22,7 +24,8 @@ export const dailyBriefEngine = inngest.createFunction(
       const [tenantRes, convRes, invoiceRes, staffRes, goalRes, wqRes, complianceRes, healthRes] = await Promise.all([
         supabaseAdmin.from('tenants').select('name, plan, settings, language_primary').eq('id', tenant_id).single(),
         supabaseAdmin.from('conversations').select('id, status, intent, sentiment').eq('tenant_id', tenant_id).eq('status', 'open'),
-        supabaseAdmin.from('invoices').select('amount, days_overdue, status').eq('tenant_id', tenant_id).in('status', ['unpaid', 'partial']).gt('days_overdue', 0),
+        // Open + past due by due_date (days_overdue is a stale trigger column; see lib/invoices/status).
+        supabaseAdmin.from('invoices').select('amount, amount_paid').eq('tenant_id', tenant_id).in('status', [...OPEN_INVOICE_STATUSES]).lt('due_date', todayDateString()).is('deleted_at', null),
         supabaseAdmin.from('staff').select('id, full_name, wellness_scores').eq('tenant_id', tenant_id).eq('active', true),
         supabaseAdmin.from('goals').select('title, progress_pct, status').eq('tenant_id', tenant_id).eq('status', 'active').limit(5),
         supabaseAdmin.from('workflow_queue').select('workflow_type, status, created_at').eq('tenant_id', tenant_id).gte('created_at', today.toISOString()).order('created_at', { ascending: false }).limit(20),
@@ -39,7 +42,7 @@ export const dailyBriefEngine = inngest.createFunction(
         return sum + avg
       }, 0) / (staffData.length || 1)
 
-      const totalDebt = (invoiceRes.data ?? []).reduce((sum, i) => sum + Number(i.amount), 0)
+      const totalDebt = (invoiceRes.data ?? []).reduce((sum, i) => sum + outstanding(i), 0)
 
       return {
         tenantName:        tenantRes.data?.name ?? 'your business',

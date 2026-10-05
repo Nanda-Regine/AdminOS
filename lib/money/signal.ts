@@ -8,6 +8,8 @@
  */
 
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { isOwed } from '@/lib/invoices/status'
+import { daysOverdue } from '@/lib/debt/overdue'
 import { publishSignal, financeMode, type MoneySignal } from '@/lib/signals/bus'
 
 export interface AgingBucket {
@@ -58,8 +60,9 @@ export async function buildMoneyIntel(tenantId: string): Promise<MoneyIntel> {
   const [invRes, expRes] = await Promise.all([
     supabaseAdmin
       .from('invoices')
-      .select('id, contact_name, amount, amount_paid, days_overdue, status, created_at, recovery_status')
-      .eq('tenant_id', tenantId),
+      .select('id, contact_name, amount, amount_paid, due_date, status, created_at, recovery_status')
+      .eq('tenant_id', tenantId)
+      .is('deleted_at', null),
     supabaseAdmin
       .from('expenses')
       .select('amount, status, paid_at, created_at')
@@ -70,7 +73,8 @@ export async function buildMoneyIntel(tenantId: string): Promise<MoneyIntel> {
   const expenses = expRes.data ?? []
 
   // ── AR + aging ladder ──────────────────────────────────────────────────────
-  const unpaid = invoices.filter(i => i.status !== 'paid')
+  // Owed only: status !== 'paid' also put drafts and cancelled invoices in AR.
+  const unpaid = invoices.filter(i => isOwed(i.status))
   const buckets: Record<AgingBucket['key'], AgingBucket> = {
     current:  { key: 'current',  label: BUCKET_LABELS.current,  amount: 0, count: 0 },
     d1_30:    { key: 'd1_30',    label: BUCKET_LABELS.d1_30,    amount: 0, count: 0 },
@@ -84,7 +88,7 @@ export async function buildMoneyIntel(tenantId: string): Promise<MoneyIntel> {
   for (const inv of unpaid) {
     const out = outstanding(inv.amount, inv.amount_paid)
     if (out <= 0.005) continue
-    const days = inv.days_overdue || 0
+    const days = daysOverdue(inv.due_date)
     const b = buckets[bucketOf(days)]
     b.amount += out
     b.count += 1

@@ -5,6 +5,8 @@
  */
 
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { OPEN_INVOICE_STATUSES, outstanding } from '@/lib/invoices/status'
+import { daysOverdue } from '@/lib/debt/overdue'
 export { AGENT_DEFINITIONS, type AgentType } from './agents.config'
 
 // Fetch real DB data for agents that need it
@@ -41,7 +43,7 @@ async function buildLookupContext(
         .maybeSingle(),
       supabaseAdmin
         .from('invoices')
-        .select('contact_name, amount, amount_paid, due_date, days_overdue, status, escalation_level')
+        .select('contact_name, amount, amount_paid, due_date, status, escalation_level')
         .eq('tenant_id', tenantId)
         .eq('contact_phone', contactIdentifier)
         .order('created_at', { ascending: false })
@@ -62,7 +64,7 @@ async function buildLookupContext(
 
     if (invoices.data?.length) {
       const invText = invoices.data.map((i) =>
-        `- ${i.contact_name}: R${i.amount} (paid R${i.amount_paid}) — ${i.status}, ${i.days_overdue ?? 0} days overdue`
+        `- ${i.contact_name}: R${i.amount} (paid R${i.amount_paid}) — ${i.status}, ${daysOverdue(i.due_date)} days overdue`
       ).join('\n')
       parts.push(`INVOICE HISTORY:\n${invText}`)
     }
@@ -87,7 +89,7 @@ async function buildAdvisorContext(
 
   const [convResult, invoiceResult, staffResult, goalResult, leaveResult, insightsResult] = await Promise.all([
     supabaseAdmin.from('conversations').select('status, sentiment, intent').eq('tenant_id', tenantId).gte('created_at', sevenDaysAgo),
-    supabaseAdmin.from('invoices').select('amount, days_overdue, status').eq('tenant_id', tenantId).in('status', ['unpaid', 'partial']),
+    supabaseAdmin.from('invoices').select('amount, amount_paid, due_date, status').eq('tenant_id', tenantId).in('status', [...OPEN_INVOICE_STATUSES]).is('deleted_at', null),
     supabaseAdmin.from('staff').select('wellness_scores, after_hours_flag').eq('tenant_id', tenantId),
     supabaseAdmin.from('goals').select('title, target_metric, current_value, target_value, progress_pct, status').eq('tenant_id', tenantId).eq('status', 'active').limit(5),
     supabaseAdmin.from('leave_requests').select('status', { count: 'exact' }).eq('tenant_id', tenantId).eq('status', 'approved').gte('end_date', new Date().toISOString().split('T')[0]),
@@ -101,7 +103,7 @@ async function buildAdvisorContext(
   const goals    = goalResult.data    || []
   const insights = insightsResult.data || []
 
-  const totalDebt    = invoices.reduce((s, i) => s + Number(i.amount), 0)
+  const totalDebt    = invoices.reduce((s, i) => s + outstanding(i), 0)
   const urgentCount  = convs.filter((c) => c.sentiment === 'urgent').length
   const negativeCount = convs.filter((c) => c.sentiment === 'negative').length
 

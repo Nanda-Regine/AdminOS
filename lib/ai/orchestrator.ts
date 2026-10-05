@@ -2,6 +2,8 @@ import Anthropic from '@anthropic-ai/sdk'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { writeAuditLog } from '@/lib/security/audit'
 import { recordUsage } from '@/lib/ai/costControls'
+import { OPEN_INVOICE_STATUSES, outstanding } from '@/lib/invoices/status'
+import { daysOverdue } from '@/lib/debt/overdue'
 import type { AgentName, AgentConfig, OrchestratorRequest, OrchestratorResponse } from './types'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
@@ -123,7 +125,7 @@ export class AgentOrchestrator {
           .maybeSingle(),
         supabaseAdmin
           .from('invoices')
-          .select('reference, amount, days_overdue, status, recovery_tier')
+          .select('reference, amount, amount_paid, due_date, status, recovery_tier')
           .eq('tenant_id', req.tenantId)
           .eq('contact_phone', req.contactIdentifier)
           .order('created_at', { ascending: false })
@@ -138,7 +140,15 @@ export class AgentOrchestrator {
       ])
 
       if (contact.data) parts.push(`CONTACT: ${JSON.stringify(contact.data)}`)
-      if (invoices.data?.length) parts.push(`INVOICES: ${JSON.stringify(invoices.data)}`)
+      if (invoices.data?.length) {
+        // Give the model what is actually owed and how late, computed — not the
+        // stale days_overdue column or the gross amount.
+        const inv = invoices.data.map((i) => ({
+          reference: i.reference, status: i.status, recovery_tier: i.recovery_tier,
+          outstanding: outstanding(i), days_overdue: daysOverdue(i.due_date),
+        }))
+        parts.push(`INVOICES: ${JSON.stringify(inv)}`)
+      }
       if (recentConvs.data?.length) parts.push(`RECENT_CONVS: ${JSON.stringify(recentConvs.data)}`)
     }
 
@@ -156,11 +166,14 @@ export class AgentOrchestrator {
       today.setHours(0, 0, 0, 0)
       const [convRes, invoiceRes, goalRes] = await Promise.all([
         supabaseAdmin.from('conversations').select('id', { count: 'exact' }).eq('tenant_id', req.tenantId).eq('status', 'open'),
-        supabaseAdmin.from('invoices').select('amount, days_overdue').eq('tenant_id', req.tenantId).in('status', ['unpaid', 'partial']),
+        supabaseAdmin.from('invoices').select('amount, amount_paid, due_date').eq('tenant_id', req.tenantId).in('status', [...OPEN_INVOICE_STATUSES]).is('deleted_at', null).limit(200),
         supabaseAdmin.from('goals').select('title, progress_pct, status').eq('tenant_id', req.tenantId).eq('status', 'active').limit(5),
       ])
       parts.push(`OPEN_CONVS: ${convRes.count ?? 0}`)
-      parts.push(`OVERDUE_INVOICES: ${JSON.stringify(invoiceRes.data ?? [])}`)
+      const overdueInv = (invoiceRes.data ?? [])
+        .map((i) => ({ outstanding: outstanding(i), days_overdue: daysOverdue(i.due_date) }))
+        .filter((i) => i.days_overdue > 0 && i.outstanding > 0)
+      parts.push(`OVERDUE_INVOICES: ${JSON.stringify(overdueInv)}`)
       parts.push(`GOALS: ${JSON.stringify(goalRes.data ?? [])}`)
     }
 

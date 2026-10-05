@@ -4,6 +4,7 @@ import { sendWhatsAppMessage } from '@/lib/whatsapp/send'
 import { WHATSAPP_TEMPLATES } from '@/lib/whatsapp/templates'
 import { checkRecoveryMessage } from '@/lib/debt/recoveryGuard'
 import { daysOverdue } from '@/lib/debt/overdue'
+import { isOpen, outstanding } from '@/lib/invoices/status'
 import { writeAuditLog } from '@/lib/security/audit'
 import { notifyTenant } from '@/lib/notifications/notify'
 import { getTenantAutonomy } from '@/lib/autonomy/config'
@@ -31,9 +32,11 @@ export const debtRecoveryEngine = inngest.createFunction(
       const [invoiceRes, tenantRes] = await Promise.all([
         supabaseAdmin
           .from('invoices')
-          .select('contact_name, contact_phone, contact_email, amount, due_date, reference, recovery_tier')
+          .select('contact_name, contact_phone, contact_email, amount, amount_paid, status, recovery_status, due_date, reference, recovery_tier')
           .eq('id', invoice_id)
-          .single(),
+          .eq('tenant_id', tenant_id)
+          .is('deleted_at', null)
+          .maybeSingle(),
         supabaseAdmin
           .from('tenants')
           .select('name, plan, settings, system_prompt_cache, language_primary')
@@ -56,6 +59,20 @@ export const debtRecoveryEngine = inngest.createFunction(
     })
 
     if (!context.invoice) return { status: 'invoice_not_found' }
+
+    // Re-check at send time, not just at fan-out. The fan-out runs at 08:00 and
+    // events can sit in the queue; an invoice paid, cancelled or paused by the
+    // owner in between must not be chased.
+    const inv0 = context.invoice
+    if (!isOpen(inv0.status)) return { status: 'no_longer_open', invoice_status: inv0.status }
+    if (inv0.recovery_status && inv0.recovery_status !== 'auto') {
+      return { status: 'not_on_auto_track', recovery_status: inv0.recovery_status }
+    }
+    // What the customer actually still owes. This used to quote the invoice
+    // total, so a customer who had part-paid was told they owed the full amount
+    // — misstating a debt in a collections message.
+    const owed = outstanding(inv0)
+    if (owed <= 0) return { status: 'settled' }
 
     const tier = await step.run('calculate-tier', async () => {
       // Computed from due_date, not a stored column — see lib/debt/overdue.
@@ -124,7 +141,7 @@ export const debtRecoveryEngine = inngest.createFunction(
         const text = await draftRecoveryMessage({
           tenantName: context.tenant?.name ?? 'our business',
           contact: inv.contact_name ?? 'the customer',
-          amount: Number(inv.amount),
+          amount: owed,
           daysOverdue: daysOverdue(inv.due_date),
           tone: 'firm and serious — this account is significantly overdue — while remaining respectful and lawful',
           includePaymentLink: false,
@@ -139,8 +156,8 @@ export const debtRecoveryEngine = inngest.createFunction(
       await step.run('notify-owner-review', async () => {
         const inv = context.invoice!
         const baseBody = heldByAutonomy
-          ? `${inv.contact_name ?? 'A customer'}'s invoice (R${inv.amount}) is overdue. Auto-send is off for reminders, so it's waiting for you to send.`
-          : `${inv.contact_name ?? 'A customer'}'s invoice (R${inv.amount}) is past the gentle-reminder stage. Decide how to proceed — AdminOS won't chase harder on its own.`
+          ? `${inv.contact_name ?? 'A customer'}'s invoice (R${owed.toFixed(2)} outstanding) is overdue. Auto-send is off for reminders, so it's waiting for you to send.`
+          : `${inv.contact_name ?? 'A customer'}'s invoice (R${owed.toFixed(2)} outstanding) is past the gentle-reminder stage. Decide how to proceed — AdminOS won't chase harder on its own.`
         await notifyTenant(tenant_id, {
           type: 'recovery.escalation',
           title: heldByAutonomy ? 'Reminder ready to send' : 'Invoice needs your review',
@@ -191,7 +208,7 @@ export const debtRecoveryEngine = inngest.createFunction(
 
 Business: ${tenantName}
 Contact: ${inv.contact_name ?? 'valued client'}
-Amount owed: R${inv.amount}
+Amount owed: R${owed.toFixed(2)}
 Days overdue: ${days}
 Invoice ref: ${inv.reference ?? invoice_id.slice(0, 8)}
 
@@ -291,7 +308,7 @@ Reply ONLY with the message text.`,
       // masquerade as a delivered reminder.
       const patch: Record<string, unknown> = { recovery_tier: tier }
       if (sendResult.sent) patch.last_reminder_sent_at = new Date().toISOString()
-      await supabaseAdmin.from('invoices').update(patch).eq('id', invoice_id)
+      await supabaseAdmin.from('invoices').update(patch).eq('id', invoice_id).eq('tenant_id', tenant_id)
     })
 
     if (sendResult.sent) {

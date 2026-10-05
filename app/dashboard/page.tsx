@@ -4,6 +4,8 @@ import { TopBar } from '@/components/dashboard/TopBar'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { formatZAR } from '@/lib/format'
+import { OWED_INVOICE_STATUSES } from '@/lib/invoices/status'
+import { daysOverdue } from '@/lib/debt/overdue'
 import { publishSignal, financeMode } from '@/lib/signals/bus'
 import { getDailyBrief } from '@/lib/signals/brief'
 import { getSetupState } from '@/lib/tenant/setup-state'
@@ -39,7 +41,8 @@ export default async function CommandCenter() {
     invRes, expRes, prodRes, staffRes, leaveRes, contractRes, bookingRes,
     taskRes, convRes, goalRes, complianceRes, auditRes,
   ] = await Promise.all([
-    supabaseAdmin.from('invoices').select('amount, amount_paid, status, days_overdue, due_date, contact_name, created_at, recovery_status').eq('tenant_id', tenantId).neq('status', 'paid'),
+    // Owed only — neq('paid') also counted drafts and cancelled invoices as receivables.
+    supabaseAdmin.from('invoices').select('amount, amount_paid, status, due_date, contact_name, created_at, recovery_status').eq('tenant_id', tenantId).in('status', [...OWED_INVOICE_STATUSES]).is('deleted_at', null),
     supabaseAdmin.from('expenses').select('amount, status, paid_at, created_at').eq('tenant_id', tenantId),
     supabaseAdmin.from('products').select('name, current_stock, reorder_level, cost_price').eq('tenant_id', tenantId),
     supabaseAdmin.from('staff').select('id', { count: 'exact', head: true }).eq('tenant_id', tenantId).eq('active', true),
@@ -66,8 +69,9 @@ export default async function CommandCenter() {
   // ── MONEY (cash conversion cycle) ─────────────────────────────────────────
   const outstanding = (i: { amount: number; amount_paid: number }) => Math.max(0, Number(i.amount || 0) - Number(i.amount_paid || 0))
   const arTotal = invoices.reduce((s, i) => s + outstanding(i), 0)
-  const arOverdue = invoices.filter(i => (i.days_overdue || 0) > 0).reduce((s, i) => s + outstanding(i), 0)
-  const arStuck = invoices.filter(i => (i.days_overdue || 0) > 60).reduce((s, i) => s + outstanding(i), 0)
+  // Days overdue from due_date — the stored days_overdue column goes stale.
+  const arOverdue = invoices.filter(i => daysOverdue(i.due_date) > 0).reduce((s, i) => s + outstanding(i), 0)
+  const arStuck = invoices.filter(i => daysOverdue(i.due_date) > 60).reduce((s, i) => s + outstanding(i), 0)
   const recoveryReview = invoices.filter(i => i.recovery_status === 'awaiting_owner_review').length
   const apTotal = expenses.filter(e => e.paid_at == null && e.status !== 'rejected').reduce((s, e) => s + Number(e.amount || 0), 0)
   const burn30 = expenses.filter(e => e.created_at >= days30Ago).reduce((s, e) => s + Number(e.amount || 0), 0)
@@ -97,7 +101,7 @@ export default async function CommandCenter() {
   const complianceDue = compliance.filter(c => { const d = daysUntil(c.due_date); return d !== null && d <= 14 })
 
   // ── PUBLISH SIGNALS to the nervous system (Law 2: computed once, read everywhere)
-  const arOverdueSig = invoices.filter(i => (i.days_overdue || 0) > 0).reduce((s, i) => s + outstanding(i), 0)
+  const arOverdueSig = arOverdue
   const mode = financeMode({ netPosition, runwayMonths, arStuck })
   const [brief, setup] = await Promise.all([getDailyBrief(tenantId), getSetupState(tenantId)])
   void publishSignal('money', tenantId, {

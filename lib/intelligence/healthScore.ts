@@ -7,6 +7,8 @@
  */
 
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { OPEN_INVOICE_STATUSES, outstanding } from '@/lib/invoices/status'
+import { todayDateString } from '@/lib/debt/overdue'
 
 export interface HealthDimension {
   score:   number   // 0–100
@@ -65,14 +67,19 @@ async function scoreFinancial(tenantId: string): Promise<HealthDimension> {
   const [overdueRes, recentPaidRes, invoiceRes] = await Promise.all([
     supabaseAdmin
       .from('invoices')
-      .select('amount_due, due_date')
+      // Open and past due by due_date — nothing in the app ever sets status
+      // 'overdue', so filtering on it counted almost nothing.
+      .select('amount, amount_paid, due_date')
       .eq('tenant_id', tenantId)
-      .eq('status', 'overdue'),
+      .in('status', [...OPEN_INVOICE_STATUSES])
+      .lt('due_date', todayDateString())
+      .is('deleted_at', null),
     supabaseAdmin
       .from('invoices')
-      .select('amount_due, paid_at')
+      .select('amount, amount_paid, paid_at')
       .eq('tenant_id', tenantId)
       .eq('status', 'paid')
+      .is('deleted_at', null)
       .gte('paid_at', thirtyDaysAgo),
     supabaseAdmin
       .from('invoices')
@@ -85,8 +92,10 @@ async function scoreFinancial(tenantId: string): Promise<HealthDimension> {
   const recentPaid = recentPaidRes.data ?? []
   const allInvoices = invoiceRes.data ?? []
 
-  const totalOverdue = overdue.reduce((s, i) => s + (i.amount_due ?? 0), 0)
-  const totalRevenue = recentPaid.reduce((s, i) => s + (i.amount_due ?? 0), 0)
+  const totalOverdue = overdue.reduce((s, i) => s + outstanding(i), 0)
+  // Collected = amount_paid. This summed amount_due over PAID invoices, which is
+  // 0 by definition, so "recent revenue" was always R0 and never scored.
+  const totalRevenue = recentPaid.reduce((s, i) => s + Number(i.amount_paid ?? i.amount ?? 0), 0)
 
   // Debtor days (approximate)
   const avgDebtorDays = allInvoices.length > 0

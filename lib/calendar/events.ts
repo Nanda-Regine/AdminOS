@@ -7,6 +7,7 @@
  * is a single-day event.
  */
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { OWED_INVOICE_STATUSES } from '@/lib/invoices/status'
 
 export type CalendarEventType =
   | 'leave_approved' | 'leave_pending'
@@ -64,7 +65,8 @@ export async function getCalendarEvents(tenantId: string, from: string, to: stri
       .from('invoices')
       .select('id, contact_name, amount, due_date, status')
       .eq('tenant_id', tenantId)
-      .in('status', ['unpaid', 'partial', 'overdue', 'in_collections'])
+      .in('status', [...OWED_INVOICE_STATUSES])
+      .is('deleted_at', null)
       .gte('due_date', from)
       .lte('due_date', to),
     supabaseAdmin

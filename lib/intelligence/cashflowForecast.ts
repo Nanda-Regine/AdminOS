@@ -1,4 +1,5 @@
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { OPEN_INVOICE_STATUSES, outstanding } from '@/lib/invoices/status'
 
 export interface WeeklyForecast {
   weekStart:  string   // ISO date
@@ -62,9 +63,10 @@ export async function generateCashflowForecast(
     // Outstanding invoices
     supabaseAdmin
       .from('invoices')
-      .select('id, total, due_date, status, created_at')
+      .select('id, amount, amount_paid, due_date, status, created_at')
       .eq('tenant_id', tenantId)
-      .in('status', ['sent', 'overdue', 'partial'])
+      .in('status', [...OPEN_INVOICE_STATUSES])
+      .is('deleted_at', null)
       .gte('due_date', toISO(addDays(today, -90)))
       .lte('due_date', toISO(horizonEnd)),
 
@@ -98,17 +100,20 @@ export async function generateCashflowForecast(
   const nowTs    = today.getTime()
 
   for (const inv of invoices) {
-    if (!inv.due_date || !inv.total) continue
+    const owed = outstanding(inv)
+    if (!inv.due_date || owed <= 0) continue
     const dueDate   = new Date(inv.due_date)
     const daysOver  = Math.round((nowTs - dueDate.getTime()) / 86400000)
     const prob      = paymentProbability(daysOver)
+    // Overdue: expect collection 3–14 days out. This was min(14, 30 − daysOver),
+    // which goes negative past 16 days overdue and dated the inflow in the past.
     const collectOn = daysOver > 0
-      ? toISO(addDays(today, Math.min(14, 30 - daysOver)))  // estimate collection soon
+      ? toISO(addDays(today, Math.max(3, Math.min(14, 30 - daysOver))))
       : inv.due_date
 
     inflows.push({
       date:        collectOn,
-      amount:      inv.total,
+      amount:      owed,
       label:       `Invoice payment`,
       category:    'invoice',
       probability: prob,

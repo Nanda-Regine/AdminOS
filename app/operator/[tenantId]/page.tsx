@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { OWED_INVOICE_STATUSES, outstanding } from '@/lib/invoices/status'
 import { requireSuperAdmin } from '@/lib/auth/context'
 import { getUsage } from '@/lib/billing/usage'
 
@@ -21,7 +22,7 @@ export default async function OperatorTenantPage({ params }: Props) {
     supabaseAdmin.from('subscriptions').select('*').eq('tenant_id', tenantId).maybeSingle(),
     supabaseAdmin.from('staff').select('id', { count: 'exact' }).eq('tenant_id', tenantId),
     supabaseAdmin.from('conversations').select('id', { count: 'exact' }).eq('tenant_id', tenantId).eq('status', 'open'),
-    supabaseAdmin.from('invoices').select('amount').eq('tenant_id', tenantId).in('status', ['unpaid', 'partial', 'overdue']),
+    supabaseAdmin.from('invoices').select('amount, amount_paid').eq('tenant_id', tenantId).in('status', [...OWED_INVOICE_STATUSES]).is('deleted_at', null),
   ])
 
   if (!tenantRes.data) notFound()
@@ -31,7 +32,7 @@ export default async function OperatorTenantPage({ params }: Props) {
   const plan   = (sub?.plan ?? tenant.plan ?? 'trial') as string
 
   const usage        = await getUsage(tenantId).catch(() => 0)
-  const totalOverdue = (invoiceRes.data ?? []).reduce((s, i) => s + Number((i as { amount: number }).amount || 0), 0)
+  const totalOverdue = (invoiceRes.data ?? []).reduce((s, i) => s + outstanding(i), 0)
 
   const statCards = [
     { label: 'Plan',            value: plan },

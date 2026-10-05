@@ -9,6 +9,8 @@
 
 import Anthropic from '@anthropic-ai/sdk'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { isOpen } from '@/lib/invoices/status'
+import { daysOverdue } from '@/lib/debt/overdue'
 import { checkBudget, recordUsage, getModelForFeature } from '@/lib/ai/costControls'
 import { sanitizeForAI } from '@/lib/security/sanitize'
 
@@ -64,7 +66,7 @@ export async function buildLangaContext(tenantId: string, userId: string): Promi
       .limit(5),
     supabaseAdmin
       .from('invoices')
-      .select('status, amount_due')
+      .select('status, amount_due, due_date')
       .eq('tenant_id', tenantId)
       .gte('created_at', sevenDaysAgo)
       .limit(20),
@@ -82,7 +84,7 @@ export async function buildLangaContext(tenantId: string, userId: string): Promi
   // Recent events summary
   const recentEvents: string[] = []
   const invoices = invoicesRes.data ?? []
-  const overdue  = invoices.filter((i) => i.status === 'overdue')
+  const overdue  = invoices.filter((i) => isOpen(i.status) && daysOverdue(i.due_date) > 0)
   const paid     = invoices.filter((i) => i.status === 'paid')
   if (overdue.length) recentEvents.push(`${overdue.length} overdue invoice${overdue.length > 1 ? 's' : ''} need attention`)
   if (paid.length)    recentEvents.push(`${paid.length} payment${paid.length > 1 ? 's' : ''} received this week`)

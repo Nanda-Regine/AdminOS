@@ -1,5 +1,7 @@
 import { inngest } from '@/inngest/client'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { isOwed, outstanding } from '@/lib/invoices/status'
+import { daysOverdue } from '@/lib/debt/overdue'
 import { checkBudget, recordUsage, getModelForFeature } from '@/lib/ai/costControls'
 import Anthropic from '@anthropic-ai/sdk'
 
@@ -330,18 +332,25 @@ async function gatherCustomers(tenantId: string, from: string, to: string) {
 async function gatherInvoices(tenantId: string, from: string, to: string) {
   const { data } = await supabaseAdmin
     .from('invoices')
-    .select('total, amount_due, status')
+    .select('amount, amount_paid, status, due_date')
     .eq('tenant_id', tenantId)
+    .is('deleted_at', null)
+    .neq('status', 'draft')
+    .neq('status', 'cancelled')
     .gte('created_at', from)
     .lte('created_at', to)
 
   const invoices = data ?? []
-  const billed      = invoices.reduce((s, i) => s + (i.total ?? 0), 0)
-  const paid        = invoices.filter(i => i.status === 'paid').reduce((s, i) => s + (i.total ?? 0), 0)
-  const outstanding = invoices.filter(i => !['paid','cancelled'].includes(i.status)).reduce((s, i) => s + (i.amount_due ?? 0), 0)
-  const overdue     = invoices.filter(i => i.status === 'overdue').reduce((s, i) => s + (i.amount_due ?? 0), 0)
+  // amount is the canonical value column (`total` is vestigial and null on
+  // older rows); outstanding is amount − amount_paid; overdue is by due_date,
+  // since nothing in the app ever sets status 'overdue' (lib/invoices/status).
+  const billed  = invoices.reduce((s, i) => s + Number(i.amount ?? 0), 0)
+  const paid    = invoices.reduce((s, i) => s + Number(i.amount_paid ?? 0), 0)
+  const owed    = invoices.filter(i => isOwed(i.status))
+  const open    = owed.reduce((s, i) => s + outstanding(i), 0)
+  const overdue = owed.filter(i => daysOverdue(i.due_date) > 0).reduce((s, i) => s + outstanding(i), 0)
 
-  return { total_billed: billed, paid, outstanding, overdue }
+  return { total_billed: billed, paid, outstanding: open, overdue }
 }
 
 async function gatherStaff(tenantId: string, from: string, to: string) {
