@@ -2936,3 +2936,101 @@ locally with the OneDrive `UNKNOWN read` error, so it has to run in CI.
 **Next:** Phase 2, domain by domain. Start with Money. In each tab, move its
 routes onto withRoute, adopt soft delete and server lists where they apply,
 then run `--write-baseline`.
+
+## Session 18 (2026-10-05) — Phase 2: Money sweep
+
+Commits `60bc823` → `b9661d5` (6 commits). Every Money route (22) is now on
+`withRoute`. tsc 0, tests 77 → **97/97**. Two additive migrations **applied to
+prod** via Management API. Nanda's direction this session: *"every time you
+find bugs, go extra debugger mode for more hidden bugs"* and *"we don't want
+this app to have catastrophic errors that will ruin a whole business"* — so
+each bug was chased to its siblings before moving on. Most of what's below was
+found that way, not by the scanner.
+
+**Catastrophic-class bugs fixed (would have hurt a real business):**
+- **Debt recovery never chased invoices made in AdminOS.** Every chaser
+  filtered `['unpaid','partial']`; the app creates invoices as `sent` and
+  nothing sets `overdue`. Live: 7 of 11 past-due invoices invisible to the
+  cron, Remind button, brief and agents. New `lib/invoices/status.ts` is the
+  one definition (OPEN / OWED / `outstanding()` / `paymentState()`).
+- **Reminders misstated the debt.** Messages quoted the invoice *total* to
+  customers who had part-paid ("owed R7,935" when R5,157.75 was owed). The
+  engine also never re-checked status at send time (paid-after-08:00 still
+  chased) and loaded invoices by id with no tenant scope. Customer portal
+  showed the same wrong totals.
+- **VAT charged by unregistered businesses.** Both invoice modals defaulted
+  "Include 15% VAT" ON; no tenant has a VAT number; the document hides the VAT
+  line without one. Live: **17/21 invoices carry R5,995 VAT** their documents
+  don't show. API now 400s VAT without a VAT number; toggle only for
+  registered businesses. ⚠️ **Existing 17 rows untouched — Nanda decides**
+  (mostly test tenants; check whether any were sent to a real customer).
+- **VAT201 working paper** counted draft and *cancelled* invoices as sales,
+  assumed VAT on invoices without it, claimed input VAT on *pending* claims.
+- **No way to record a payment.** PATCH `/api/invoices/[id]` had no caller,
+  so every invoice stayed outstanding — and in debt recovery — forever. New
+  Record payment / Mark sent / Cancel / Delete-draft actions.
+- **Payroll never worked end to end (0 runs ever in prod).** distribute
+  needed statuses the DB constraint forbids; generate-payslips wrote columns
+  that don't exist (deleted); `/run` sent payslips immediately with no review;
+  re-runs duplicated payslips; the payslip viewer 404'd on nonexistent
+  columns; the WhatsApp link needed a login no employee has. Now:
+  draft → processing → **finalised (review)** → **paid (send)**, atomic
+  claims, soft-deleted re-runs, per-employee review table, and an expiring
+  **payslip view token** (`/api/payslips/view/[token]`, ID/bank masked).
+- **EMP201 UIF = NaN** on the SARS working paper (snake_case rows through a
+  camelCase reader; cache never written).
+- **PAYE on 2025/26 tables.** SARS raised brackets/rebates/medical credits
+  3.4% for 2026/27. Tables are now keyed by tax year and chosen from the pay
+  period. **Every February: add the new year to `TAX_TABLES`** in
+  `lib/payroll/calculate.ts` (tests check self-consistency).
+- **Race conditions:** invoice numbers (count+1) collided; Quick Sale and
+  stock movements read-modify-wrote stock with no tenant filter on the write;
+  payments and expense approvals could double-apply. Fixed with a unique
+  index, the atomic `adjust_product_stock()` RPC, and conditional updates.
+
+**Also fixed:** money/remind had no permission check (any staff login could
+start collections); cashflow/valuation/stokvel/suppliers/inventory open to all
+members; expenses list/submit let anyone see or file as colleagues; CSV formula
+injection in all exports and DataTable; exports + summaries truncated at 1000
+rows; Recalculate on cashflow/valuation silently failed after the first save of
+the day (upsert without onConflict); forecast dated >16-day-overdue
+collections in the past; health score "revenue" always R0; home dashboard and
+Money signal counted drafts/cancelled as receivables and read the stale
+`days_overdue` column (45 stored vs 158 real); stokvel contributions accepted
+any member UUID; `lowStock` filter errored on every call.
+
+**Migrations applied to prod (additive):**
+`20261005_money_sweep.sql` (invoice-number unique index, `adjust_product_stock`
+service-role-only, `payslips.deleted_at` + one live payslip per staff per run),
+`20261005_payslip_view_tokens.sql`.
+
+**Scores** (baseline after Phase 1 → now): no-permission routes 84 → 75,
+raw DB-error leaks 85 → 72, unaudited writes 95 → 86, `select('*')` 49 → 44,
+rate-limited 12 → 16, on withRoute 4 → 22, unbounded pages 27 → 26.
+
+**Open / found, not fixed (decisions or later sweeps):**
+- 🔴 P0 RLS migration (`20261004_lock_down_rls_disabled_tables.sql`) still
+  needs Nanda in the SQL editor.
+- 17 VAT-bearing invoices from unregistered tenants (above).
+- **WhatsApp templates:** payslips and debt reminders are free-form text, which
+  Meta only delivers inside the 24h customer window. A `payslip_ready`
+  template needs submitting in Meta Business Suite; until then the owner gets
+  a "not delivered to …" list after each payroll.
+- DB trigger `update_invoice_days_overdue` excludes `sent` and only runs on
+  write; `fn_trigger_debt_recovery` still enqueues a legacy `workflow_queue`
+  path. Nothing in code reads `days_overdue` any more — consider dropping the
+  trigger + column in a later migration.
+- ETI is always 0 on EMP201; payroll has no medical-aid/pension inputs per
+  employee yet (calc supports them).
+- Expense-approval form errors land on JSON (native form post); approvers can
+  approve their own claims.
+- `products (tenant_id, sku)` unique key isn't partial on `deleted_at` —
+  re-creating a deleted product's SKU will 409 once product delete exists.
+- Ops pages (`inventory`, `stokvel`, `suppliers`, `cashflow`, `valuation`,
+  `money`) still render server-side without server paging — fine at current
+  sizes, belongs in the page half of the DoD.
+
+**Next:** Phase 2 continues — **People/HR sweep** (staff, team, leave,
+performance, disciplinary, EE, safety, IR log, handbook, shifts). Same method:
+read every route + page, verify columns/constraints live, chase siblings,
+withRoute + matrix, then `--write-baseline`.
