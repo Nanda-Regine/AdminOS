@@ -4,6 +4,8 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { streamLanga, LangaMessage } from '@/lib/ai/agents/langa'
 import { checkRateLimit } from '@/lib/security/rateLimit'
 import { z } from 'zod'
+import { getContext } from '@/lib/auth/context'
+import { can } from '@/lib/auth/roleMatrix'
 
 const schema = z.object({
   message: z.string().min(1).max(2000),
@@ -31,6 +33,16 @@ export async function POST(request: Request) {
 
   const tenantId = user.app_metadata?.tenant_id as string
   if (!tenantId) return new NextResponse('No tenant', { status: 400 })
+
+  // Langa reads the business's financials, debtors and payroll to answer —
+  // management only (analytics.read). It had no role check, so any staff
+  // login could ask it for the revenue figures and spend the AI budget.
+  // getContext() (not a bare role lookup) so super-admins pass, a tenant_id
+  // the caller was never granted fails closed, and bearer tokens work.
+  const ctx = await getContext()
+  if (!ctx || ctx.tenantId !== tenantId || !can(ctx, 'analytics.read')) {
+    return NextResponse.json({ error: 'Langa is available to owners and managers.' }, { status: 403 })
+  }
 
   // Same 'agents' limiter as /api/agents/[agentType] — Langa is bounded
   // by a daily token budget (checkBudget, inside streamLanga) but that's

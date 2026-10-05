@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
+import { getContext } from '@/lib/auth/context'
+import { can } from '@/lib/auth/roleMatrix'
 import { chatWithLanga, LangaMessage } from '@/lib/ai/agents/langa'
 import { sanitizeForAI } from '@/lib/security/sanitize'
 import { fireBusinessEvent } from '@/lib/academy/knowledgeGraph'
@@ -24,6 +26,15 @@ export async function POST(request: Request) {
 
   const tenantId = user.app_metadata?.tenant_id as string
   if (!tenantId) return new NextResponse('No tenant', { status: 400 })
+
+  // Management only, like /api/agents/langa — Langa answers from the
+  // business's financials. It had no role check.
+  // getContext() (not a bare role lookup) so super-admins pass, a tenant_id
+  // the caller was never granted fails closed, and bearer tokens work.
+  const ctx = await getContext()
+  if (!ctx || ctx.tenantId !== tenantId || !can(ctx, 'analytics.read')) {
+    return NextResponse.json({ error: 'Langa is available to owners and managers.' }, { status: 403 })
+  }
 
   // Same 'agents' limiter as /api/agents/[agentType] and /api/agents/langa.
   // No client currently calls this route (web/mobile both use

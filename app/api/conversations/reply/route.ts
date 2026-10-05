@@ -1,73 +1,68 @@
-import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { z } from 'zod'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { sendWhatsApp } from '@/lib/whatsapp/send'
-import { writeAuditLog, getClientIp } from '@/lib/security/audit'
-import { z } from 'zod'
+import { withRoute, unwrap, RouteError } from '@/lib/api/withRoute'
 
 const bodySchema = z.object({
   conversationId: z.string().uuid(),
-  message: z.string().min(1).max(4000),
-  channel: z.enum(['whatsapp', 'email', 'dashboard']),
+  message: z.string().trim().min(1).max(4000),
+  channel: z.enum(['whatsapp', 'email', 'dashboard']).optional(),
+  /** Ignored — kept so older clients still validate. See below. */
   contactIdentifier: z.string().optional(),
 })
 
-export async function POST(request: Request) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new NextResponse('Unauthorized', { status: 401 })
-
-  const tenantId = user.app_metadata?.tenant_id as string
-
-  let body: z.infer<typeof bodySchema>
-  try {
-    body = bodySchema.parse(await request.json())
-  } catch {
-    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
-  }
-
-  // Verify the conversation belongs to this tenant
-  const { data: conv } = await supabaseAdmin
+// POST /api/conversations/reply — a person answers a customer conversation.
+//
+// Fixed 2026-10-05:
+//  - no permission check: any login (incl. a staff-app cleaner) could message
+//    the business's customers as the business. Now communications.reply.
+//  - the recipient came from the request body (`contactIdentifier`), so any
+//    member could WhatsApp any number on the business's account. The
+//    recipient is now always the conversation's own contact.
+//  - a WhatsApp failure threw a raw 500 *after* nothing was stored, and the
+//    inbox cleared the reply box anyway. Now a clear 502 and nothing stored.
+export const POST = withRoute({
+  action: 'communications.reply',
+  body: bodySchema,
+  audit: 'conversation.manual_reply',
+  resourceType: 'conversation',
+  rateLimit: 'whatsapp',
+}, async ({ ctx, body }) => {
+  const conv = unwrap(await supabaseAdmin
     .from('conversations')
-    .select('id, channel, contact_identifier, tenant_id')
+    .select('id, channel, contact_identifier')
     .eq('id', body.conversationId)
-    .eq('tenant_id', tenantId)
-    .single()
+    .eq('tenant_id', ctx.tenantId)
+    .maybeSingle(), { required: true, what: 'Conversation not found' })
 
-  if (!conv) return new NextResponse('Not found', { status: 404 })
-
-  // Send via appropriate channel
-  const contact = body.contactIdentifier || conv.contact_identifier
-  if (body.channel === 'whatsapp' && contact) {
-    await sendWhatsApp({ to: contact, message: body.message })
+  const channel = (conv.channel as string | null) ?? body.channel ?? 'dashboard'
+  if (channel === 'whatsapp') {
+    if (!conv.contact_identifier) throw new RouteError(400, 'This conversation has no WhatsApp number to reply to.', 'no_recipient')
+    try {
+      await sendWhatsApp({ to: conv.contact_identifier as string, message: body.message })
+    } catch (e) {
+      console.error('[conversations/reply] WhatsApp send failed', e)
+      throw new RouteError(502, 'WhatsApp did not accept this message. If the customer last wrote more than 24 hours ago, WhatsApp only allows approved templates.', 'send_failed')
+    }
+  } else if (channel === 'email') {
+    throw new RouteError(501, 'Email replies are not available yet — reply on WhatsApp or by phone.', 'not_available')
   }
-  // Email channel: would use Resend — implement when email integration active
 
-  // Store the message in DB
-  await supabaseAdmin.from('messages').insert({
-    tenant_id: tenantId,
-    conversation_id: body.conversationId,
+  const now = new Date().toISOString()
+  const msg = unwrap(await supabaseAdmin.from('messages').insert({
+    tenant_id: ctx.tenantId,
+    conversation_id: conv.id,
     role: 'assistant',
     content: body.message,
-    channel: body.channel,
+    channel,
     from_cache: false,
-  })
+  }).select('id, role, content, channel, created_at').single(), { required: true })
 
-  // Update conversation updated_at
-  await supabaseAdmin
+  unwrap(await supabaseAdmin
     .from('conversations')
-    .update({ updated_at: new Date().toISOString() })
-    .eq('id', body.conversationId)
+    .update({ updated_at: now })
+    .eq('id', conv.id)
+    .eq('tenant_id', ctx.tenantId))
 
-  await writeAuditLog({
-    tenantId,
-    actor: user.id,
-    action: 'conversation.manual_reply',
-    resourceType: 'conversation',
-    resourceId: body.conversationId,
-    ipAddress: getClientIp(request),
-    metadata: { channel: body.channel, length: body.message.length },
-  })
-
-  return NextResponse.json({ success: true })
-}
+  return { id: conv.id, message: msg }
+})

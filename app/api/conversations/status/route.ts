@@ -1,48 +1,32 @@
-import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { supabaseAdmin } from '@/lib/supabase/admin'
-import { writeAuditLog, getClientIp } from '@/lib/security/audit'
 import { z } from 'zod'
+import { supabaseAdmin } from '@/lib/supabase/admin'
+import { withRoute, unwrap } from '@/lib/api/withRoute'
 
 const bodySchema = z.object({
   conversationId: z.string().uuid(),
   status: z.enum(['open', 'auto_resolved', 'escalated', 'closed']),
 })
 
-export async function POST(request: Request) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new NextResponse('Unauthorized', { status: 401 })
-
-  const tenantId = user.app_metadata?.tenant_id as string
-
-  let body: z.infer<typeof bodySchema>
-  try {
-    body = bodySchema.parse(await request.json())
-  } catch {
-    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
-  }
-
-  const { error } = await supabaseAdmin
+// POST /api/conversations/status — resolve / escalate / close / reopen.
+// Had no permission check (any login could close the business's customer
+// conversations); now communications.reply, like replying.
+export const POST = withRoute({
+  action: 'communications.reply',
+  body: bodySchema,
+  resourceType: 'conversation',
+}, async ({ ctx, body, audit }) => {
+  const row = unwrap(await supabaseAdmin
     .from('conversations')
     .update({
       status: body.status,
-      resolved_by: body.status !== 'open' ? user.id : null,
+      resolved_by: body.status !== 'open' ? ctx.userId : null,
       updated_at: new Date().toISOString(),
     })
     .eq('id', body.conversationId)
-    .eq('tenant_id', tenantId)
+    .eq('tenant_id', ctx.tenantId)
+    .select('id, status')
+    .maybeSingle(), { required: true, what: 'Conversation not found' })
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
-
-  await writeAuditLog({
-    tenantId,
-    actor: user.id,
-    action: `conversation.status.${body.status}`,
-    resourceType: 'conversation',
-    resourceId: body.conversationId,
-    ipAddress: getClientIp(request),
-  })
-
-  return NextResponse.json({ success: true })
-}
+  await audit({ action: `conversation.status.${body.status}`, resourceType: 'conversation', resourceId: row.id })
+  return row
+})

@@ -49,7 +49,7 @@ export default async function CommandCenter() {
     supabaseAdmin.from('leave_requests').select('id', { count: 'exact', head: true }).eq('tenant_id', tenantId).eq('status', 'pending'),
     supabaseAdmin.from('contracts').select('status, end_date').eq('tenant_id', tenantId),
     supabaseAdmin.from('bookings').select('status, start_at').eq('tenant_id', tenantId).gte('start_at', todayISO),
-    supabaseAdmin.from('tasks').select('status, due_date, priority').eq('tenant_id', tenantId).not('status', 'in', '("done","completed","cancelled")'),
+    supabaseAdmin.from('tasks').select('status, due_date, priority').eq('tenant_id', tenantId).is('deleted_at', null).not('status', 'in', '("done","completed","cancelled")'),
     supabaseAdmin.from('conversations').select('status, sentiment').eq('tenant_id', tenantId).eq('status', 'open'),
     supabaseAdmin.from('goals').select('title, progress_pct, status, quarter').eq('tenant_id', tenantId).eq('status', 'active').order('created_at', { ascending: false }).limit(4),
     supabaseAdmin.from('compliance_items').select('title, due_date, status, penalty_description').eq('tenant_id', tenantId).neq('status', 'completed'),

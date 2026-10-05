@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { formatZAR } from '@/lib/format'
 import { StaffDocuments } from './StaffDocuments'
+import { StaffAppInvite } from './StaffAppInvite'
 import { avatarColor } from '@/lib/ui/avatarColor'
 import { checkPermission } from '@/lib/auth/permissions'
 
@@ -31,6 +32,7 @@ type Staff = {
   leave_taken:             number | null
   wellness_scores:         Array<{ score: number; date: string }> | null
   after_hours_flag:        boolean | null
+  user_id:                 string | null
   created_at:              string
 }
 
@@ -202,6 +204,8 @@ export default async function StaffDetailPage({
                   </p>
                 </div>
               )}
+
+              <StaffAppInvite staffId={staff.id} linked={Boolean(staff.user_id)} hasPhone={Boolean(staff.phone)} />
             </div>
 
             {/* Leave + wellness */}

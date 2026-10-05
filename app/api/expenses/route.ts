@@ -2,7 +2,10 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { notifyTenant } from '@/lib/notifications/notify'
 import { can } from '@/lib/auth/roleMatrix'
 import { z } from 'zod'
-import { withRoute, unwrap, notFound, RouteError } from '@/lib/api/withRoute'
+import { withRoute, unwrap, notFound, badRequest, RouteError } from '@/lib/api/withRoute'
+import { isTenantReceiptRef } from '@/lib/expenses/receipts'
+import { pushToUsers, usersWithPermission } from '@/lib/notifications/push'
+import { after } from 'next/server'
 import { ownStaffId } from '@/lib/people/ownStaff'
 
 const listQuery = z.object({
@@ -38,7 +41,11 @@ const createSchema = z.object({
   amount:      z.number().positive().max(10_000_000),
   category:    z.string().min(1).max(100),
   description: z.string().max(500).optional(),
-  receiptUrl:  z.string().url().max(2000).optional(),
+  // https only: the finance page renders this as a link, and z.url() alone
+  // accepts javascript: URLs.
+  receiptUrl:  z.string().url().max(2000).refine((u) => u.startsWith('https://'), 'Must be an https:// link').optional(),
+  /** From POST /api/expenses/receipt (staff app camera upload). */
+  receiptRef:  z.string().max(200).optional(),
 })
 
 // POST /api/expenses — submit a claim. Finance may file on anyone's behalf
@@ -59,6 +66,10 @@ export const POST = withRoute({
     if (own !== body.staffId) throw new RouteError(403, 'You can only submit expense claims for yourself.', 'forbidden')
   }
 
+  if (body.receiptRef && !isTenantReceiptRef(body.receiptRef, tenantId)) {
+    throw badRequest('That receipt upload was not found — please attach it again.')
+  }
+
   unwrap(await supabaseAdmin
     .from('staff')
     .select('id')
@@ -75,7 +86,7 @@ export const POST = withRoute({
       amount:      body.amount,
       category:    body.category,
       description: body.description ?? null,
-      receipt_url: body.receiptUrl ?? null,
+      receipt_url: body.receiptRef ?? body.receiptUrl ?? null,
     })
     .select()
     .single())
@@ -89,6 +100,16 @@ export const POST = withRoute({
     actionUrl: '/dashboard/expenses',
     dedupeKey: `expense-${data.id}`,
     whatsapp: true,
+  })
+
+  // …and the approvers' phones (finance, minus the claimant).
+  after(async () => {
+    const approvers = (await usersWithPermission(tenantId, 'view_financials')).filter((id) => id !== userId)
+    await pushToUsers(tenantId, approvers, {
+      title: 'Expense to approve',
+      body: `R${Number(body.amount).toLocaleString('en-ZA')} — ${body.category}`,
+      route: '/approvals',
+    })
   })
 
   return data

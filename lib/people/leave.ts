@@ -1,7 +1,9 @@
-import { NextResponse } from 'next/server'
+import { NextResponse, after } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { RouteError, conflict, unwrap } from '@/lib/api/withRoute'
 import { ownStaffId } from '@/lib/people/ownStaff'
+import { drawsAnnualBalance } from '@/lib/people/leaveTypes'
+import { notifyStaffMember } from '@/lib/notifications/staff'
 import type { Context } from '@/lib/auth/context'
 
 type Decision = 'approved' | 'declined'
@@ -23,7 +25,10 @@ type Decision = 'approved' | 'declined'
 export async function decideLeave(ctx: Context, id: string, decision: Decision) {
   const req = unwrap(await supabaseAdmin
     .from('leave_requests')
-    .select('id, staff_id, days, status')
+    // '*' rather than a column list: leave_type arrives with migration
+    // 20261005_mobile_app_foundations, and approvals must keep working on a
+    // database that doesn't have it yet (it then defaults to annual).
+    .select('*')
     .eq('id', id)
     .eq('tenant_id', ctx.tenantId)
     .is('deleted_at', null)
@@ -46,9 +51,26 @@ export async function decideLeave(ctx: Context, id: string, decision: Decision) 
   if (!updated) throw conflict('This request was just dealt with by someone else.')
 
   let remaining: number | null = null
-  if (decision === 'approved' && Number(req.days) > 0) {
+  // Only annual leave draws down the annual balance — approving sick or
+  // family-responsibility leave used to deduct annual days too.
+  if (decision === 'approved' && Number(req.days) > 0 && drawsAnnualBalance(req.leave_type as string | undefined)) {
     remaining = await addLeaveTaken(ctx.tenantId, req.staff_id, Number(req.days))
   }
+
+  // The employee used to find out only by asking. after() keeps the push off
+  // the approver's response time.
+  const tenantId = ctx.tenantId
+  const span = req.start_date === req.end_date ? req.start_date : `${req.start_date} → ${req.end_date}`
+  after(() => notifyStaffMember(tenantId, req.staff_id as string, {
+    type: `leave_${decision}`,
+    title: decision === 'approved' ? 'Leave approved ✅' : 'Leave declined',
+    body: decision === 'approved'
+      ? `Your leave for ${span} was approved.${remaining != null ? ` ${remaining} annual day${remaining === 1 ? '' : 's'} left.` : ''}`
+      : `Your leave for ${span} was declined. Speak to your manager for details.`,
+    route: '/leave',
+    data: { leave_request_id: id },
+  }))
+
   return { id, status: decision, remaining }
 }
 

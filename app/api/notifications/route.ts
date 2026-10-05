@@ -1,47 +1,66 @@
-import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { z } from 'zod'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { withRoute, unwrap, badRequest } from '@/lib/api/withRoute'
+import { can } from '@/lib/auth/roleMatrix'
 
-// GET  /api/notifications        → recent notifications + unread count (tenant-scoped)
+// GET  /api/notifications        → { items, unread }
 // POST /api/notifications  {id}  → mark one read · {all:true} → mark all read
-export async function GET() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new NextResponse('Unauthorized', { status: 401 })
-  const tenantId = user.app_metadata?.tenant_id as string
-  if (!tenantId) return NextResponse.json({ items: [], unread: 0 })
+//
+// Two kinds of row: addressed to one login (user_id set: "your leave was
+// approved"), and tenant-level owner alerts (user_id null: overdue debts,
+// bank-detail changes, payroll). Tenant-level alerts used to be returned to
+// every login in the tenant — the staff app included — and any member could
+// mark them all read, hiding them from the owner. They are now management-only
+// (alerts.read).
 
-  // Tenant-level (user_id null) OR addressed to this user.
-  const { data } = await supabaseAdmin
+function audienceFilter(userId: string, seesAlerts: boolean): string {
+  return seesAlerts ? `user_id.is.null,user_id.eq.${userId}` : `user_id.eq.${userId}`
+}
+
+const listQuery = z.object({
+  limit:  z.coerce.number().int().min(1).max(100).default(30),
+  before: z.string().datetime({ offset: true }).optional(),   // created_at cursor
+})
+
+export const GET = withRoute({ action: 'notifications.own', query: listQuery }, async ({ ctx, query }) => {
+  const filter = audienceFilter(ctx.userId, can(ctx, 'alerts.read'))
+
+  let q = supabaseAdmin
     .from('notifications')
     .select('id, type, title, body, read, action_url, created_at')
-    .eq('tenant_id', tenantId)
-    .or(`user_id.is.null,user_id.eq.${user.id}`)
+    .eq('tenant_id', ctx.tenantId)
+    .or(filter)
     .order('created_at', { ascending: false })
-    .limit(20)
+    .limit(query.limit)
+  if (query.before) q = q.lt('created_at', query.before)
 
-  const items = data ?? []
-  const unread = items.filter(n => !n.read).length
-  return NextResponse.json({ items, unread })
-}
+  const [items, unread] = await Promise.all([
+    q,
+    supabaseAdmin
+      .from('notifications')
+      .select('id', { count: 'exact', head: true })
+      .eq('tenant_id', ctx.tenantId)
+      .eq('read', false)
+      .or(filter),
+  ])
+  return { items: unwrap(items) ?? [], unread: unread.count ?? 0 }
+})
 
-export async function POST(request: Request) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new NextResponse('Unauthorized', { status: 401 })
-  const tenantId = user.app_metadata?.tenant_id as string
-  if (!tenantId) return new NextResponse('No tenant', { status: 400 })
+const markSchema = z.object({
+  id:  z.string().uuid().optional(),
+  all: z.boolean().optional(),
+})
 
-  const body = await request.json().catch(() => ({})) as { id?: string; all?: boolean }
-  let q = supabaseAdmin.from('notifications').update({ read: true }).eq('tenant_id', tenantId)
-  if (body.all) {
-    q = q.eq('read', false)
-  } else if (body.id) {
-    q = q.eq('id', body.id)
-  } else {
-    return NextResponse.json({ error: 'id or all required' }, { status: 400 })
-  }
-  const { error } = await q
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
-  return NextResponse.json({ ok: true })
-}
+export const POST = withRoute({ action: 'notifications.own', body: markSchema }, async ({ ctx, body }) => {
+  if (!body.all && !body.id) throw badRequest('id or all required')
+
+  let q = supabaseAdmin
+    .from('notifications')
+    .update({ read: true })
+    .eq('tenant_id', ctx.tenantId)
+    .or(audienceFilter(ctx.userId, can(ctx, 'alerts.read')))
+  q = body.all ? q.eq('read', false) : q.eq('id', body.id!)
+
+  unwrap(await q)
+  return { ok: true }
+})

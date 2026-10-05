@@ -12,6 +12,8 @@ const PUBLIC_PATHS = [
   '/robots.txt',
   '/sitemap.xml',
   '/manifest.json',
+  '/account/delete',   // Play Store requires a public account-deletion page
+  '/app',              // store links, opened from staff invite WhatsApps
 ]
 
 // Routes reachable without a session. Everything here MUST authenticate itself —
@@ -90,9 +92,15 @@ export async function middleware(request: NextRequest) {
     }
   )
 
+  // The mobile app authenticates API calls with its Supabase access token
+  // (it shares no cookies with the web app). getUser(jwt) verifies it with
+  // Supabase Auth — signature and revocation — exactly like a cookie session.
+  const bearer = pathname.startsWith('/api/')
+    ? request.headers.get('authorization')?.match(/^Bearer\s+(\S+)$/i)?.[1]
+    : undefined
   const {
     data: { user },
-  } = await supabase.auth.getUser()
+  } = await supabase.auth.getUser(bearer)
 
   if (!user) {
     if (pathname.startsWith('/dashboard')) {

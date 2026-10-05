@@ -10,6 +10,8 @@ import { getClientIp, writeAuditLog } from '@/lib/security/audit'
 import { checkBudget } from '@/lib/ai/costControls'
 import type { AgentName } from '@/lib/ai/types'
 import { z } from 'zod'
+import { getContext } from '@/lib/auth/context'
+import { can } from '@/lib/auth/roleMatrix'
 
 interface AgentRouteParams {
   params: Promise<{ agentType: string }>
@@ -42,6 +44,17 @@ export async function POST(request: Request, { params }: AgentRouteParams) {
   const isOrchestratorAgent = agentType in AGENT_CONFIGS
   const isInboxAgent = agentType in AGENT_DEFINITIONS
   if (!isOrchestratorAgent && !isInboxAgent) return new NextResponse('Unknown agent', { status: 400 })
+
+  // Role gate (had none: any login could run every agent). The Inbox panel's
+  // agents work on customer conversations → communications.read; the
+  // orchestrator personas read debtors, financials and documents → analytics.read.
+  // getContext() (not a bare role lookup) so super-admins pass, a tenant_id
+  // the caller was never granted fails closed, and bearer tokens work.
+  const ctx = await getContext()
+  const needed = isInboxAgent && !isOrchestratorAgent ? 'communications.read' : 'analytics.read'
+  if (!ctx || ctx.tenantId !== tenantId || !can(ctx, needed)) {
+    return NextResponse.json({ error: 'You do not have permission to use this assistant.' }, { status: 403 })
+  }
 
   let body: z.infer<typeof bodySchema>
   try {

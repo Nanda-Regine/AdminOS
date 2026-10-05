@@ -164,19 +164,24 @@ export default function InboxPage() {
     if (!replyText.trim() || !selected) return
     setSending(true)
     try {
-      await fetch('/api/conversations/reply', {
+      const res = await fetch('/api/conversations/reply', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           conversationId: selected.id,
           message: replyText.trim(),
           channel: selected.channel,
-          contactIdentifier: selected.contact_identifier,
         }),
       })
+      // fetch() doesn't throw on 4xx/5xx — this used to clear the reply box
+      // (and look sent) even when WhatsApp rejected the message.
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body?.error ?? 'Failed to send. Please try again.')
+      }
       setReplyText('')
-    } catch {
-      alert('Failed to send. Please try again.')
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Failed to send. Please try again.')
     } finally {
       setSending(false)
     }
@@ -186,11 +191,16 @@ export default function InboxPage() {
     if (!selected) return
     setActionLoading(status)
     try {
-      await fetch('/api/conversations/status', {
+      const res = await fetch('/api/conversations/status', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ conversationId: selected.id, status }),
       })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        alert(body?.error ?? 'Could not update the conversation.')
+        return
+      }
       setSelected((prev) => prev ? { ...prev, status } : null)
       setConversations((prev) =>
         prev.map((c) => c.id === selected.id ? { ...c, status } : c)

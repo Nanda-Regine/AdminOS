@@ -1,7 +1,8 @@
-import { NextResponse } from 'next/server'
+import { NextResponse, after } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { withRoute, unwrap, conflict, badRequest, RouteError } from '@/lib/api/withRoute'
 import { ownStaffId } from '@/lib/people/ownStaff'
+import { notifyStaffMember } from '@/lib/notifications/staff'
 
 // POST /api/expenses/[id]/approve — approve or reject a pending claim.
 //
@@ -56,6 +57,18 @@ export const POST = withRoute({
   if (!updated) throw conflict('This claim was just dealt with by someone else.')
 
   await audit({ action: `expense.${action}d`, resourceType: 'expense', resourceId: params.id })
+
+  const tenantId = ctx.tenantId
+  const approved = action === 'approve'
+  if (existing.staff_id) {
+    after(() => notifyStaffMember(tenantId, existing.staff_id as string, {
+      type: approved ? 'expense_approved' : 'expense_rejected',
+      title: approved ? 'Expense claim approved ✅' : 'Expense claim not approved',
+      body: approved ? 'Your expense claim was approved for payment.' : 'Your expense claim was not approved. Speak to your manager for details.',
+      route: '/expenses',
+      data: { expense_id: params.id },
+    }))
+  }
 
   if (isForm) return NextResponse.redirect(new URL('/dashboard/expenses', new URL(request.url).origin), 303)
   return updated

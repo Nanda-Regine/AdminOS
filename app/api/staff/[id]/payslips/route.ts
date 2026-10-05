@@ -15,26 +15,23 @@ export const GET = withRoute({ action: 'payslip.read_own' }, async ({ ctx, param
     throw notFound('Staff not found')
   }
 
-  // Alias to real columns (gross_salary/net_pay/other_deductions_total).
+  // Alias to real columns (gross_salary/net_pay/other_deductions_total). The
+  // run join gives the pay period, which the list never had (so the app could
+  // only label payslips by created_at).
   let q = supabaseAdmin
     .from('payslips')
-    .select('id, tenant_id, payroll_run_id, staff_id, gross:gross_salary, deductions:other_deductions_total, net:net_pay, pdf_url, created_at')
+    .select('id, tenant_id, payroll_run_id, staff_id, gross:gross_salary, paye, uif:uif_employee, deductions:other_deductions_total, net:net_pay, pdf_url, created_at, payroll_run:payroll_runs!inner(period_month, period_year, status)')
     .eq('tenant_id', ctx.tenantId)
     .eq('staff_id', params.id)
     .is('deleted_at', null)
     .order('created_at', { ascending: false })
+    .limit(120)
 
   // An employee sees a payslip once the run is paid — not while payroll is
   // still reviewing (draft/processing/finalised) and figures may change.
-  if (!payroll) {
-    const runs = unwrap(await supabaseAdmin
-      .from('payroll_runs')
-      .select('id')
-      .eq('tenant_id', ctx.tenantId)
-      .eq('status', 'paid')) ?? []
-    if (runs.length === 0) return []
-    q = q.in('payroll_run_id', runs.map((r) => r.id))
-  }
+  // Filtered through the join: it used to load every paid run id in the
+  // tenant first, a list that only grows.
+  if (!payroll) q = q.eq('payroll_run.status', 'paid')
 
   return unwrap(await q) ?? []
 })

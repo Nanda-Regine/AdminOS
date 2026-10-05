@@ -7,6 +7,7 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import { redirect } from 'next/navigation'
 import { ListTodo } from 'lucide-react'
 import { CreateTaskModal, MoveTaskButton } from './TaskActions'
+import { compareTasks } from '@/lib/ops/tasks'
 
 export const dynamic = 'force-dynamic'
 
@@ -144,15 +145,18 @@ export default async function TasksPage() {
       .from('tasks')
       .select('id, title, description, status, priority, due_date, assigned_to, source, created_at')
       .eq('tenant_id', tenantId)
-      .order('priority')
-      .order('due_date', { ascending: true, nullsFirst: false }),
+      .is('deleted_at', null)
+      .limit(1000),
     supabaseAdmin
       .from('staff')
       .select('id, full_name')
-      .eq('tenant_id', tenantId),
+      .eq('tenant_id', tenantId)
+      .is('deleted_at', null)
+      .order('full_name'),
   ])
 
-  const allTasks: Task[] = tasksResult.data || []
+  // Sorted in JS: SQL order('priority') is alphabetical and put urgent last.
+  const allTasks: Task[] = [...(tasksResult.data || [])].sort(compareTasks)
   const staffList: StaffMember[] = staffResult.data || []
 
   // Build a UUID → name lookup so task cards show real names

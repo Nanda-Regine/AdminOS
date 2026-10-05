@@ -1,7 +1,8 @@
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
 import { withRoute, unwrap, notFound } from '@/lib/api/withRoute'
-import { isTenantStaff } from '@/lib/people/ownStaff'
+import { isTenantStaff, ownStaffId } from '@/lib/people/ownStaff'
+import { can } from '@/lib/auth/roleMatrix'
 
 // https only: a `javascript:` or `data:` URL stored here renders as a live link
 // on the staff detail page.
@@ -18,8 +19,14 @@ const COLUMNS = 'id, tenant_id, staff_id, title, file_url, file_type, expires_at
 
 // HR-sensitive (IDs, contracts, certifications) — manage_staff, not
 // manage_documents: the 'staff' role holds manage_documents by default.
-export const GET = withRoute({ action: 'staff.read' }, async ({ ctx, params }) => {
-  if (!(await isTenantStaff(ctx.tenantId, params.id))) throw notFound('Staff member not found')
+// An employee may read their own (the staff app's Documents screen) — the
+// same rule as their own payslips. Anyone else's id 404s, never 403s.
+export const GET = withRoute({ action: 'profile.own' }, async ({ ctx, params }) => {
+  if (can(ctx, 'staff.read')) {
+    if (!(await isTenantStaff(ctx.tenantId, params.id))) throw notFound('Staff member not found')
+  } else if ((await ownStaffId(ctx.tenantId, ctx.userId)) !== params.id) {
+    throw notFound('Staff member not found')
+  }
   return unwrap(await supabaseAdmin
     .from('staff_documents')
     .select(COLUMNS)

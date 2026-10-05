@@ -103,6 +103,7 @@ export const ACTIONS = {
   // ── People / HR ─────────────────────────────────────────────────────────
   'staff.read':           'manage_staff',      // staff rows carry salary + ID numbers
   'staff.write':          'manage_staff',
+  'staff.directory':      MEMBER,              // names + job titles only — the colleague list in the staff app
   'leave.request':        MEMBER,
   'leave.approve':        'approve_leave',
   'clock.self':           MEMBER,              // own clock events; HR (staff.write) may act for anyone
@@ -138,6 +139,10 @@ export const ACTIONS = {
 
   // ── Self-service ────────────────────────────────────────────────────────
   'notifications.own':    MEMBER,
+  // Tenant-level alerts (notifications with no user_id): overdue debts, bank
+  // detail changes, payroll, approvals. Management-only — they used to show in
+  // every login's bell, staff app included.
+  'alerts.read':          'view_analytics',
   'academy.learn':        MEMBER,
   'profile.own':          MEMBER,
 } as const satisfies Record<string, Requirement>

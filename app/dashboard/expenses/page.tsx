@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { receiptHref } from '@/lib/expenses/receipts'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { TopBar } from '@/components/dashboard/TopBar'
 import { Card } from '@/components/ui/card'
@@ -174,9 +175,9 @@ export default async function ExpensesPage() {
                         {claim.description || 'No description provided'}
                       </p>
                       <p className="text-xs text-[var(--text-dim)]">Submitted {submittedDate}</p>
-                      {claim.receipt_url && (
+                      {receiptHref(claim) && (
                         <a
-                          href={claim.receipt_url}
+                          href={receiptHref(claim)!}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-xs text-indigo-600 hover:underline mt-1 inline-block"

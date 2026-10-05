@@ -42,7 +42,7 @@ export async function buildOpsIntel(tenantId: string): Promise<OpsIntel> {
       .gte('start_at', todayISO)
       .lte('start_at', in7)
       .order('start_at'),
-    supabaseAdmin.from('tasks').select('status, due_date').eq('tenant_id', tenantId).not('status', 'in', '("done","completed","cancelled")'),
+    supabaseAdmin.from('tasks').select('status, due_date').eq('tenant_id', tenantId).is('deleted_at', null).not('status', 'in', '("done","completed","cancelled")'),
   ])
 
   const products = prodRes.data ?? []
