@@ -45,6 +45,8 @@ const PUBLIC_PREFIXES = [
 // token and expiry.
 const PUBLIC_PATTERNS = [
   /^\/api\/contracts\/[^/]+\/sign\/?$/,
+  // An employee's own payslip by its expiring view token (staff have no login).
+  /^\/api\/payslips\/view\/[a-f0-9]{64}\/?$/,
 ]
 
 const BILLING_EXEMPT = [
