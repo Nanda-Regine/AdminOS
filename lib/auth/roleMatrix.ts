@@ -89,6 +89,7 @@ export const ACTIONS = {
   'money.write':          'view_financials',   // quick sale, categorisation, profit-first
   'expenses.submit':      MEMBER,              // anyone can submit a claim…
   'expenses.approve':     'view_financials',   // …only finance approves it
+  'expenses.read_all':    'view_financials',   // everyone else sees only their own claims
   'payroll.read':         'view_payroll',
   'payroll.run':          'view_payroll',
   'payroll.distribute':   'view_payroll',

@@ -17,11 +17,11 @@ export default async function ExpensesPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  // The whole team's expense claims (amounts, descriptions, receipts) — reuses
-  // approve_leave, same as the approve/reject API route below (that route's own
-  // comment: "reuse — covers expense approval too"). notFound(), not a redirect,
-  // per the page-level denial convention in lib/auth/context.ts.
-  if (!(await checkPermission('approve_leave'))) notFound()
+  // The whole team's expense claims (amounts, descriptions, receipts) — the
+  // role matrix's expenses.approve (view_financials), same as the API. This
+  // used to borrow approve_leave. notFound(), not a redirect, per the
+  // page-level denial convention in lib/auth/context.ts.
+  if (!(await checkPermission('view_financials'))) notFound()
 
   const tenantId = user.app_metadata?.tenant_id as string
 
@@ -35,12 +35,15 @@ export default async function ExpensesPage() {
       .select('id, staff_id, amount, category, description, receipt_url, status, submitted_at, staff(full_name)')
       .eq('tenant_id', tenantId)
       .eq('status', 'pending')
-      .order('submitted_at', { ascending: false }),
+      .is('deleted_at', null)
+      .order('submitted_at', { ascending: false })
+      .limit(200),
     supabaseAdmin
       .from('expenses')
       .select('id, staff_id, amount, category, description, status, submitted_at, approved_at, approved_by, staff(full_name)')
       .eq('tenant_id', tenantId)
       .neq('status', 'pending')
+      .is('deleted_at', null)
       .order('submitted_at', { ascending: false })
       .limit(20),
   ])
@@ -54,7 +57,9 @@ export default async function ExpensesPage() {
     .select('id, full_name')
     .eq('tenant_id', tenantId)
     .eq('active', true)
+    .is('deleted_at', null)
     .order('full_name')
+    .limit(500)
   const staff = (staffRows || []) as { id: string; full_name: string | null }[]
 
   const totalPendingAmount = pending.reduce((sum, c) => sum + Number(c.amount), 0)

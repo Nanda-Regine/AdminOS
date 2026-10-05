@@ -90,9 +90,13 @@ function rawValue<T>(row: T, col: Column<T>): string | number | null | undefined
   return (row as Record<string, unknown>)[col.key] as string | number | null | undefined
 }
 
+// Text starting with = + - @ runs as a formula in Excel — a contact named
+// "=HYPERLINK(...)" would execute on whoever opens the export. Prefix it with '.
+// Same rule as lib/money/exports.ts csvCell.
 function csvEscape(v: string | number): string {
-  const s = String(v ?? '')
-  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
+  let s = String(v ?? '')
+  if (typeof v === 'string' && /^[=+\-@\t\r]/.test(s) && !/^-?\d+(\.\d+)?$/.test(s)) s = `'${s}`
+  return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
 }
 
 export function DataTable<T>({

@@ -1,69 +1,84 @@
-import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { notifyTenant } from '@/lib/notifications/notify'
+import { can } from '@/lib/auth/roleMatrix'
 import { z } from 'zod'
+import { withRoute, unwrap, notFound, RouteError } from '@/lib/api/withRoute'
+
+/** The caller's own staff row, via staff.user_id (never user-editable metadata). */
+async function ownStaffId(tenantId: string, userId: string): Promise<string | null> {
+  const { data } = await supabaseAdmin
+    .from('staff')
+    .select('id')
+    .eq('tenant_id', tenantId)
+    .eq('user_id', userId)
+    .is('deleted_at', null)
+    .maybeSingle()
+  return data?.id ?? null
+}
+
+const listQuery = z.object({
+  status:  z.enum(['pending', 'approved', 'rejected', 'paid']).optional(),
+  staffId: z.string().uuid().optional(),
+})
+
+// GET /api/expenses — finance sees every claim; everyone else only their own.
+// It used to return the whole team's claims to any logged-in member.
+export const GET = withRoute({ action: 'expenses.submit', query: listQuery }, async ({ ctx, query }) => {
+  let q = supabaseAdmin
+    .from('expenses')
+    .select('id, staff_id, amount, category, description, receipt_url, status, submitted_at, approved_at, paid_at, staff(full_name, job_title)')
+    .eq('tenant_id', ctx.tenantId)
+    .is('deleted_at', null)
+    .order('submitted_at', { ascending: false })
+    .limit(200)
+
+  if (!can(ctx, 'expenses.read_all')) {
+    const own = await ownStaffId(ctx.tenantId, ctx.userId)
+    if (!own) return []
+    q = q.eq('staff_id', own)
+  } else if (query.staffId) {
+    q = q.eq('staff_id', query.staffId)
+  }
+  if (query.status) q = q.eq('status', query.status)
+
+  return unwrap(await q) ?? []
+})
 
 const createSchema = z.object({
   staffId:     z.string().uuid(),
-  amount:      z.number().positive(),
+  amount:      z.number().positive().max(10_000_000),
   category:    z.string().min(1).max(100),
   description: z.string().max(500).optional(),
-  receiptUrl:  z.string().url().optional(),
+  receiptUrl:  z.string().url().max(2000).optional(),
 })
 
-export async function GET(request: Request) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new NextResponse('Unauthorized', { status: 401 })
+// POST /api/expenses — submit a claim. Finance may file on anyone's behalf
+// (staff mostly have no login yet); everyone else only for themselves. It used
+// to accept any staffId from any member, so anyone could file claims as a colleague.
+export const POST = withRoute({
+  action: 'expenses.submit',
+  body: createSchema,
+  status: 201,
+  audit: 'expense.submitted',
+  resourceType: 'expense',
+  rateLimit: 'api',
+}, async ({ ctx, body }) => {
+  const { tenantId, userId } = ctx
 
-  const tenantId = user.app_metadata?.tenant_id as string
-  if (!tenantId) return new NextResponse('No tenant', { status: 400 })
-
-  const url    = new URL(request.url)
-  const status = url.searchParams.get('status')
-  const staffId = url.searchParams.get('staffId')
-
-  let query = supabaseAdmin
-    .from('expenses')
-    .select('*, staff(full_name, job_title)')
-    .eq('tenant_id', tenantId)
-    .order('submitted_at', { ascending: false })
-
-  if (status)  query = query.eq('status', status)
-  if (staffId) query = query.eq('staff_id', staffId)
-
-  const { data, error } = await query
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
-
-  return NextResponse.json(data)
-}
-
-export async function POST(request: Request) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new NextResponse('Unauthorized', { status: 401 })
-
-  const tenantId = user.app_metadata?.tenant_id as string
-  if (!tenantId) return new NextResponse('No tenant', { status: 400 })
-
-  let body: z.infer<typeof createSchema>
-  try {
-    body = createSchema.parse(await request.json())
-  } catch (e) {
-    return NextResponse.json({ error: 'Invalid request', detail: e }, { status: 400 })
+  if (!can(ctx, 'expenses.read_all')) {
+    const own = await ownStaffId(tenantId, userId)
+    if (own !== body.staffId) throw new RouteError(403, 'You can only submit expense claims for yourself.', 'forbidden')
   }
 
-  const { data: staff } = await supabaseAdmin
+  unwrap(await supabaseAdmin
     .from('staff')
     .select('id')
     .eq('id', body.staffId)
     .eq('tenant_id', tenantId)
-    .single()
+    .is('deleted_at', null)
+    .maybeSingle(), { required: true, what: 'Staff member not found' })
 
-  if (!staff) return new NextResponse('Staff not found', { status: 404 })
-
-  const { data, error } = await supabaseAdmin
+  const data = unwrap(await supabaseAdmin
     .from('expenses')
     .insert({
       tenant_id:   tenantId,
@@ -74,9 +89,8 @@ export async function POST(request: Request) {
       receipt_url: body.receiptUrl ?? null,
     })
     .select()
-    .single()
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+    .single())
+  if (!data) throw notFound()
 
   // Push the owner: an approval is waiting (People cockpit surfaces it too).
   await notifyTenant(tenantId, {
@@ -88,5 +102,5 @@ export async function POST(request: Request) {
     whatsapp: true,
   })
 
-  return NextResponse.json(data, { status: 201 })
-}
+  return data
+})

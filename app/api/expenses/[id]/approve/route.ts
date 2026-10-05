@@ -1,79 +1,55 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import { requirePermission } from '@/lib/auth/permissions'
-import { writeAuditLog, getClientIp } from '@/lib/security/audit'
+import { withRoute, unwrap, conflict, badRequest } from '@/lib/api/withRoute'
 
-// The dashboard page posts to this route with a native <form method="POST">
-// (via ConfirmSubmit — see app/dashboard/expenses/page.tsx), the same pattern
-// used by app/api/leave/[id]/approve. It was exported as PATCH, which a
-// browser form can never send (forms only do GET/POST), so every click 405'd
-// before any of this code ran. It also read `await request.json()`, but a
-// native form submits `application/x-www-form-urlencoded` body, not JSON —
-// that would have thrown on the first request that got past the method
-// check. Fixed to export POST, read the `action` field via request.formData(),
-// and redirect back to the dashboard afterwards (matching the leave-approval
-// route) instead of returning a JSON body to a full-page form navigation.
-export async function POST(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new NextResponse('Unauthorized', { status: 401 })
-
-  const tenantId = user.app_metadata?.tenant_id as string
-  if (!tenantId) return new NextResponse('No tenant', { status: 400 })
-
-  try {
-    await requirePermission('approve_leave')  // reuse — covers expense approval too
-  } catch {
-    return new NextResponse('Forbidden', { status: 403 })
+// POST /api/expenses/[id]/approve — approve or reject a pending claim.
+//
+// The dashboard posts a native <form> (application/x-www-form-urlencoded, via
+// ConfirmSubmit), so this reads formData and redirects back to the page. JSON
+// callers ({ "action": "approve" }) get JSON back.
+//
+// Fixed 2026-10-05: permission was approve_leave (now the matrix's
+// expenses.approve = view_financials); the audit row had no tenant_id; and the
+// status check and the update were separate, so two approvers clicking at once
+// both "succeeded". The update is now conditional on status still 'pending'.
+export const POST = withRoute({
+  action: 'expenses.approve',
+  resourceType: 'expense',
+}, async ({ request, ctx, params, audit }) => {
+  const isForm = (request.headers.get('content-type') ?? '').includes('form')
+  let action: string | null = null
+  if (isForm) {
+    action = (await request.formData()).get('action') as string | null
+  } else {
+    action = ((await request.json().catch(() => ({}))) as { action?: string }).action ?? null
   }
+  if (action !== 'approve' && action !== 'reject') throw badRequest('action must be approve or reject')
 
-  const { id } = await params
-  const formData = await request.formData()
-  const action = formData.get('action') as 'approve' | 'reject' | null
-
-  if (!action || !['approve', 'reject'].includes(action)) {
-    return NextResponse.json({ error: 'action must be approve or reject' }, { status: 400 })
-  }
-
-  const { data: expense } = await supabaseAdmin
+  const existing = unwrap(await supabaseAdmin
     .from('expenses')
     .select('id, status')
-    .eq('id', id)
-    .eq('tenant_id', tenantId)
-    .single()
+    .eq('id', params.id)
+    .eq('tenant_id', ctx.tenantId)
+    .is('deleted_at', null)
+    .maybeSingle(), { required: true, what: 'Expense claim not found' })
+  if (existing.status !== 'pending') throw conflict('This claim has already been dealt with.')
 
-  if (!expense) return new NextResponse('Not found', { status: 404 })
-  if (expense.status !== 'pending') {
-    return NextResponse.json({ error: 'Expense is no longer pending' }, { status: 409 })
-  }
-
-  const { error } = await supabaseAdmin
+  const updated = unwrap(await supabaseAdmin
     .from('expenses')
     .update({
       status:      action === 'approve' ? 'approved' : 'rejected',
-      approved_by: user.id,
+      approved_by: ctx.userId,
       approved_at: new Date().toISOString(),
     })
-    .eq('id', id)
-    .eq('tenant_id', tenantId)   // defence-in-depth: also constrain the mutation, not just the prior fetch
+    .eq('id', params.id)
+    .eq('tenant_id', ctx.tenantId)
+    .eq('status', 'pending')
+    .select('id, status')
+    .maybeSingle())
+  if (!updated) throw conflict('This claim was just dealt with by someone else.')
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  await audit({ action: `expense.${action}d`, resourceType: 'expense', resourceId: params.id })
 
-  await writeAuditLog({
-    actor:        user.id,
-    action:       `expense.${action}d`,
-    resourceType: 'expense',
-    resourceId:   id,
-    ipAddress:    getClientIp(request),
-    metadata:     { tenantId },
-  })
-
-  // Native form POST — redirect back to the dashboard page instead of
-  // returning a JSON body (matching app/api/leave/[id]/approve).
-  const origin = new URL(request.url).origin
-  return NextResponse.redirect(new URL('/dashboard/expenses', origin))
-}
+  if (isForm) return NextResponse.redirect(new URL('/dashboard/expenses', new URL(request.url).origin), 303)
+  return updated
+})

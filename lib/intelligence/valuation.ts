@@ -166,7 +166,8 @@ export async function calculateValuation(tenantId: string): Promise<ValuationRes
 }
 
 export async function saveValuationSnapshot(result: ValuationResult): Promise<void> {
-  await supabaseAdmin.from('valuation_snapshots').upsert({
+  // onConflict on the real unique key — see saveCashflowForecast.
+  const { error } = await supabaseAdmin.from('valuation_snapshots').upsert({
     tenant_id:             result.tenantId,
     snapshot_date:         new Date().toISOString().split('T')[0],
     revenue_multiple_value: result.revenueValue,
@@ -179,5 +180,6 @@ export async function saveValuationSnapshot(result: ValuationResult): Promise<vo
     sector:                 result.sector,
     revenue_ttm:            result.revenueTTM,
     ebitda_ttm:             result.ebitdaTTM,
-  })
+  }, { onConflict: 'tenant_id,snapshot_date' })
+  if (error) throw error
 }

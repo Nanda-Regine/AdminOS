@@ -1,33 +1,27 @@
-import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { z } from 'zod'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { generateCashflowForecast, saveCashflowForecast } from '@/lib/intelligence/cashflowForecast'
+import { withRoute, unwrap } from '@/lib/api/withRoute'
 
-export async function GET(request: Request) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new NextResponse('Unauthorized', { status: 401 })
+// GET /api/cashflow[?refresh=true] — today's 90-day forecast (cached per day).
+// Was open to any logged-in member of the tenant; cash position is financials.
+export const GET = withRoute({
+  action: 'money.read',
+  query: z.object({ refresh: z.enum(['true', 'false']).optional() }),
+}, async ({ ctx, query }) => {
+  const today = new Date().toISOString().split('T')[0]
 
-  const tenantId = user.app_metadata?.tenant_id as string
-  if (!tenantId) return new NextResponse('No tenant', { status: 400 })
-
-  const url     = new URL(request.url)
-  const refresh = url.searchParams.get('refresh') === 'true'
-  const today   = new Date().toISOString().split('T')[0]
-
-  if (!refresh) {
-    const { data: cached } = await supabaseAdmin
+  if (query.refresh !== 'true') {
+    const cached = unwrap(await supabaseAdmin
       .from('cashflow_forecasts')
       .select('*')
-      .eq('tenant_id', tenantId)
+      .eq('tenant_id', ctx.tenantId)
       .eq('forecast_date', today)
-      .maybeSingle()
-
-    if (cached) return NextResponse.json(cached)
+      .maybeSingle())
+    if (cached) return cached
   }
 
-  const forecast = await generateCashflowForecast(tenantId)
+  const forecast = await generateCashflowForecast(ctx.tenantId)
   await saveCashflowForecast(forecast)
-
-  return NextResponse.json(forecast)
-}
+  return forecast
+})

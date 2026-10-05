@@ -1,11 +1,11 @@
-import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
-import { checkPermission } from '@/lib/auth/permissions'
+import { withRoute, unwrap, RouteError } from '@/lib/api/withRoute'
 
 // Profit First — 5-account allocation model by Mike Michalowicz
 // Columns: income_account, profit_account, owner_pay_account, tax_account, opex_account
+
+const DEFAULTS = { profit_pct: 5, owner_pay_pct: 50, tax_pct: 15, opex_pct: 30, transfer_days: [10, 25] }
 
 const setupSchema = z.object({
   incomeAccount:   z.string().min(1).max(100).default('INCOME'),
@@ -17,118 +17,85 @@ const setupSchema = z.object({
   ownerPayPct:     z.number().min(0).max(100).default(50),
   taxPct:          z.number().min(0).max(100).default(15),
   // opexPct is auto-calculated: 100 - profit - ownerPay - tax
-  transferDays:    z.array(z.number().int().min(1).max(28)).default([10, 25]),
+  transferDays:    z.array(z.number().int().min(1).max(28)).max(4).default([10, 25]),
 })
 
-export async function GET(request: Request) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new NextResponse('Unauthorized', { status: 401 })
-
-  const tenantId = user.app_metadata?.tenant_id as string
-  if (!tenantId) return new NextResponse('No tenant', { status: 400 })
-
-  if (!(await checkPermission('view_financials'))) return new NextResponse('Forbidden', { status: 403 })
-
-  const { data, error } = await supabaseAdmin
+export const GET = withRoute({ action: 'money.read' }, async ({ ctx }) => {
+  const data = unwrap(await supabaseAdmin
     .from('profit_first_config')
     .select('*')
-    .eq('tenant_id', tenantId)
-    .maybeSingle()
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+    .eq('tenant_id', ctx.tenantId)
+    .maybeSingle())
 
   if (!data) {
-    return NextResponse.json({
+    return {
       configured: false,
       message: 'Profit First not yet configured. Use PATCH to set up your 5 accounts.',
-      defaults: { profit_pct: 5, owner_pay_pct: 50, tax_pct: 15, opex_pct: 30, transfer_days: [10, 25] },
-    })
+      defaults: DEFAULTS,
+    }
   }
+  return { ...data, configured: data.setup_complete }
+})
 
-  return NextResponse.json({ ...data, configured: data.setup_complete })
-}
-
-export async function PATCH(request: Request) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new NextResponse('Unauthorized', { status: 401 })
-
-  const tenantId = user.app_metadata?.tenant_id as string
-  if (!tenantId) return new NextResponse('No tenant', { status: 400 })
-
-  if (!(await checkPermission('view_financials'))) return new NextResponse('Forbidden', { status: 403 })
-
-  let body: z.infer<typeof setupSchema>
-  try { body = setupSchema.parse(await request.json()) } catch (e) {
-    return NextResponse.json({ error: 'Invalid request', detail: e }, { status: 400 })
-  }
-
+export const PATCH = withRoute({
+  action: 'money.write',
+  body: setupSchema,
+  audit: 'profit_first.configured',
+  resourceType: 'profit_first_config',
+}, async ({ ctx, body }) => {
   const opexPct = 100 - body.profitPct - body.ownerPayPct - body.taxPct
   if (opexPct < 0) {
-    return NextResponse.json({
-      error: `Profit + Owner Pay + Tax (${body.profitPct + body.ownerPayPct + body.taxPct}%) exceeds 100%.`,
-    }, { status: 422 })
+    throw new RouteError(422, `Profit + Owner Pay + Tax (${body.profitPct + body.ownerPayPct + body.taxPct}%) exceeds 100%.`, 'over_allocated')
   }
 
-  const { data, error } = await supabaseAdmin
+  return unwrap(await supabaseAdmin
     .from('profit_first_config')
     .upsert({
-      tenant_id:       tenantId,
-      income_account:  body.incomeAccount,
-      profit_account:  body.profitAccount,
+      tenant_id:         ctx.tenantId,
+      income_account:    body.incomeAccount,
+      profit_account:    body.profitAccount,
       owner_pay_account: body.ownerPayAccount,
-      tax_account:     body.taxAccount,
-      opex_account:    body.opexAccount,
-      profit_pct:      body.profitPct,
-      owner_pay_pct:   body.ownerPayPct,
-      tax_pct:         body.taxPct,
-      opex_pct:        opexPct,
-      transfer_days:   body.transferDays,
-      setup_complete:  true,
-      updated_at:      new Date().toISOString(),
+      tax_account:       body.taxAccount,
+      opex_account:      body.opexAccount,
+      profit_pct:        body.profitPct,
+      owner_pay_pct:     body.ownerPayPct,
+      tax_pct:           body.taxPct,
+      opex_pct:          opexPct,
+      transfer_days:     body.transferDays,
+      setup_complete:    true,
+      updated_at:        new Date().toISOString(),
     }, { onConflict: 'tenant_id' })
     .select()
-    .single()
+    .single())
+})
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
-  return NextResponse.json(data)
-}
-
-// POST /api/profit-first/calculate — calculate allocation for a given income amount
-export async function POST(request: Request) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new NextResponse('Unauthorized', { status: 401 })
-
-  const tenantId = user.app_metadata?.tenant_id as string
-  if (!tenantId) return new NextResponse('No tenant', { status: 400 })
-
-  const body = await request.json() as { income: number }
-  if (!body.income || typeof body.income !== 'number' || body.income <= 0) {
-    return NextResponse.json({ error: 'income must be a positive number' }, { status: 400 })
-  }
-
-  const { data: cfg } = await supabaseAdmin
+// POST /api/profit-first — calculate the allocation for an income amount.
+// Had no permission check and no schema (a string "income" passed typeof checks badly).
+export const POST = withRoute({
+  action: 'money.read',
+  body: z.object({ income: z.number().positive().max(1_000_000_000) }),
+}, async ({ ctx, body }) => {
+  const cfg = unwrap(await supabaseAdmin
     .from('profit_first_config')
     .select('*')
-    .eq('tenant_id', tenantId)
-    .maybeSingle()
+    .eq('tenant_id', ctx.tenantId)
+    .maybeSingle())
 
-  const profitPct   = cfg?.profit_pct    ?? 5
-  const ownerPayPct = cfg?.owner_pay_pct ?? 50
-  const taxPct      = cfg?.tax_pct       ?? 15
-  const opexPct     = cfg?.opex_pct      ?? Math.max(0, 100 - profitPct - ownerPayPct - taxPct)
-  const income      = body.income
+  const profitPct   = Number(cfg?.profit_pct    ?? DEFAULTS.profit_pct)
+  const ownerPayPct = Number(cfg?.owner_pay_pct ?? DEFAULTS.owner_pay_pct)
+  const taxPct      = Number(cfg?.tax_pct       ?? DEFAULTS.tax_pct)
+  const opexPct     = Number(cfg?.opex_pct      ?? Math.max(0, 100 - profitPct - ownerPayPct - taxPct))
+  const { income }  = body
+  const part = (pct: number) => Math.round(income * pct) / 100
 
-  return NextResponse.json({
+  return {
     income,
     allocations: {
-      profit:    { account: cfg?.profit_account    ?? 'PROFIT',    pct: profitPct,   amount: Math.round(income * profitPct / 100 * 100) / 100 },
-      owner_pay: { account: cfg?.owner_pay_account ?? 'OWNER PAY', pct: ownerPayPct, amount: Math.round(income * ownerPayPct / 100 * 100) / 100 },
-      tax:       { account: cfg?.tax_account       ?? 'TAX',       pct: taxPct,      amount: Math.round(income * taxPct / 100 * 100) / 100 },
-      opex:      { account: cfg?.opex_account      ?? 'OPEX',      pct: opexPct,     amount: Math.round(income * opexPct / 100 * 100) / 100 },
+      profit:    { account: cfg?.profit_account    ?? 'PROFIT',    pct: profitPct,   amount: part(profitPct) },
+      owner_pay: { account: cfg?.owner_pay_account ?? 'OWNER PAY', pct: ownerPayPct, amount: part(ownerPayPct) },
+      tax:       { account: cfg?.tax_account       ?? 'TAX',       pct: taxPct,      amount: part(taxPct) },
+      opex:      { account: cfg?.opex_account      ?? 'OPEX',      pct: opexPct,     amount: part(opexPct) },
     },
-    next_transfer_days: cfg?.transfer_days ?? [10, 25],
-  })
-}
+    next_transfer_days: cfg?.transfer_days ?? DEFAULTS.transfer_days,
+  }
+})

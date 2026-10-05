@@ -1,30 +1,26 @@
-import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { z } from 'zod'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { calculateValuation, saveValuationSnapshot } from '@/lib/intelligence/valuation'
 import { fireBusinessEvent } from '@/lib/academy/knowledgeGraph'
+import { withRoute, unwrap } from '@/lib/api/withRoute'
 
-export async function GET(request: Request) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new NextResponse('Unauthorized', { status: 401 })
+// GET /api/valuation[?refresh=true] — today's valuation snapshot (cached per day).
+// Was open to any logged-in member of the tenant; a business valuation is financials.
+export const GET = withRoute({
+  action: 'money.read',
+  query: z.object({ refresh: z.enum(['true', 'false']).optional() }),
+}, async ({ ctx, query }) => {
+  const { tenantId, userId } = ctx
+  const today = new Date().toISOString().split('T')[0]
 
-  const tenantId = user.app_metadata?.tenant_id as string
-  if (!tenantId) return new NextResponse('No tenant', { status: 400 })
-
-  const url     = new URL(request.url)
-  const refresh = url.searchParams.get('refresh') === 'true'
-  const today   = new Date().toISOString().split('T')[0]
-
-  if (!refresh) {
-    const { data: cached } = await supabaseAdmin
+  if (query.refresh !== 'true') {
+    const cached = unwrap(await supabaseAdmin
       .from('valuation_snapshots')
       .select('*')
       .eq('tenant_id', tenantId)
       .eq('snapshot_date', today)
-      .maybeSingle()
-
-    if (cached) return NextResponse.json(cached)
+      .maybeSingle())
+    if (cached) return cached
   }
 
   const result = await calculateValuation(tenantId)
@@ -35,10 +31,7 @@ export async function GET(request: Request) {
     .from('valuation_snapshots')
     .select('id', { count: 'exact', head: true })
     .eq('tenant_id', tenantId)
+  if ((count ?? 0) === 1) fireBusinessEvent('exit.score_calculated', tenantId, userId)
 
-  if ((count ?? 0) === 1) {
-    fireBusinessEvent('exit.score_calculated', tenantId, user.id)
-  }
-
-  return NextResponse.json(result)
-}
+  return result
+})

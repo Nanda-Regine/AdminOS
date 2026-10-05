@@ -239,7 +239,10 @@ export async function generateCashflowForecast(
 }
 
 export async function saveCashflowForecast(forecast: CashflowForecast): Promise<void> {
-  await supabaseAdmin
+  // onConflict on the real unique key (tenant_id, forecast_date). Without it the
+  // upsert targeted the primary key, so a second save on the same day hit a
+  // duplicate-key error — swallowed, leaving the morning's forecast in place.
+  const { error } = await supabaseAdmin
     .from('cashflow_forecasts')
     .upsert({
       tenant_id:             forecast.tenantId,
@@ -254,5 +257,6 @@ export async function saveCashflowForecast(forecast: CashflowForecast): Promise<
       opening_balance:       forecast.openingBalance,
       closing_balance:       forecast.closingBalance,
       generated_at:          new Date().toISOString(),
-    })
+    }, { onConflict: 'tenant_id,forecast_date' })
+  if (error) throw error
 }
