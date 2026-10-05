@@ -1,5 +1,5 @@
 {
-  "routes_no_permission": 85,
+  "routes_no_permission": 84,
   "write_routes_no_zod": 26,
   "routes_hard_delete": 10,
   "routes_leak_db_error": 81,

@@ -32,7 +32,7 @@ const routes = walk(root + '/app/api', 'route.ts').map((f) => {
     leak: /NextResponse\.json\(\s*\{\s*error:\s*(error|err|e)\.message/.test(s),
     audit: /writeAuditLog|\baudit\(\{/.test(s) || /\baudit:/.test(cfg),
     rl: /checkRateLimit/.test(s) || /\brateLimit:/.test(cfg),
-    pub: /^(webhook|book|widget|voice|billing\/webhook|billing\/payfast-itn|paystack\/webhook|health|auth|onboarding)/.test(rel(f).replace('app/api/', '')),
+    pub: /^(webhook|book|widget|voice|billing\/webhook|billing\/payfast-itn|paystack\/webhook|health|auth|onboarding|payslips\/view)/.test(rel(f).replace('app/api/', '')),
   }
 })
 const c = (a, k) => a.filter((r) => r[k]).length
