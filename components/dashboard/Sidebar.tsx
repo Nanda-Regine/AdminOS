@@ -132,7 +132,10 @@ export function Sidebar({ businessType, permissions }: {
           Active Agents
         </p>
         <div className="flex flex-wrap gap-1">
-          {['Alex', 'Chase', 'Care', 'Doc', 'Insight', 'Pen'].map((a) => (
+          {/* Only agents that do real work today: Langa (mentor), Pen (Email Studio),
+              Chase (debt-recovery job), Doc (document pipeline). Alex and Care
+              exist only as orchestrator personas with no surface, so are not listed. */}
+          {['Langa', 'Pen', 'Chase', 'Doc'].map((a) => (
             <span
               key={a}
               className="text-[10px] px-1.5 py-0.5 rounded"

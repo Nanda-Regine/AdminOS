@@ -6,13 +6,17 @@ import { checkRateLimit } from '@/lib/security/rateLimit'
 import { z } from 'zod'
 import { getContext } from '@/lib/auth/context'
 import { can } from '@/lib/auth/roleMatrix'
+import { tenantAI } from '@/lib/ai/callClaude'
 
 const schema = z.object({
   message: z.string().min(1).max(2000),
+  // Bounded: history is re-sent to the model, so unbounded turns were an
+  // unmetered way to inflate input tokens. The web page sends the whole chat,
+  // so trim to the 20 turns streamLanga uses rather than reject a long one.
   history: z.array(z.object({
     role:    z.enum(['user', 'assistant']),
-    content: z.string(),
-  })).default([]),
+    content: z.string().max(20000),
+  })).max(1000).default([]).transform(h => h.slice(-20)),
 })
 
 export async function POST(request: Request) {
@@ -51,13 +55,16 @@ export async function POST(request: Request) {
   const { success } = await checkRateLimit('agents', tenantId)
   if (!success) return new NextResponse('Too Many Requests', { status: 429 })
 
-  const plan = (user.app_metadata?.plan as string) ?? 'trial'
+  // The plan lives on tenants.plan. app_metadata.plan is usually unset, so
+  // every tenant was metered as 'trial' (the smallest daily budget).
+  const { plan } = await tenantAI(tenantId)
 
   let body: z.infer<typeof schema>
   try {
     body = schema.parse(await request.json())
   } catch (e) {
-    return NextResponse.json({ error: 'Invalid request', detail: e }, { status: 400 })
+    const fields = e instanceof z.ZodError ? e.issues.map(i => i.path.join('.')) : undefined
+    return NextResponse.json({ error: 'Invalid request', code: 'invalid_body', fields }, { status: 400 })
   }
 
   const result = await streamLanga(

@@ -1,7 +1,13 @@
 import { createClient } from '@/lib/supabase/server'
 import { tenantHasAddon } from '@/lib/billing/addons'
+import type { AdminOSPlan } from '@/lib/billing/planGates'
 
-export type Plan = 'trial' | 'starter' | 'growth' | 'enterprise' | 'white_label'
+// Plan tiers are the current pricing (solo → partner). Plan gating itself
+// lives in lib/billing/planGates.ts, which reads tenants.plan. The old
+// requirePlan/hasPlan here read user.app_metadata.plan against the retired
+// trial/starter/growth/enterprise names and passed every real tenant; they
+// had no callers and were removed (2026-10-06).
+export type Plan = AdminOSPlan
 export type Addon = 'ring' | 'reach' | 'languages' | 'client_portal'
 
 export class BillingError extends Error {
@@ -13,36 +19,6 @@ export class BillingError extends Error {
   ) {
     super(message)
     this.name = 'BillingError'
-  }
-}
-
-const PLAN_RANK: Record<Plan, number> = {
-  trial: 0, starter: 1, growth: 2, enterprise: 3, white_label: 4,
-}
-
-/**
- * NOTE (Phase 0, 2026-07-17): currently unused — nothing imports requirePlan or
- * hasPlan; only requireAddon/hasAddon are live. Left in place but be aware the
- * Plan union here (trial/starter/growth/enterprise) is the OLD pricing and no
- * longer matches tenants.plan in the DB (solo/grow/operate/scale/partner). If
- * you wire this up, PLAN_RANK[plan] will be undefined for every real tenant and
- * the comparison below silently passes. Use planGates.requireAdminOSPlan()
- * instead — it reads the plan from the tenants table.
- */
-export async function requirePlan(minPlan: Plan): Promise<void> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new BillingError('Unauthorized', 'plan_required', minPlan)
-
-  // app_metadata, not user_metadata: the user can rewrite user_metadata and
-  // would otherwise just grant themselves the top tier.
-  const plan = (user.app_metadata?.plan ?? 'trial') as Plan
-  if (PLAN_RANK[plan] < PLAN_RANK[minPlan]) {
-    throw new BillingError(
-      `This feature requires the ${minPlan} plan or higher.`,
-      'plan_required',
-      minPlan,
-    )
   }
 }
 
@@ -77,15 +53,6 @@ export async function hasAddon(addon: Addon): Promise<boolean> {
   }
 }
 
-/** Check plan without throwing — for UI gating */
-export async function hasPlan(minPlan: Plan): Promise<boolean> {
-  try {
-    await requirePlan(minPlan)
-    return true
-  } catch {
-    return false
-  }
-}
 
 /** Convert BillingError to a standard API response body */
 export function billingErrorResponse(err: BillingError) {

@@ -19,11 +19,11 @@ const ADDON_INFO: Record<Addon, { name: string; price: string; benefits: string[
 }
 
 const PLAN_LABELS: Record<Plan, string> = {
-  trial:       'Trial',
-  starter:     'Starter',
-  growth:      'Growth',
-  enterprise:  'Enterprise',
-  white_label: 'White Label',
+  solo:    'Solo',
+  grow:    'Grow',
+  operate: 'Operate',
+  scale:   'Scale',
+  partner: 'Partner',
 }
 
 interface BillingGateOverlayProps {
