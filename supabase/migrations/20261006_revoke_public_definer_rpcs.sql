@@ -6,7 +6,7 @@
 -- Both are only ever called by the server with the service role. The calendar
 -- is now generated in TypeScript (lib/compliance/calendar.ts); the SQL seed is
 -- kept only so older deploys keep working, and becomes service-role only.
--- NOT YET APPLIED — needs Nanda's go-ahead (prod schema change).
+-- Applied to prod 2026-10-06 (Nanda approved).
 
 REVOKE EXECUTE ON FUNCTION public.seed_compliance_calendar(uuid, integer) FROM PUBLIC, anon, authenticated;
 GRANT  EXECUTE ON FUNCTION public.seed_compliance_calendar(uuid, integer) TO service_role;

@@ -42,7 +42,12 @@ export function BusinessDocumentsForm({ initial }: { initial: BusinessDocumentsI
           address, vatNumber, bankName, bankAccountHolder, bankAccountNumber, bankBranchCode,
         }),
       })
-      if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.error || `Failed (${res.status})`)
+      if (!res.ok) {
+        // Field messages say what's wrong ("Branch code is 6 digits"), not just "check the fields".
+        const json = await res.json().catch(() => ({}))
+        const fieldMessages = Object.values((json.fields ?? {}) as Record<string, string>)
+        throw new Error(fieldMessages.join(' · ') || json.error || `Failed (${res.status})`)
+      }
       setState('saved')
       router.refresh()
       setTimeout(() => setState('idle'), 2500)

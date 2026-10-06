@@ -8,6 +8,7 @@ import Link from 'next/link'
 import { BotTrainingForm } from './BotTrainingForm'
 import { LogoUpload } from './LogoUpload'
 import { BusinessDocumentsForm } from './BusinessDocumentsForm'
+import { BusinessDetailsForm } from './BusinessDetailsForm'
 import { checkPermission } from '@/lib/auth/permissions'
 
 const integrations = [
@@ -30,13 +31,15 @@ export default async function SettingsPage() {
 
   const { data: tenant } = await supabaseAdmin
     .from('tenants')
-    .select('*')
+    .select('id, name, plan, business_type, whatsapp_number, country, timezone, settings')
     .eq('id', tenantId)
     .single()
 
   if (!tenant) redirect('/login')
 
   const activeIntegrations = tenant.settings?.integrations || []
+  const s = (tenant.settings ?? {}) as Record<string, unknown>
+  const str = (x: unknown) => (typeof x === 'string' ? x : '')
 
   return (
     <div>
@@ -50,35 +53,33 @@ export default async function SettingsPage() {
       />
       <div className="p-4 md:p-6 space-y-6">
 
-        {/* Business profile */}
+        {/* Business details — identity, registrations, tax year */}
         <Card>
-          <h3 className="font-semibold text-[var(--text-primary)] mb-4">Business Profile</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+          <div className="flex items-start justify-between gap-3 mb-4">
             <div>
-              <p className="text-[var(--text-muted)]">Business name</p>
-              <p className="font-medium text-[var(--text-primary)] mt-0.5">{tenant.name}</p>
+              <h3 className="font-semibold text-[var(--text-primary)]">Business Details</h3>
+              <p className="text-xs text-[var(--text-muted)] mt-0.5">Your registrations and tax year. These set your compliance deadlines and print on your documents.</p>
             </div>
-            <div>
-              <p className="text-[var(--text-muted)]">Plan</p>
-              <p className="mt-0.5"><Badge variant="blue">{tenant.plan}</Badge></p>
-            </div>
-            <div>
-              <p className="text-[var(--text-muted)]">WhatsApp number</p>
-              <p className="font-medium text-[var(--text-primary)] mt-0.5">{tenant.whatsapp_number || 'Not connected'}</p>
-            </div>
-            <div>
-              <p className="text-[var(--text-muted)]">Business type</p>
-              <p className="font-medium text-[var(--text-primary)] mt-0.5 capitalize">{tenant.business_type || 'Not set'}</p>
-            </div>
-            <div>
-              <p className="text-[var(--text-muted)]">Country</p>
-              <p className="font-medium text-[var(--text-primary)] mt-0.5">{tenant.country}</p>
-            </div>
-            <div>
-              <p className="text-[var(--text-muted)]">Timezone</p>
-              <p className="font-medium text-[var(--text-primary)] mt-0.5">{tenant.timezone}</p>
-            </div>
+            <Badge variant="blue">{tenant.plan}</Badge>
           </div>
+          <BusinessDetailsForm initial={{
+            name: tenant.name ?? '',
+            tradingName: str(s.trading_name),
+            businessType: tenant.business_type ?? '',
+            contactEmail: str(s.contact_email),
+            contactPhone: str(s.contact_phone),
+            registrationNumber: str(s.registration_number),
+            incorporationDate: str(s.incorporation_date),
+            financialYearEndMonth: Number(s.financial_year_end_month) || 2,
+            incomeTaxNumber: str(s.income_tax_number),
+            payeReference: str(s.paye_reference),
+            sdlReference: str(s.sdl_reference),
+            uifReference: str(s.uif_number),
+            payrollDay: Number(s.payroll_day) || 25,
+          }} />
+          <p className="text-xs text-[var(--text-dim)] mt-4">
+            WhatsApp number: {tenant.whatsapp_number || 'not connected'} · Country: {tenant.country} · Time zone: {tenant.timezone}
+          </p>
         </Card>
 
         {/* Business logo */}

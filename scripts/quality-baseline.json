@@ -1,12 +1,12 @@
 {
   "routes_no_permission": 10,
-  "write_routes_no_zod": 25,
+  "write_routes_no_zod": 24,
   "routes_hard_delete": 1,
-  "routes_leak_db_error": 47,
+  "routes_leak_db_error": 46,
   "routes_select_star": 35,
-  "write_routes_no_audit": 72,
+  "write_routes_no_audit": 71,
   "routes_rate_limited": 30,
-  "routes_on_withRoute": 61,
+  "routes_on_withRoute": 62,
   "pages_no_permission": 11,
   "pages_no_empty_state": 23,
   "pages_unbounded_query": 25
