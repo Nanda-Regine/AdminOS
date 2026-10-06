@@ -3566,3 +3566,69 @@ Source: the Claude API migration guide (§ Migrating to Claude Sonnet 5, then §
 - GitHub repo secret `EXPO_TOKEN` (robot token, mirembe-muse Expo account) for the EAS build workflow.
 - `RESEND_FROM_EMAIL` + a live `RESEND_API_KEY` in Vercel.
 - The GTM consent gate in `app/layout.tsx` (still uncommitted, still hers).
+
+#### Session 20 continued (2026-10-06, fourth sitting): Workstream D — 7 personas, authz matrix, compliance calendar
+**Shipped (all pushed; tsc 0, `npm test` 156/156, quality ratchet improved and re-baselined):**
+`942b2c0` QA tooling · `a908f6e` authz sweep · `384a881` compliance calendar · plus the scripts/docs commit after it.
+
+**1. Persona tenants live in prod** (`scripts/qa-personas.mjs`, idempotent, no email sent, passwords derived from the service key; print one with `--password <key> [owner]`, list logins with `--list`).
+
+| Tenant slug | Persona (login role) | business_type · plan |
+|---|---|---|
+| qa-persona-salon | Lindiwe Mbatha (owner) | salons · grow |
+| qa-persona-ngo | Nomsa Gqola (admin) + owner | ngo · operate |
+| qa-persona-trades | Sipho Ngcobo (manager) + owner | trades · operate |
+| qa-persona-clinic | Zanele Dumisa (staff) + owner | clinic · grow |
+| qa-persona-creative | Jabulani Khoza (owner) | creative · solo |
+| qa-persona-logistics | Themba Mabhena (field_agent) + owner | logistics · operate |
+| qa-persona-school | Mrs Kamini Naidoo (manager) + owner | school · operate |
+
+Each has staff linked to logins, SA contacts, 3 invoices (paid/sent/overdue, 15% VAT unless solo), tasks (2 for the persona, 1 for a colleague, 1 owner-only), shifts, a pending leave request, expense claims, announcements (all + managers), bookings/services (salon, clinic), stock/suppliers (salon, trades, logistics) and the statutory calendar.
+
+**2. Authz matrix** (`scripts/authz-matrix.mjs`): signs in as all 12 logins and checks every withRoute/guard() method against the role matrix, every nav page against its `requires`, and other tenants' ids on `GET /api/<x>/[id]`.
+- First run: withRoute routes, pages and cross-tenant probes were already clean. **But ~37 legacy GET routes answered a receptionist and a driver with 200.**
+- Root cause: legacy routes checked permissions on writes, not reads, and `quality-scan` counted a file as checked if any method was.
+- **Final run on prod after the fix: 134–165 API checks per login, all correct; 49/49 pages; 0 cross-tenant leaks.** Own-data roles now reach only public data (FX, weather, load-shedding), the solo/team flag, and creative assets for staff (manage_documents).
+- Notable: the matrix detects Next's streamed `notFound()` (HTTP 200 + 404 UI, because dashboard has `loading.tsx`) by body, not status.
+
+**3. Authz fixes** (`a908f6e`):
+- `lib/api/guard.ts`: same context, matrix and 401/403 bodies as withRoute, as one line at the top of a legacy method. Added to **80 methods across 52 routes**.
+- Worst ones: `settings/profile` let any login rewrite the **bank details printed on invoices**; `autonomy` let any login switch on automatic final demands; contacts merge/delete, contracts, `tenant/me`, logo, client-portal links.
+- New actions: `bookings.*`, `broadcasts.read`, `kb.*`, `privacy.erase`, `contracts.*`, `compliance.*`, `licences.*`, `insight.write`, `settings.read` (pinned by tests).
+- Board pack routes rebuilt on withRoute (money.read + Scale plan → 402).
+- Hard deletes → soft: contacts DELETE, contacts merge, kb, sequences, social accounts, creative assets.
+  - **Contact merge** moved only 3 of the 12 tables that reference a contact. The hard delete then cascaded loyalty points away and orphaned bookings/tasks/contracts/projects/NPS/creative assets (and would fail on any contact with broadcast history). All 12 now move, errors are checked, and the absorbed contacts are soft-deleted.
+- `quality-scan` now requires a check on **every** exported method: routes_no_permission 58 → 11 (the rest are public/token/static data).
+
+**4. Persona day-in-the-life walk** (`scripts/persona-walk.mjs`, Playwright, desktop + phone): **all 7 personas pass**. Seeded data shows where it should, blocked pages are blocked, no phone overflow, and no console errors on the walked pages. Themba sees his own deliveries but not the other driver's or the owner-only task.
+
+**5. Compliance calendar (money/tax, found via the NGO persona)** (`384a881`). The SQL `seed_compliance_calendar` was wrong for **every** tenant:
+- EMP201 = month start + 37 days (the 7th/8th/10th, never weekend-adjusted).
+- IRP6/ITR14 dated for a December year end, ignoring its own year-end parameter.
+- EMP501 descriptions swapped.
+- COIDA ROE on 31 March, before the window opens.
+- Every new tenant got an invented, already-overdue IRP6, and a CIPC date made up from the signup date.
+- Nothing rolled the calendar forward.
+- Google signups never got one.
+
+Now `lib/compliance/calendar.ts` + `planCalendarSync` (tests in `tests/complianceCalendar.test.ts`), run at email/OAuth/admin signup, on year-end or business-type change, and by the monthly cron `compliance-calendar-roll` (1st, 05:00 SAST; also event `adminos/compliance.calendar.sync`). Completed work is never touched, genuinely missed deadlines stay, wrong open rows are soft-deleted.
+
+Sources checked 2026-10-06:
+- SARS: provisional tax page; EMP501 deadlines (31 May annual, 31 Oct interim); ITR14 due 12 months after year end.
+- Dept of Labour / Compensation Fund ROE notices (April – 31 May; gazetted extensions, e.g. 30 Jun 2025).
+- DSD on NPO Act s18(1)(a): 9 months after year end.
+
+**Applied to QA persona tenants only** (`scripts/qa-calendar-sync.mjs`; a second pass is a no-op).
+
+**Needs Nanda (new):**
+- **Apply `supabase/migrations/20261006_revoke_public_definer_rpcs.sql`.** `seed_compliance_calendar(uuid,int)` and `search_kb_articles(uuid,text,int)` are SECURITY DEFINER, take a tenant id, and are **executable by anon**: anyone with a tenant UUID can write compliance rows into it or list its KB titles. The app only calls them as service_role, so revoking is safe. (Auto-mode blocked me from applying a prod schema change.)
+- **Real tenants' calendars** are corrected automatically by the deployed monthly cron on **1 Nov 05:00 SAST**. To do it sooner, send Inngest event `adminos/compliance.calendar.sync` (no data = all tenants). It soft-deletes open items on wrong dates and inserts the correct ones.
+- **Financial year end** is read from `settings.financial_year_end_month` (default Feb) but no settings screen sets it, and CIPC needs `settings.incorporation_date`. Both need a field in Settings → Business (Workstream C).
+
+**Open, found this sitting (not fixed):**
+- `PATCH /api/tenant/me` writes 6 columns that don't exist on `tenants` (province, website_url, registration_number, vat_number, women/youth/township flags). There's no UI caller. Fold into the Settings page work.
+- `/api/engineering/feedback` is an unauthenticated proxy to the Jarvis feedback endpoint.
+- `/api/portal/generate` (now invoices.read) and the board-pack APIs still have no UI (the 54 no-UI list).
+- Zanele (staff) still has no Inbox: the product decision is unchanged.
+
+**Resume here:** Workstream C page by page (start with Settings → Business: year end, incorporation date, the tenant/me drift), then Workstream F (SA law), using the persona tenants + `authz-matrix.mjs` + `persona-walk.mjs` as the regression gate after each deploy.

@@ -4,7 +4,7 @@
 // so the industry nav filter is exercised) and signs in with THEIR OWN role.
 // Non-owner personas get an owner login alongside them. Tenants are built the
 // way real signups are: roles seeded from the role matrix, user_roles granted,
-// tenant claim in app_metadata, SA compliance calendar seeded.
+// tenant claim in app_metadata, SA statutory calendar (lib/compliance/calendar.ts).
 //
 // Idempotent: tenants/users/roles are found-or-created; each data table is
 // seeded only while it has zero rows for that tenant. No email is ever sent
@@ -17,7 +17,7 @@
 // Passwords are derived from the service-role key (scripts/lib/qa.mjs) — never
 // stored. QA data is tagged and stays for regression runs; remove by soft delete.
 import { DEFAULT_ROLE_PERMISSIONS } from '../lib/auth/roleMatrix.ts'
-import { select, insert, update, rpc, ensureUser, personaPassword } from './lib/qa.mjs'
+import { select, insert, update, ensureUser, personaPassword } from './lib/qa.mjs'
 
 const mail = (tag) => `nandaregine+persona-${tag}@gmail.com`
 
@@ -288,8 +288,8 @@ async function provision(p, i) {
     { tenant_id: T, title: 'Management: month-end close', body: 'Month-end figures due by the 3rd.', audience: 'managers', pinned: false, published_at: new Date().toISOString(), created_by: ownerId },
   ], log)
 
-  // 10. SA statutory calendar (idempotent RPC, same as signup).
-  await rpc('seed_compliance_calendar', { p_tenant_id: T }).catch(e => log.push(`compliance: ${e.message.slice(0, 80)}`))
+  // 10. SA statutory calendar — lib/compliance/calendar.ts, as signup does.
+  // (Statutory calendar: written by scripts/qa-calendar-sync.mjs after all tenants exist.)
 
   return { key: p.key, slug, tenantId: T, logins: logins.map(({ email, role, userId, staffId }) => ({ email, role, userId, staffId })), log }
 }
@@ -310,4 +310,6 @@ if (args[0] === '--password') {
     for (const l of r.logins) console.log(`  ${l.role.padEnd(12)} ${l.email}  staff=${l.staffId ?? '-'}`)
     console.log('  ' + r.log.join(' · '))
   }
+  console.log('\nstatutory calendar:')
+  await import('./qa-calendar-sync.mjs')
 }
