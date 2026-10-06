@@ -3402,3 +3402,73 @@ _(appended as each workstream closes)_
 - The banner told users it was "Vercel Analytics… no third-party tracking".
 - Now: PostHog starts only on "Accept all" and opts out on withdrawal; no email is sent (s10 minimality, s72 cross-border); the banner text is accurate.
 - **Nanda's uncommitted GTM snippet in `app/layout.tsx` also loads before consent.** It needs the same gate before it ships.
+
+#### API call changes — what changed this session (contract reference for web + Expo callers)
+Commit `c70e338`, **not yet pushed or deployed**. A "breaking?" entry means a caller that relied on the old behaviour must change; none of the breaking ones currently has a caller in the web or Expo app.
+
+| Route / call | Before | After | Breaking? |
+|---|---|---|---|
+| `POST /api/book/[slug]` (public booking) | Always failed: wrote `contacts.name` + deferrable ON CONFLICT. Raw DB errors returned. | Works. Contact find-or-create by SA phone identity. New: **422** invalid phone; **404** if `staffId` is not this tenant's live staff. Friendly error text only. | Error bodies changed; no UI caller yet (public page to be built) |
+| `GET /api/book/[slug]` | Raw DB error on failure | `{ error: 'Could not load services' }` 500; soft-deleted services hidden | No |
+| `POST /api/documents/upload` | Any member; raw-extension `file_type` (images/txt 500'd); processed twice | **withRoute `documents.write`** (field_agent/client now 403); 413/415 as `{ error, code }`; ≥5 MB returns `processing` and finishes via Inngest; invoices *extracted*, never auto-booked | Role gate is new; response shape (`document`) unchanged |
+| `GET /api/documents/upload?path=` | `startsWith(tenant/)` check (traversal-able); any member | **withRoute `documents.read`**; path must match a live document row; `{ url }` unchanged | Role gate is new |
+| `GET /api/documents/[id]` | Session client, any member | withRoute `documents.read`; 404 `{ error, code }` | Error body shape |
+| `DELETE /api/documents/[id]` | **Hard delete** + file wiped; returned **204** | **Soft delete**, file kept; returns **200 `{ id, deleted: true }`**; `documents.write` | **Yes**: 204 → 200 (no UI caller existed) |
+| `GET /api/cashflow` | Cached hit returned a snake_case DB row; a miss returned camelCase | Always the camelCase `CashflowForecast` shape | Yes, for any snake_case reader (none found) |
+| `POST /api/widget/[tenantId]/message` | Every message rejected (CHECK on `message_type`) | Stored as `message_type: 'dm'`, `platform: 'website_widget'` | No |
+| `GET /api/projects` | 500 on every call (`contacts(name)`) | `contact.name` populated (aliased from `full_name`); deleted projects hidden | No (no UI caller yet) |
+| `POST /api/workflow/file-received` (n8n) | Unvalidated body; `!==` secret; model JSON spread into `invoices.insert` | zod payload (`fileType` ∈ `pdf, docx, xlsx, csv, image, text`; `tenantId` uuid); timing-safe secret; tenant must exist; returns `{ success, document_id, category, status }` | Yes for n8n: stricter payload; `fileType` values changed |
+| `POST /api/webhook/email` (hub) | Returned owner-facing budget text as the customer reply | `{ response: null }` when the AI budget is exhausted; owner alerted | The hub must treat `null` as "no auto-reply" |
+| WhatsApp engine (`lib/workflow/engine.ts`) | Budget text sent to the customer + FAQ-cached | Neutral holding reply, `escalated: true`, owner alert; nothing cached | No |
+| `lib/ai/callClaude.ts` (internal) | `callClaudeAgent(sys, msg, maxTokens?, opts?)`: metering optional | **`callClaudeAgent(sys, msg, maxTokens, opts: { tenantId, plan, feature?, model? })` required**. `classifyIntent`, `classifySentiment`, `classifyDocument`, `extractGoalsFromDoc`, `draftRecoveryMessage`, `draftColdLeadMessage` and `generateDailyBrief` all take `TenantAI`. New `tenantAI(tenantId)` loader. | Compile-time (all callers updated) |
+| `lib/contacts/upsert.ts` (internal) | PostgREST upsert (always failed) | Find-then-fill by phone identity; never blanks fields; revives soft-deleted match; 23505-safe | No (same signature) |
+| Inngest `adminos/document.uploaded` | Fired on every upload; ran a second pipeline | Fired only for files ≥5 MB; payload adds `mime_type`, `actor`; runs the shared pipeline | Payload superset |
+| Inngest `payroll-reminder-cron` | Sent `adminos/push.send` (no listener) | `notifyTenant` + `pushToUsers(view_payroll)`, deduped per month | No |
+| Inngest `cashflow-forecast-weekly` | Threw on every run | Runs `generateCashflowForecast` + `saveCashflowForecast` per tenant | No |
+
+**Env names the code now also accepts:**
+- `NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN` / `NEXT_PUBLIC_POSTHOG_HOST`, as fallbacks for `POSTHOG_TOKEN` / `POSTHOG_HOST`.
+- New optional tenant setting `settings.payroll_day` (1–28, default 25), read by the forecast.
+
+#### API call changes — planned: Sonnet 4.6 → Sonnet 5.5 (NOT applied; needs Nanda's go-ahead)
+Source: the Claude API migration guide (§ Migrating to Claude Sonnet 5, then § Migrating to Claude Sonnet 5.5, which layers on top), checked 2026-10-06.
+
+**Why:**
+- Sonnet 5.5 is $2/$10 per M tokens against Sonnet 4.6's $3/$15, and it is materially stronger.
+- But its tokenizer produces **about 30% more tokens** for the same text.
+- So the real saving is roughly 10–15%, not 33%, until re-baselined.
+- Our token-denominated daily budgets (`DAILY_TOKEN_BUDGET`) also get used up about 30% faster.
+
+**Our exposure, from an audit of every call site:**
+- 15 features route to `MODELS.SONNET` (`lib/ai/costControls.ts`): `daily_brief`, `langa_mentor`, `advisor_agent`, `document_analysis`, `contract_analysis`, `email_studio`, `onboarding_sequence`, `book_in_action`, `health_score_insight`, `cashflow_forecast`, `agent_escalation`, plus `board_pack`, `exit_analysis`, `strategic_advisor`, `valuation_analysis` on non-premium plans.
+- 3 hard-coded `'claude-sonnet-4-6'` in `lib/ai/orchestrator.ts`.
+- **None of our calls send `temperature`/`top_p`/`top_k`, `thinking`, `tool_choice`, `budget_tokens` or assistant prefills.** So none of the request-shape 400s apply.
+
+**Required call changes:**
+1. **Model ID.** `MODELS.SONNET = 'claude-sonnet-5-5'` (no date suffix). Replace the 3 literals in `orchestrator.ts` with `MODELS.SONNET`. Update `COST_RATES` to $2/$10.
+2. **The thinking default flips.** On 4.6, omitting `thinking` = no thinking. On 5.5, omitting it = **adaptive thinking on**, and thinking tokens count against `max_tokens`. Our Sonnet calls use `max_tokens` 100–1000, so replies could be eaten by thinking and truncate (`stop_reason: 'max_tokens'`).
+   - Short drafting/summary features (`daily_brief`, `email_studio`, `onboarding_sequence`, `agent_escalation`, `document_analysis` vision):
+     - either send `thinking: { type: 'between_tools' }` (5.5's "thinking off"; only valid at effort ≤ high, with no other field inside `thinking`);
+     - or use adaptive + `output_config: { effort: 'low' }` with `max_tokens` raised. The guide recommends trying this first.
+   - Reasoning features (`board_pack`, `valuation_analysis`, `exit_analysis`, `strategic_advisor`, `langa_mentor`, `advisor_agent`): adaptive thinking, `output_config.effort` set **explicitly** (levels are recalibrated on 5.5; start at `medium`), and `max_tokens` raised to leave thinking room. These run in Inngest or stream, so time-outs are not a concern.
+   - Never send `{ type: 'disabled' }`: it is a 400 on 5.5.
+3. **Read content by block type, not position.** 8 sites read `response.content[0]`, and on 5.5 a response can begin with a `thinking` block:
+   - `lib/ai/callClaude.ts:138` and `:259`
+   - `lib/ai/orchestrator.ts:205`
+   - `lib/ai/agents/langa.ts:208`
+   - `lib/documents/pipeline.ts:151`
+   - `inngest/functions/boardPack.ts:138`, `dailyBrief.ts:112`, `debtRecovery.ts:221`
+
+   Replace them with one shared helper that joins all `text` blocks. It's harmless on 4.6, so worth doing now regardless. The two streams (`langa.ts:281`, `orchestrator.ts:268`) already filter text deltas.
+4. **Refusals.** 5.5 can decline with HTTP 200, `stop_reason: 'refusal'` and a `stop_details.category` (`cyber`, `bio`, `frontier_llm`, `reasoning_extraction`, `general_harms`).
+   - The shared helper must check `stop_reason` before reading content, and return a friendly "couldn't help with that" rather than an empty string.
+   - Optional on the Claude API: `betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default'`. It retries only `cyber` and `frontier_llm` declines.
+5. **Vision.** 5.5 accepts images up to 2576 px, about 3× the image tokens of 4.6. `processImage` in `lib/documents/pipeline.ts` should downsample to ~1568 px on the long edge first. Classify/summarise needs no extra fidelity.
+6. **Budgets and cost.**
+   - Re-baseline `DAILY_TOKEN_BUDGET` (+~30%, or keep the same rand value per plan), the per-call `checkBudget` estimates, and the AI-cost report, once real `usage` numbers come in.
+   - Record `cache_read_input_tokens` in `recordUsage` for `callClaudeWithCache`.
+7. **Verify.** After deploy, assert `response.model.startsWith('claude-sonnet-5-5')` in a one-off script. Then run each Sonnet feature once on a QA persona tenant and compare length, quality and `usage` against 4.6.
+
+**Not in this plan:**
+- Haiku 4.5 stays as it is; it's the cheapest current model.
+- Premium-plan Opus 4.8 → Opus 5.5 ($4/$20, cheaper than 4.8's $5/$25) is a separate decision. On Opus 5.5 thinking cannot be disabled at all; effort is the only control, and its default is `medium`.
