@@ -1,96 +1,46 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import { guard, dbError } from '@/lib/api/guard'
+import { withRoute, unwrap } from '@/lib/api/withRoute'
+import { createSequenceSchema, normaliseSteps } from '@/lib/reach/sequenceSchema'
 
 export const runtime = 'nodejs'
 
-export async function GET() {
-  const gate = await guard('broadcasts.read'); if (gate.denied) return gate.denied
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new NextResponse('Unauthorized', { status: 401 })
-
-  const tenantId = user.app_metadata?.tenant_id as string
-
-  // Fetch sequences with active enrollment counts
-  const { data: sequences, error } = await supabaseAdmin
+export const GET = withRoute({ action: 'broadcasts.read' }, async ({ ctx }) => {
+  const sequences = unwrap(await supabaseAdmin
     .from('whatsapp_sequences')
-    .select('*').is('deleted_at', null)
-    .eq('tenant_id', tenantId)
+    .select('id, name, trigger_type, steps, is_active, created_at, updated_at')
+    .eq('tenant_id', ctx.tenantId)
+    .is('deleted_at', null)
     .order('created_at', { ascending: false })
+    .limit(200)) ?? []
 
-  if (error) return dbError(error)
-
-  // Fetch enrollment counts per sequence
-  const ids = (sequences ?? []).map(s => s.id)
-  const enrollmentCounts: Record<string, number> = {}
-
-  if (ids.length > 0) {
-    const { data: enrollments } = await supabaseAdmin
+  // Active enrolments per sequence — counted in the database, not by pulling
+  // every enrolment row (the old way stopped at 1000 and wasn't tenant-scoped).
+  const counts = await Promise.all(sequences.map(async (s) => {
+    const { count } = await supabaseAdmin
       .from('sequence_enrollments')
-      .select('sequence_id')
-      .in('sequence_id', ids)
-      .eq('status', 'active')
-
-    for (const e of enrollments ?? []) {
-      enrollmentCounts[e.sequence_id] = (enrollmentCounts[e.sequence_id] ?? 0) + 1
-    }
-  }
-
-  const result = (sequences ?? []).map(s => ({
-    ...s,
-    active_enrollments: enrollmentCounts[s.id] ?? 0,
+      .select('id', { count: 'exact', head: true })
+      .eq('tenant_id', ctx.tenantId).eq('sequence_id', s.id).eq('status', 'active')
+    return count ?? 0
   }))
+  return sequences.map((s, i) => ({ ...s, active_enrollments: counts[i] }))
+})
 
-  return NextResponse.json(result)
-}
-
-export async function POST(request: NextRequest) {
-  const gate = await guard('broadcasts.send'); if (gate.denied) return gate.denied
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new NextResponse('Unauthorized', { status: 401 })
-
-  const tenantId = user.app_metadata?.tenant_id as string
-
-  const body = await request.json() as {
-    name: string
-    trigger_type: string
-    steps: Array<{ id?: string; name: string; delay_hours: number; message: string }>
-    is_active?: boolean
-  }
-
-  if (!body.name?.trim()) {
-    return NextResponse.json({ error: 'name required' }, { status: 400 })
-  }
-  if (!body.trigger_type) {
-    return NextResponse.json({ error: 'trigger_type required' }, { status: 400 })
-  }
-  if (!Array.isArray(body.steps) || body.steps.length === 0) {
-    return NextResponse.json({ error: 'At least one step required' }, { status: 400 })
-  }
-
-  // Assign IDs to steps that don't have one
-  const steps = body.steps.map((s, i) => ({
-    id:          s.id ?? crypto.randomUUID(),
-    name:        s.name?.trim() || `Step ${i + 1}`,
-    delay_hours: s.delay_hours ?? 0,
-    message:     s.message?.trim() ?? '',
-  }))
-
-  const { data, error } = await supabaseAdmin
+export const POST = withRoute({
+  action: 'broadcasts.send',
+  body: createSequenceSchema,
+  audit: 'sequence.created',
+  resourceType: 'whatsapp_sequence',
+  status: 201,
+}, async ({ ctx, body }) => {
+  return unwrap(await supabaseAdmin
     .from('whatsapp_sequences')
     .insert({
-      tenant_id:    tenantId,
-      name:         body.name.trim(),
+      tenant_id:    ctx.tenantId,
+      name:         body.name,
       trigger_type: body.trigger_type,
-      steps,
-      is_active:    body.is_active ?? true,
+      steps:        normaliseSteps(body.steps),
+      is_active:    body.is_active,
     })
-    .select()
-    .single()
-
-  if (error) return dbError(error)
-  return NextResponse.json(data, { status: 201 })
-}
+    .select('id, name, trigger_type, is_active')
+    .single())
+})

@@ -23,7 +23,7 @@ export default function NewCampaignPage() {
   const [error, setError]           = useState<string | null>(null)
 
   const charCount = messageBody.length
-  const overLimit = charCount > 4096
+  const overLimit = charCount > 3900
 
   function toggleType(value: string) {
     setContactTypes(prev =>
@@ -108,7 +108,7 @@ export default function NewCampaignPage() {
                   Message
                 </label>
                 <span className="text-xs" style={{ color: overLimit ? '#EF4444' : 'var(--text-dim)' }}>
-                  {charCount} / 4096
+                  {charCount} / 3900
                 </span>
               </div>
               <textarea
@@ -125,6 +125,9 @@ export default function NewCampaignPage() {
                 }}
               />
               <p className="text-xs mt-1.5" style={{ color: 'var(--text-dim)' }}>
+                {"{{name}}"} becomes each contact's first name. Your business name and 'Reply STOP to stop these messages' are added to the end (POPIA s69). Only customers and contacts who gave marketing consent receive it, never anyone who opted out.
+              </p>
+              <p className="text-xs mt-1" style={{ color: 'var(--text-dim)' }}>
                 WhatsApp free-form messages work within the 24-hour customer service window.
                 For outbound broadcasts, submit an approved template in Meta Business Suite.
               </p>

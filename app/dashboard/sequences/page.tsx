@@ -20,27 +20,22 @@ export default async function SequencesPage() {
 
   const { data: seqs = [] } = await supabaseAdmin
     .from('whatsapp_sequences')
-    .select('*').is('deleted_at', null)
+    .select('id, name, trigger_type, steps, is_active, created_at').is('deleted_at', null)
     .eq('tenant_id', tenantId)
     .order('created_at', { ascending: false })
+    .limit(200)
 
   const sequences = (seqs ?? []) as Omit<Sequence, 'active_enrollments'>[]
 
-  // Fetch active enrollment counts
-  const ids = sequences.map(s => s.id)
+  // Active enrolments, counted in the database (pulling the rows stopped at 1000).
   const enrollmentCounts: Record<string, number> = {}
-
-  if (ids.length > 0) {
-    const { data: enrollments } = await supabaseAdmin
+  await Promise.all(sequences.map(async (s) => {
+    const { count } = await supabaseAdmin
       .from('sequence_enrollments')
-      .select('sequence_id')
-      .in('sequence_id', ids)
-      .eq('status', 'active')
-
-    for (const e of enrollments ?? []) {
-      enrollmentCounts[e.sequence_id] = (enrollmentCounts[e.sequence_id] ?? 0) + 1
-    }
-  }
+      .select('id', { count: 'exact', head: true })
+      .eq('tenant_id', tenantId).eq('sequence_id', s.id).eq('status', 'active')
+    enrollmentCounts[s.id] = count ?? 0
+  }))
 
   const list: Sequence[] = sequences.map(s => ({
     ...s,

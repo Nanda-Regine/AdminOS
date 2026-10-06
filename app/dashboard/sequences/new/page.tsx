@@ -13,13 +13,12 @@ type Step = {
   message:     string
 }
 
+// Each of these is wired (lib/reach/sequences.ts). Overdue invoices are not a
+// trigger: chasing debt belongs to the recovery engine and its legal tiers.
 const TRIGGERS = [
-  { value: 'new_contact',     label: 'New Contact' },
-  { value: 'new_client',      label: 'New Client' },
-  { value: 'overdue_invoice', label: 'Overdue Invoice' },
-  { value: 'keyword',         label: 'Keyword Match' },
-  { value: 'manual',          label: 'Manual Enrol' },
-  { value: 'onboarding',      label: 'Onboarding' },
+  { value: 'manual',      label: 'Manual Enrol' },
+  { value: 'new_contact', label: 'New Contact' },
+  { value: 'new_client',  label: 'New Client' },
 ]
 
 function newStep(index: number): Step {

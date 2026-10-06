@@ -216,6 +216,10 @@ const steps = {
         fullName:    (ctx as Record<string, unknown>).contactName as string | null ?? null,
         waId:        ctx.from,
         source:      'whatsapp',
+        // Messaging a business doesn't make someone its customer — and under
+        // POPIA s69(3) only a customer (details from a sale) may be marketed
+        // to without consent. The owner reclassifies once they buy.
+        contactType: 'unknown',
       })
     } catch {
       // Non-fatal — continue without contact link

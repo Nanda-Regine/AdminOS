@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
 import { guard } from '@/lib/api/guard'
+import { runSequenceTrigger } from '@/lib/reach/sequences'
 
 const createSchema = z.object({
   full_name:    z.string().min(1).max(200),
@@ -13,6 +14,8 @@ const createSchema = z.object({
   notes:        z.string().max(2000).optional().nullable(),
   tags:         z.array(z.string()).optional(),
   source:       z.string().max(100).optional().nullable(),
+  // POPIA s69: the person agreed to receive marketing from this business.
+  popia_consent: z.boolean().optional(),
 })
 
 export async function GET(request: Request) {
@@ -90,11 +93,15 @@ export async function POST(request: Request) {
       notes:        body.notes    ?? null,
       tags:         body.tags     ?? [],
       source:       body.source   ?? null,
+      ...(body.popia_consent ? { popia_consent: true, popia_consent_at: new Date().toISOString() } : {}),
     })
     .select()
     .single()
 
   if (error) return NextResponse.json({ error: 'Failed to create contact' }, { status: 500 })
+
+  await runSequenceTrigger(tenantId, 'new_contact', data.phone)
+  if (data.contact_type === 'client') await runSequenceTrigger(tenantId, 'new_client', data.phone)
 
   return NextResponse.json({ contact: data }, { status: 201 })
 }

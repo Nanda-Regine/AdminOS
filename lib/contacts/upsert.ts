@@ -1,5 +1,6 @@
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { phoneLikePattern, samePhone, toE164 } from '@/lib/contacts/phone'
+import { runSequenceTrigger } from '@/lib/reach/sequences'
 
 /**
  * Find-or-create a contact by (tenant, phone).
@@ -95,5 +96,9 @@ export async function upsertContact(params: {
     }
     throw error
   }
+  // A genuinely new person: start any new_contact / new_client sequences
+  // (consent-checked inside; never throws).
+  await runSequenceTrigger(tenantId, 'new_contact', phone)
+  if (contactType === 'client') await runSequenceTrigger(tenantId, 'new_client', phone)
   return data.id as string
 }

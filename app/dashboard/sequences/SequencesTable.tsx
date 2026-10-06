@@ -4,6 +4,7 @@ import { Users, Zap } from 'lucide-react'
 import { DataTable, type Column, type FilterDef } from '@/components/ui/DataTable'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { SequenceToggle } from '@/components/sequences/SequenceToggle'
+import { EnrolButton } from '@/components/sequences/EnrolButton'
 
 export type Step = { id: string; name: string; delay_hours: number; message: string }
 
@@ -18,12 +19,9 @@ export type Sequence = {
 }
 
 const TRIGGER_LABELS: Record<string, string> = {
-  new_contact:     'New Contact',
-  overdue_invoice: 'Overdue Invoice',
-  manual:          'Manual',
-  keyword:         'Keyword',
-  new_client:      'New Client',
-  onboarding:      'Onboarding',
+  new_contact: 'New Contact',
+  manual:      'Manual',
+  new_client:  'New Client',
 }
 
 const triggerLabel = (t: string) => TRIGGER_LABELS[t] ?? t
@@ -90,6 +88,13 @@ export function SequencesTable({ rows }: { rows: Sequence[] }) {
       accessor: s => (s.is_active ? 1 : 0),
       csv: s => (s.is_active ? 'active' : 'paused'),
       render: s => <SequenceToggle sequenceId={s.id} isActive={s.is_active} />,
+    },
+    {
+      key: 'enrol',
+      header: '',
+      accessor: () => 0,
+      csv: () => '',
+      render: s => <EnrolButton sequenceId={s.id} disabled={!s.is_active} />,
     },
   ]
 

@@ -15,7 +15,10 @@ import { checkRateLimit } from '@/lib/security/rateLimit'
 import { sanitizeForAI } from '@/lib/security/sanitize'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { incrementUsage, isOverLimit } from '@/lib/billing/usage'
-import { sendWhatsApp } from '@/lib/whatsapp/send'
+import { sendWhatsAppMessage } from '@/lib/whatsapp/send'
+import { notifyTenant } from '@/lib/notifications/notify'
+import { isOptOutReply } from '@/lib/reach/consent'
+import { recordOptOut } from '@/lib/reach/audience'
 
 // GET — Meta webhook challenge verification
 export async function GET(request: NextRequest) {
@@ -77,20 +80,34 @@ export async function POST(request: NextRequest) {
     const isDuplicate = await checkDuplicate(messageId)
     if (isDuplicate) continue
 
+    // 5-stop. POPIA s69(3): an objection to marketing is honoured immediately
+    // and confirmed — not handed to the AI, and never counted against the plan.
+    if (isOptOutReply(rawText)) {
+      await recordOptOut(tenant.id, from).catch((e) => console.error('[WhatsApp Webhook] opt-out failed:', e))
+      after(() => sendWhatsAppMessage(phoneNumberId, from,
+        "You won't receive marketing messages from us again. You can still message us any time.").catch(() => undefined))
+      continue
+    }
+
     // 5a. Rate limit per tenant
     const { success } = await checkRateLimit('whatsapp', tenant.id)
     if (!success) continue
 
-    // 5b. Monthly conversation limit gate
+    // 5b. Monthly conversation limit: the engine's checkPlanLimits step handles
+    // it — a polite holding reply, and the message still lands in the inbox.
+    // This gate used to drop the message entirely (the business never saw it)
+    // and told the business's CUSTOMER to "upgrade your plan at adminos.co.za".
+    // Here we only tell the owner, once a day.
     const tenantPlan = (tenant as { plan?: string }).plan ?? 'trial'
-    const overLimit  = await isOverLimit(tenant.id, tenantPlan)
-    if (overLimit) {
-      await sendWhatsApp({
-        to:      from,
-        message: `Hi! You've reached your monthly conversation limit. ` +
-                 `Please contact your account administrator to upgrade your plan at adminos.co.za.`,
-      }).catch(() => {})
-      continue
+    if (await isOverLimit(tenant.id, tenantPlan).catch(() => false)) {
+      await notifyTenant(tenant.id, {
+        type: 'billing.conversation_limit',
+        title: 'WhatsApp conversation limit reached',
+        body: 'Customers are getting a holding reply instead of an AI answer. Their messages are in your Inbox. Upgrade your plan in Settings → Billing to restore AI replies.',
+        actionUrl: '/dashboard/settings/billing',
+        dedupeKey: `conv-limit-${tenant.id}`,
+        dedupeHours: 24,
+      }).catch(() => undefined)
     }
 
     // 5c. Increment usage counter

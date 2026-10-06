@@ -5,9 +5,10 @@ import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import {
   ArrowLeft, Phone, Mail, Building2, Tag, MessageSquare,
-  FileText, CreditCard, Shield, Clock,
+  FileText, CreditCard, Clock,
 } from 'lucide-react'
 import { ContactActions } from './ContactActions'
+import { MarketingConsent } from './MarketingConsent'
 import { avatarColor } from '@/lib/ui/avatarColor'
 import { checkPermission } from '@/lib/auth/permissions'
 
@@ -27,6 +28,7 @@ type Contact = {
   tags:             string[]
   popia_consent:    boolean
   popia_consent_at: string | null
+  marketing_opt_out_at: string | null
   source:           string | null
   wa_id:            string | null
   lifetime_value:   number | null
@@ -230,14 +232,13 @@ export default async function ContactDetailPage({
 
               {/* POPIA */}
               <div className="mt-4 pt-4" style={{ borderTop: '1px solid var(--border)' }}>
-                <div className="flex items-center gap-2">
-                  <Shield className="w-4 h-4" style={{ color: contact.popia_consent ? '#22C55E' : '#94A3B8' }} />
-                  <span className="text-xs" style={{ color: contact.popia_consent ? '#22C55E' : 'var(--text-dim)' }}>
-                    {contact.popia_consent
-                      ? `POPIA consent given${contact.popia_consent_at ? ' · ' + new Date(contact.popia_consent_at).toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg' }) : ''}`
-                      : 'No POPIA consent recorded'}
-                  </span>
-                </div>
+                <MarketingConsent
+                  contactId={contact.id}
+                  isClient={contact.contact_type === 'client'}
+                  consent={!!contact.popia_consent}
+                  consentAt={contact.popia_consent_at}
+                  optedOutAt={contact.marketing_opt_out_at}
+                />
               </div>
             </div>
 

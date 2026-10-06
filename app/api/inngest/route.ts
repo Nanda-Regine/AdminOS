@@ -30,6 +30,7 @@ import { fanOutWellnessCron }                              from '@/inngest/funct
 import { fanOutHealthScoreCron }                           from '@/inngest/functions/fanOutHealthScore'
 import { fanOutDebtRecoveryCron }                          from '@/inngest/functions/fanOutDebtRecovery'
 import { sequencesCronFunction }                           from '@/inngest/functions/sequencesCron'
+import { reachCampaignSendFunction }                       from '@/inngest/functions/reachCampaignSend'
 import { licenseRemindersCronFunction }                    from '@/inngest/functions/licenseRemindersCron'
 import { complianceCalendarRollFunction }                   from '@/inngest/functions/complianceCalendarRoll'
 import { signalRefreshCron, signalRefreshEngine }          from '@/inngest/functions/signalRefresh'
@@ -73,6 +74,7 @@ export const { GET, POST, PUT } = serve({
     bookingReminderFunction,
     sopAcknowledgementFunction,
     socialSyncFunction,
+    reachCampaignSendFunction,
     // Scheduled crons (all managed by Inngest — no Vercel crons needed)
     processQueueCron,
     escalateConversationsCron,

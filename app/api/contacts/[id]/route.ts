@@ -4,6 +4,8 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { writeAuditLog } from '@/lib/security/audit'
 import { z } from 'zod'
 import { guard } from '@/lib/api/guard'
+import { runSequenceTrigger } from '@/lib/reach/sequences'
+import { recordOptOut } from '@/lib/reach/audience'
 
 interface Params { params: Promise<{ id: string }> }
 
@@ -16,6 +18,9 @@ const patchSchema = z.object({
   notes:        z.string().max(2000).nullable().optional(),
   tags:         z.array(z.string()).optional(),
   source:       z.string().max(100).nullable().optional(),
+  // POPIA s69 — consent to marketing, and an objection to it (STOP).
+  popia_consent:    z.boolean().optional(),
+  marketing_opt_out: z.boolean().optional(),
 })
 
 export async function GET(_req: Request, { params }: Params) {
@@ -99,9 +104,22 @@ export async function PATCH(request: Request, { params }: Params) {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
   }
 
+  const { data: before } = await supabaseAdmin
+    .from('contacts').select('contact_type').eq('id', id).eq('tenant_id', tenantId).is('deleted_at', null).maybeSingle()
+  if (!before) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
+  const { popia_consent, marketing_opt_out, ...fields } = body
+  const now = new Date().toISOString()
+  const update: Record<string, unknown> = { ...fields, updated_at: now }
+  if (popia_consent !== undefined) {
+    update.popia_consent = popia_consent
+    update.popia_consent_at = popia_consent ? now : null
+  }
+  if (marketing_opt_out !== undefined) update.marketing_opt_out_at = marketing_opt_out ? now : null
+
   const { data, error } = await supabaseAdmin
     .from('contacts')
-    .update({ ...body, updated_at: new Date().toISOString() })
+    .update(update)
     .eq('id', id)
     .eq('tenant_id', tenantId)
     .select()
@@ -117,6 +135,11 @@ export async function PATCH(request: Request, { params }: Params) {
     resourceId:   id,
     metadata:     { fields: Object.keys(body) },
   })
+
+  if (marketing_opt_out) await recordOptOut(tenantId, data.phone ?? '').catch(() => 0)
+  if (fields.contact_type === 'client' && before.contact_type !== 'client') {
+    await runSequenceTrigger(tenantId, 'new_client', data.phone)
+  }
 
   return NextResponse.json({ contact: data })
 }
