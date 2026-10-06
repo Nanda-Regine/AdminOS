@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import { sendWhatsApp } from '@/lib/whatsapp/send'
+import { sendAsTenant } from '@/lib/whatsapp/tenantSender'
 import { withRoute, unwrap, RouteError } from '@/lib/api/withRoute'
 
 const bodySchema = z.object({
@@ -39,7 +39,7 @@ export const POST = withRoute({
   if (channel === 'whatsapp') {
     if (!conv.contact_identifier) throw new RouteError(400, 'This conversation has no WhatsApp number to reply to.', 'no_recipient')
     try {
-      await sendWhatsApp({ to: conv.contact_identifier as string, message: body.message })
+      await sendAsTenant(ctx.tenantId, conv.contact_identifier as string, body.message)
     } catch (e) {
       console.error('[conversations/reply] WhatsApp send failed', e)
       throw new RouteError(502, 'WhatsApp did not accept this message. If the customer last wrote more than 24 hours ago, WhatsApp only allows approved templates.', 'send_failed')

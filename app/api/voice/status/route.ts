@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import { sendWhatsApp } from '@/lib/whatsapp/send'
+import { sendAsTenant } from '@/lib/whatsapp/tenantSender'
 import { verifyTwilioSignature, twilioWebhookUrl } from '@/lib/security/twilio'
 
 export const runtime = 'nodejs'
@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
       `Here's a summary of our call: ${callSummary}\n\n` +
       `We'll be in touch shortly. Reply here if you need anything.`
 
-    await sendWhatsApp({ to: from, message }).catch(() => {})
+    await sendAsTenant(tenantId, from, message).catch(() => {})
 
     // call_logs has no whatsapp_sent column (no idempotency flag at all) —
     // this update always silently failed. Removed rather than left as dead

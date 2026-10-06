@@ -1,6 +1,10 @@
 import { inngest } from '@/inngest/client'
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import { sendWhatsAppMessage } from '@/lib/whatsapp/send'
+import { sendAsTenant } from '@/lib/whatsapp/tenantSender'
+
+// Both sends read the sending line from tenants.settings.whatsapp_phone_number_id,
+// which nothing ever sets — so no survey or reminder was ever sent. They now
+// go out as the business via sendAsTenant (lib/whatsapp/tenantSender.ts).
 
 // Runs weekly on Wednesday at 10am — sends WhatsApp reminders for unanswered NPS surveys
 export const npsReminderFunction = inngest.createFunction(
@@ -28,24 +32,12 @@ export const npsReminderFunction = inngest.createFunction(
       const contact = survey.contact as { name?: string; phone?: string } | null
       if (!contact?.phone) continue
 
-      const surveyUrl = `${process.env.NEXT_PUBLIC_APP_URL}/survey/${survey.survey_token}`
+      const surveyUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://adminos.co.za'}/survey/${survey.survey_token}`
 
       await step.run(`remind-${survey.id}`, async () => {
         try {
-          // Get tenant WhatsApp number
-          const { data: tenant } = await supabaseAdmin
-            .from('tenants')
-            .select('settings')
-            .eq('id', survey.tenant_id)
-            .single()
-
-          const settings         = tenant?.settings as Record<string, string> | null
-          const phoneNumberId    = settings?.whatsapp_phone_number_id
-
-          if (!phoneNumberId) return
-
-          await sendWhatsAppMessage(
-            phoneNumberId,
+          await sendAsTenant(
+            survey.tenant_id,
             contact.phone!,
             `Hi ${contact.name ?? 'there'} 👋 We noticed you haven't had a chance to share your feedback yet. It only takes 30 seconds and really helps us improve. Click here: ${surveyUrl}`,
           )
@@ -82,19 +74,14 @@ export const onNPSSurveySent = inngest.createFunction(
     await step.run('send-whatsapp', async () => {
       const { data: tenant } = await supabaseAdmin
         .from('tenants')
-        .select('name, settings')
+        .select('name')
         .eq('id', tenant_id)
         .single()
 
-      const settings      = tenant?.settings as Record<string, string> | null
-      const phoneNumberId = settings?.whatsapp_phone_number_id
-
-      if (!phoneNumberId) return
-
-      await sendWhatsAppMessage(
-        phoneNumberId,
+      await sendAsTenant(
+        tenant_id,
         contact_phone,
-        `Hi ${contact_name || 'there'}! ${tenant?.name ?? "We'd"} love to know how we're doing. How likely are you to recommend us? (0–10): ${survey_url}\n\nTakes 30 seconds. Thank you!`,
+        `Hi ${contact_name || 'there'}! ${tenant?.name ? `${tenant.name} would` : "We'd"} love to know how we're doing. How likely are you to recommend us? (0–10): ${survey_url}\n\nTakes 30 seconds. Thank you!`,
       )
     })
 

@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { checkPermission } from '@/lib/auth/permissions'
+import { writeAuditLog, getClientIp } from '@/lib/security/audit'
+import { z } from 'zod'
+
+const bodySchema = z.object({ slug: z.enum(['ring', 'reach', 'languages', 'client_portal']) })
 
 // ⚠️ PAYMENTS — cancel a single AdminOS ADD-ON (Paystack). DO NOT REMOVE ⚠️
 //
@@ -27,10 +31,10 @@ export async function POST(request: Request) {
 
   if (!(await checkPermission('manage_billing'))) return new NextResponse('Forbidden', { status: 403 })
 
-  const body = (await request.json().catch(() => ({}))) as { slug?: string }
-  const slug = (body.slug || '').trim()
+  const parsed = bodySchema.safeParse(await request.json().catch(() => null))
+  if (!parsed.success) return NextResponse.json({ error: 'Unknown add-on' }, { status: 400 })
+  const { slug } = parsed.data
   const planEnv = ADDON_PLAN_ENV[slug]
-  if (!planEnv) return NextResponse.json({ error: 'Unknown add-on' }, { status: 400 })
 
   const planCode = process.env[planEnv]?.trim()
   // HARD GUARD: without a plan code the hub would cancel EVERY adminos subscription. Refuse.
@@ -60,6 +64,7 @@ export async function POST(request: Request) {
       .update({ [`addon_${slug}`]: false, updated_at: new Date().toISOString() })
       .eq('tenant_id', tenantId)
     console.log('[addons/cancel] cancelled', slug, 'for tenant', tenantId)
+    await writeAuditLog({ tenantId, actor: user.id, action: 'billing.addon_cancelled', resourceType: 'subscription', ipAddress: getClientIp(request), metadata: { addon: slug } })
     return NextResponse.json({ success: true })
   } catch (e) {
     console.error('[addons/cancel] hub call failed:', (e as Error).message)

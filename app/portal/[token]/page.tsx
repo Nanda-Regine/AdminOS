@@ -10,14 +10,15 @@ interface Props {
 }
 
 async function getPortalData(token: string) {
-  // Verify token — must exist and not be expired (revocation is a hard delete;
-  // there is no revoked_at column).
+  // Verify token — must exist and not be expired. A newer link revokes older
+  // ones by expiring them (app/api/portal/generate), so expiry is revocation.
+  if (!/^[a-f0-9]{64}$/.test(token)) return null
   const { data: session } = await supabaseAdmin
     .from('portal_sessions')
-    .select('*')
+    .select('tenant_id, contact_id')
     .eq('token', token)
     .gt('expires_at', new Date().toISOString())
-    .single()
+    .maybeSingle()
 
   if (!session) return null
 

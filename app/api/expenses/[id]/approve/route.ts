@@ -3,6 +3,9 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { withRoute, unwrap, conflict, badRequest, RouteError } from '@/lib/api/withRoute'
 import { ownStaffId } from '@/lib/people/ownStaff'
 import { notifyStaffMember } from '@/lib/notifications/staff'
+import { z } from 'zod'
+
+const actionSchema = z.enum(['approve', 'reject'])
 
 // POST /api/expenses/[id]/approve — approve or reject a pending claim.
 //
@@ -19,13 +22,12 @@ export const POST = withRoute({
   resourceType: 'expense',
 }, async ({ request, ctx, params, audit }) => {
   const isForm = (request.headers.get('content-type') ?? '').includes('form')
-  let action: string | null = null
-  if (isForm) {
-    action = (await request.formData()).get('action') as string | null
-  } else {
-    action = ((await request.json().catch(() => ({}))) as { action?: string }).action ?? null
-  }
-  if (action !== 'approve' && action !== 'reject') throw badRequest('action must be approve or reject')
+  const raw = isForm
+    ? (await request.formData()).get('action')
+    : ((await request.json().catch(() => ({}))) as { action?: unknown }).action
+  const parsed = actionSchema.safeParse(raw)
+  if (!parsed.success) throw badRequest('action must be approve or reject')
+  const action = parsed.data
 
   const existing = unwrap(await supabaseAdmin
     .from('expenses')

@@ -1,6 +1,7 @@
 import { inngest } from '@/inngest/client'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { sendWhatsAppMessage } from '@/lib/whatsapp/send'
+import { tenantPhoneNumberId } from '@/lib/whatsapp/tenantSender'
 import { notifyTenant } from '@/lib/notifications/notify'
 
 type Outcome = { staff: string; result: 'sent' | 'no_phone' | 'failed'; reason?: string }
@@ -34,17 +35,19 @@ export const payslipDistributionFunction = inngest.createFunction(
           .eq('payroll_run_id', payroll_run_id)
           .eq('tenant_id', tenant_id)
           .is('deleted_at', null),
-        supabaseAdmin.from('tenants').select('name, settings').eq('id', tenant_id).single(),
+        supabaseAdmin.from('tenants').select('name').eq('id', tenant_id).single(),
         supabaseAdmin.from('payroll_runs').select('period_month, period_year').is('deleted_at', null).eq('id', payroll_run_id).eq('tenant_id', tenant_id).single(),
       ])
-      const settings = tenant?.settings as Record<string, string> | null
       return {
         payslips: (payslips ?? []).map((p) => {
           const staff = p.staff as unknown as { full_name?: string; phone?: string } | null
           return { id: p.id, net_pay: Number(p.net_pay ?? 0), token: p.view_token as string | null, name: staff?.full_name ?? 'Employee', phone: staff?.phone ?? null }
         }),
         tenantName: tenant?.name ?? 'your employer',
-        phoneNumberId: settings?.whatsapp_phone_number_id ?? null,
+        // Was settings.whatsapp_phone_number_id, which nothing sets: every
+        // payslip came back "WhatsApp not connected". The business's line,
+        // else the platform line (lib/whatsapp/tenantSender.ts).
+        phoneNumberId: await tenantPhoneNumberId(tenant_id),
         period: run ? new Date(run.period_year, run.period_month - 1, 1).toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg', month: 'long', year: 'numeric' }) : '',
       }
     })
@@ -57,7 +60,7 @@ export const payslipDistributionFunction = inngest.createFunction(
         if (!p.phone) return { staff: p.name, result: 'no_phone' as const }
         if (!ctx.phoneNumberId) return { staff: p.name, result: 'failed' as const, reason: 'WhatsApp not connected' }
         if (!p.token) return { staff: p.name, result: 'failed' as const, reason: 'no view link — recalculate payroll' }
-        const url = `${process.env.NEXT_PUBLIC_APP_URL}/api/payslips/view/${p.token}`
+        const url = `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://adminos.co.za'}/api/payslips/view/${p.token}`
         const netPay = new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR' }).format(p.net_pay)
         try {
           await sendWhatsAppMessage(

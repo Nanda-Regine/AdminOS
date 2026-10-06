@@ -29,8 +29,13 @@ const routes = walk(root + '/app/api', 'route.ts').map((f) => {
     // when any method was let open GETs hide behind guarded POSTs (Session 20:
     // ~80 methods across 51 routes).
     perm: s.split(/(?=export (?:async function|const) (?:GET|POST|PUT|PATCH|DELETE)\b)/).slice(1)
-      .every((m) => /requirePermission|checkPermission|requireSuperAdmin|withRoute\(|\bguard\(|can\(ctx|ctx\.require\(/.test(m)),
-    zod: /z\.object|safeParse|\.parse\(/.test(s) || /\bbody:/.test(cfg),
+      .every((m) => /requirePermission|checkPermission|requireSuperAdmin|withRoute\(|\bguard\(|can\(ctx|ctx\.require\(/.test(m))
+      // Self-authenticating public endpoints (token / shared secret /
+      // signature) say so with an @public comment; middleware.ts must list them.
+      || /@public\b/.test(s),
+    // A write that never reads a request body has nothing to validate.
+    zod: /z\.object|z\.enum|safeParse|\.parse\(/.test(s) || /\bbody:/.test(cfg)
+      || !/\b(request|req)\.(json|formData|text)\(/.test(s),
     hardDel: /\.delete\(\)/.test(s),
     selStar: /select\('\*'/.test(s),
     leak: /NextResponse\.json\(\s*\{\s*error:\s*(error|err|e)\.message/.test(s),

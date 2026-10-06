@@ -1,6 +1,6 @@
 import { inngest } from '@/inngest/client'
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import { sendWhatsApp } from '@/lib/whatsapp/send'
+import { notifyTenant } from '@/lib/notifications/notify'
 import { writeAuditLog } from '@/lib/security/audit'
 
 export const escalateConversationsCron = inngest.createFunction(
@@ -26,9 +26,9 @@ export const escalateConversationsCron = inngest.createFunction(
     const tenantMap = await step.run('fetch-tenants', async () => {
       const { data } = await supabaseAdmin
         .from('tenants')
-        .select('id, name, whatsapp_number')
+        .select('id, name')
         .in('id', tenantIds)
-      return Object.fromEntries((data ?? []).map((t: { id: string; name: string; whatsapp_number?: string }) => [t.id, t]))
+      return Object.fromEntries((data ?? []).map((t: { id: string; name: string }) => [t.id, t]))
     })
 
     let escalated = 0
@@ -40,14 +40,20 @@ export const escalateConversationsCron = inngest.createFunction(
           .update({ status: 'escalated' })
           .eq('id', conv.id)
 
-        const tenant = tenantMap[conv.tenant_id]
-        if (tenant?.whatsapp_number) {
+        // Owner alert through the normal path (bell + the owner's notify
+        // phone, quiet hours respected). It used to WhatsApp
+        // tenants.whatsapp_number — the business's own customer-facing line.
+        if (tenantMap[conv.tenant_id]) {
           const contactLabel = conv.contact_name || conv.contact_identifier || 'a contact'
           const hoursOpen    = Math.round((Date.now() - new Date(conv.updated_at).getTime()) / 3_600_000)
-          await sendWhatsApp({
-            to: tenant.whatsapp_number,
-            message: `[AdminOS Alert] A conversation with ${contactLabel} (${conv.intent || 'general inquiry'}) has been open for ${hoursOpen} hours. It has been flagged for your attention. Review it in your dashboard: adminos.co.za/dashboard/inbox`,
-          }).catch((err) => console.error('[Escalation] WhatsApp notify failed:', err))
+          await notifyTenant(conv.tenant_id, {
+            type: 'conversation.escalated',
+            title: 'Customer waiting for a reply',
+            body: `${contactLabel} (${conv.intent || 'general enquiry'}) has been waiting ${hoursOpen} hours.`,
+            actionUrl: '/dashboard/inbox',
+            dedupeKey: `escalated-${conv.id}`,
+            whatsapp: true,
+          }).catch((err) => console.error('[Escalation] notify failed:', err))
         }
 
         await writeAuditLog({

@@ -1,7 +1,9 @@
 import { inngest } from '@/inngest/client'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { fetchAll } from '@/lib/supabase/fetchAll'
-import { sendWhatsApp } from '@/lib/whatsapp/send'
+import { sendAsTenant } from '@/lib/whatsapp/tenantSender'
+import { phoneMayBeMarketed } from '@/lib/reach/audience'
+import { withOptOutFooter } from '@/lib/reach/consent'
 import { buildSalesIntel } from '@/lib/sales/signal'
 import { notifyTenant } from '@/lib/notifications/notify'
 import { getTenantAutonomy } from '@/lib/autonomy/config'
@@ -117,8 +119,11 @@ export const coldLeadNudgeEngine = inngest.createFunction(
       let count = 0
       for (const d of drafts) {
         if (!d.text || !d.phone) continue
+        // A "we miss you" nudge is direct marketing: POPIA s69 applies —
+        // consent or customer, never after STOP, sender + opt-out on it.
+        if (!(await phoneMayBeMarketed(tenant_id, d.phone))) continue
         try {
-          await sendWhatsApp({ to: d.phone, message: d.text })
+          await sendAsTenant(tenant_id, d.phone, withOptOutFooter(d.text, tenantName))
           await supabaseAdmin.from('contacts').update({ last_contacted_at: new Date().toISOString() }).eq('id', d.id)
           count++
         } catch (err) {

@@ -3664,3 +3664,42 @@ Sources checked 2026-10-06:
 - **Get Paid → Grow page-by-page functional review** (Purpose/Data/Features/UI/Ops) with the personas.
 - **54 no-UI routes** (Academy, Loyalty, public `/book/[slug]` page, Goals, NPS, Projects, task comments, board-pack/portal APIs).
 - `/api/engineering/feedback` (unauthenticated Jarvis proxy); Zanele/staff Inbox decision; Sonnet 5.5 go-ahead.
+
+#### Session 20 continued (2026-10-06/07, sixth sitting): Workstream C — API sweep, and WhatsApp turned out to be broken end to end
+Started at the DoD API signals; the sweep kept opening onto sibling bugs (debugger mode). Two commits: `09fba54` (Reach/consent) and the route-sweep commit after it.
+
+**1. POPIA s69 for every marketing send** (`09fba54`). Source: POPIA s69(1),(3),(4) — consent OR existing customer (details from a sale), opportunity to object on every message, sender identity + opt-out contact on every message.
+- Reach messaged *every* contact with a phone: no consent check, no opt-out, no opt-out line; capped at 1000; status check and claim not atomic (double-click = double send); sent inside the request after a 202 (Vercel cuts it off).
+- New `contacts.marketing_opt_out_at` (migration `20261007_contacts_marketing_opt_out.sql`, **applied to prod**, additive). `lib/reach/consent.ts` holds the rules (tested).
+- Send = GET preview (eligible / held back, shown on the button before confirming) → atomic claim → Inngest `reachCampaignSend` in resumable batches → owner told the counts. Duplicate `/api/reach/send` removed. `{{name}}` was promised in the placeholder but never filled; now it is.
+- Inbound "STOP" (and variants) records the opt-out, confirms, cancels active sequences, never reaches the AI.
+- Inbound WhatsApp senders are now `unknown`, not `client` — messaging a business doesn't make you its customer (s69(3)).
+- Contact page: record consent / opt-out / opt back in.
+- Cold-lead nudges (autonomy tier A auto-send) are marketing too: consent-checked + footer.
+- **Sequences never enrolled anyone**: none of the 6 triggers was wired and manual enrol had no UI. Now `new_contact` / `new_client` fire from contact creation and type change, Enrol button on each sequence, unwireable triggers (keyword: no column; overdue_invoice: belongs to the recovery engine's legal tiers; onboarding) removed. Every step consent-checked.
+
+**2. WhatsApp identity — it never worked per tenant.** Live: 0/15 tenants have `meta_phone_number_id`, and nothing in the app could set it.
+- Inbound routing matched Meta's numeric phone-number ID against `tenants.whatsapp_number` (the display phone, "+27…") — **no inbound message could ever reach a tenant**. Now matches `meta_phone_number_id`.
+- A third identity, `settings.whatsapp_phone_number_id`, was read by NPS + payslip distribution and set by nothing: **no NPS survey and no payslip was ever WhatsApp'd** (every payslip reported "WhatsApp not connected").
+- New `lib/whatsapp/tenantSender.ts` (`sendAsTenant`): the business's own line, else the platform line. Used by every customer/staff-facing send: AI replies, inbox replies, call follow-ups, booking reminders, payment thank-yous, notifyContact, wellness check-ins, NPS, payslips, cold-lead nudges, sequences. Owner alerts stay on the platform line.
+- Escalation cron WhatsApp'd the business's own customer-facing number; now a normal owner alert.
+- Over-limit gate in the webhook dropped the customer's message (never reached the inbox) and told the *customer* to "upgrade your plan at adminos.co.za". The engine already sends a polite holding reply and files the message; the webhook now only alerts the owner (daily).
+- Super-admin can set a tenant's `meta_phone_number_id` (`PATCH /api/admin/tenants`, shown on the operator page) after Meta onboarding.
+
+**3. Routes the middleware silently 401'd** — public by design but never listed: n8n `workflow/trigger` + `workflow/file-received`, the feedback widget proxy (signed-out visitors), and NPS answers (customers have no login). Added as narrow `PUBLIC_PATTERNS`; each self-authenticates and is marked `@public`.
+- **NPS end to end**: survey links pointed at `/survey/[token]`, which didn't exist. Built the public page + `POST /api/survey/[token]` (token-scoped, rate limited, answers once). Detractor (0–6) → owner alert with the comment (was an Academy-lesson event with a contact id passed as a user id). `POST /api/nps` accepted other tenants' contact ids — now filtered to the business.
+
+**4. The rest of the API list:** autonomy (only catalogue decisions accepted, tier changes audited), settings notifications/logo/mode, both super-admin routes (zod, capped paging, budget changes critically audited), plan + add-on cancellation audited (non-throwing: the cancel already happened), expense approval zod, `workflow/trigger` timing-safe secret + schema, feedback proxy (JSON ≤ 20 KB, IP rate limit), integrations (members only; `fx-rates` put the raw `base` param into the upstream URL path and anyone could burn the 1,500/month quota), **portal links no longer hard-deleted** (earlier links expired instead — Rule #3).
+- Quality scan: a write that never reads a body has nothing to validate; `@public` self-authenticating methods count as checked. **routes_no_permission 10 → 0, write_routes_no_zod 24 → 0, routes_hard_delete 1 → 0.**
+
+**Needs Nanda:**
+- **Connecting WhatsApp numbers.** Per-tenant numbers need Meta onboarding (Embedded Signup or 360dialog). Until then everything goes from the platform line, inbound AI can't route to a tenant, and Reach is blocked with "contact support to connect". Decide: shared platform number (route inbound by sender → contact → tenant) or per-tenant numbers (build Embedded Signup).
+- WhatsApp templates: free-form messages only reach people who messaged in the last 24h; broadcasts, reminders, payslips, NPS need approved templates.
+- `app/layout.tsx` GTM snippet (uncommitted, yours): GTM loads before cookie consent. Under POPIA + the cookie banner, tags that set analytics/ads cookies should wait for consent (GTM Consent Mode). Left untouched.
+
+**Workstream C — remaining, in order:**
+- write routes with no audit (~60), `select *` (~30).
+- Pages with no empty state (23); unbounded page lists (24).
+- Get Paid → Grow page-by-page functional review with the personas.
+- No-UI routes (Academy, Loyalty, public `/book/[slug]`, Goals, Projects, task comments, board-pack/portal UI).
+- Contacts search `.or()` interpolates raw user text into the PostgREST filter (tenant filter still holds, but a comma/paren breaks the query) — escape it.

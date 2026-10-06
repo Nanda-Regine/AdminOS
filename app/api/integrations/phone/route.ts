@@ -1,13 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { validatePhone } from '@/lib/integrations/phone'
+import { withRoute } from '@/lib/api/withRoute'
 
 export const runtime = 'nodejs'
 
-export async function POST(request: NextRequest) {
-  const body = await request.json() as { phone?: string }
-  if (!body.phone?.trim()) {
-    return NextResponse.json({ error: 'phone required' }, { status: 400 })
-  }
-  const result = validatePhone(body.phone.trim())
-  return NextResponse.json(result)
-}
+// The Phone Checker on the Integrations page.
+export const POST = withRoute({
+  action: 'profile.own',
+  body: z.object({ phone: z.string().trim().min(1, 'Enter a phone number').max(30) }),
+}, async ({ body }) => validatePhone(body.phone))

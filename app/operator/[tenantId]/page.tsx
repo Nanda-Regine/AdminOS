@@ -93,7 +93,7 @@ export default async function OperatorTenantPage({ params }: Props) {
         <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
           <h2 className="text-sm font-medium text-white/60 uppercase tracking-wide mb-4">Tenant Details</h2>
           <dl className="space-y-2">
-            {(['email', 'phone', 'industry', 'city', 'whatsapp_number_id', 'created_at'] as const).map(field => {
+            {(['email', 'phone', 'industry', 'city', 'whatsapp_number', 'meta_phone_number_id', 'created_at'] as const).map(field => {
               const val = tenant[field]
               if (val == null) return null
               return (

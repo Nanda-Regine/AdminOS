@@ -1,5 +1,5 @@
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import { sendWhatsApp } from '@/lib/whatsapp/send'
+import { sendAsTenant } from '@/lib/whatsapp/tenantSender'
 import { writeAuditLog } from '@/lib/security/audit'
 
 async function getActiveStaff(tenantId: string) {
@@ -42,10 +42,9 @@ export async function sendWellnessCheckIn(tenantId: string): Promise<void> {
     if (!member.phone) continue
 
     const firstName = member.full_name.split(' ')[0]
-    await sendWhatsApp({
-      to: member.phone,
-      message: `Good morning ${firstName}! Quick check-in — how are you feeling today?\n\nReply:\n1 = Tough day\n2 = Getting by\n3 = Good\n4 = Great\n5 = On fire 🔥`,
-    })
+    await sendAsTenant(tenantId, member.phone,
+      `Good morning ${firstName}! Quick check-in — how are you feeling today?\n\nReply:\n1 = Tough day\n2 = Getting by\n3 = Good\n4 = Great\n5 = On fire 🔥`,
+    )
   }
 
   await writeAuditLog({

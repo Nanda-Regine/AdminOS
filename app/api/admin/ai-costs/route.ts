@@ -3,6 +3,15 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { Redis } from '@upstash/redis'
 import { budgetKey, getDailyTokenLimit, usdToZar } from '@/lib/ai/costControls'
 import { requireSuperAdmin } from '@/lib/auth/context'
+import { writeAuditLog, getClientIp } from '@/lib/security/audit'
+import { z } from 'zod'
+
+const patchSchema = z.object({
+  tenantId:       z.string().uuid(),
+  // Daily token budget override; 0 blocks AI for the tenant.
+  budgetOverride: z.number().int().min(0).max(50_000_000).optional(),
+  clearAbuseFlag: z.boolean().optional(),
+}).refine((b) => b.budgetOverride !== undefined || b.clearAbuseFlag, { message: 'Nothing to change' })
 
 const redis = new Redis({
   url:   process.env.UPSTASH_REDIS_REST_URL!,
@@ -92,13 +101,9 @@ export async function PATCH(request: Request) {
   const admin = await requireSuperAdmin()
   if (!admin) return new NextResponse('Forbidden', { status: 403 })
 
-  const { tenantId, budgetOverride, clearAbuseFlag } = await request.json() as {
-    tenantId:       string
-    budgetOverride?: number
-    clearAbuseFlag?: boolean
-  }
-
-  if (!tenantId) return NextResponse.json({ error: 'tenantId required' }, { status: 400 })
+  const parsed = patchSchema.safeParse(await request.json().catch(() => null))
+  if (!parsed.success) return NextResponse.json({ error: 'Invalid request', fields: parsed.error.flatten().fieldErrors }, { status: 400 })
+  const { tenantId, budgetOverride, clearAbuseFlag } = parsed.data
 
   if (clearAbuseFlag) {
     await redis.del(`ai:abuse:flag:${tenantId}`)
@@ -109,6 +114,17 @@ export async function PATCH(request: Request) {
       .from('ai_cost_budgets')
       .upsert({ tenant_id: tenantId, budget_override: budgetOverride, plan: 'override' })
   }
+
+  await writeAuditLog({
+    tenantId,
+    actor: admin.id,
+    action: 'admin.ai_budget_changed',
+    resourceType: 'tenant',
+    resourceId: tenantId,
+    ipAddress: getClientIp(request),
+    metadata: { budgetOverride, clearAbuseFlag },
+    critical: true,
+  })
 
   return NextResponse.json({ ok: true })
 }

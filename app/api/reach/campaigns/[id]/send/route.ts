@@ -47,7 +47,7 @@ export const POST = withRoute({
   if (!campaign.message_body?.trim()) throw badRequest('This campaign has no message.')
 
   const { data: tenant } = await supabaseAdmin.from('tenants').select('meta_phone_number_id').eq('id', ctx.tenantId).maybeSingle()
-  if (!tenant?.meta_phone_number_id) throw badRequest('Connect your WhatsApp Business number in Settings before sending.')
+  if (!tenant?.meta_phone_number_id) throw badRequest("Your WhatsApp Business number isn't connected yet. Contact AdminOS support to connect it.")
 
   const audience = await resolveAudience(ctx.tenantId, (campaign.audience_filter ?? {}) as AudienceFilter)
   if (!audience.eligible.length) {

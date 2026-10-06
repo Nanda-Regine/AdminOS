@@ -1,6 +1,6 @@
 import { inngest } from '@/inngest/client'
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import { sendWhatsApp } from '@/lib/whatsapp/send'
+import { sendAsTenant } from '@/lib/whatsapp/tenantSender'
 import { notifyTenant } from '@/lib/notifications/notify'
 import { getTenantAutonomy } from '@/lib/autonomy/config'
 import { resolveTier } from '@/lib/autonomy/tiers'
@@ -132,7 +132,7 @@ export const bookingReminderFunction = inngest.createFunction(
 
     // Step 4: Send the WhatsApp reminder to the customer (tier A)
     await step.run('send-whatsapp-reminder', async () => {
-      await sendWhatsApp({ to: phone, message })
+      await sendAsTenant(tenant_id, phone, message)
     })
 
     return {

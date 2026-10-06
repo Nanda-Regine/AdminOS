@@ -1,9 +1,6 @@
-import { NextResponse } from 'next/server'
 import { getLoadSheddingStatus } from '@/lib/integrations/loadshedding'
+import { withRoute } from '@/lib/api/withRoute'
 
 export const runtime = 'nodejs'
 
-export async function GET() {
-  const data = await getLoadSheddingStatus()
-  return NextResponse.json(data)
-}
+export const GET = withRoute({ action: 'profile.own' }, async () => getLoadSheddingStatus())

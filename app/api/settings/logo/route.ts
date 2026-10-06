@@ -1,7 +1,6 @@
-import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { z } from 'zod'
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import { guard, dbError } from '@/lib/api/guard'
+import { withRoute, unwrap } from '@/lib/api/withRoute'
 
 /**
  * Business logo, stored as a base64 data URL in tenants.settings.logo_url.
@@ -11,42 +10,22 @@ import { guard, dbError } from '@/lib/api/guard'
  */
 const MAX_LEN = 400_000 // ~300 KB once base64-decoded
 
-export async function POST(request: Request) {
-  const gate = await guard('settings.write'); if (gate.denied) return gate.denied
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new NextResponse('Unauthorized', { status: 401 })
-  const tenantId = user.app_metadata?.tenant_id as string
-  if (!tenantId) return new NextResponse('No tenant', { status: 400 })
+const schema = z.object({
+  dataUrl: z.string().trim()
+    .regex(/^data:image\/(png|jpeg|jpg|webp|svg\+xml);base64,[A-Za-z0-9+/=]+$/, 'Upload a PNG, JPG, WEBP or SVG image.')
+    .max(MAX_LEN, 'Logo is too large. Use an image under ~300 KB.'),
+})
 
-  const body = await request.json().catch(() => ({})) as { dataUrl?: string }
-  const dataUrl = body.dataUrl?.trim()
-  if (!dataUrl || !/^data:image\/(png|jpeg|jpg|webp|svg\+xml);base64,/.test(dataUrl)) {
-    return NextResponse.json({ error: 'Upload a PNG, JPG, WEBP or SVG image.' }, { status: 400 })
-  }
-  if (dataUrl.length > MAX_LEN) {
-    return NextResponse.json({ error: 'Logo is too large. Use an image under ~300 KB.' }, { status: 413 })
-  }
-
-  const { data: row } = await supabaseAdmin.from('tenants').select('settings').eq('id', tenantId).maybeSingle()
-  const settings = { ...((row?.settings ?? {}) as Record<string, unknown>), logo_url: dataUrl }
-  const { error } = await supabaseAdmin.from('tenants').update({ settings }).eq('id', tenantId)
-  if (error) return dbError(error)
-  return NextResponse.json({ ok: true })
-}
-
-export async function DELETE() {
-  const gate = await guard('settings.write'); if (gate.denied) return gate.denied
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new NextResponse('Unauthorized', { status: 401 })
-  const tenantId = user.app_metadata?.tenant_id as string
-  if (!tenantId) return new NextResponse('No tenant', { status: 400 })
-
-  const { data: row } = await supabaseAdmin.from('tenants').select('settings').eq('id', tenantId).maybeSingle()
+async function writeLogo(tenantId: string, dataUrl: string | null) {
+  const row = unwrap(await supabaseAdmin.from('tenants').select('settings').eq('id', tenantId).maybeSingle())
   const settings = { ...((row?.settings ?? {}) as Record<string, unknown>) }
-  delete settings.logo_url
-  const { error } = await supabaseAdmin.from('tenants').update({ settings }).eq('id', tenantId)
-  if (error) return dbError(error)
-  return NextResponse.json({ ok: true })
+  if (dataUrl) settings.logo_url = dataUrl
+  else delete settings.logo_url
+  unwrap(await supabaseAdmin.from('tenants').update({ settings }).eq('id', tenantId))
 }
+
+export const POST = withRoute({ action: 'settings.write', body: schema, audit: 'settings.logo_changed', resourceType: 'tenant' },
+  async ({ ctx, body }) => { await writeLogo(ctx.tenantId, body.dataUrl); return { id: ctx.tenantId, ok: true } })
+
+export const DELETE = withRoute({ action: 'settings.write', audit: 'settings.logo_removed', resourceType: 'tenant' },
+  async ({ ctx }) => { await writeLogo(ctx.tenantId, null); return { id: ctx.tenantId, ok: true } })

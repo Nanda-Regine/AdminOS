@@ -49,9 +49,9 @@ export default function NewCampaignPage() {
         }),
       })
 
-      const data = await res.json() as { error?: string; id?: string }
+      const data = await res.json() as { error?: string; id?: string; fields?: Record<string, string> }
       if (!res.ok) {
-        setError(data.error ?? 'Failed to create campaign')
+        setError(Object.values(data.fields ?? {})[0] ?? data.error ?? 'Failed to create campaign')
       } else {
         router.push('/dashboard/reach')
       }

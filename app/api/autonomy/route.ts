@@ -1,52 +1,49 @@
-import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { z } from 'zod'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { DECISION_CATALOGUE, DECISION_DEFAULTS, type Tier } from '@/lib/autonomy/tiers'
-import { guard, dbError } from '@/lib/api/guard'
+import { withRoute, unwrap, badRequest } from '@/lib/api/withRoute'
 
 // GET  /api/autonomy → the effective tier for every governed decision.
 // POST /api/autonomy {domain, decision_type, tier} → set one.
-export async function GET() {
-  const gate = await guard('settings.read'); if (gate.denied) return gate.denied
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new NextResponse('Unauthorized', { status: 401 })
-  const tenantId = user.app_metadata?.tenant_id as string
-  if (!tenantId) return NextResponse.json({ decisions: [] })
+//
+// Session 20 (sixth sitting): any domain/decision_type string was accepted
+// and stored (only the catalogue's are ever read), and tier changes — which
+// decide what AdminOS does without asking — weren't audited.
 
-  const { data } = await supabaseAdmin
+export const GET = withRoute({ action: 'settings.read' }, async ({ ctx }) => {
+  const data = unwrap(await supabaseAdmin
     .from('tenant_autonomy_config')
     .select('domain, decision_type, tier')
-    .eq('tenant_id', tenantId)
-  const overrides = new Map((data ?? []).map(r => [`${r.domain}/${r.decision_type}`, r.tier as Tier]))
-
+    .eq('tenant_id', ctx.tenantId)) ?? []
+  const overrides = new Map(data.map(r => [`${r.domain}/${r.decision_type}`, r.tier as Tier]))
   const decisions = DECISION_CATALOGUE.map(d => {
     const key = `${d.domain}/${d.decision_type}`
     return { ...d, tier: overrides.get(key) ?? DECISION_DEFAULTS[key] ?? 'C' }
   })
-  return NextResponse.json({ decisions })
-}
+  return { decisions }
+})
 
-export async function POST(request: Request) {
-  const gate = await guard('settings.write'); if (gate.denied) return gate.denied
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new NextResponse('Unauthorized', { status: 401 })
-  const tenantId = user.app_metadata?.tenant_id as string
-  if (!tenantId) return new NextResponse('No tenant', { status: 400 })
+const KNOWN = new Set(DECISION_CATALOGUE.map(d => `${d.domain}/${d.decision_type}`))
 
-  const body = await request.json().catch(() => ({})) as { domain?: string; decision_type?: string; tier?: Tier }
-  if (!body.domain || !body.decision_type || !['A', 'B', 'C'].includes(body.tier ?? '')) {
-    return NextResponse.json({ error: 'domain, decision_type, tier(A|B|C) required' }, { status: 400 })
-  }
-  // Guard: final_demand can never be set to auto (legal boundary).
+const schema = z.object({
+  domain:        z.string().max(40),
+  decision_type: z.string().max(60),
+  tier:          z.enum(['A', 'B', 'C']),
+}).refine(b => KNOWN.has(`${b.domain}/${b.decision_type}`), { message: 'Unknown decision', path: ['decision_type'] })
+
+export const POST = withRoute({
+  action: 'settings.write',
+  body: schema,
+  resourceType: 'autonomy_config',
+}, async ({ ctx, body, audit }) => {
+  // Legal boundary: a final demand is always sent by the owner.
   if (body.domain === 'money' && body.decision_type === 'final_demand' && body.tier === 'A') {
-    return NextResponse.json({ error: 'Final demands must be sent by you — auto-send is not permitted.' }, { status: 400 })
+    throw badRequest('Final demands must be sent by you — auto-send is not permitted.')
   }
-
-  const { error } = await supabaseAdmin
+  unwrap(await supabaseAdmin
     .from('tenant_autonomy_config')
-    .upsert({ tenant_id: tenantId, domain: body.domain, decision_type: body.decision_type, tier: body.tier, updated_at: new Date().toISOString() }, { onConflict: 'tenant_id,domain,decision_type' })
-  if (error) return dbError(error)
-  return NextResponse.json({ ok: true })
-}
+    .upsert({ tenant_id: ctx.tenantId, domain: body.domain, decision_type: body.decision_type, tier: body.tier, updated_at: new Date().toISOString() },
+      { onConflict: 'tenant_id,domain,decision_type' }))
+  await audit({ action: 'autonomy.tier_changed', resourceType: 'autonomy_config', metadata: { decision: `${body.domain}/${body.decision_type}`, tier: body.tier } })
+  return { ok: true }
+})

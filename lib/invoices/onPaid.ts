@@ -1,5 +1,5 @@
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import { sendWhatsApp } from '@/lib/whatsapp/send'
+import { sendAsTenant } from '@/lib/whatsapp/tenantSender'
 import { notifyTenant } from '@/lib/notifications/notify'
 import { getTenantAutonomy } from '@/lib/autonomy/config'
 import { resolveTier } from '@/lib/autonomy/tiers'
@@ -50,7 +50,7 @@ export async function handleInvoicePaid(invoice: PaidInvoice, userId: string): P
       const ref = invoice.reference ?? invoice.id.slice(0, 8)
       const thankYou = `Hi ${invoice.contact_name ?? 'there'}, thank you — we've received your payment of ${amountStr} for invoice ${ref}. Much appreciated!`
       try {
-        await sendWhatsApp({ to: invoice.contact_phone, message: thankYou })
+        await sendAsTenant(invoice.tenant_id, invoice.contact_phone, thankYou)
       } catch (err) {
         console.error('[invoices] payment receipt send failed (non-fatal)', err)
       }

@@ -1,7 +1,6 @@
-import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { z } from 'zod'
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import { guard, dbError } from '@/lib/api/guard'
+import { withRoute, unwrap } from '@/lib/api/withRoute'
 
 /**
  * Owner notification controls, persisted in tenants.settings:
@@ -9,59 +8,39 @@ import { guard, dbError } from '@/lib/api/guard'
  *   - settings.notify[type].whatsapp = bool  (per-type WhatsApp opt-out)
  * GET returns the current values; POST merges a single change in.
  */
-export async function GET() {
-  const gate = await guard('settings.read'); if (gate.denied) return gate.denied
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new NextResponse('Unauthorized', { status: 401 })
-  const tenantId = user.app_metadata?.tenant_id as string
-  if (!tenantId) return new NextResponse('No tenant', { status: 400 })
-
-  const { data } = await supabaseAdmin.from('tenants').select('settings').eq('id', tenantId).maybeSingle()
-  const settings = (data?.settings ?? {}) as Record<string, unknown>
-  return NextResponse.json({
-    quietHours: settings.quiet_hours ?? null,
-    notify: settings.notify ?? {},
-  })
+async function readSettings(tenantId: string) {
+  const row = unwrap(await supabaseAdmin.from('tenants').select('settings').eq('id', tenantId).maybeSingle())
+  return { ...((row?.settings ?? {}) as Record<string, unknown>) }
 }
 
-export async function POST(request: Request) {
-  const gate = await guard('settings.write'); if (gate.denied) return gate.denied
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new NextResponse('Unauthorized', { status: 401 })
-  const tenantId = user.app_metadata?.tenant_id as string
-  if (!tenantId) return new NextResponse('No tenant', { status: 400 })
+export const GET = withRoute({ action: 'settings.read' }, async ({ ctx }) => {
+  const settings = await readSettings(ctx.tenantId)
+  return { quietHours: settings.quiet_hours ?? null, notify: settings.notify ?? {} }
+})
 
-  const body = await request.json().catch(() => ({})) as {
-    quietHours?: { start: number; end: number } | null
-    type?: string
-    whatsapp?: boolean
-  }
+const minute = z.number().int().min(0).max(1439)
+const schema = z.object({
+  quietHours: z.object({ start: minute, end: minute }).nullable().optional(),
+  // Notification type keys look like 'recovery.sent', 'payroll_due'.
+  type:       z.string().regex(/^[a-z0-9_.]{1,60}$/).optional(),
+  whatsapp:   z.boolean().optional(),
+}).refine((b) => (b.type === undefined) === (b.whatsapp === undefined), { message: 'type and whatsapp go together', path: ['type'] })
 
-  // Read-merge-write the settings JSON so we never clobber unrelated keys.
-  const { data: row } = await supabaseAdmin.from('tenants').select('settings').eq('id', tenantId).maybeSingle()
-  const settings = { ...((row?.settings ?? {}) as Record<string, unknown>) }
-
-  if (body.quietHours !== undefined) {
-    if (body.quietHours === null) {
-      delete settings.quiet_hours
-    } else {
-      const { start, end } = body.quietHours
-      if (![start, end].every(n => Number.isInteger(n) && n >= 0 && n <= 1439)) {
-        return NextResponse.json({ error: 'quietHours start/end must be minutes 0–1439' }, { status: 400 })
-      }
-      settings.quiet_hours = { start, end }
-    }
-  }
-
-  if (body.type !== undefined && typeof body.whatsapp === 'boolean') {
+export const POST = withRoute({
+  action: 'settings.write',
+  body: schema,
+  audit: 'settings.notifications_changed',
+  resourceType: 'tenant',
+}, async ({ ctx, body }) => {
+  // Read-merge-write so unrelated settings keys are never clobbered.
+  const settings = await readSettings(ctx.tenantId)
+  if (body.quietHours === null) delete settings.quiet_hours
+  else if (body.quietHours) settings.quiet_hours = body.quietHours
+  if (body.type !== undefined && body.whatsapp !== undefined) {
     const notify = { ...((settings.notify ?? {}) as Record<string, { whatsapp?: boolean }>) }
     notify[body.type] = { ...notify[body.type], whatsapp: body.whatsapp }
     settings.notify = notify
   }
-
-  const { error } = await supabaseAdmin.from('tenants').update({ settings }).eq('id', tenantId)
-  if (error) return dbError(error)
-  return NextResponse.json({ ok: true })
-}
+  unwrap(await supabaseAdmin.from('tenants').update({ settings }).eq('id', ctx.tenantId))
+  return { id: ctx.tenantId, ok: true }
+})

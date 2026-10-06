@@ -15,6 +15,7 @@
 
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { sendWhatsApp } from '@/lib/whatsapp/send'
+import { sendAsTenant } from '@/lib/whatsapp/tenantSender'
 import { whatsappAllowed, isQuietNow } from '@/lib/notifications/delivery'
 
 export interface NotifyInput {
@@ -104,7 +105,8 @@ export async function notifyContact(
     // Respect the tenant's quiet hours for customer sends too — no 2am pings.
     const settings = await tenantSettings(tenantId)
     if (to && isSendableWhatsApp() && !isQuietNow(settings)) {
-      await sendWhatsApp({ to, message: n.text }).catch(() => {})
+      // Customer-facing: from the business's own number when it has one.
+      await sendAsTenant(tenantId, to, n.text).catch(() => {})
     }
     if (n.alsoInApp) {
       await notify({ tenantId, type: n.type, title: n.title, body: n.body, data: { ...n.data, contact_id: contactId } })

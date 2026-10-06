@@ -1,160 +1,94 @@
-import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
-import { fireBusinessEvent } from '@/lib/academy/knowledgeGraph'
+import { supabaseAdmin } from '@/lib/supabase/admin'
 import { inngest } from '@/inngest/client'
-import { guard, dbError } from '@/lib/api/guard'
+import { withRoute, unwrap, badRequest } from '@/lib/api/withRoute'
+
+// Session 20 (sixth sitting):
+// - contactIds weren't checked against this business: a survey row could
+//   point at another tenant's contact (and GET then showed their name).
+// - Customer answers moved to the public POST /api/survey/[token] (the old
+//   PATCH here sat behind the login wall; customers can't log in), and the
+//   link they get now opens a real page (/survey/[token]).
 
 const sendSchema = z.object({
   contactIds:  z.array(z.string().uuid()).min(1).max(100),
-  triggerType: z.string().max(50).optional(),
+  triggerType: z.string().regex(/^[a-z_]{1,50}$/).optional(),
   channel:     z.enum(['whatsapp', 'email', 'sms', 'in_app']).default('whatsapp'),
 })
 
-const respondSchema = z.object({
-  token:   z.string().min(1),
-  score:   z.number().int().min(0).max(10),
-  comment: z.string().max(2000).optional(),
+// POST /api/nps — send NPS surveys to some of this business's contacts.
+export const POST = withRoute({
+  action: 'broadcasts.send',
+  body: sendSchema,
+  audit: 'nps.surveys_sent',
+  resourceType: 'nps_survey',
+  rateLimit: 'agents',
+  status: 201,
+}, async ({ ctx, body }) => {
+  const contacts = unwrap(await supabaseAdmin
+    .from('contacts')
+    .select('id, name:full_name, phone')
+    .eq('tenant_id', ctx.tenantId)
+    .is('deleted_at', null)
+    .in('id', body.contactIds)) ?? []
+  if (!contacts.length) throw badRequest('None of those contacts belong to this business.')
+
+  const sentAt = new Date().toISOString()
+  const surveys = unwrap(await supabaseAdmin
+    .from('nps_surveys')
+    .insert(contacts.map((c) => ({
+      tenant_id:    ctx.tenantId,
+      contact_id:   c.id,
+      trigger_type: body.triggerType ?? 'manual',
+      channel:      body.channel,
+      sent_at:      sentAt,
+    })))
+    .select('id, contact_id, survey_token, channel')) ?? []
+
+  if (body.channel === 'whatsapp' && surveys.length) {
+    const base = process.env.NEXT_PUBLIC_APP_URL ?? 'https://adminos.co.za'
+    const byId = new Map(contacts.map((c) => [c.id, c]))
+    const events = surveys.flatMap((s) => {
+      const c = byId.get(s.contact_id)
+      return c?.phone ? [{
+        name: 'adminos/nps.survey.created' as const,
+        data: { tenant_id: ctx.tenantId, survey_token: s.survey_token, contact_phone: c.phone, contact_name: c.name ?? '', survey_url: `${base}/survey/${s.survey_token}` },
+      }] : []
+    })
+    if (events.length) await inngest.send(events)
+  }
+
+  return { sent: surveys.length, skipped: body.contactIds.length - surveys.length, surveys }
 })
 
-// POST /api/nps — send NPS surveys
-export async function POST(request: Request) {
-  const gate = await guard('broadcasts.send'); if (gate.denied) return gate.denied
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new NextResponse('Unauthorized', { status: 401 })
-
-  const tenantId = user.app_metadata?.tenant_id as string
-  if (!tenantId) return new NextResponse('No tenant', { status: 400 })
-
-  let body: z.infer<typeof sendSchema>
-  try { body = sendSchema.parse(await request.json()) } catch (e) {
-    return NextResponse.json({ error: 'Invalid request', detail: e }, { status: 400 })
-  }
-
-  const rows = body.contactIds.map((contactId) => ({
-    tenant_id:    tenantId,
-    contact_id:   contactId,
-    trigger_type: body.triggerType ?? 'manual',
-    channel:      body.channel,
-    sent_at:      new Date().toISOString(),
-  }))
-
-  const { data, error } = await supabaseAdmin
-    .from('nps_surveys')
-    .insert(rows)
-    .select('id, contact_id, survey_token, channel')
-
-  if (error) return dbError(error)
-
-  // Queue WhatsApp delivery for each survey
-  if (body.channel === 'whatsapp' && data?.length) {
-    const contactIds = data.map(s => s.contact_id)
-    const { data: contacts } = await supabaseAdmin
-      .from('contacts')
-      .select('id, name:full_name, phone').is('deleted_at', null)
-      .in('id', contactIds)
-      .eq('tenant_id', tenantId)
-
-    for (const survey of data) {
-      const contact = contacts?.find(c => c.id === survey.contact_id)
-      if (!contact?.phone) continue
-
-      const surveyUrl = `${process.env.NEXT_PUBLIC_APP_URL}/survey/${survey.survey_token}`
-      await inngest.send({
-        name: 'adminos/nps.survey.created',
-        data: {
-          tenant_id:     tenantId,
-          survey_token:  survey.survey_token,
-          contact_phone: contact.phone,
-          contact_name:  contact.name ?? '',
-          survey_url:    surveyUrl,
-        },
-      })
-    }
-  }
-
-  return NextResponse.json({ sent: data?.length ?? 0, surveys: data }, { status: 201 })
-}
-
-// GET /api/nps — list surveys + aggregate score
-export async function GET(request: Request) {
-  const gate = await guard('analytics.read'); if (gate.denied) return gate.denied
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new NextResponse('Unauthorized', { status: 401 })
-
-  const tenantId = user.app_metadata?.tenant_id as string
-  if (!tenantId) return new NextResponse('No tenant', { status: 400 })
-
-  const url  = new URL(request.url)
-  const days = Math.min(parseInt(url.searchParams.get('days') ?? '90'), 365)
-  const from = new Date(Date.now() - days * 86400000).toISOString()
-
-  const { data, error } = await supabaseAdmin
+// GET /api/nps?days=90 — surveys + the NPS score.
+export const GET = withRoute({
+  action: 'analytics.read',
+  query: z.object({ days: z.coerce.number().int().min(1).max(365).default(90) }),
+}, async ({ ctx, query }) => {
+  const from = new Date(Date.now() - query.days * 86_400_000).toISOString()
+  const data = unwrap(await supabaseAdmin
     .from('nps_surveys')
     .select('id, contact_id, trigger_type, sent_at, responded_at, score, comment, channel, contacts(name:full_name)')
-    .eq('tenant_id', tenantId)
+    .eq('tenant_id', ctx.tenantId)
     .gte('sent_at', from)
     .order('sent_at', { ascending: false })
+    .limit(1000)) ?? []
 
-  if (error) return dbError(error)
-
-  // Aggregate NPS score
-  const responded = (data ?? []).filter(s => s.score !== null)
-  const promoters  = responded.filter(s => s.score! >= 9).length
-  const detractors = responded.filter(s => s.score! <= 6).length
+  const responded  = data.filter((s) => s.score !== null)
+  const promoters  = responded.filter((s) => s.score! >= 9).length
+  const detractors = responded.filter((s) => s.score! <= 6).length
   const total      = responded.length
-  const npsScore   = total > 0 ? Math.round(((promoters - detractors) / total) * 100) : null
-
-  return NextResponse.json({
-    surveys:      data ?? [],
+  return {
+    surveys: data,
     aggregate: {
-      nps_score:      npsScore,
+      nps_score:      total > 0 ? Math.round(((promoters - detractors) / total) * 100) : null,
       response_count: total,
-      sent_count:     (data ?? []).length,
+      sent_count:     data.length,
       promoters,
-      passives:       responded.filter(s => s.score! >= 7 && s.score! <= 8).length,
+      passives:       total - promoters - detractors,
       detractors,
-      response_rate:  (data ?? []).length > 0
-        ? Math.round((total / (data ?? []).length) * 100)
-        : 0,
+      response_rate:  data.length > 0 ? Math.round((total / data.length) * 100) : 0,
     },
-  })
-}
-
-// PATCH /api/nps — record survey response (public endpoint — validated by token only)
-export async function PATCH(request: Request) {
-  let body: z.infer<typeof respondSchema>
-  try { body = respondSchema.parse(await request.json()) } catch (e) {
-    return NextResponse.json({ error: 'Invalid request', detail: e }, { status: 400 })
   }
-
-  const { data: survey, error } = await supabaseAdmin
-    .from('nps_surveys')
-    .select('id, tenant_id, contact_id, score')
-    .eq('survey_token', body.token)
-    .is('responded_at', null)
-    .maybeSingle()
-
-  if (error || !survey) {
-    return NextResponse.json({ error: 'Survey not found or already completed' }, { status: 404 })
-  }
-
-  await supabaseAdmin
-    .from('nps_surveys')
-    .update({
-      score:        body.score,
-      comment:      body.comment ?? null,
-      responded_at: new Date().toISOString(),
-    })
-    .eq('id', survey.id)
-
-  // Fire contextual trigger for detractors
-  if (body.score <= 6 && survey.contact_id) {
-    fireBusinessEvent('customer.nps_below_6', survey.tenant_id, survey.contact_id)
-  }
-
-  return NextResponse.json({ ok: true })
-}
+})

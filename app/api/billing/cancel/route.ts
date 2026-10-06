@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { checkPermission } from '@/lib/auth/permissions'
+import { writeAuditLog, getClientIp } from '@/lib/security/audit'
 
 // ⚠️ PAYMENTS — Paystack subscription CANCEL (AdminOS plans). DO NOT REMOVE ⚠️
 //
@@ -17,7 +18,7 @@ import { checkPermission } from '@/lib/auth/permissions'
 // to 'cancelled'. Cancel = "won't auto-renew"; access continues until the period ends.
 const HUB_URL = (process.env.PAYSTACK_HUB_URL || 'https://jarvis.mirembemuse.co.za').replace(/\/$/, '')
 
-export async function POST() {
+export async function POST(request: Request) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new NextResponse('Unauthorized', { status: 401 })
@@ -52,6 +53,7 @@ export async function POST() {
     // Success — Paystack marked it non-renewing; the subscription.disable webhook
     // is the source of truth and will flip subscriptions.status to 'cancelled'.
     console.log('[billing/cancel] cancelled for tenant', tenantId)
+    await writeAuditLog({ tenantId, actor: user.id, action: 'billing.plan_cancelled', resourceType: 'subscription', ipAddress: getClientIp(request) })
     return NextResponse.json({ success: true })
   } catch (e) {
     console.error('[billing/cancel] hub call failed:', (e as Error).message)

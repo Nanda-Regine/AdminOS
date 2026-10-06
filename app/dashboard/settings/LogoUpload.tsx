@@ -45,7 +45,7 @@ export function LogoUpload({ initialLogo }: { initialLogo: string | null }) {
       const res = await fetch('/api/settings/logo', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dataUrl }),
       })
-      if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.error || 'Upload failed')
+      if (!res.ok) { const j = await res.json().catch(() => ({})); throw new Error(j?.fields?.dataUrl || j?.error || 'Upload failed') }
       setState('saved'); router.refresh(); setTimeout(() => setState('idle'), 2500)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Upload failed'); setState('error')

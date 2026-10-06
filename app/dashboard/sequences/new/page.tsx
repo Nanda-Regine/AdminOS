@@ -68,7 +68,7 @@ export default function NewSequencePage() {
 
     if (!res.ok) {
       const data = await res.json()
-      setError(data.error ?? 'Failed to create sequence')
+      setError((Object.values(data.fields ?? {})[0] as string | undefined) ?? data.error ?? 'Failed to create sequence')
       setSaving(false)
       return
     }

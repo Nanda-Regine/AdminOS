@@ -1,7 +1,7 @@
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { callClaudeWithCache, classifyIntent, classifySentiment } from '@/lib/ai/callClaude'
 import { checkFAQCache, setFAQCache, incrementTenantCounter } from '@/lib/cache/faqCache'
-import { sendWhatsApp } from '@/lib/whatsapp/send'
+import { sendAsTenant } from '@/lib/whatsapp/tenantSender'
 import { writeAuditLog } from '@/lib/security/audit'
 import { upsertContact } from '@/lib/contacts/upsert'
 import { notifyTenant } from '@/lib/notifications/notify'
@@ -172,7 +172,8 @@ const steps = {
 
   async sendWhatsApp(ctx: WorkflowContext, result: WorkflowResult): Promise<void> {
     if (!result.response || !ctx.from) return
-    await sendWhatsApp({ to: ctx.from, message: result.response })
+    // Reply from the number the customer wrote to (the business's own).
+    await sendAsTenant(ctx.tenant.id, ctx.from, result.response, ctx.phoneNumberId as string | undefined)
   },
 
   async logToAudit(ctx: WorkflowContext, result: WorkflowResult): Promise<void> {
@@ -308,21 +309,26 @@ const steps = {
     // If the score is critically low, send a warm follow-up immediately
     if (score <= 2) {
       const firstName = staff.full_name?.split(' ')[0] || 'there'
-      await sendWhatsApp({
-        to: ctx.from,
-        message: `Hi ${firstName}, thank you for being honest. Your wellbeing matters to us deeply. A manager will check in with you today. You don't have to face this alone. 💚`,
-      })
+      await sendAsTenant(ctx.tenant.id, ctx.from,
+        `Hi ${firstName}, thank you for being honest. Your wellbeing matters to us deeply. A manager will check in with you today. You don't have to face this alone. 💚`,
+      )
     }
   },
 }
 
-async function getTenantByWhatsAppNumber(wabaId: string): Promise<Tenant | null> {
+// Meta's webhook identifies the receiving line by its phone-number ID
+// (metadata.phone_number_id, a long numeric id). That is stored in
+// tenants.meta_phone_number_id — the same id outbound sends use. This matched
+// tenants.whatsapp_number, the business's display phone ("+27…"), which can
+// never equal a Meta id: no inbound message ever reached a tenant.
+async function getTenantByWhatsAppNumber(phoneNumberId: string): Promise<Tenant | null> {
+  if (!phoneNumberId) return null
   const { data } = await supabaseAdmin
     .from('tenants')
     .select('*')
-    .eq('whatsapp_number', wabaId)
+    .eq('meta_phone_number_id', phoneNumberId)
     .eq('active', true)
-    .single()
+    .maybeSingle()
   return data
 }
 

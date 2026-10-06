@@ -1,59 +1,24 @@
-import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
-import { requirePermission } from '@/lib/auth/permissions'
-import { TenantMode } from '@/lib/tenant/mode'
-import { dbError } from '@/lib/api/guard'
+import { supabaseAdmin } from '@/lib/supabase/admin'
+import { withRoute, unwrap } from '@/lib/api/withRoute'
+import type { TenantMode } from '@/lib/tenant/mode'
 
-const schema = z.object({
-  mode: z.enum(['solo', 'team']),
+// Solo vs team mode. Reading it shapes everyone's nav; changing it is a setting.
+export const GET = withRoute({ action: 'profile.own' }, async ({ ctx }) => {
+  const data = unwrap(await supabaseAdmin.from('tenants').select('mode').eq('id', ctx.tenantId).maybeSingle())
+  return { mode: (data?.mode as TenantMode) ?? 'solo' }
 })
 
-export async function GET(_request: Request) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new NextResponse('Unauthorized', { status: 401 })
-
-  const tenantId = user.app_metadata?.tenant_id as string
-  if (!tenantId) return new NextResponse('No tenant', { status: 400 })
-
-  const { data } = await supabaseAdmin
-    .from('tenants')
-    .select('mode')
-    .eq('id', tenantId)
-    .single()
-
-  return NextResponse.json({ mode: (data?.mode as TenantMode) ?? 'solo' })
-}
-
-export async function PATCH(request: Request) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new NextResponse('Unauthorized', { status: 401 })
-
-  const tenantId = user.app_metadata?.tenant_id as string
-  if (!tenantId) return new NextResponse('No tenant', { status: 400 })
-
-  try { await requirePermission('manage_settings') } catch {
-    return new NextResponse('Forbidden', { status: 403 })
-  }
-
-  let body: z.infer<typeof schema>
-  try {
-    body = schema.parse(await request.json())
-  } catch (e) {
-    return NextResponse.json({ error: 'Invalid request', detail: e }, { status: 400 })
-  }
-
-  const { data, error } = await supabaseAdmin
+export const PATCH = withRoute({
+  action: 'settings.write',
+  body: z.object({ mode: z.enum(['solo', 'team']) }),
+  audit: 'settings.mode_changed',
+  resourceType: 'tenant',
+}, async ({ ctx, body }) => {
+  return unwrap(await supabaseAdmin
     .from('tenants')
     .update({ mode: body.mode })
-    .eq('id', tenantId)
+    .eq('id', ctx.tenantId)
     .select('id, mode')
-    .single()
-
-  if (error) return dbError(error)
-
-  return NextResponse.json(data)
-}
+    .single())
+})

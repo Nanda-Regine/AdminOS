@@ -49,6 +49,13 @@ const PUBLIC_PATTERNS = [
   /^\/api\/contracts\/[^/]+\/sign\/?$/,
   // An employee's own payslip by its expiring view token (staff have no login).
   /^\/api\/payslips\/view\/[a-f0-9]{64}\/?$/,
+  // A customer answering an NPS survey by its token (customers have no login).
+  /^\/api\/survey\/[a-f0-9-]{36}\/?$/,
+  // n8n hooks — each checks x-n8n-secret (timing-safe) itself. They were
+  // 401'd here, so the n8n integration never reached its handlers.
+  /^\/api\/workflow\/(trigger|file-received)\/?$/,
+  // The feedback widget runs on the public site too; rate limited per IP.
+  /^\/api\/engineering\/feedback\/?$/,
 ]
 
 const BILLING_EXEMPT = [

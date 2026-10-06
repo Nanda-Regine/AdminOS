@@ -3,7 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
 import { dbError } from '@/lib/api/guard'
 
-// Public contract signing. The signing model lives in `contract_signatures`
+// @public — contract signing by per-signer token. The signing model lives in `contract_signatures`
 // (one row per signer, each with its own auto-generated `token`), NOT on the
 // `contracts` row — contracts has no sign_token/signer_name/body columns.
 // GET  ?token=…  → return the contract to display to the signer

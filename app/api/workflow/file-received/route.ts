@@ -5,7 +5,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { processDocumentText, type DbFileType } from '@/lib/documents/pipeline'
 import { writeAuditLog } from '@/lib/security/audit'
 
-// POST /api/workflow/file-received — n8n hook: a file arrived elsewhere (email
+// POST /api/workflow/file-received — @public n8n hook (x-n8n-secret): a file arrived elsewhere (email
 // attachment, shared drive) and n8n already extracted its text.
 //
 // Rebuilt in Session 20. The old route was a third copy of the document
