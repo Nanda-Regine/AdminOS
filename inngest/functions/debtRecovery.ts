@@ -145,7 +145,7 @@ export const debtRecoveryEngine = inngest.createFunction(
           daysOverdue: daysOverdue(inv.due_date),
           tone: 'firm and serious — this account is significantly overdue — while remaining respectful and lawful',
           includePaymentLink: false,
-        })
+        }, { tenantId: tenant_id, plan })
 
         const guard = checkRecoveryMessage(text)
         return guard.safe ? text : null

@@ -9,7 +9,7 @@ export const licenseRemindersCronFunction = inngest.createFunction(
     const licenses = await step.run('fetch-licenses', async () => {
       const { data } = await supabaseAdmin
         .from('professional_licenses')
-        .select('id, tenant_id, license_type, license_number, issuing_body, expiry_date, renewal_reminder_days')
+        .select('id, tenant_id, license_type, license_number, issuing_body, expiry_date, renewal_reminder_days').is('deleted_at', null)
         .not('expiry_date', 'is', null)
         .gte('expiry_date', today)
       return data ?? []
@@ -29,7 +29,7 @@ export const licenseRemindersCronFunction = inngest.createFunction(
       await step.run(`license-reminder-${lic.id}`, async () => {
         const { data: existing } = await supabaseAdmin
           .from('compliance_items')
-          .select('id')
+          .select('id').is('deleted_at', null)
           .eq('tenant_id', lic.tenant_id)
           .eq('item_type', 'license_renewal')
           .ilike('title', `%${lic.license_type}%`)

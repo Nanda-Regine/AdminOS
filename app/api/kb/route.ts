@@ -38,7 +38,7 @@ export async function GET(request: Request) {
       // Fallback to ilike if RPC not available
       const { data: fallback, error: e2 } = await supabaseAdmin
         .from('kb_articles')
-        .select('id, title, category_id, tags, created_at, published')
+        .select('id, title, category_id, tags, created_at, published').is('deleted_at', null)
         .eq('tenant_id', tenantId)
         .ilike('title', `%${q}%`)
         .order('created_at', { ascending: false })
@@ -53,7 +53,7 @@ export async function GET(request: Request) {
 
   let query = supabaseAdmin
     .from('kb_articles')
-    .select('id, title, category_id, tags, created_at, published, kb_categories(name)')
+    .select('id, title, category_id, tags, created_at, published, kb_categories(name)').is('deleted_at', null)
     .eq('tenant_id', tenantId)
     .order('created_at', { ascending: false })
     .limit(limit)

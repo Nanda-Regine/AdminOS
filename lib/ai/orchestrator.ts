@@ -119,13 +119,13 @@ export class AgentOrchestrator {
       const [contact, invoices, recentConvs] = await Promise.all([
         supabaseAdmin
           .from('contacts')
-          .select('full_name, company, sentiment_score, total_invoiced, total_paid, last_contacted_at')
+          .select('full_name, company, sentiment_score, total_invoiced, total_paid, last_contacted_at').is('deleted_at', null)
           .eq('tenant_id', req.tenantId)
           .eq('phone', req.contactIdentifier)
           .maybeSingle(),
         supabaseAdmin
           .from('invoices')
-          .select('reference, amount, amount_paid, due_date, status, recovery_tier')
+          .select('reference, amount, amount_paid, due_date, status, recovery_tier').is('deleted_at', null)
           .eq('tenant_id', req.tenantId)
           .eq('contact_phone', req.contactIdentifier)
           .order('created_at', { ascending: false })
@@ -155,7 +155,7 @@ export class AgentOrchestrator {
     if (req.documentId) {
       const { data: doc } = await supabaseAdmin
         .from('documents')
-        .select('original_filename, document_type, ai_summary, extracted_data')
+        .select('original_filename, document_type, ai_summary, extracted_data').is('deleted_at', null)
         .eq('id', req.documentId)
         .single()
       if (doc) parts.push(`DOCUMENT: ${JSON.stringify(doc)}`)
@@ -167,7 +167,7 @@ export class AgentOrchestrator {
       const [convRes, invoiceRes, goalRes] = await Promise.all([
         supabaseAdmin.from('conversations').select('id', { count: 'exact' }).eq('tenant_id', req.tenantId).eq('status', 'open'),
         supabaseAdmin.from('invoices').select('amount, amount_paid, due_date').eq('tenant_id', req.tenantId).in('status', [...OPEN_INVOICE_STATUSES]).is('deleted_at', null).limit(200),
-        supabaseAdmin.from('goals').select('title, progress_pct, status').eq('tenant_id', req.tenantId).eq('status', 'active').limit(5),
+        supabaseAdmin.from('goals').select('title, progress_pct, status').is('deleted_at', null).eq('tenant_id', req.tenantId).eq('status', 'active').limit(5),
       ])
       parts.push(`OPEN_CONVS: ${convRes.count ?? 0}`)
       const overdueInv = (invoiceRes.data ?? [])

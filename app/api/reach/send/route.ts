@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
   // Fetch campaign — must belong to tenant and be in draft/scheduled status
   const { data: campaign, error: campErr } = await supabaseAdmin
     .from('broadcast_campaigns')
-    .select('*')
+    .select('*').is('deleted_at', null)
     .eq('id', campaignId)
     .eq('tenant_id', tenantId)
     .single()
@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
   const audienceFilter = (campaign.audience_filter ?? {}) as { tags?: string[] }
   let contactsQuery = supabaseAdmin
     .from('contacts')
-    .select('id, phone, name:full_name')
+    .select('id, phone, name:full_name').is('deleted_at', null)
     .eq('tenant_id', tenantId)
     .not('phone', 'is', null)
 

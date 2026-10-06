@@ -3263,6 +3263,43 @@ For each persona:
 
 **Output:** a per-persona scorecard (tasks completed / blocked / broken) and a fix list.
 
+### Workstream F — SA law & compliance, verified against primary sources (added mid-session at Nanda's request)
+Every legal rule the app encodes or claims gets checked against the **actual source**:
+gov.za / Government Gazette Acts, SARS, Dept of Employment & Labour, the Information Regulator,
+CIPC, the B-BBEE Commission, and the Constitution. Secondary blogs don't count.
+Each finding records the section cited, the source URL, what the code does, and whether it matches.
+- **Tax:**
+  - PAYE tables and rebates for 2026/27; the UIF ceiling and 1%+1% split; SDL at 1% and the R500k exemption; ETI.
+  - EMP201/EMP501 deadlines.
+  - VAT at 15%, the R1m compulsory / R50k voluntary registration thresholds, and the tax-invoice content rules (VAT Act s20).
+  - Provisional tax and IRP6 dates; record retention (TAA s29, 5 years).
+- **Labour:**
+  - BCEA leave: annual s20, sick s22 (30 days per 36-month cycle), family responsibility s27, maternity s25, parental s25A.
+  - Hours and overtime (s9–s10); payslip contents (s33); notice periods (s37); severance (s41); public holidays.
+  - National minimum wage (current gazetted rate).
+  - LRA fair-dismissal procedure and Code of Good Practice (IR & Discipline page).
+  - EEA: designated-employer threshold after the 2025 amendments, EEA2/EEA4, sector targets.
+  - OHSA incident reporting (s24, Annexure 1 / WCL.2) and COIDA.
+- **Privacy (POPIA):**
+  - Conditions for lawful processing; the Information Officer registration duty.
+  - s18 notice, s69 direct marketing (opt-in, the WhatsApp/SMS broadcasts), s72 cross-border transfer (US/EU AI providers).
+  - Breach notification (s22); data-subject access and erasure; PAIA manual.
+  - **Constitution s14 (privacy) and s9 (equality, EE data).**
+- **Corporate:**
+  - CIPC annual returns (Companies Act s33); beneficial-ownership filing.
+  - NPO Act annual reports (NPO persona); B-BBEE affidavit thresholds (EME < R10m, QSE < R50m).
+  - CPA cooling-off and direct-marketing rules; ECTA s43 website disclosures; NCA if credit is extended.
+- **Where it applies in the app:** payroll engine, leave engine, compliance calendar seeds, invoice documents,
+  broadcasts/Reach/sequences (consent), the AI data flow, EE page, safety page, IR log, licences, the public site's legal pages.
+
+**Output:** a compliance matrix with each rule marked as matched / wrong / missing / over-claimed, then fixes.
+Anything ambiguous goes to Nanda with the source, rather than being guessed.
+
+### Tracked category: APIs with no UI (Nanda: "good that you are picking these up")
+Every route that exists but that no page, component or the Expo app calls gets listed in Results.
+Each is classified as webhook/cron/external, dead (remove), or a missing UI (build it).
+Found so far: `/api/book/[slug]` (public booking: no customer booking page exists), `/api/loyalty`, `/api/projects`.
+
 ### Workstream E — Fix, verify, report
 - Fixes are batched by domain, with a commit per batch. `tsc` 0, tests green and the ratchet (`quality-scan`) must not regress.
 - After deploy, re-run the screen audit and the persona scripts. A fix only counts once it's verified on prod.
@@ -3271,3 +3308,97 @@ For each persona:
 
 ### Results
 _(appended as each workstream closes)_
+
+#### Workstream A — Code ↔ DB contract: done (2026-10-06)
+**New tooling:**
+- `scripts/db-contract-audit.mjs` uses the TypeScript AST against the live schema.
+  It checks:
+  - every select (validated through PostgREST);
+  - insert/update/upsert keys;
+  - NOT NULL columns with no default;
+  - filter columns;
+  - enum/CHECK literal values;
+  - upsert conflict targets (must be a real, non-deferrable, non-partial unique key);
+  - RPCs and storage buckets;
+  - reads of soft-deletable tables that ignore `deleted_at` (`--soft`, with `--fix-soft` codemod).
+- `scripts/sql.mjs` runs read-only SQL through the Management API.
+
+**Scope:** 474 files, 356 unique selects, 245 resolved write payloads (the other 12 hand-checked). Every finding below was confirmed by reading the code and, where possible, probing prod inside a rolled-back transaction.
+
+**Fixed:**
+- **Public booking page wrote `contacts.name`** (the column is `full_name`), and upserted against `contacts_tenant_phone_unique`, which is **DEFERRABLE**.
+  - Postgres refuses deferrable constraints as ON CONFLICT arbiters; verified live: `55000 … does not support deferrable unique constraints`.
+  - Result: every public booking failed.
+  - The same deferrable upsert is in the shared `lib/contacts/upsert.ts` used by the WhatsApp engine, so **no inbound WhatsApp sender would ever have become a contact** (latent: 0 conversations in prod so far).
+  - Rewritten as find-then-fill. Phone identity is now matched across formats (`+27 82…`, `082…`, `2782…` are one person; `lib/contacts/phone.ts` + tests). Blank fields are never overwritten, a soft-deleted match is revived, and a 23505 race re-reads the winner.
+  - The booking route also gained a staff-belongs-to-tenant check, SA phone validation and friendly errors.
+- **176 reads of soft-deletable tables ignored `deleted_at`** across 31 tables, so deleted invoices, staff and contacts would reappear on dashboards, cashflow, board packs, payroll reminders and exports.
+  - Added `.is('deleted_at', null)` to 175 of them (codemod, then reviewed).
+  - The one deliberate exception is the POPIA erasure route, which must find deleted rows.
+- **Board pack:**
+  - Revenue summed `invoices.total`, which is 0 on 4 of Mirembe Muse's real invoices (R94k), so it under-reported revenue.
+  - It filtered `contact_type='customer'` (the enum is `client`), compliance statuses `pending/in_progress` (the real ones are `upcoming/due`) and goal statuses `completed/cancelled` (real: `achieved/missed`), so those sections were always 0.
+  - Rejected expense claims counted as costs.
+  - Valuation and the impact snapshot had the same `total` bug.
+- **Weekly cashflow cron:** stubbed to throw and had never run once. It now uses the real forecast engine.
+- **Forecast engine:**
+  - It forecast only ONE payroll in a 90-day window, from an unordered "last" run, only for `finalised` runs.
+  - Its SARS line left out employee UIF.
+  - It now covers every pay day in the window, with EMP201 on the **7th of the following month, or the last business day before it**, verified against SARS (`emp201DueDate` + tests). Pay day is configurable via `settings.payroll_day`, default 25th.
+- **`/api/cashflow`** returned two different shapes: a snake_case cached row versus camelCase fresh output. It is now normalised.
+- **Website chat widget:** `message_type 'widget_chat'` violated the CHECK, so every visitor message was rejected.
+- **`/api/projects` and the NPS reminder cron** selected `contacts(name)` and errored on every call.
+- **Loyalty expiry** wrote `'expiry'`; the CHECK allows `'expire'`.
+- **Documents DELETE** was a hard delete (Rule #3) that also wiped the stored file, with no role check. It is now a withRoute soft delete; the file is kept.
+- **`documents.file_type` enum** is `pdf|docx|xlsx|csv|image`, but upload wrote the raw extension, so **every image and .txt upload failed** (verified live: `22P02`).
+  - Migration `20261006_document_file_type_text.sql` (adds `text`) is **applied and verified**.
+  - The code maps extension → enum.
+
+**Kept as-is, intentionally:**
+- 9 tables nothing references (`book_in_action_completions`, `calendar_events`, `debtors`, `kb_categories` (used via embed), `overdue_invoices` (view), `rate_limit_overrides`, `referrals`, `sage_connections`, `whatsapp_templates`) all have 0 rows. Each is reviewed with its page in Workstream C.
+
+#### Workstream B — API & AI wiring: static pass done (2026-10-06)
+**New tool:** `scripts/api-wiring-audit.mjs` maps 137 client calls (web + Expo) onto 160 routes.
+- 0 calls to missing routes. The 2 flagged were the external payments hub, which is correct.
+- 0 method mismatches. The one flagged was a spread `init`, a false positive.
+- **54 routes have no UI anywhere**, plus 4 booking routes that are dashboard APIs with no caller. Per Nanda's no-half-built rule, each is resolved in Workstream C: built into its page, or removed if it duplicates a page's server read.
+  - Academy (lessons, streaks, certificates, frameworks, triggered lessons, achievements): a whole feature with no UI.
+  - Loyalty (config API + expiry cron, no earn path, no UI).
+  - Public booking page (`/book/[slug]` has an API but no page).
+  - Goals, NPS, mentorship, performance reviews, profit-first, projects, branches, social accounts, coaching, benchmarks, valuation/cashflow/board-pack APIs (their pages read the DB directly), and admin tools (ai-costs, impact, special-pricing, tenants).
+
+**Inngest:**
+- All 47 functions are registered.
+- `adminos/push.send` (the payroll reminder) had **no listener, so the reminder went nowhere**. Rewired through `notifyTenant` + `pushToUsers` (view_payroll) with per-tenant steps.
+- `adminos/achievement.check` is never sent, so achievements can never be awarded. Wired with the Academy build.
+
+**AI (10 files call models directly or via helpers):**
+- **~20 call sites were unmetered.** `callClaudeAgent` only budgeted and logged when given an optional `tenantId`. Every document-upload call, WhatsApp intent + sentiment (2 per inbound message), inbound voice, and the debt-recovery and cold-lead drafts omitted it. `TenantAI` is now a **required** type, so an unmetered call no longer compiles.
+- **Every upload was AI-processed twice:** inline AND by the Inngest docIntelligence job, racing on the same row.
+  - Files ≥5 MB ran in a promise left alive after the response, which serverless kills: 1 xlsx is stuck "processing" in prod.
+  - Image vision was unmetered.
+  - **Any document classified "invoice" was silently inserted as an unpaid RECEIVABLE**, so a supplier's bill became money "owed" to the business. The n8n copy spread model JSON into that insert, which let a crafted document choose `tenant_id`.
+  - Replaced by one pipeline, `lib/documents/pipeline.ts`: budgeted, small files inline, large files via the durable Inngest job.
+  - Invoices are now *extracted* for the owner to confirm as a bill or an issued invoice (Documents page, Workstream C). Goals are de-duplicated.
+  - The download link was `startsWith(tenant/)`-checked, which `../` traversal bypassed. It now must match a live document row and needs `documents.read`. Upload needs `documents.write`.
+- **When the AI budget ran out, the business's CUSTOMER was sent the owner-facing text** "your daily AI usage limit… upgrade your plan at /dashboard/settings/billing" on WhatsApp. It was also cached as the FAQ answer, so it kept going out after the reset. The email webhook had the same leak. Customers now get a neutral holding reply; the owner gets a deduped alert.
+- **AI cost log used stale prices.** Haiku 4.5 was logged at $0.25/$1.25 per M tokens (actual **$1/$5**, so 4× under-reported) and Opus 4.8 at $15/$75 (actual $5/$25). Model IDs (`claude-haiku-4-5-20251001`, `claude-sonnet-4-6`, `claude-opus-4-8`) are valid and served.
+  - *Recommendation, not changed:* Sonnet 5.5 is newer and cheaper than Sonnet 4.6 ($2/$10 vs $3/$15). The migration changes thinking/tool params, so it needs Nanda's go-ahead.
+
+**Env wiring (names only; values never read):**
+
+| Missing in Vercel prod | Effect |
+|---|---|
+| `GROQ_API_KEY`, `GEMINI_API_KEY` | Free-tier routing is off; everything uses Claude. `.env.local` names it **`GROG_API_KEY`** (typo), which is why it looked set. |
+| `META_APP_SECRET`, `META_WEBHOOK_VERIFY_TOKEN` | WhatsApp webhook can't verify. |
+| `CLOUDINARY_API_KEY/SECRET`, `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` | Creative-asset uploads. |
+| `TWILIO_AUTH_TOKEN` | Ring voice fails closed; correct, but Ring is unusable. |
+| `RESEND_FROM_EMAIL`, `N8N_WEBHOOK_SECRET`, `USD_ZAR_RATE`, store URLs | Smaller gaps. |
+
+- **PostHog was dead in prod:** the code read `POSTHOG_TOKEN`, but Vercel holds `NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN`. So server error capture from withRoute and onRequestError, and all analytics, were off. The code now accepts the configured name.
+
+**SA law caught along the way (POPIA, Workstream F):**
+- Analytics ran for everyone regardless of the cookie banner, and sent users' **email addresses** to a US processor.
+- The banner told users it was "Vercel Analytics… no third-party tracking".
+- Now: PostHog starts only on "Accept all" and opts out on withdrawal; no email is sent (s10 minimality, s72 cross-border); the banner text is accurate.
+- **Nanda's uncommitted GTM snippet in `app/layout.tsx` also loads before consent.** It needs the same gate before it ships.

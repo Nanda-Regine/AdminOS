@@ -43,16 +43,16 @@ export default async function CommandCenter() {
   ] = await Promise.all([
     // Owed only — neq('paid') also counted drafts and cancelled invoices as receivables.
     supabaseAdmin.from('invoices').select('amount, amount_paid, status, due_date, contact_name, created_at, recovery_status').eq('tenant_id', tenantId).in('status', [...OWED_INVOICE_STATUSES]).is('deleted_at', null),
-    supabaseAdmin.from('expenses').select('amount, status, paid_at, created_at').eq('tenant_id', tenantId),
-    supabaseAdmin.from('products').select('name, current_stock, reorder_level, cost_price').eq('tenant_id', tenantId),
-    supabaseAdmin.from('staff').select('id', { count: 'exact', head: true }).eq('tenant_id', tenantId).eq('active', true),
-    supabaseAdmin.from('leave_requests').select('id', { count: 'exact', head: true }).eq('tenant_id', tenantId).eq('status', 'pending'),
-    supabaseAdmin.from('contracts').select('status, end_date').eq('tenant_id', tenantId),
-    supabaseAdmin.from('bookings').select('status, start_at').eq('tenant_id', tenantId).gte('start_at', todayISO),
+    supabaseAdmin.from('expenses').select('amount, status, paid_at, created_at').is('deleted_at', null).eq('tenant_id', tenantId),
+    supabaseAdmin.from('products').select('name, current_stock, reorder_level, cost_price').is('deleted_at', null).eq('tenant_id', tenantId),
+    supabaseAdmin.from('staff').select('id', { count: 'exact', head: true }).is('deleted_at', null).eq('tenant_id', tenantId).eq('active', true),
+    supabaseAdmin.from('leave_requests').select('id', { count: 'exact', head: true }).is('deleted_at', null).eq('tenant_id', tenantId).eq('status', 'pending'),
+    supabaseAdmin.from('contracts').select('status, end_date').is('deleted_at', null).eq('tenant_id', tenantId),
+    supabaseAdmin.from('bookings').select('status, start_at').is('deleted_at', null).eq('tenant_id', tenantId).gte('start_at', todayISO),
     supabaseAdmin.from('tasks').select('status, due_date, priority').eq('tenant_id', tenantId).is('deleted_at', null).not('status', 'in', '("done","completed","cancelled")'),
     supabaseAdmin.from('conversations').select('status, sentiment').eq('tenant_id', tenantId).eq('status', 'open'),
-    supabaseAdmin.from('goals').select('title, progress_pct, status, quarter').eq('tenant_id', tenantId).eq('status', 'active').order('created_at', { ascending: false }).limit(4),
-    supabaseAdmin.from('compliance_items').select('title, due_date, status, penalty_description').eq('tenant_id', tenantId).neq('status', 'completed'),
+    supabaseAdmin.from('goals').select('title, progress_pct, status, quarter').is('deleted_at', null).eq('tenant_id', tenantId).eq('status', 'active').order('created_at', { ascending: false }).limit(4),
+    supabaseAdmin.from('compliance_items').select('title, due_date, status, penalty_description').is('deleted_at', null).eq('tenant_id', tenantId).neq('status', 'completed'),
     supabaseAdmin.from('audit_log').select('action, resource_type, created_at').eq('tenant_id', tenantId).gte('created_at', days1Ago).order('created_at', { ascending: false }).limit(200),
   ])
 

@@ -36,7 +36,7 @@ export const achievementCheckerFunction = inngest.createFunction(
         if (code === 'team_of_five') {
           const { count } = await supabaseAdmin
             .from('staff')
-            .select('id', { count: 'exact', head: true })
+            .select('id', { count: 'exact', head: true }).is('deleted_at', null)
             .eq('tenant_id', tenant_id)
 
           if ((count ?? 0) < 5) return { status: 'skipped', reason: 'not_enough_staff' }

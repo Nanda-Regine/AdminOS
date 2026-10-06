@@ -107,7 +107,7 @@ export default async function ContactDetailPage({
   const [contactRes, convsRes, invoicesRes] = await Promise.all([
     supabaseAdmin
       .from('contacts')
-      .select('*')
+      .select('*').is('deleted_at', null)
       .eq('id', id)
       .eq('tenant_id', tenantId)
       .single(),
@@ -120,9 +120,9 @@ export default async function ContactDetailPage({
       .limit(20),
     supabaseAdmin
       .from('invoices')
-      .select('id, invoice_number, amount, amount_paid, status, due_date, created_at')
+      .select('id, invoice_number, amount, amount_paid, status, due_date, created_at').is('deleted_at', null)
       .eq('tenant_id', tenantId)
-      .eq('contact_phone', (await supabaseAdmin.from('contacts').select('phone').eq('id', id).single()).data?.phone ?? '')
+      .eq('contact_phone', (await supabaseAdmin.from('contacts').select('phone').is('deleted_at', null).eq('id', id).single()).data?.phone ?? '')
       .order('created_at', { ascending: false })
       .limit(20),
   ])

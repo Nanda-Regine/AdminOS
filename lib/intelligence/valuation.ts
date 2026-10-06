@@ -61,26 +61,26 @@ async function getRevenueTTM(tenantId: string): Promise<number> {
   const oneYearAgo = new Date(Date.now() - 365 * 86400000).toISOString()
   const { data } = await supabaseAdmin
     .from('invoices')
-    .select('total')
+    .select('amount').is('deleted_at', null)
     .eq('tenant_id', tenantId)
     .eq('status', 'paid')
     .gte('created_at', oneYearAgo)
 
-  return (data ?? []).reduce((s, inv) => s + (inv.total ?? 0), 0)
+  return (data ?? []).reduce((s, inv) => s + Number(inv.amount ?? 0), 0)
 }
 
 async function getExitReadiness(tenantId: string): Promise<ExitReadinessResult> {
   const warnings: string[] = []
 
   const [sopResult, clientResult, healthResult, staffResult] = await Promise.all([
-    supabaseAdmin.from('sop_documents').select('id', { count: 'exact', head: true })
+    supabaseAdmin.from('sop_documents').select('id', { count: 'exact', head: true }).is('deleted_at', null)
       .eq('tenant_id', tenantId).eq('status', 'active'),
-    supabaseAdmin.from('invoices').select('contact_id, total')
+    supabaseAdmin.from('invoices').select('contact_id, amount').is('deleted_at', null)
       .eq('tenant_id', tenantId).eq('status', 'paid')
       .gte('created_at', new Date(Date.now() - 365 * 86400000).toISOString()),
     supabaseAdmin.from('business_health_snapshots').select('overall_score')
       .eq('tenant_id', tenantId).order('snapshot_date', { ascending: false }).limit(1).single(),
-    supabaseAdmin.from('staff').select('id', { count: 'exact', head: true })
+    supabaseAdmin.from('staff').select('id', { count: 'exact', head: true }).is('deleted_at', null)
       .eq('tenant_id', tenantId).eq('active', true),
   ])
 
@@ -112,9 +112,9 @@ async function getExitReadiness(tenantId: string): Promise<ExitReadinessResult> 
   const recurring = repeatClients >= 5 ? 18 : repeatClients >= 2 ? 12 : repeatClients >= 1 ? 6 : 2
 
   // Client concentration check
-  const totalRevenue = invoices.reduce((s, inv) => s + (inv.total ?? 0), 0)
+  const totalRevenue = invoices.reduce((s, inv) => s + Number(inv.amount ?? 0), 0)
   for (const [clientId, count] of Object.entries(clientCounts)) {
-    const clientRevenue = invoices.filter(i => i.contact_id === clientId).reduce((s, i) => s + (i.total ?? 0), 0)
+    const clientRevenue = invoices.filter(i => i.contact_id === clientId).reduce((s, i) => s + Number(i.amount ?? 0), 0)
     if (totalRevenue > 0 && clientRevenue / totalRevenue > 0.2) {
       warnings.push('A single client represents more than 20% of revenue — high concentration risk')
       break

@@ -32,14 +32,14 @@ export default async function LicensesPage() {
   const [{ data: licenses }, { data: staff }] = await Promise.all([
     supabaseAdmin
       .from('professional_licenses')
-      .select('id, staff_id, license_type, license_number, issuing_body, issue_date, expiry_date, renewal_reminder_days')
+      .select('id, staff_id, license_type, license_number, issuing_body, issue_date, expiry_date, renewal_reminder_days').is('deleted_at', null)
       .eq('tenant_id', tenantId)
       .order('expiry_date', { ascending: true, nullsFirst: false }),
     supabaseAdmin
       .from('staff')
       // staff has no `name` column (it's `full_name` — see supabase/schema.sql:183);
       // aliased here so StaffOption/LicensesClient can keep using `.name` untouched.
-      .select('id, name:full_name')
+      .select('id, name:full_name').is('deleted_at', null)
       .eq('tenant_id', tenantId)
       .order('full_name'),
   ])

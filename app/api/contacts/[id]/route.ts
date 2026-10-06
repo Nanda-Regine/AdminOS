@@ -28,7 +28,7 @@ export async function GET(_req: Request, { params }: Params) {
   const [contactRes, conversationsRes, invoicesRes] = await Promise.all([
     supabaseAdmin
       .from('contacts')
-      .select('*')
+      .select('*').is('deleted_at', null)
       .eq('id', id)
       .eq('tenant_id', tenantId)
       .single(),
@@ -41,7 +41,7 @@ export async function GET(_req: Request, { params }: Params) {
       .limit(20),
     supabaseAdmin
       .from('invoices')
-      .select('id, invoice_number, amount, amount_paid, status, due_date, created_at, contact_id, contact_phone')
+      .select('id, invoice_number, amount, amount_paid, status, due_date, created_at, contact_id, contact_phone').is('deleted_at', null)
       .eq('tenant_id', tenantId)
       .order('created_at', { ascending: false })
       .limit(50),

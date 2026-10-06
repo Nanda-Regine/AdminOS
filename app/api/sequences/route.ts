@@ -14,7 +14,7 @@ export async function GET() {
   // Fetch sequences with active enrollment counts
   const { data: sequences, error } = await supabaseAdmin
     .from('whatsapp_sequences')
-    .select('*')
+    .select('*').is('deleted_at', null)
     .eq('tenant_id', tenantId)
     .order('created_at', { ascending: false })
 

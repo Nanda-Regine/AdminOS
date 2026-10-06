@@ -1,62 +1,32 @@
-import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import { writeAuditLog } from '@/lib/security/audit'
+import { withRoute, unwrap, notFound } from '@/lib/api/withRoute'
+import { softDelete } from '@/lib/db/softDelete'
 
-interface Params { params: Promise<{ id: string }> }
-
-export async function GET(_req: Request, { params }: Params) {
-  const { id } = await params
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new NextResponse('Unauthorized', { status: 401 })
-
-  const tenantId = user.app_metadata?.tenant_id as string
-
-  const { data, error } = await supabase
+// GET /api/documents/[id] — one live document of this business.
+// Was any logged-in member, through the session client; now documents.read.
+export const GET = withRoute({
+  action: 'documents.read',
+}, async ({ ctx, params }) => {
+  return unwrap(await supabaseAdmin
     .from('documents')
     .select('*')
-    .eq('id', id)
-    .eq('tenant_id', tenantId)
-    .single()
+    .eq('id', params.id)
+    .eq('tenant_id', ctx.tenantId)
+    .is('deleted_at', null)
+    .maybeSingle(), { required: true, what: 'Document not found' })
+})
 
-  if (error) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-  return NextResponse.json(data)
-}
-
-export async function DELETE(_req: Request, { params }: Params) {
-  const { id } = await params
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new NextResponse('Unauthorized', { status: 401 })
-
-  const tenantId = user.app_metadata?.tenant_id as string
-
-  const { data: doc } = await supabase
-    .from('documents')
-    .select('storage_url')
-    .eq('id', id)
-    .eq('tenant_id', tenantId)
-    .single()
-
-  if (!doc) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-
-  const storagePath = doc.storage_url
-  if (storagePath) {
-    await supabaseAdmin.storage.from('documents').remove([storagePath]).catch(() => {})
-    await supabaseAdmin.storage.from('tenant-documents').remove([storagePath]).catch(() => {})
-  }
-
-  await supabaseAdmin.from('documents').delete().eq('id', id).eq('tenant_id', tenantId)
-
-  await writeAuditLog({
-    tenantId,
-    actor: user.id,
-    action: 'document.deleted',
-    resourceType: 'document',
-    resourceId: id,
-    metadata: {},
-  })
-
-  return new NextResponse(null, { status: 204 })
-}
+// DELETE /api/documents/[id] — soft delete (Rule #3).
+// This used to hard-delete the row AND remove the stored file from two
+// buckets (one of which, 'tenant-documents', doesn't exist), with no role
+// check: any staff member could permanently destroy any business document.
+// The file is kept so the document can be restored; storage is only purged
+// by a deliberate retention process, never by a click.
+export const DELETE = withRoute({
+  action: 'documents.write',
+  audit: 'document.deleted',
+  resourceType: 'document',
+}, async ({ ctx, params }) => {
+  if (!(await softDelete(supabaseAdmin, 'documents', { id: params.id, tenantId: ctx.tenantId }))) throw notFound('Document not found')
+  return { id: params.id, deleted: true }
+})

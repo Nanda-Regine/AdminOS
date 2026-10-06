@@ -35,7 +35,7 @@ export default async function CompliancePage() {
 
   const { data } = await supabaseAdmin
     .from('compliance_items')
-    .select('id, item_type, title, description, due_date, recurrence, status, penalty_description, completed_at')
+    .select('id, item_type, title, description, due_date, recurrence, status, penalty_description, completed_at').is('deleted_at', null)
     .eq('tenant_id', tenantId)
     .order('due_date', { ascending: true, nullsFirst: false })
 

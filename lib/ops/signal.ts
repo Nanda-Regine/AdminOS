@@ -34,10 +34,10 @@ export async function buildOpsIntel(tenantId: string): Promise<OpsIntel> {
   const in7 = new Date(Date.now() + 7 * 86400000).toISOString()
 
   const [prodRes, bookRes, taskRes] = await Promise.all([
-    supabaseAdmin.from('products').select('name, current_stock, reorder_level, cost_price, unit_price').eq('tenant_id', tenantId),
+    supabaseAdmin.from('products').select('name, current_stock, reorder_level, cost_price, unit_price').is('deleted_at', null).eq('tenant_id', tenantId),
     supabaseAdmin
       .from('bookings')
-      .select('id, start_at, status, contact:contacts(full_name), service:booking_services(name)')
+      .select('id, start_at, status, contact:contacts(full_name), service:booking_services(name)').is('deleted_at', null)
       .eq('tenant_id', tenantId)
       .gte('start_at', todayISO)
       .lte('start_at', in7)

@@ -22,7 +22,7 @@ export async function GET(request: Request) {
 
   const { data, error } = await supabaseAdmin
     .from('social_accounts')
-    .select('id, platform, account_name, connected_at')  // exclude access_token
+    .select('id, platform, account_name, connected_at').is('deleted_at', null)  // exclude access_token
     .eq('tenant_id', tenantId)
     .order('platform')
 

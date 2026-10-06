@@ -10,7 +10,7 @@ const createSchema = z.object({
 async function verifyTaskOwnership(taskId: string, tenantId: string): Promise<boolean> {
   const { data } = await supabaseAdmin
     .from('tasks')
-    .select('id')
+    .select('id').is('deleted_at', null)
     .eq('id', taskId)
     .eq('tenant_id', tenantId)
     .single()
@@ -32,7 +32,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
   const { data, error } = await supabaseAdmin
     .from('task_comments')
-    .select('*')
+    .select('*').is('deleted_at', null)
     .eq('task_id', id)
     .eq('tenant_id', tenantId)
     .order('created_at', { ascending: true })

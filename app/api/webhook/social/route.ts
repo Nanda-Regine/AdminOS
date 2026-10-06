@@ -69,7 +69,7 @@ async function handleFacebookWebhook(payload: Record<string, unknown>) {
     // Find which tenant owns this Facebook page
     const { data: account } = await supabaseAdmin
       .from('social_accounts')
-      .select('tenant_id')
+      .select('tenant_id').is('deleted_at', null)
       .eq('platform', 'facebook')
       .eq('account_id', pageId)
       .maybeSingle()
@@ -127,7 +127,7 @@ async function handleInstagramWebhook(payload: Record<string, unknown>) {
 
     const { data: account } = await supabaseAdmin
       .from('social_accounts')
-      .select('tenant_id')
+      .select('tenant_id').is('deleted_at', null)
       .eq('platform', 'instagram')
       .eq('account_id', igAccountId)
       .maybeSingle()

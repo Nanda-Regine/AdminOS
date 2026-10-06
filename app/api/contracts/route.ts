@@ -34,7 +34,7 @@ export async function GET(request: Request) {
 
   let query = supabaseAdmin
     .from('contracts')
-    .select('*, contact:contacts(name:full_name, email), signatures:contract_signatures(*)')
+    .select('*, contact:contacts(name:full_name, email), signatures:contract_signatures(*)').is('deleted_at', null)
     .eq('tenant_id', tenantId)
     .order('created_at', { ascending: false })
 

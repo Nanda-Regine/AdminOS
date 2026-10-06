@@ -28,10 +28,10 @@ export async function GET(request: Request) {
     .from('projects')
     .select(`
       *,
-      contact:contacts(name),
+      contact:contacts(name:full_name),
       tasks:tasks(count),
       open_tasks:tasks!inner(count)
-    `)
+    `).is('deleted_at', null)
     .eq('tenant_id', tenantId)
     .order('created_at', { ascending: false })
 
@@ -61,7 +61,7 @@ export async function POST(request: Request) {
   if (body.contactId) {
     const { data: contactRow } = await supabaseAdmin
       .from('contacts')
-      .select('id')
+      .select('id').is('deleted_at', null)
       .eq('id', body.contactId)
       .eq('tenant_id', tenantId)
       .maybeSingle()

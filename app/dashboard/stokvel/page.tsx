@@ -82,12 +82,12 @@ export default async function StokvelPage() {
   const [groupResult, memberResult] = await Promise.all([
     supabaseAdmin
       .from('stokvel_groups')
-      .select('id, name, rules, contribution_amount, frequency, status, created_at')
+      .select('id, name, rules, contribution_amount, frequency, status, created_at').is('deleted_at', null)
       .eq('tenant_id', tenantId)
       .order('created_at', { ascending: false }),
     supabaseAdmin
       .from('stokvel_members')
-      .select('id, group_id, name, phone, payout_position, joined_at')
+      .select('id, group_id, name, phone, payout_position, joined_at').is('deleted_at', null)
       .eq('tenant_id', tenantId)
       .order('joined_at', { ascending: false }),
   ])

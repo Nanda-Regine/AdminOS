@@ -60,13 +60,13 @@ export async function buildLangaContext(tenantId: string, userId: string): Promi
       .single(),
     supabaseAdmin
       .from('goals')
-      .select('title, status')
+      .select('title, status').is('deleted_at', null)
       .eq('tenant_id', tenantId)
       .eq('status', 'active')
       .limit(5),
     supabaseAdmin
       .from('invoices')
-      .select('status, amount_due, due_date')
+      .select('status, amount_due, due_date').is('deleted_at', null)
       .eq('tenant_id', tenantId)
       .gte('created_at', sevenDaysAgo)
       .limit(20),

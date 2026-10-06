@@ -83,7 +83,7 @@ async function addLeaveTaken(tenantId: string, staffId: string, days: number): P
   for (let attempt = 0; attempt < 5; attempt++) {
     const staff = unwrap(await supabaseAdmin
       .from('staff')
-      .select('leave_balance, leave_taken')
+      .select('leave_balance, leave_taken').is('deleted_at', null)
       .eq('id', staffId)
       .eq('tenant_id', tenantId)
       .maybeSingle())

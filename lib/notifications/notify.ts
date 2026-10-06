@@ -96,7 +96,7 @@ export async function notifyContact(
   try {
     const { data: contact } = await supabaseAdmin
       .from('contacts')
-      .select('phone, wa_id, full_name')
+      .select('phone, wa_id, full_name').is('deleted_at', null)
       .eq('tenant_id', tenantId)
       .eq('id', contactId)
       .maybeSingle()

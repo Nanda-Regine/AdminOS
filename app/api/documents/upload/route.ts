@@ -1,16 +1,16 @@
-import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { z } from 'zod'
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import { parseFile, detectFileType, isImageType, isMediaType, getAllowedExtensions } from '@/lib/files/parser'
-import { classifyDocument, extractGoalsFromDoc, callClaudeAgent } from '@/lib/ai/callClaude'
-import { writeAuditLog, getClientIp } from '@/lib/security/audit'
-import { checkRateLimit } from '@/lib/security/rateLimit'
+import { withRoute, badRequest, notFound, RouteError } from '@/lib/api/withRoute'
+import { detectFileType, getAllowedExtensions } from '@/lib/files/parser'
+import { processDocumentBuffer, toDbFileType } from '@/lib/documents/pipeline'
 import { inngest } from '@/inngest/client'
 
 export const runtime = 'nodejs'
-export const maxDuration = 60 // file parsing can be slow for large docs
+export const maxDuration = 60 // parsing + AI for a small document fits; large ones go to Inngest
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10 MB
+/** Below this, process in the request so the user sees the summary immediately. */
+const INLINE_LIMIT = 5 * 1024 * 1024
 
 const ALLOWED_MIME_TYPES = new Set([
   'application/pdf',
@@ -23,396 +23,98 @@ const ALLOWED_MIME_TYPES = new Set([
   'image/webp',
 ])
 
-export async function POST(request: Request) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new NextResponse('Unauthorized', { status: 401 })
+// POST /api/documents/upload (multipart: file, is_reference?) — store + process.
+// Was any logged-in member (field agents and client logins could upload) and
+// ran processing twice; see lib/documents/pipeline.ts for the full history.
+export const POST = withRoute({
+  action: 'documents.write',
+  rateLimit: 'api',
+  audit: 'document.uploaded',
+  resourceType: 'document',
+}, async ({ ctx, request }) => {
+  let form: FormData
+  try { form = await request.formData() } catch { throw badRequest('Invalid form data') }
 
-  const tenantId = user.app_metadata?.tenant_id as string
-  if (!tenantId) return new NextResponse('Tenant not found', { status: 403 })
+  const file = form.get('file')
+  if (!(file instanceof File)) throw badRequest('No file provided')
+  const isReference = form.get('is_reference') === 'true'
 
-  // Rate limit uploads
-  const { success } = await checkRateLimit('api', tenantId)
-  if (!success) return new NextResponse('Too Many Requests', { status: 429 })
+  if (file.size > MAX_FILE_SIZE) throw new RouteError(413, 'File too large. Maximum size is 10 MB.', 'too_large')
+  if (!ALLOWED_MIME_TYPES.has(file.type)) throw new RouteError(415, 'File type not allowed.', 'unsupported_type')
 
-  // Parse multipart form
-  let formData: FormData
-  try {
-    formData = await request.formData()
-  } catch {
-    return NextResponse.json({ error: 'Invalid form data' }, { status: 400 })
-  }
-
-  const file = formData.get('file') as File | null
-  if (!file) return NextResponse.json({ error: 'No file provided' }, { status: 400 })
-
-  const isReference = formData.get('is_reference') === 'true'
-
-  // Size check
-  if (file.size > MAX_FILE_SIZE) {
-    return NextResponse.json({ error: 'File too large. Maximum size is 10MB.' }, { status: 413 })
-  }
-
-  // MIME type allowlist
-  if (!ALLOWED_MIME_TYPES.has(file.type)) {
-    return NextResponse.json({ error: 'File type not allowed.' }, { status: 415 })
-  }
-
-  // File type detection
   const fileType = detectFileType(file.name, file.type)
-  if (!fileType) {
-    return NextResponse.json({
-      error: `Unsupported file type. Supported: ${getAllowedExtensions().join(', ')}`,
-    }, { status: 415 })
+  const dbType = fileType ? toDbFileType(fileType) : null
+  if (!fileType || !dbType) {
+    throw new RouteError(415, `Unsupported file type. Supported: ${getAllowedExtensions().join(', ')}`, 'unsupported_type')
   }
 
   const buffer = Buffer.from(await file.arrayBuffer())
 
-  // ── 1. Upload to Supabase Storage (private bucket, encrypted at rest) ────────
-  const storagePath = `${tenantId}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_')}`
-
+  // Private bucket; the path is always namespaced by tenant.
+  const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_').slice(-120)
+  const storagePath = `${ctx.tenantId}/${Date.now()}-${safeName}`
   const { error: uploadError } = await supabaseAdmin.storage
     .from('documents')
-    .upload(storagePath, buffer, {
-      contentType: file.type,
-      upsert: false,
-    })
-
+    .upload(storagePath, buffer, { contentType: file.type, upsert: false })
   if (uploadError) {
-    console.error('[Upload] Storage error:', uploadError)
-    return NextResponse.json({ error: 'Failed to store file' }, { status: 500 })
+    console.error('[upload] storage error', uploadError)
+    throw new RouteError(500, 'Failed to store file', 'storage_failed')
   }
 
-  // ── 2. Create pending document record immediately (user sees it straight away) ─
-  const { data: docRecord, error: insertErr } = await supabaseAdmin
+  const { data: doc, error: insertErr } = await supabaseAdmin
     .from('documents')
-    // Only real columns. This insert previously also wrote file_name/storage_path/
-    // status — none of which exist on `documents` — so every upload 400'd (the
-    // table had 0 rows). The canonical columns are original_filename/storage_url/
-    // processing_status.
     .insert({
-      tenant_id: tenantId,
-      original_filename: file.name,
-      file_type: fileType,
+      tenant_id: ctx.tenantId,
+      original_filename: file.name.slice(0, 255),
+      file_type: dbType,
       storage_url: storagePath,
       is_reference: isReference,
       processing_status: 'processing',
-      uploaded_by: user.id,
+      uploaded_by: ctx.userId,
     })
     .select('id')
     .single()
-
-  if (insertErr || !docRecord) {
-    return NextResponse.json({ error: 'Failed to create document record' }, { status: 500 })
+  if (insertErr || !doc) {
+    console.error('[upload] insert error', insertErr)
+    throw new RouteError(500, 'Failed to create document record', 'insert_failed')
   }
 
-  // ── 3. Fire Inngest doc intelligence pipeline ─────────────────────────────────
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  inngest.send({ name: 'adminos/document.uploaded' as any, data: { document_id: docRecord.id, tenant_id: tenantId, file_type: fileType, is_reference: isReference } }).catch(() => {})
-
-  // ── 4. Parse the file (async — don't block the response for large files) ──────
-  // For files under 5MB, process synchronously for instant feedback.
-  // For larger files, return immediately and process in background.
-  const processSynchronously = file.size < 5 * 1024 * 1024
-
-  if (processSynchronously) {
-    await processDocument(docRecord.id, tenantId, buffer, fileType, file.type, file.name, user.id)
-    const { data: updatedDoc } = await supabaseAdmin
-      .from('documents')
-      .select('*')
-      .eq('id', docRecord.id)
-      .single()
-    return NextResponse.json({ success: true, document: updatedDoc })
-  }
-
-  // Large file — process in background, return the pending record
-  processDocument(docRecord.id, tenantId, buffer, fileType, file.type, file.name, user.id)
-    .catch((err) => console.error('[Upload] Background processing failed:', err))
-
-  await writeAuditLog({
-    tenantId,
-    actor: user.id,
-    action: 'document.upload.queued',
-    resourceType: 'document',
-    resourceId: docRecord.id,
-    ipAddress: getClientIp(request),
-    metadata: { filename: file.name, fileType, size: file.size },
-  })
-
-  return NextResponse.json({ success: true, document: { id: docRecord.id, processing_status: 'processing' } })
-}
-
-async function processDocument(
-  docId: string,
-  tenantId: string,
-  buffer: Buffer,
-  fileType: ReturnType<typeof detectFileType>,
-  mimeType: string,
-  filename: string,
-  userId: string
-) {
-  try {
-    // ── Parse ──────────────────────────────────────────────────────────────────
-    const parsed = await parseFile(buffer, fileType!, mimeType)
-
-    if (parsed.needsTranscription) {
-      // Audio/video — mark for manual transcription or future Whisper integration
-      await supabaseAdmin.from('documents').update({
-        file_type: fileType,
-        extracted_text: null,
-        ai_summary: 'Audio/video transcription coming soon. File stored securely.',
-        processing_status: 'done',
-        doc_category: 'report',
-      }).eq('id', docId)
-      return
-    }
-
-    if (isImageType(fileType!)) {
-      // Use Claude vision to describe and classify the image
-      const imageB64 = buffer.toString('base64')
-      const vision = await callClaudeWithVision(imageB64, mimeType, filename)
-      await supabaseAdmin.from('documents').update({
-        file_type: fileType,
-        extracted_text: vision.description,
-        ai_summary: vision.summary,
-        doc_category: vision.category,
-        processing_status: 'done',
-      }).eq('id', docId)
-      return
-    }
-
-    const extractedText = parsed.text
-    if (!extractedText.trim()) {
-      await supabaseAdmin.from('documents').update({
-        processing_status: 'failed',
-        ai_summary: 'Could not extract text from this file. It may be image-based (scanned PDF) or corrupted.',
-      }).eq('id', docId)
-      return
-    }
-
-    // ── Classify ──────────────────────────────────────────────────────────────
-    const classification = await classifyDocument(extractedText)
-    let aiSummary = ''
-    let extractedGoals = null
-
-    // ── Route by category ─────────────────────────────────────────────────────
-    switch (classification.category) {
-      case 'strategy': {
-        const goals = await extractGoalsFromDoc(extractedText)
-        extractedGoals = goals
-        if (goals.length > 0) {
-          await supabaseAdmin.from('goals').insert(
-            goals.map((g) => ({
-              tenant_id: tenantId,
-              title: g.title,
-              description: g.description,
-              quarter: g.quarter || null,
-              target_metric: g.target_metric || null,
-              target_value: g.target_value || null,
-              current_value: 0,
-              status: 'active',
-            }))
-          )
-        }
-        aiSummary = await callClaudeAgent(
-          'Summarise this strategy document in 3 clear sentences for a business manager.',
-          extractedText.slice(0, 4000),
-          200
-        )
-        break
-      }
-
-      case 'invoice': {
-        const invoiceRaw = await callClaudeAgent(
-          'Extract invoice data as strict JSON with ONLY these fields: {"contact_name":"string","contact_email":"string or null","contact_phone":"string or null","amount":number,"due_date":"YYYY-MM-DD or null"}. No other fields.',
-          extractedText.slice(0, 2000),
-          200
-        )
-        try {
-          const jsonMatch = invoiceRaw.match(/\{[\s\S]*\}/)
-          if (jsonMatch) {
-            const inv = JSON.parse(jsonMatch[0])
-            const dueDate   = inv.due_date ? String(inv.due_date) : null
-            const daysOverdue = dueDate
-              ? Math.max(0, Math.floor((Date.now() - new Date(dueDate).getTime()) / 86_400_000))
-              : 0
-            // Whitelist only safe fields
-            const safeInvoice = {
-              tenant_id:      tenantId,
-              contact_name:   String(inv.contact_name || 'Unknown'),
-              contact_email:  inv.contact_email  ? String(inv.contact_email)  : null,
-              contact_phone:  inv.contact_phone  ? String(inv.contact_phone)  : null,
-              amount:         Math.abs(Number(inv.amount) || 0),
-              amount_paid:    0,
-              due_date:       dueDate,
-              days_overdue:   daysOverdue,
-              status:         'unpaid' as const,
-              escalation_level: 0,
-            }
-            if (safeInvoice.contact_name !== 'Unknown' && safeInvoice.amount > 0) {
-              await supabaseAdmin.from('invoices').insert(safeInvoice)
-            }
-          }
-        } catch {
-          console.error('[Upload] Invoice parse failed for doc:', docId)
-        }
-        aiSummary = await callClaudeAgent(
-          'Summarise this invoice in one sentence (who owes what, how much, when due).',
-          extractedText.slice(0, 1000),
-          100
-        )
-        break
-      }
-
-      case 'hr': {
-        aiSummary = await callClaudeAgent(
-          'Summarise this HR document in 2 sentences for a manager.',
-          extractedText.slice(0, 3000),
-          150
-        )
-        break
-      }
-
-      case 'report': {
-        aiSummary = await callClaudeAgent(
-          'Summarise this report in 3 bullet points. Be concise and action-oriented for a business manager.',
-          extractedText.slice(0, 4000),
-          300
-        )
-        break
-      }
-
-      case 'contract': {
-        // Extract structured contract data — parties, dates, obligations
-        const contractRaw = await callClaudeAgent(
-          'Extract contract data as strict JSON with ONLY these fields: {"parties":["string"],"start_date":"YYYY-MM-DD or null","end_date":"YYYY-MM-DD or null","renewal_date":"YYYY-MM-DD or null","payment_amount":number or null,"key_obligations":["string"]}. No other fields.',
-          extractedText.slice(0, 4000),
-          400
-        )
-        try {
-          const jsonMatch = contractRaw.match(/\{[\s\S]*\}/)
-          if (jsonMatch) {
-            const contractData = JSON.parse(jsonMatch[0])
-            extractedGoals = contractData // store structured data in the JSONB field
-
-            // If there's a renewal date, note it prominently in the summary
-            if (contractData.renewal_date) {
-              const renewalDate = new Date(contractData.renewal_date)
-              const daysUntilRenewal = Math.floor((renewalDate.getTime() - Date.now()) / 86_400_000)
-              const urgencyNote = daysUntilRenewal < 30 ? ` ⚠️ RENEWAL IN ${daysUntilRenewal} DAYS` : ` (renewal in ${daysUntilRenewal} days)`
-              aiSummary = `Contract between ${(contractData.parties || []).join(' and ')}. Renewal: ${contractData.renewal_date}${urgencyNote}. Key obligations: ${(contractData.key_obligations || []).slice(0, 2).join('; ')}.`
-            }
-          }
-        } catch {
-          console.error('[Upload] Contract parse failed for doc:', docId)
-        }
-        if (!aiSummary) {
-          aiSummary = await callClaudeAgent(
-            'Summarise the key terms of this contract in 3 bullet points: parties involved, main obligations, key dates or amounts.',
-            extractedText.slice(0, 4000),
-            300
-          )
-        }
-        break
-      }
-    }
-
-    // ── Save final result ──────────────────────────────────────────────────────
-    await supabaseAdmin.from('documents').update({
-      file_type: fileType,
-      extracted_text: extractedText.slice(0, 80_000),
-      doc_category: classification.category,
-      ai_summary: aiSummary,
-      extracted_goals: extractedGoals,
-      processing_status: 'done',
-    }).eq('id', docId)
-
-    await writeAuditLog({
-      tenantId,
-      actor: userId,
-      action: 'document.processed',
-      resourceType: 'document',
-      resourceId: docId,
-      metadata: {
-        filename,
-        category: classification.category,
-        confidence: classification.confidence,
-        goalsExtracted: Array.isArray(extractedGoals) ? extractedGoals.length : 0,
-      },
+  if (file.size < INLINE_LIMIT) {
+    await processDocumentBuffer({
+      docId: doc.id, tenantId: ctx.tenantId, filename: file.name, actor: ctx.userId,
+      isReference, buffer, fileType, mimeType: file.type,
     })
-  } catch (err) {
-    console.error('[Upload] Processing error:', err)
-    await supabaseAdmin.from('documents').update({
-      processing_status: 'failed',
-      ai_summary: 'Processing failed. Please try uploading again.',
-    }).eq('id', docId)
+    const { data: updated } = await supabaseAdmin
+      .from('documents').select('*').eq('id', doc.id).single()
+    return { id: doc.id, success: true, document: updated }
   }
-}
 
-// Claude vision for image files
-async function callClaudeWithVision(
-  imageB64: string,
-  mimeType: string,
-  filename: string
-): Promise<{ description: string; summary: string; category: string }> {
-  const Anthropic = (await import('@anthropic-ai/sdk')).default
-  const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
-
-  const validImageMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
-  const safeMime = validImageMimes.includes(mimeType) ? mimeType : 'image/jpeg'
-
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-6',
-    max_tokens: 500,
-    messages: [{
-      role: 'user',
-      content: [
-        {
-          type: 'image',
-          source: {
-            type: 'base64',
-            media_type: safeMime as 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif',
-            data: imageB64,
-          },
-        },
-        {
-          type: 'text',
-          text: `This image was uploaded to a business document system (filename: ${filename}). Describe what it contains and classify it. Reply as JSON: {"description":"...","summary":"...","category":"strategy|invoice|hr|report|contract"}`,
-        },
-      ],
-    }],
+  // Large file: hand to the durable Inngest job (retried, not killed with the
+  // response). It re-reads the file from storage.
+  await inngest.send({
+    name: 'adminos/document.uploaded',
+    data: { document_id: doc.id, tenant_id: ctx.tenantId, file_type: fileType, mime_type: file.type, is_reference: isReference, actor: ctx.userId },
   })
+  return { id: doc.id, success: true, document: { id: doc.id, processing_status: 'processing' } }
+})
 
-  const text = response.content[0].type === 'text' ? response.content[0].text : '{}'
-  try {
-    const jsonMatch = text.match(/\{[\s\S]*\}/)
-    return jsonMatch ? JSON.parse(jsonMatch[0]) : { description: text, summary: text, category: 'report' }
-  } catch {
-    return { description: text, summary: text, category: 'report' }
-  }
-}
+// GET /api/documents/upload?path=… — a 1-hour signed URL for a stored file.
+// The old check was `path.startsWith(tenantId + '/')`, which `tenant/../other/`
+// passes; and anyone in the tenant could fetch any file. Now the path must
+// belong to a live document row of this tenant, and the caller needs documents.read.
+export const GET = withRoute({
+  action: 'documents.read',
+  query: z.object({ path: z.string().min(1).max(500) }),
+}, async ({ ctx, query }) => {
+  const path = query.path
+  if (path.includes('..') || path.includes('//') || !path.startsWith(`${ctx.tenantId}/`)) throw notFound('File not found')
 
-// Signed URL endpoint for secure file access
-export async function GET(request: Request) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new NextResponse('Unauthorized', { status: 401 })
+  const { data: doc } = await supabaseAdmin
+    .from('documents').select('id').is('deleted_at', null)
+    .eq('tenant_id', ctx.tenantId).eq('storage_url', path).maybeSingle()
+  if (!doc) throw notFound('File not found')
 
-  const url = new URL(request.url)
-  const storagePath = url.searchParams.get('path')
-  if (!storagePath) return NextResponse.json({ error: 'Missing path' }, { status: 400 })
-
-  // Verify the file belongs to this tenant
-  const tenantId = user.app_metadata?.tenant_id as string
-  if (!storagePath.startsWith(`${tenantId}/`)) {
-    return new NextResponse('Forbidden', { status: 403 })
-  }
-
-  const { data, error } = await supabaseAdmin.storage
-    .from('documents')
-    .createSignedUrl(storagePath, 3600) // 1-hour expiry
-
-  if (error) return NextResponse.json({ error: 'Could not generate URL' }, { status: 500 })
-
-  return NextResponse.json({ url: data.signedUrl })
-}
+  const { data, error } = await supabaseAdmin.storage.from('documents').createSignedUrl(path, 3600)
+  if (error || !data) throw new RouteError(500, 'Could not generate a download link', 'sign_failed')
+  return { url: data.signedUrl }
+})

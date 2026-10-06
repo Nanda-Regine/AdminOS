@@ -15,7 +15,7 @@ export async function GET() {
 
   const { data: campaigns, error } = await supabaseAdmin
     .from('broadcast_campaigns')
-    .select('*')
+    .select('*').is('deleted_at', null)
     .eq('tenant_id', tenantId)
     .order('created_at', { ascending: false })
 

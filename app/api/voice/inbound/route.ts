@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
   // Look up tenant by Twilio number
   const { data: tenant } = await supabaseAdmin
     .from('tenants')
-    .select('id, name, twilio_phone_number')
+    .select('id, name, plan, twilio_phone_number')
     .eq('twilio_phone_number', to)
     .single()
 
@@ -136,7 +136,7 @@ ${updatedTranscript}`
   let shouldTransfer = false
 
   try {
-    const result = await callClaudeAgent(systemPrompt, safeText, 100)
+    const result = await callClaudeAgent(systemPrompt, safeText, 100, { tenantId: tenant.id, plan: tenant.plan ?? 'trial', feature: 'voice_reply' })
     aiResponse = result || 'I apologise, I had trouble understanding. Could you repeat that?'
     shouldTransfer = aiResponse.startsWith('TRANSFER_TO_STAFF')
     if (shouldTransfer) {
@@ -162,7 +162,7 @@ ${updatedTranscript}`
     // Get staff transfer number from tenant
     const { data: staffMember } = await supabaseAdmin
       .from('staff')
-      .select('phone')
+      .select('phone').is('deleted_at', null)
       .eq('tenant_id', tenant.id)
       .eq('department', 'management')
       .limit(1)

@@ -32,7 +32,7 @@ export async function POST(
 
   const { data: campaign } = await supabaseAdmin
     .from('broadcast_campaigns')
-    .select('*')
+    .select('*').is('deleted_at', null)
     .eq('id', id)
     .eq('tenant_id', tenantId)
     .single()
@@ -60,7 +60,7 @@ export async function POST(
 
   let query = supabaseAdmin
     .from('contacts')
-    .select('id, phone, full_name')
+    .select('id, phone, full_name').is('deleted_at', null)
     .eq('tenant_id', tenantId)
     .not('phone', 'is', null)
     .neq('phone', '')

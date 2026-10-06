@@ -4,6 +4,7 @@ import { useEffect, Suspense } from 'react'
 import { usePathname, useSearchParams } from 'next/navigation'
 import posthog from 'posthog-js'
 import { createClient } from '@/lib/supabase/client'
+import { CONSENT_EVENT, CONSENT_STORAGE_KEY } from '@/components/CookieConsent'
 
 /**
  * Client-side PostHog. Renders nothing — it's three side effects:
@@ -18,9 +19,45 @@ import { createClient } from '@/lib/supabase/client'
  */
 let initialized = false
 
-export function PostHogAnalytics({ apiKey }: { apiKey?: string }) {
+function consentGiven(): boolean {
+  try { return localStorage.getItem(CONSENT_STORAGE_KEY) === 'accepted' } catch { return false }
+}
+
+/**
+ * POPIA: analytics is optional processing (and a cross-border transfer, s72),
+ * so it starts only after the visitor clicks "Accept all" on the cookie banner,
+ * and stops if they later choose "Necessary only". Until Session 20 it ran for
+ * everyone regardless of the banner, and sent users' email addresses.
+ *
+ * Key: Vercel holds NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN, not POSTHOG_TOKEN — the
+ * old prop-only lookup meant analytics never started in production.
+ */
+export function PostHogAnalytics({ apiKey: apiKeyProp }: { apiKey?: string }) {
+  const apiKey = apiKeyProp || process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN
   useEffect(() => {
-    if (!apiKey || initialized) return
+    if (!apiKey) return
+    const apply = () => {
+      if (!consentGiven()) {
+        if (initialized) posthog.opt_out_capturing()
+        return
+      }
+      if (initialized) { posthog.opt_in_capturing(); return }
+      start(apiKey)
+    }
+    apply()
+    window.addEventListener(CONSENT_EVENT, apply)
+    return () => window.removeEventListener(CONSENT_EVENT, apply)
+  }, [apiKey])
+
+  return (
+    <>
+      <Suspense fallback={null}><PageView /></Suspense>
+      <Identify />
+    </>
+  )
+}
+
+function start(apiKey: string) {
     posthog.init(apiKey, {
       api_host: '/ingest',
       ui_host: 'https://us.posthog.com',
@@ -32,14 +69,6 @@ export function PostHogAnalytics({ apiKey }: { apiKey?: string }) {
       persistence: 'localStorage+cookie',
     })
     initialized = true
-  }, [apiKey])
-
-  return (
-    <>
-      <Suspense fallback={null}><PageView /></Suspense>
-      <Identify />
-    </>
-  )
 }
 
 function PageView() {
@@ -64,9 +93,9 @@ function Identify() {
         if (!active) return
         const u = data.user
         if (u) {
+          // id + tenant only — no email (POPIA s10 minimality).
           posthog.identify(u.id, {
             tenant_id: (u.app_metadata as { tenant_id?: string } | undefined)?.tenant_id,
-            email: u.email,
           })
         }
       })

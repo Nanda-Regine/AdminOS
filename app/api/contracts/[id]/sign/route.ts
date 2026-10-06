@@ -49,7 +49,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
   const { data: contract } = await supabaseAdmin
     .from('contracts')
-    .select('id, title, content, status')
+    .select('id, title, content, status').is('deleted_at', null)
     .eq('id', id)
     .single()
 

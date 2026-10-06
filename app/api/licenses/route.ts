@@ -28,7 +28,7 @@ export async function GET(request: Request) {
 
   let query = supabaseAdmin
     .from('professional_licenses')
-    .select('*, staff:staff(full_name, role)')
+    .select('*, staff:staff(full_name, role)').is('deleted_at', null)
     .eq('tenant_id', tenantId)
     .order('expiry_date', { ascending: true, nullsFirst: false })
 

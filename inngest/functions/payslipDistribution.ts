@@ -35,7 +35,7 @@ export const payslipDistributionFunction = inngest.createFunction(
           .eq('tenant_id', tenant_id)
           .is('deleted_at', null),
         supabaseAdmin.from('tenants').select('name, settings').eq('id', tenant_id).single(),
-        supabaseAdmin.from('payroll_runs').select('period_month, period_year').eq('id', payroll_run_id).eq('tenant_id', tenant_id).single(),
+        supabaseAdmin.from('payroll_runs').select('period_month, period_year').is('deleted_at', null).eq('id', payroll_run_id).eq('tenant_id', tenant_id).single(),
       ])
       const settings = tenant?.settings as Record<string, string> | null
       return {

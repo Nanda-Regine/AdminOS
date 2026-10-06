@@ -40,8 +40,8 @@ export const approvalReminderEngine = inngest.createFunction(
 
     const stale = await step.run('fetch-stale-approvals', async () => {
       const [leaveRes, expRes] = await Promise.all([
-        supabaseAdmin.from('leave_requests').select('id, created_at').eq('tenant_id', tenant_id).eq('status', 'pending').lte('created_at', cutoff),
-        supabaseAdmin.from('expenses').select('id, submitted_at').eq('tenant_id', tenant_id).eq('status', 'pending').lte('submitted_at', cutoff),
+        supabaseAdmin.from('leave_requests').select('id, created_at').is('deleted_at', null).eq('tenant_id', tenant_id).eq('status', 'pending').lte('created_at', cutoff),
+        supabaseAdmin.from('expenses').select('id, submitted_at').is('deleted_at', null).eq('tenant_id', tenant_id).eq('status', 'pending').lte('submitted_at', cutoff),
       ])
       return { leave: leaveRes.data ?? [], expenses: expRes.data ?? [] }
     })

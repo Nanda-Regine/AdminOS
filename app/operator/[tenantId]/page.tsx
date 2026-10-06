@@ -20,7 +20,7 @@ export default async function OperatorTenantPage({ params }: Props) {
   const [tenantRes, subRes, staffRes, convRes, invoiceRes] = await Promise.all([
     supabaseAdmin.from('tenants').select('*').eq('id', tenantId).single(),
     supabaseAdmin.from('subscriptions').select('*').eq('tenant_id', tenantId).maybeSingle(),
-    supabaseAdmin.from('staff').select('id', { count: 'exact' }).eq('tenant_id', tenantId),
+    supabaseAdmin.from('staff').select('id', { count: 'exact' }).is('deleted_at', null).eq('tenant_id', tenantId),
     supabaseAdmin.from('conversations').select('id', { count: 'exact' }).eq('tenant_id', tenantId).eq('status', 'open'),
     supabaseAdmin.from('invoices').select('amount, amount_paid').eq('tenant_id', tenantId).in('status', [...OWED_INVOICE_STATUSES]).is('deleted_at', null),
   ])

@@ -4,6 +4,7 @@ import { checkFAQCache, setFAQCache, incrementTenantCounter } from '@/lib/cache/
 import { sendWhatsApp } from '@/lib/whatsapp/send'
 import { writeAuditLog } from '@/lib/security/audit'
 import { upsertContact } from '@/lib/contacts/upsert'
+import { notifyTenant } from '@/lib/notifications/notify'
 import { Tenant, Message, WellnessScore } from '@/types/database'
 
 interface WorkflowContext {
@@ -91,8 +92,8 @@ const steps = {
     if (!ctx.text) return
     // Detect language + intent + sentiment in parallel — no extra latency cost
     const [intent, sentiment, language] = await Promise.all([
-      classifyIntent(ctx.text, ctx.tenant.system_prompt_cache || ''),
-      classifySentiment(ctx.text),
+      classifyIntent(ctx.text, ctx.tenant.system_prompt_cache || '', { tenantId: ctx.tenant.id, plan: ctx.tenant.plan ?? 'trial' }),
+      classifySentiment(ctx.text, { tenantId: ctx.tenant.id, plan: ctx.tenant.plan ?? 'trial' }),
       Promise.resolve(detectLanguage(ctx.text)),
     ])
     result.intent = intent
@@ -139,13 +140,31 @@ const steps = {
       ctx.conversationHistory || []
     )
 
+    // Budget exhausted: the old code sent the CUSTOMER the owner-facing "your
+    // daily AI usage limit… upgrade your plan" text, then cached it as the FAQ
+    // answer so it kept being sent after the budget reset. The customer now
+    // gets a neutral holding reply; the owner gets the alert.
+    if (aiResult.budgetExceeded) {
+      result.response = `Thanks for your message! A member of our team will reply to you shortly.`
+      result.escalated = true
+      await notifyTenant(ctx.tenant.id, {
+        type: 'ai_budget_reached',
+        title: 'AI replies paused for today',
+        body: 'Your daily AI limit was reached, so customers are getting a holding reply and need a human answer. It resets at midnight — or upgrade your plan for a higher limit.',
+        actionUrl: '/dashboard/inbox',
+        dedupeKey: `ai-budget-${new Date().toISOString().slice(0, 10)}`,
+        whatsapp: true,
+      })
+      return
+    }
+
     result.response = aiResult.text
     ;(ctx as Record<string, unknown>).tokens         = aiResult.tokens
     ;(ctx as Record<string, unknown>).fromCache      = aiResult.fromCache
     ;(ctx as Record<string, unknown>).cacheReadTokens = aiResult.cacheReadTokens
 
     // Cache short FAQ-style responses for future identical questions
-    if (ctx.text.length < 150 && aiResult.text.length < 300) {
+    if (aiResult.text && ctx.text.length < 150 && aiResult.text.length < 300) {
       await setFAQCache(ctx.tenant.id, ctx.text, aiResult.text)
     }
   },
@@ -262,7 +281,7 @@ const steps = {
 
     const { data: staff } = await supabaseAdmin
       .from('staff')
-      .select('id, full_name, wellness_scores')
+      .select('id, full_name, wellness_scores').is('deleted_at', null)
       .eq('tenant_id', ctx.tenant.id)
       .eq('phone', ctx.from)
       .maybeSingle()

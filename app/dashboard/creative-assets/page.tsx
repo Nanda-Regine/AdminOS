@@ -57,7 +57,7 @@ export default function CreativeAssetsPage() {
       fetch(`/api/creative-assets${qs}`).then((r) => r.json()),
       // contacts has no `name` column — it's full_name. Aliased so every
       // downstream `c.name`/`contact.name` read below keeps working.
-      supabase.from('contacts').select('id, name:full_name').order('full_name'),
+      supabase.from('contacts').select('id, name:full_name').is('deleted_at', null).order('full_name'),
     ])
     setAssets(assetsRes.assets ?? [])
     setContacts(contactsRes.data ?? [])

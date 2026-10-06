@@ -12,7 +12,7 @@ export const npsReminderFunction = inngest.createFunction(
     // Find unanswered surveys sent 3-30 days ago (reminder window)
     const { data: surveys } = await supabaseAdmin
       .from('nps_surveys')
-      .select('id, tenant_id, survey_token, contact:contacts(name, phone)')
+      .select('id, tenant_id, survey_token, contact:contacts(name:full_name, phone)')
       .is('responded_at', null)
       .gte('sent_at', monthAgo)    // not older than 30 days
       .lte('sent_at', weekAgo)     // at least 7 days old

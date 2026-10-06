@@ -29,7 +29,7 @@ async function getPortalData(token: string) {
   // Fetch contact
   const { data: contact } = await supabaseAdmin
     .from('contacts')
-    .select('id, name:full_name, email, phone, tags, type:contact_type')
+    .select('id, name:full_name, email, phone, tags, type:contact_type').is('deleted_at', null)
     .eq('tenant_id', tenantId)
     .eq('id', contactId)
     .maybeSingle()

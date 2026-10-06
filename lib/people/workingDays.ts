@@ -110,3 +110,32 @@ export function saToday(now: Date = new Date()): string {
 export function daysBetween(a: string, b: string): number {
   return Math.round((toUtc(b) - toUtc(a)) / DAY_MS)
 }
+
+/**
+ * The given date if it's a business day, else the last business day before it
+ * (Mon–Fri, not an SA public holiday).
+ */
+export function businessDayOnOrBefore(date: string, extra: readonly string[] = []): string {
+  let t = toUtc(date)
+  for (let i = 0; i < 10; i++) {
+    const d = iso(t)
+    const dow = new Date(t).getUTCDay()
+    const year = new Date(t).getUTCFullYear()
+    if (dow !== 0 && dow !== 6 && !saPublicHolidays(year).has(d) && !extra.includes(d)) return d
+    t -= DAY_MS
+  }
+  return iso(t)
+}
+
+/**
+ * EMP201 (PAYE + UIF + SDL) due date for payroll month `month` (1–12) of `year`:
+ * the 7th of the following month; if the 7th is a Saturday, Sunday or public
+ * holiday, the last business day before it. Source: SARS, "Completing the
+ * monthly employer declaration (EMP201)", verified 2026-10-06 —
+ * https://www.sars.gov.za/types-of-tax/pay-as-you-earn/completing-the-monthly-employer-declaration-emp201/
+ */
+export function emp201DueDate(year: number, month: number): string {
+  const y = month === 12 ? year + 1 : year
+  const m = month === 12 ? 1 : month + 1
+  return businessDayOnOrBefore(`${y}-${String(m).padStart(2, '0')}-07`)
+}

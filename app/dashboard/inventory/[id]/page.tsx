@@ -62,7 +62,7 @@ export default async function ProductDetailPage({
   const [productRes, txRes] = await Promise.all([
     supabaseAdmin
       .from('products')
-      .select('id, name, sku, category, unit, current_stock, reorder_level, cost_price, unit_price, created_at')
+      .select('id, name, sku, category, unit, current_stock, reorder_level, cost_price, unit_price, created_at').is('deleted_at', null)
       .eq('id', id)
       .eq('tenant_id', tenantId)
       .single(),

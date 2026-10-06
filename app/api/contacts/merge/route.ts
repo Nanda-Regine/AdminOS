@@ -32,7 +32,7 @@ export async function POST(request: Request) {
   // Verify all contacts belong to this tenant
   const { data: contacts, error: fetchErr } = await supabaseAdmin
     .from('contacts')
-    .select('id, balance_owed, total_invoiced, total_paid, lifetime_value, tags')
+    .select('id, balance_owed, total_invoiced, total_paid, lifetime_value, tags').is('deleted_at', null)
     .in('id', allIds)
     .eq('tenant_id', tenantId)
 

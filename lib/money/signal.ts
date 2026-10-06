@@ -65,7 +65,7 @@ export async function buildMoneyIntel(tenantId: string): Promise<MoneyIntel> {
       .is('deleted_at', null),
     supabaseAdmin
       .from('expenses')
-      .select('amount, status, paid_at, created_at')
+      .select('amount, status, paid_at, created_at').is('deleted_at', null)
       .eq('tenant_id', tenantId),
   ])
 

@@ -3,13 +3,17 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 
-const STORAGE_KEY = 'adminos_cookie_consent'
+export const CONSENT_STORAGE_KEY = 'adminos_cookie_consent'
+const STORAGE_KEY = CONSENT_STORAGE_KEY
+/** Fired on window when the visitor makes or changes their choice. */
+export const CONSENT_EVENT = 'adminos-consent'
 
 export function CookieConsent() {
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {
-    const consent = localStorage.getItem(STORAGE_KEY)
+    let consent: string | null = null
+    try { consent = localStorage.getItem(STORAGE_KEY) } catch { /* private mode */ }
     if (!consent) {
       // Small delay to avoid layout shift on first paint
       const timer = setTimeout(() => setVisible(true), 1200)
@@ -18,12 +22,14 @@ export function CookieConsent() {
   }, [])
 
   function accept() {
-    localStorage.setItem(STORAGE_KEY, 'accepted')
+    try { localStorage.setItem(STORAGE_KEY, 'accepted') } catch { /* private mode */ }
+    window.dispatchEvent(new Event(CONSENT_EVENT))
     setVisible(false)
   }
 
   function decline() {
-    localStorage.setItem(STORAGE_KEY, 'declined')
+    try { localStorage.setItem(STORAGE_KEY, 'declined') } catch { /* private mode */ }
+    window.dispatchEvent(new Event(CONSENT_EVENT))
     setVisible(false)
   }
 
@@ -43,9 +49,9 @@ export function CookieConsent() {
       <div className="bg-gray-900 border border-white/10 rounded-2xl p-5 shadow-2xl shadow-black/60">
         <p className="text-sm font-semibold text-white mb-1">We use cookies 🍪</p>
         <p className="text-xs text-gray-400 leading-relaxed mb-4">
-          AdminOS uses strictly necessary cookies for authentication, and optional analytics
-          cookies (Vercel Analytics) to improve the product. No advertising or third-party
-          tracking.{' '}
+          AdminOS uses strictly necessary cookies to keep you signed in. With your permission we
+          also use product analytics (PostHog, processed in the United States) to see which
+          screens work and to catch errors. We never sell data or run advertising trackers.{' '}
           <Link href="/privacy#cookies" className="text-emerald-400 hover:underline">
             Learn more
           </Link>

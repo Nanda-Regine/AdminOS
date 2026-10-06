@@ -37,7 +37,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ busi
   const oneYearAgo = new Date(Date.now() - 365 * 86400000).toISOString()
   const { data: revenueData } = await supabaseAdmin
     .from('invoices')
-    .select('total')
+    .select('total').is('deleted_at', null)
     .eq('tenant_id', tenantId)
     .eq('status', 'paid')
     .gte('created_at', oneYearAgo)

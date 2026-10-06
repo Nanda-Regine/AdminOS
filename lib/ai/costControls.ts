@@ -307,11 +307,15 @@ export async function recordUsage(params: RecordUsageParams): Promise<void> {
 
 // ─── Cost estimation ──────────────────────────────────────────────────────────
 
-// Rates in USD per token (approximate — update when Anthropic changes pricing)
+// Rates in USD per token — Anthropic first-party list prices, verified
+// 2026-10-06 against the claude-api reference (cached 2026-09-25). Haiku was
+// still at Claude 3 Haiku's $0.25/$1.25 and Opus at Opus 4.0's $15/$75, so the
+// recorded cost of the highest-volume model was 4× too low. Token budgets are
+// unaffected (they're in tokens); this is what the AI-cost report shows.
 const COST_RATES: Record<string, { in: number; out: number }> = {
-  [MODELS.HAIKU]:  { in: 0.00000025, out: 0.00000125 }, // $0.25/$1.25 per M
-  [MODELS.SONNET]: { in: 0.000003,   out: 0.000015   }, // $3/$15 per M
-  [MODELS.OPUS]:   { in: 0.000015,   out: 0.000075   }, // $15/$75 per M
+  [MODELS.HAIKU]:  { in: 0.000001, out: 0.000005 }, // Haiku 4.5   $1/$5 per M
+  [MODELS.SONNET]: { in: 0.000003, out: 0.000015 }, // Sonnet 4.6  $3/$15 per M
+  [MODELS.OPUS]:   { in: 0.000005, out: 0.000025 }, // Opus 4.8    $5/$25 per M
 }
 
 export function estimateCost(model: string, tokensIn: number, tokensOut: number): number {

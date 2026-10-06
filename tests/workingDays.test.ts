@@ -52,3 +52,12 @@ test('saToday: 23:30 UTC is already tomorrow in SAST', () => {
   assert.equal(saToday(new Date('2026-10-05T21:59:00Z')), '2026-10-05')
   assert.equal(daysBetween('2026-10-01', '2026-10-05'), 4)
 })
+
+test('EMP201 due date: 7th of next month, back to the last business day (SARS)', async () => {
+  const { emp201DueDate, businessDayOnOrBefore } = await import('../lib/people/workingDays.ts')
+  assert.equal(emp201DueDate(2026, 9), '2026-10-07')   // Wed 7 Oct 2026
+  assert.equal(emp201DueDate(2026, 10), '2026-11-06')  // Sat 7 Nov → Fri 6 Nov
+  assert.equal(emp201DueDate(2026, 12), '2027-01-07')  // year rollover, Thu
+  assert.equal(emp201DueDate(2027, 2), '2027-03-05')   // Sun 7 Mar → Fri 5 Mar
+  assert.equal(businessDayOnOrBefore('2026-12-26'), '2026-12-24') // Sat after Christmas → Thu 24th
+})

@@ -21,7 +21,7 @@ export default async function ContractsPage() {
 
   const { data: contacts } = await supabaseAdmin
     .from('contacts')
-    .select('id, full_name')
+    .select('id, full_name').is('deleted_at', null)
     .eq('tenant_id', tenantId)
     .order('full_name')
     .limit(100)
@@ -31,7 +31,7 @@ export default async function ContractsPage() {
   // signed_at), so the whole select errored and the page always rendered empty.
   const { data: contracts } = await supabaseAdmin
     .from('contracts')
-    .select('id, tenant_id, title, contact_id, status, value, signed_at, created_at, contacts(full_name, email)')
+    .select('id, tenant_id, title, contact_id, status, value, signed_at, created_at, contacts(full_name, email)').is('deleted_at', null)
     .eq('tenant_id', tenantId)
     .order('created_at', { ascending: false })
 

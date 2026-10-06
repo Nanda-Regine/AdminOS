@@ -14,7 +14,7 @@ export const socialSyncFunction = inngest.createFunction(
     const accounts = await step.run('get-active-social-accounts', async () => {
       const { data } = await supabaseAdmin
         .from('social_accounts')
-        .select('id, tenant_id, platform, access_token, account_id')
+        .select('id, tenant_id, platform, access_token, account_id').is('deleted_at', null)
         .not('access_token', 'is', null)
 
       return data ?? []

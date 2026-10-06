@@ -18,7 +18,7 @@ export default async function KnowledgeBasePage() {
   // FK) — so the whole select errored and the page always rendered empty.
   const { data: articlesData } = await supabaseAdmin
     .from('kb_articles')
-    .select('id, category_id, title, content, tags, published, view_count, created_at, kb_categories(name)')
+    .select('id, category_id, title, content, tags, published, view_count, created_at, kb_categories(name)').is('deleted_at', null)
     .eq('tenant_id', tenantId)
     .order('created_at', { ascending: false })
 

@@ -1,258 +1,55 @@
 import { inngest } from '@/inngest/client'
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import { writeAuditLog } from '@/lib/security/audit'
-import { checkBudget, recordUsage, getModelForFeature } from '@/lib/ai/costControls'
-import Anthropic from '@anthropic-ai/sdk'
+import { processDocumentBuffer } from '@/lib/documents/pipeline'
+import type { SupportedFileType } from '@/lib/files/parser'
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
-
+// Large-file document processing (≥5 MB). Small uploads are processed inline by
+// /api/documents/upload; this job used to run on EVERY upload as a second,
+// diverging pipeline (double AI spend, racing writes, and it turned any
+// "invoice" into a receivable). It now runs the shared pipeline, durably.
 export const docIntelligencePipeline = inngest.createFunction(
   { id: 'doc-intelligence-pipeline', retries: 2, timeouts: { finish: '5m' }, triggers: [{ event: 'adminos/document.uploaded' }] },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async ({ event, step }: any) => {
-    const { document_id, tenant_id, is_reference } = event.data as {
+    const { document_id, tenant_id, file_type, mime_type, is_reference, actor } = event.data as {
       document_id: string
       tenant_id: string
-      file_type: string
+      file_type: SupportedFileType
+      mime_type: string
       is_reference: boolean
+      actor?: string
     }
 
-    const rawText = await step.run('extract-text', async () => {
-      // documents has no storage_path/file_name columns — they're storage_url
-      // and original_filename. This select was erroring on every run
-      // (unknown column), so rawText was always '' and every uploaded
-      // document silently fell straight to the 'failed' branch below.
-      const docRes = await supabaseAdmin
+    // Download + parse + AI in one step: the file buffer can't be memoised
+    // between steps, and the pipeline writes its own outcome to the row
+    // (done / failed with a reason), so a retry simply reprocesses.
+    return step.run('process-document', async () => {
+      const { data: doc } = await supabaseAdmin
         .from('documents')
-        .select('storage_url, file_type, original_filename')
+        .select('storage_url, original_filename, processing_status').is('deleted_at', null)
         .eq('id', document_id)
-        .single()
+        .eq('tenant_id', tenant_id)
+        .maybeSingle()
+      if (!doc) return { status: 'skipped', reason: 'document_missing' }
+      if (doc.processing_status === 'done') return { status: 'skipped', reason: 'already_done' }
 
-      if (!docRes.data) return ''
-
-      const { data: fileData } = await supabaseAdmin.storage
-        .from('documents')
-        .download(docRes.data.storage_url)
-
-      if (!fileData) return ''
-
-      const buffer = Buffer.from(await fileData.arrayBuffer())
-      const fileType = docRes.data.file_type ?? ''
-
-      if (fileType.includes('pdf')) {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const pdfParse = require('pdf-parse')
-        const parsed = await pdfParse(buffer)
-        return parsed.text as string
+      const { data: file, error } = await supabaseAdmin.storage.from('documents').download(doc.storage_url)
+      if (error || !file) {
+        await supabaseAdmin.from('documents').update({ processing_status: 'failed', ai_summary: 'The stored file could not be read. Please upload it again.' }).eq('id', document_id)
+        return { status: 'failed', reason: 'download_failed' }
       }
 
-      if (fileType.includes('wordprocessingml') || fileType.includes('docx')) {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const mammoth = require('mammoth')
-        const result = await mammoth.extractRawText({ buffer })
-        return result.value as string
-      }
-
-      if (fileType.includes('spreadsheet') || fileType.includes('xlsx') || fileType.includes('csv')) {
-        return buffer.toString('utf8').slice(0, 10000)
-      }
-
-      return buffer.toString('utf8').slice(0, 10000)
-    })
-
-    if (!rawText) {
-      await supabaseAdmin.from('documents').update({ processing_status: 'failed' }).eq('id', document_id)
-      return { status: 'failed', reason: 'empty_text' }
-    }
-
-    const plan = await step.run('load-tenant-plan', async () => {
-      const { data } = await supabaseAdmin.from('tenants').select('plan').eq('id', tenant_id).single()
-      return data?.plan ?? 'trial'
-    })
-
-    // Each step below returns [data, budgetBlocked] rather than setting an outer
-    // flag: Inngest memoizes a step's return value and, on retry/replay, restores
-    // it WITHOUT re-invoking the callback — a side effect on an outer closure
-    // variable would be lost on replay, so the blocked signal has to travel inside
-    // the memoized return value itself.
-    const [classification, classifyBlocked] = await step.run('classify-document', async () => {
-      const budget = await checkBudget(tenant_id, plan, 300)
-      if (!budget.allowed) {
-        console.warn(`[AI:blocked] tenant=${tenant_id} feature=document_classify reason=${budget.reason}`)
-        return [{ type: 'other', confidence: 0 }, true]
-      }
-
-      const model = getModelForFeature('document_classify', plan)
-      const t0 = Date.now()
-
-      const response = await anthropic.messages.create({
-        model,
-        max_tokens: 300,
-        messages: [{
-          role: 'user',
-          content: `Classify this document. Return JSON only:
-{"type":"invoice|contract|sop|hr|strategy|report|quote|payroll|compliance|other","confidence":0.0,"language":"en","summary":"2 sentence summary","key_dates":[],"key_amounts":[],"key_parties":[]}
-
-Document (first 3000 chars):
-${rawText.slice(0, 3000)}`,
-        }],
+      await processDocumentBuffer({
+        docId: document_id,
+        tenantId: tenant_id,
+        filename: doc.original_filename ?? 'document',
+        actor: actor ?? 'system',
+        isReference: is_reference,
+        buffer: Buffer.from(await file.arrayBuffer()),
+        fileType: file_type,
+        mimeType: mime_type || file.type,
       })
-
-      void recordUsage({
-        tenantId: tenant_id, plan, feature: 'document_classify', model,
-        tokensIn: response.usage.input_tokens, tokensOut: response.usage.output_tokens,
-        durationMs: Date.now() - t0,
-      })
-
-      const text = response.content[0].type === 'text' ? response.content[0].text : '{}'
-      const match = text.match(/\{[\s\S]*\}/)
-      try {
-        return [match ? JSON.parse(match[0]) : { type: 'other', confidence: 0.5 }, false]
-      } catch {
-        return [{ type: 'other', confidence: 0.5 }, false]
-      }
+      return { status: 'processed' }
     })
-
-    const [extracted, extractBlocked] = await step.run('extract-structured-data', async () => {
-      if (!classification.type || classification.type === 'other') return [{}, false]
-
-      const budget = await checkBudget(tenant_id, plan, 1000)
-      if (!budget.allowed) {
-        console.warn(`[AI:blocked] tenant=${tenant_id} feature=document_extract reason=${budget.reason}`)
-        return [{}, true]
-      }
-
-      const model = getModelForFeature('document_extract', plan)
-      const t0 = Date.now()
-
-      const response = await anthropic.messages.create({
-        model,
-        max_tokens: 1000,
-        messages: [{
-          role: 'user',
-          content: `Extract structured data from this ${classification.type} document.
-Return JSON only with all relevant fields (dates, amounts, parties, terms, obligations, etc).
-Document: ${rawText.slice(0, 5000)}`,
-        }],
-      })
-
-      void recordUsage({
-        tenantId: tenant_id, plan, feature: 'document_extract', model,
-        tokensIn: response.usage.input_tokens, tokensOut: response.usage.output_tokens,
-        durationMs: Date.now() - t0,
-      })
-
-      const text = response.content[0].type === 'text' ? response.content[0].text : '{}'
-      const match = text.match(/\{[\s\S]*\}/)
-      try {
-        return [match ? JSON.parse(match[0]) : {}, false]
-      } catch {
-        return [{}, false]
-      }
-    })
-
-    // For contracts: extract expiry date and update document
-    if (classification.type === 'contract' && extracted.end_date) {
-      await step.run('update-contract-expiry', async () => {
-        const expiryDate = new Date(extracted.end_date as string)
-        if (!isNaN(expiryDate.getTime())) {
-          await supabaseAdmin.from('documents').update({
-            expiry_date: expiryDate.toISOString().split('T')[0],
-            key_parties: (extracted.parties as string[]) ?? [],
-            key_obligations: (extracted.obligations as string[]) ?? [],
-          }).eq('id', document_id)
-        }
-      })
-    }
-
-    // For invoices: create/update invoice record
-    if (classification.type === 'invoice' && extracted.amount) {
-      await step.run('sync-invoice', async () => {
-        await supabaseAdmin.from('invoices').upsert({
-          tenant_id,
-          contact_name: extracted.client_name ?? 'Unknown',
-          amount: parseFloat(String(extracted.amount).replace(/[^0-9.]/g, '')) || 0,
-          due_date: extracted.due_date,
-          reference: extracted.invoice_number ?? `DOC-${document_id.slice(0, 8)}`,
-          status: 'unpaid',
-          days_overdue: 0,
-        })
-      })
-    }
-
-    const referenceBlocked = is_reference
-      ? await step.run('store-reference-schema', async () => {
-        const budget = await checkBudget(tenant_id, plan, 500)
-        if (!budget.allowed) {
-          console.warn(`[AI:blocked] tenant=${tenant_id} feature=document_reference_schema reason=${budget.reason}`)
-          return true
-        }
-
-        const model = getModelForFeature('document_reference_schema', plan)
-        const t0 = Date.now()
-
-        const response = await anthropic.messages.create({
-          model,
-          max_tokens: 500,
-          messages: [{
-            role: 'user',
-            content: `Extract only the FIELD STRUCTURE (names and types) of this document. Do NOT include any actual values, names, amounts, or personal data. Return JSON: {"fields":[{"name":"...","type":"string|number|date|boolean","description":"..."}]}
-Document: ${rawText.slice(0, 3000)}`,
-          }],
-        })
-
-        void recordUsage({
-          tenantId: tenant_id, plan, feature: 'document_reference_schema', model,
-          tokensIn: response.usage.input_tokens, tokensOut: response.usage.output_tokens,
-          durationMs: Date.now() - t0,
-        })
-
-        const text = response.content[0].type === 'text' ? response.content[0].text : '{}'
-        const match = text.match(/\{[\s\S]*\}/)
-        const schema = match ? JSON.parse(match[0]).fields ?? [] : []
-
-        await supabaseAdmin.from('document_templates').upsert({
-          tenant_id,
-          document_type: classification.type ?? 'other',
-          template_name: `${classification.type}_template`,
-          extracted_schema: { fields: schema },
-          is_reference: true,
-          status: 'complete',
-          processed_at: new Date().toISOString(),
-        })
-
-        return false
-      })
-      : false
-
-    const budgetBlocked = classifyBlocked || extractBlocked || referenceBlocked
-
-    const summary = await step.run('generate-summary', async () => {
-      return classification.summary ?? 'Document processed successfully.'
-    })
-
-    await step.run('mark-complete', async () => {
-      // No processed_at column exists on `documents` (not even under another
-      // name) — dropped rather than guessed. processing_status is the real
-      // status column (matches app/api/documents/upload/route.ts, which was
-      // already fixed for this same drift).
-      await supabaseAdmin.from('documents').update({
-        processing_status: 'done',
-        document_type: classification.type,
-        ai_summary: summary,
-        extracted_data: extracted,
-      }).eq('id', document_id)
-    })
-
-    await writeAuditLog({
-      tenantId: tenant_id,
-      actor: 'doc',
-      action: 'document_processed',
-      resourceType: 'document',
-      resourceId: document_id,
-      metadata: { type: classification.type, confidence: classification.confidence, budget_blocked: budgetBlocked },
-    })
-
-    return { status: 'complete', document_id, type: classification.type, budget_blocked: budgetBlocked }
   }
 )

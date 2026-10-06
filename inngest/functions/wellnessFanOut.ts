@@ -17,7 +17,7 @@ export const wellnessFanOut = inngest.createFunction(
       step.run('load-staff', async () => {
         const { data } = await supabaseAdmin
           .from('staff')
-          .select('id, full_name, phone')
+          .select('id, full_name, phone').is('deleted_at', null)
           .eq('tenant_id', tenant_id)
           .eq('active', true)
           .not('phone', 'is', null)

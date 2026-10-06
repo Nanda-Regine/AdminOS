@@ -86,7 +86,7 @@ export const coldLeadNudgeEngine = inngest.createFunction(
         const daysSince = c.lastContacted
           ? Math.floor((Date.now() - new Date(c.lastContacted).getTime()) / 86400000)
           : null
-        const text = await draftColdLeadMessage({ tenantName, contact: c.name, daysSinceContact: daysSince })
+        const text = await draftColdLeadMessage({ tenantName, contact: c.name, daysSinceContact: daysSince }, { tenantId: tenant_id, plan })
         out.push({ id: c.id, name: c.name, phone: c.phone, text: text || null })
       }
       return out

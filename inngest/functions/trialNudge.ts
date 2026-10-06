@@ -36,8 +36,8 @@ export const trialNudgeSequence = inngest.createFunction(
     const [convCount, invoiceCount, docsCount] = await step.run('get-roi-data', async () => {
       const [c, i, d] = await Promise.all([
         supabaseAdmin.from('conversations').select('id', { count: 'exact' }).eq('tenant_id', tenant_id),
-        supabaseAdmin.from('invoices').select('id', { count: 'exact' }).eq('tenant_id', tenant_id),
-        supabaseAdmin.from('documents').select('id', { count: 'exact' }).eq('tenant_id', tenant_id),
+        supabaseAdmin.from('invoices').select('id', { count: 'exact' }).is('deleted_at', null).eq('tenant_id', tenant_id),
+        supabaseAdmin.from('documents').select('id', { count: 'exact' }).is('deleted_at', null).eq('tenant_id', tenant_id),
       ])
       return [c.count ?? 0, i.count ?? 0, d.count ?? 0]
     })

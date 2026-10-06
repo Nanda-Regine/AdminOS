@@ -21,7 +21,7 @@ export default async function ContactsPage() {
 
   const { data: contacts = [] } = await supabaseAdmin
     .from('contacts')
-    .select('id, full_name, phone, email, company, contact_type, balance_owed, total_invoiced, total_paid, sentiment_score, last_contacted_at, tags, source, wa_id, created_at')
+    .select('id, full_name, phone, email, company, contact_type, balance_owed, total_invoiced, total_paid, sentiment_score, last_contacted_at, tags, source, wa_id, created_at').is('deleted_at', null)
     .eq('tenant_id', tenantId)
     .order('updated_at', { ascending: false })
     .limit(2000)

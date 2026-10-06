@@ -45,8 +45,8 @@ export default function DocumentsPage() {
 
   const loadData = useCallback(async (tid: string) => {
     const [docsRes, goalsRes] = await Promise.all([
-      supabase.from('documents').select('*').eq('tenant_id', tid).order('created_at', { ascending: false }),
-      supabase.from('goals').select('*').eq('tenant_id', tid).eq('status', 'active').order('created_at', { ascending: false }),
+      supabase.from('documents').select('*').is('deleted_at', null).eq('tenant_id', tid).order('created_at', { ascending: false }),
+      supabase.from('goals').select('*').is('deleted_at', null).eq('tenant_id', tid).eq('status', 'active').order('created_at', { ascending: false }),
     ])
     if (docsRes.data) setDocuments(docsRes.data)
     if (goalsRes.data) setGoals(goalsRes.data)

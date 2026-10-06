@@ -18,7 +18,7 @@ export const bookingReminderFunction = inngest.createFunction(
     const booking = await step.run('fetch-booking', async () => {
       const { data, error } = await supabaseAdmin
         .from('bookings')
-        .select('id, tenant_id, contact_id, service_id, start_at, status, notes')
+        .select('id, tenant_id, contact_id, service_id, start_at, status, notes').is('deleted_at', null)
         .eq('id', booking_id)
         .eq('tenant_id', tenant_id)
         .maybeSingle()
@@ -47,7 +47,7 @@ export const bookingReminderFunction = inngest.createFunction(
     const freshBooking = await step.run('re-fetch-booking', async () => {
       const { data } = await supabaseAdmin
         .from('bookings')
-        .select('id, contact_id, service_id, start_at, status')
+        .select('id, contact_id, service_id, start_at, status').is('deleted_at', null)
         .eq('id', booking_id)
         .maybeSingle()
       return data
@@ -65,7 +65,7 @@ export const bookingReminderFunction = inngest.createFunction(
           // contacts has no whatsapp_number column — wa_id is the WhatsApp-
           // specific identifier (falls back to phone if a contact was never
           // reached over WhatsApp before).
-          .select('id, full_name, phone, wa_id')
+          .select('id, full_name, phone, wa_id').is('deleted_at', null)
           .eq('id', freshBooking.contact_id)
           .maybeSingle(),
         supabaseAdmin
@@ -73,7 +73,7 @@ export const bookingReminderFunction = inngest.createFunction(
           // errored (relation does not exist), so `service` was always
           // undefined below.
           .from('booking_services')
-          .select('id, name, duration_minutes, price')
+          .select('id, name, duration_minutes, price').is('deleted_at', null)
           .eq('id', freshBooking.service_id)
           .maybeSingle(),
       ])

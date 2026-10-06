@@ -16,7 +16,7 @@ export async function notifyStaffMember(
   try {
     const { data: staff } = await supabaseAdmin
       .from('staff')
-      .select('user_id')
+      .select('user_id').is('deleted_at', null)
       .eq('id', staffId)
       .eq('tenant_id', tenantId)
       .maybeSingle()

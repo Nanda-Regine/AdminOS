@@ -23,7 +23,7 @@ export async function POST(
   // Verify sequence belongs to tenant and is active
   const { data: sequence } = await supabaseAdmin
     .from('whatsapp_sequences')
-    .select('id, steps, is_active')
+    .select('id, steps, is_active').is('deleted_at', null)
     .eq('id', id)
     .eq('tenant_id', tenantId)
     .single()

@@ -50,7 +50,7 @@ export const loyaltyExpiryFunction = inngest.createFunction(
             tenant_id: account.tenant_id,
             contact_id: account.contact_id,
             programme_id: account.programme_id,
-            transaction_type: 'expiry',
+            transaction_type: 'expire', // CHECK allows earn|redeem|expire|adjust
             points: -pointsToExpire,
             balance: 0,
             notes: `Year-end points expiry (${year})`,

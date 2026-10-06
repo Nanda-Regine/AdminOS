@@ -27,11 +27,11 @@ export const dailyBriefEngine = inngest.createFunction(
         supabaseAdmin.from('conversations').select('id, status, intent, sentiment').eq('tenant_id', tenant_id).eq('status', 'open'),
         // Open + past due by due_date (days_overdue is a stale trigger column; see lib/invoices/status).
         supabaseAdmin.from('invoices').select('amount, amount_paid').eq('tenant_id', tenant_id).in('status', [...OPEN_INVOICE_STATUSES]).lt('due_date', todayDateString()).is('deleted_at', null),
-        supabaseAdmin.from('staff').select('id, full_name, wellness_scores').eq('tenant_id', tenant_id).eq('active', true),
-        supabaseAdmin.from('goals').select('title, progress_pct, status').eq('tenant_id', tenant_id).eq('status', 'active').limit(5),
+        supabaseAdmin.from('staff').select('id, full_name, wellness_scores').is('deleted_at', null).eq('tenant_id', tenant_id).eq('active', true),
+        supabaseAdmin.from('goals').select('title, progress_pct, status').is('deleted_at', null).eq('tenant_id', tenant_id).eq('status', 'active').limit(5),
         supabaseAdmin.from('workflow_queue').select('workflow_type, status, created_at').eq('tenant_id', tenant_id).gte('created_at', today.toISOString()).order('created_at', { ascending: false }).limit(20),
         // Compliance items due in the next 7 days
-        supabaseAdmin.from('compliance_items').select('title, due_date, item_type').eq('tenant_id', tenant_id).in('status', ['upcoming','due']).gte('due_date', todayStr).lte('due_date', in7Days).order('due_date'),
+        supabaseAdmin.from('compliance_items').select('title, due_date, item_type').is('deleted_at', null).eq('tenant_id', tenant_id).in('status', ['upcoming','due']).gte('due_date', todayStr).lte('due_date', in7Days).order('due_date'),
         // Latest health score
         supabaseAdmin.from('business_health_snapshots').select('overall_score, financial_health, legal_compliance').eq('tenant_id', tenant_id).order('snapshot_date', { ascending: false }).limit(1).maybeSingle(),
       ])

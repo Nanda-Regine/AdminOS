@@ -37,13 +37,13 @@ async function buildLookupContext(
     const [staffMatch, invoices, prevConvs] = await Promise.all([
       supabaseAdmin
         .from('staff')
-        .select('full_name, role, department, email, phone, leave_balance, leave_taken, after_hours_flag')
+        .select('full_name, role, department, email, phone, leave_balance, leave_taken, after_hours_flag').is('deleted_at', null)
         .eq('tenant_id', tenantId)
         .eq('phone', contactIdentifier)
         .maybeSingle(),
       supabaseAdmin
         .from('invoices')
-        .select('contact_name, amount, amount_paid, due_date, status, escalation_level')
+        .select('contact_name, amount, amount_paid, due_date, status, escalation_level').is('deleted_at', null)
         .eq('tenant_id', tenantId)
         .eq('contact_phone', contactIdentifier)
         .order('created_at', { ascending: false })
@@ -90,9 +90,9 @@ async function buildAdvisorContext(
   const [convResult, invoiceResult, staffResult, goalResult, leaveResult, insightsResult] = await Promise.all([
     supabaseAdmin.from('conversations').select('status, sentiment, intent').eq('tenant_id', tenantId).gte('created_at', sevenDaysAgo),
     supabaseAdmin.from('invoices').select('amount, amount_paid, due_date, status').eq('tenant_id', tenantId).in('status', [...OPEN_INVOICE_STATUSES]).is('deleted_at', null),
-    supabaseAdmin.from('staff').select('wellness_scores, after_hours_flag').eq('tenant_id', tenantId),
-    supabaseAdmin.from('goals').select('title, target_metric, current_value, target_value, progress_pct, status').eq('tenant_id', tenantId).eq('status', 'active').limit(5),
-    supabaseAdmin.from('leave_requests').select('status', { count: 'exact' }).eq('tenant_id', tenantId).eq('status', 'approved').gte('end_date', new Date().toISOString().split('T')[0]),
+    supabaseAdmin.from('staff').select('wellness_scores, after_hours_flag').is('deleted_at', null).eq('tenant_id', tenantId),
+    supabaseAdmin.from('goals').select('title, target_metric, current_value, target_value, progress_pct, status').is('deleted_at', null).eq('tenant_id', tenantId).eq('status', 'active').limit(5),
+    supabaseAdmin.from('leave_requests').select('status', { count: 'exact' }).is('deleted_at', null).eq('tenant_id', tenantId).eq('status', 'approved').gte('end_date', new Date().toISOString().split('T')[0]),
     // Load stored business insights (AI memory) — last 10
     supabaseAdmin.from('business_insights').select('insight, category, extracted_at').eq('tenant_id', tenantId).order('extracted_at', { ascending: false }).limit(10),
   ])

@@ -24,7 +24,7 @@ export default async function InventoryPage() {
 
   const { data: rawItems } = await supabaseAdmin
     .from('products')
-    .select('id, tenant_id, name, sku, category, unit, current_stock, reorder_level, cost_price, unit_price, created_at')
+    .select('id, tenant_id, name, sku, category, unit, current_stock, reorder_level, cost_price, unit_price, created_at').is('deleted_at', null)
     .eq('tenant_id', tenantId)
     .order('category')
     .order('name')

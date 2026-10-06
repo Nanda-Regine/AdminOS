@@ -28,7 +28,7 @@ export async function GET(request: Request) {
 
   let query = supabaseAdmin
     .from('community_posts')
-    .select('id, category, title, body, anonymous, sector, province, replies_count, helpful_count, created_at, tenant_id')
+    .select('id, category, title, body, anonymous, sector, province, replies_count, helpful_count, created_at, tenant_id').is('deleted_at', null)
     .eq('status', 'active')
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1)

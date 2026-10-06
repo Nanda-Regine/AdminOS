@@ -33,7 +33,7 @@ export async function GET(request: Request) {
 
   let query = supabaseAdmin
     .from('bookings')
-    .select('*, service:booking_services(name, duration_minutes, colour), contact:contacts(name:full_name, phone, email), staff:staff(full_name)')
+    .select('*, service:booking_services(name, duration_minutes, colour), contact:contacts(name:full_name, phone, email), staff:staff(full_name)').is('deleted_at', null)
     .eq('tenant_id', tenantId)
     .gte('start_at', fromDate)
     .lte('start_at', toDate)
@@ -71,7 +71,7 @@ export async function POST(request: Request) {
   if (body.staffId) {
     const { data: conflicts } = await supabaseAdmin
       .from('bookings')
-      .select('id')
+      .select('id').is('deleted_at', null)
       .eq('tenant_id', tenantId)
       .eq('staff_id', body.staffId)
       .not('status', 'in', '(cancelled,no_show)')

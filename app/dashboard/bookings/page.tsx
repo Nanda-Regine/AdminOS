@@ -73,14 +73,14 @@ export default async function BookingsPage() {
   const [bookingsResult, servicesResult] = await Promise.all([
     supabaseAdmin
       .from('bookings')
-      .select('*, service:booking_services(name, duration_minutes, price), contact:contacts(name:full_name), staff:staff(full_name)')
+      .select('*, service:booking_services(name, duration_minutes, price), contact:contacts(name:full_name), staff:staff(full_name)').is('deleted_at', null)
       .eq('tenant_id', tenantId)
       .gte('start_at', startAtFrom)
       .lte('start_at', startAtTo)
       .order('start_at'),
     supabaseAdmin
       .from('booking_services')
-      .select('id, service_name:name, duration_minutes, price')
+      .select('id, service_name:name, duration_minutes, price').is('deleted_at', null)
       .eq('tenant_id', tenantId)
       .order('name'),
   ])

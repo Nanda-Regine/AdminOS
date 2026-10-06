@@ -14,7 +14,7 @@ export async function GET(request: Request) {
 
   const { data, count, error } = await supabase
     .from('email_drafts')
-    .select('*', { count: 'exact' })
+    .select('*', { count: 'exact' }).is('deleted_at', null)
     .eq('tenant_id', tenantId)
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1)

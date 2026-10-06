@@ -16,7 +16,7 @@ export async function GET(_req: Request, { params }: Params) {
   const tenantId = user.app_metadata?.tenant_id as string
   const { data, error } = await supabase
     .from('email_drafts')
-    .select('*')
+    .select('*').is('deleted_at', null)
     .eq('id', id)
     .eq('tenant_id', tenantId)
     .single()
@@ -79,7 +79,7 @@ export async function POST(request: Request, { params }: Params) {
 
   const { data: draft, error } = await supabase
     .from('email_drafts')
-    .select('*')
+    .select('*').is('deleted_at', null)
     .eq('id', id)
     .eq('tenant_id', tenantId)
     .single()

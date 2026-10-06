@@ -58,7 +58,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ ten
       sender_id:          body.session_id,
       sender_name:        safeName,
       content:            safeMessage,
-      message_type:       'widget_chat',
+      // CHECK allows dm|comment|review|mention — 'widget_chat' rejected every
+      // visitor message. A website chat is a direct message; platform says where.
+      message_type:       'dm',
     })
     .select('id')
     .single()

@@ -35,7 +35,7 @@ export default async function SuppliersPage() {
 
   const { data } = await supabaseAdmin
     .from('suppliers')
-    .select('id, name, category, contact_person, phone, email, payment_terms, rating, is_community_verified, bbbbee_level, women_owned, youth_owned')
+    .select('id, name, category, contact_person, phone, email, payment_terms, rating, is_community_verified, bbbbee_level, women_owned, youth_owned').is('deleted_at', null)
     .eq('tenant_id', tenantId)
     .order('name')
 

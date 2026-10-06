@@ -20,7 +20,7 @@ export const impactSnapshotFunction = inngest.createFunction(
     ] = await Promise.all([
       supabaseAdmin.from('tenants').select('id', { count: 'exact', head: true }),
       supabaseAdmin.from('tenants').select('id', { count: 'exact', head: true }).eq('active', true),
-      supabaseAdmin.from('staff').select('id', { count: 'exact', head: true }).eq('active', true),
+      supabaseAdmin.from('staff').select('id', { count: 'exact', head: true }).is('deleted_at', null).eq('active', true),
       // formalization_progress has no `id` column — tenant_id is the key.
       supabaseAdmin.from('formalization_progress').select('tenant_id', { count: 'exact', head: true }).not('completed_at', 'is', null),
       // BROKEN, left as-is rather than guess-fixed: `tenants` has no
@@ -32,13 +32,13 @@ export const impactSnapshotFunction = inngest.createFunction(
       // self-declared demographic) column before this can report correctly —
       // Nanda's call, not a mechanical rename like its neighbours above.
       supabaseAdmin.from('tenants').select('id', { count: 'exact', head: true }).eq('women_owned', true),
-      supabaseAdmin.from('stokvel_groups').select('id', { count: 'exact', head: true }).eq('status', 'active'),
+      supabaseAdmin.from('stokvel_groups').select('id', { count: 'exact', head: true }).is('deleted_at', null).eq('status', 'active'),
       supabaseAdmin.from('academy_certificates').select('id', { count: 'exact', head: true }),
       supabaseAdmin.from('mentor_connections').select('id', { count: 'exact', head: true }).eq('status', 'active'),
-      supabaseAdmin.from('invoices').select('total').eq('status', 'paid'),
+      supabaseAdmin.from('invoices').select('amount').is('deleted_at', null).eq('status', 'paid'),
     ])
 
-    const totalDebt = (debtRecovered.data ?? []).reduce((s, inv) => s + (inv.total ?? 0), 0)
+    const totalDebt = (debtRecovered.data ?? []).reduce((s, inv) => s + Number(inv.amount ?? 0), 0)
 
     await supabaseAdmin.from('impact_snapshots').upsert({
       snapshot_date:               today,

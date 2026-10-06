@@ -25,8 +25,8 @@ export async function buildSalesIntel(tenantId: string): Promise<SalesIntel> {
 
   const [convRes, contactRes, invRes] = await Promise.all([
     supabaseAdmin.from('conversations').select('contact_name, sentiment, status, updated_at').eq('tenant_id', tenantId).eq('status', 'open').order('updated_at', { ascending: false }),
-    supabaseAdmin.from('contacts').select('id, full_name, contact_type, total_paid, last_contacted_at, phone, wa_id').eq('tenant_id', tenantId).order('total_paid', { ascending: false }).limit(2000),
-    supabaseAdmin.from('invoices').select('amount, amount_paid, status').eq('tenant_id', tenantId).neq('status', 'paid'),
+    supabaseAdmin.from('contacts').select('id, full_name, contact_type, total_paid, last_contacted_at, phone, wa_id').is('deleted_at', null).eq('tenant_id', tenantId).order('total_paid', { ascending: false }).limit(2000),
+    supabaseAdmin.from('invoices').select('amount, amount_paid, status').is('deleted_at', null).eq('tenant_id', tenantId).neq('status', 'paid'),
   ])
 
   const conversations = convRes.data ?? []

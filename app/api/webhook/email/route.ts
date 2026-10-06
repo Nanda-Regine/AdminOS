@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { callClaudeWithCache } from '@/lib/ai/callClaude'
 import { writeAuditLog } from '@/lib/security/audit'
+import { notifyTenant } from '@/lib/notifications/notify'
 
 interface EmailPayload {
   from: string
@@ -49,6 +50,19 @@ export async function POST(request: Request) {
     `Email from ${payload.from}\nSubject: ${payload.subject}\n\n${payload.text}`,
     []
   )
+  // Over the daily AI budget, callClaudeWithCache returns OWNER-facing text
+  // ("upgrade your plan…") — never email that to a customer. Hold the reply
+  // (the hub sends nothing when response is null) and alert the owner.
+  const replyText = aiResult.budgetExceeded ? null : aiResult.text
+  if (aiResult.budgetExceeded) {
+    await notifyTenant(tenant.id, {
+      type: 'ai_budget_reached',
+      title: 'AI replies paused for today',
+      body: `An email from ${payload.from} is waiting for a human reply — today's AI limit was reached.`,
+      actionUrl: '/dashboard/inbox',
+      dedupeKey: `ai-budget-${new Date().toISOString().slice(0, 10)}`,
+    })
+  }
 
   // Store conversation
   const { data: conv } = await supabaseAdmin
@@ -72,15 +86,15 @@ export async function POST(request: Request) {
         content: `Subject: ${payload.subject}\n\n${payload.text}`,
         channel: 'email',
       },
-      {
+      ...(replyText ? [{
         tenant_id: tenant.id,
         conversation_id: conv.id,
         role: 'assistant',
-        content: aiResult.text,
+        content: replyText,
         channel: 'email',
         tokens_used: aiResult.tokens,
         from_cache: aiResult.fromCache,
-      },
+      }] : []),
     ])
   }
 
@@ -91,5 +105,5 @@ export async function POST(request: Request) {
     metadata: { from: payload.from, subject: payload.subject },
   })
 
-  return NextResponse.json({ response: aiResult.text })
+  return NextResponse.json({ response: replyText })
 }

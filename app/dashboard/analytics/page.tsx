@@ -45,11 +45,11 @@ export default async function AnalyticsPage() {
       .gte('created_at', thirtyDaysAgo.toISOString()),
     supabaseAdmin
       .from('invoices')
-      .select('amount, amount_paid, status, due_date')
+      .select('amount, amount_paid, status, due_date').is('deleted_at', null)
       .eq('tenant_id', tenantId),
     supabaseAdmin
       .from('staff')
-      .select('wellness_scores, full_name')
+      .select('wellness_scores, full_name').is('deleted_at', null)
       .eq('tenant_id', tenantId),
   ])
 

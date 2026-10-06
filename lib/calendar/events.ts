@@ -56,7 +56,7 @@ export async function getCalendarEvents(tenantId: string, from: string, to: stri
   const [leaveRes, invoiceRes, bookingRes, complianceRes, licenseRes, contractRes] = await Promise.all([
     supabaseAdmin
       .from('leave_requests')
-      .select('id, start_date, end_date, status, reason, staff(full_name)')
+      .select('id, start_date, end_date, status, reason, staff(full_name)').is('deleted_at', null)
       .eq('tenant_id', tenantId)
       .in('status', ['approved', 'pending'])
       .lte('start_date', to)
@@ -71,27 +71,27 @@ export async function getCalendarEvents(tenantId: string, from: string, to: stri
       .lte('due_date', to),
     supabaseAdmin
       .from('bookings')
-      .select('id, start_at, status, service:booking_services(name), contact:contacts(name:full_name)')
+      .select('id, start_at, status, service:booking_services(name), contact:contacts(name:full_name)').is('deleted_at', null)
       .eq('tenant_id', tenantId)
       .neq('status', 'cancelled')
       .gte('start_at', fromISO)
       .lte('start_at', toISO),
     supabaseAdmin
       .from('compliance_items')
-      .select('id, title, due_date, status, item_type')
+      .select('id, title, due_date, status, item_type').is('deleted_at', null)
       .eq('tenant_id', tenantId)
       .in('status', ['upcoming', 'due', 'overdue'])
       .gte('due_date', from)
       .lte('due_date', to),
     supabaseAdmin
       .from('professional_licenses')
-      .select('id, license_type, expiry_date, staff(full_name)')
+      .select('id, license_type, expiry_date, staff(full_name)').is('deleted_at', null)
       .eq('tenant_id', tenantId)
       .gte('expiry_date', from)
       .lte('expiry_date', to),
     supabaseAdmin
       .from('contracts')
-      .select('id, title, end_date, status, contact:contacts(name:full_name)')
+      .select('id, title, end_date, status, contact:contacts(name:full_name)').is('deleted_at', null)
       .eq('tenant_id', tenantId)
       .in('status', ['signed', 'partially_signed'])
       .gte('end_date', from)

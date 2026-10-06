@@ -47,17 +47,17 @@ export const benchmarkCalculateFunction = inngest.createFunction(
         const [invoiceData, staffData, payrollData] = await Promise.all([
           supabaseAdmin
             .from('invoices')
-            .select('tenant_id, total')
+            .select('tenant_id, total').is('deleted_at', null)
             .in('tenant_id', tenantIds)
             .eq('status', 'paid')
             .gte('created_at', thirtyDaysAgo.toISOString()),
           supabaseAdmin
             .from('staff')
-            .select('tenant_id, id')
+            .select('tenant_id, id').is('deleted_at', null)
             .in('tenant_id', tenantIds),
           supabaseAdmin
             .from('payroll_runs')
-            .select('tenant_id, total_gross')
+            .select('tenant_id, total_gross').is('deleted_at', null)
             .in('tenant_id', tenantIds)
             .gte('created_at', thirtyDaysAgo.toISOString()),
         ])

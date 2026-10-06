@@ -180,7 +180,7 @@ export const POST = withRoute({
     const today = todayDateString().replace(/-/g, '')
     const { count } = await supabaseAdmin
       .from('invoices')
-      .select('id', { count: 'exact', head: true })
+      .select('id', { count: 'exact', head: true }).is('deleted_at', null)
       .eq('tenant_id', tenantId)
 
     const nowIso = new Date().toISOString()

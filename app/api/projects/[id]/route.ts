@@ -25,7 +25,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
   const { data, error } = await supabaseAdmin
     .from('projects')
-    .select('*, contact:contacts(name:full_name, email), tasks(*)')
+    .select('*, contact:contacts(name:full_name, email), tasks(*)').is('deleted_at', null)
     .eq('id', id)
     .eq('tenant_id', tenantId)
     .single()

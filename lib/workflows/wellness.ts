@@ -5,7 +5,7 @@ import { writeAuditLog } from '@/lib/security/audit'
 async function getActiveStaff(tenantId: string) {
   const { data } = await supabaseAdmin
     .from('staff')
-    .select('*')
+    .select('*').is('deleted_at', null)
     .eq('tenant_id', tenantId)
   return data || []
 }
@@ -13,7 +13,7 @@ async function getActiveStaff(tenantId: string) {
 async function getRecentWellnessScores(staffId: string, days: number) {
   const { data } = await supabaseAdmin
     .from('staff')
-    .select('wellness_scores')
+    .select('wellness_scores').is('deleted_at', null)
     .eq('id', staffId)
     .single()
 
@@ -64,7 +64,7 @@ export async function recordWellnessScore(
   // Append new score to the JSONB array
   const { data: staffData } = await supabaseAdmin
     .from('staff')
-    .select('wellness_scores, tenant_id')
+    .select('wellness_scores, tenant_id').is('deleted_at', null)
     .eq('id', staffId)
     .single()
 

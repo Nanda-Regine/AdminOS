@@ -27,7 +27,7 @@ export async function GET(request: Request) {
 
   let query = supabaseAdmin
     .from('booking_services')
-    .select('*')
+    .select('*').is('deleted_at', null)
     .eq('tenant_id', tenantId)
     .order('name')
 

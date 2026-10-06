@@ -22,7 +22,7 @@ export const sequencesCronFunction = inngest.createFunction(
 
     const [sequences, tenants] = await step.run('load-lookups', async () => {
       const [seqRes, tenantRes] = await Promise.all([
-        supabaseAdmin.from('whatsapp_sequences').select('id, steps, tenant_id').in('id', sequenceIds),
+        supabaseAdmin.from('whatsapp_sequences').select('id, steps, tenant_id').is('deleted_at', null).in('id', sequenceIds),
         supabaseAdmin.from('tenants').select('id, meta_phone_number_id').in('id', tenantIds),
       ])
       return [seqRes.data ?? [], tenantRes.data ?? []]

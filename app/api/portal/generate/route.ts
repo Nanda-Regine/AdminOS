@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
   // Verify contact belongs to tenant
   const { data: contact } = await supabaseAdmin
     .from('contacts')
-    .select('id, name:full_name, email, phone')
+    .select('id, name:full_name, email, phone').is('deleted_at', null)
     .eq('id', contactId)
     .eq('tenant_id', tenantId)
     .single()

@@ -38,7 +38,7 @@ export async function GET(request: Request) {
 
     let query = ctx.db
       .from('creative_assets')
-      .select('*')
+      .select('*').is('deleted_at', null)
       .eq('tenant_id', ctx.tenantId)
       .order('created_at', { ascending: false })
 

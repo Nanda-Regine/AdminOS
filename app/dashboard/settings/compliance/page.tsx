@@ -59,9 +59,9 @@ export default async function CompliancePage() {
   // Count records per category for the data register
   const [convCount, staffCount, invoiceCount, docCount, auditCount] = await Promise.all([
     supabaseAdmin.from('conversations').select('id', { count: 'exact', head: true }).eq('tenant_id', tenantId),
-    supabaseAdmin.from('staff').select('id', { count: 'exact', head: true }).eq('tenant_id', tenantId),
-    supabaseAdmin.from('invoices').select('id', { count: 'exact', head: true }).eq('tenant_id', tenantId),
-    supabaseAdmin.from('documents').select('id', { count: 'exact', head: true }).eq('tenant_id', tenantId),
+    supabaseAdmin.from('staff').select('id', { count: 'exact', head: true }).is('deleted_at', null).eq('tenant_id', tenantId),
+    supabaseAdmin.from('invoices').select('id', { count: 'exact', head: true }).is('deleted_at', null).eq('tenant_id', tenantId),
+    supabaseAdmin.from('documents').select('id', { count: 'exact', head: true }).is('deleted_at', null).eq('tenant_id', tenantId),
     supabaseAdmin.from('audit_log').select('id', { count: 'exact', head: true }).eq('tenant_id', tenantId),
   ])
 

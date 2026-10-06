@@ -20,7 +20,7 @@ export default async function SequencesPage() {
 
   const { data: seqs = [] } = await supabaseAdmin
     .from('whatsapp_sequences')
-    .select('*')
+    .select('*').is('deleted_at', null)
     .eq('tenant_id', tenantId)
     .order('created_at', { ascending: false })
 

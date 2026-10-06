@@ -83,7 +83,7 @@ async function scoreFinancial(tenantId: string): Promise<HealthDimension> {
       .gte('paid_at', thirtyDaysAgo),
     supabaseAdmin
       .from('invoices')
-      .select('amount_due, due_date, status')
+      .select('amount_due, due_date, status').is('deleted_at', null)
       .eq('tenant_id', tenantId)
       .gte('created_at', ninetyDaysAgo),
   ])
@@ -132,7 +132,7 @@ async function scoreLegal(tenantId: string): Promise<HealthDimension> {
   const [docsRes] = await Promise.all([
     supabaseAdmin
       .from('documents')
-      .select('document_type, expiry_date')
+      .select('document_type, expiry_date').is('deleted_at', null)
       .eq('tenant_id', tenantId),
   ])
 
@@ -168,7 +168,7 @@ async function scoreLegal(tenantId: string): Promise<HealthDimension> {
 
 async function scorePeople(tenantId: string): Promise<HealthDimension> {
   const [staffRes, wellnessRes, leaveRes] = await Promise.all([
-    supabaseAdmin.from('staff').select('id, active').eq('tenant_id', tenantId),
+    supabaseAdmin.from('staff').select('id, active').is('deleted_at', null).eq('tenant_id', tenantId),
     // No wellness_checkins table (no per-event history at all) — wellness_
     // summary is a pre-aggregated per-staff view with a fixed 14-day window
     // (avg_score_14d), not a raw event log filterable to 30 days.
@@ -178,7 +178,7 @@ async function scorePeople(tenantId: string): Promise<HealthDimension> {
       .eq('tenant_id', tenantId),
     supabaseAdmin
       .from('leave_requests')
-      .select('status')
+      .select('status').is('deleted_at', null)
       .eq('tenant_id', tenantId)
       .eq('status', 'pending'),
   ])
@@ -227,7 +227,7 @@ async function scoreCustomer(tenantId: string): Promise<HealthDimension> {
       .gte('created_at', sevenDaysAgo),
     supabaseAdmin
       .from('contacts')
-      .select('id')
+      .select('id').is('deleted_at', null)
       .eq('tenant_id', tenantId),
   ])
 
@@ -264,8 +264,8 @@ async function scoreCustomer(tenantId: string): Promise<HealthDimension> {
 
 async function scoreOperational(tenantId: string): Promise<HealthDimension> {
   const [goalsRes, docsRes] = await Promise.all([
-    supabaseAdmin.from('goals').select('status').eq('tenant_id', tenantId),
-    supabaseAdmin.from('documents').select('id').eq('tenant_id', tenantId),
+    supabaseAdmin.from('goals').select('status').is('deleted_at', null).eq('tenant_id', tenantId),
+    supabaseAdmin.from('documents').select('id').is('deleted_at', null).eq('tenant_id', tenantId),
   ])
 
   const goals = goalsRes.data ?? []
@@ -304,7 +304,7 @@ async function scoreStrategic(tenantId: string): Promise<HealthDimension> {
   // count only, the one thing actually knowable from this table today.
   // Restore future/overdue once a real deadline column exists.
   const [goalsRes] = await Promise.all([
-    supabaseAdmin.from('goals').select('status').eq('tenant_id', tenantId),
+    supabaseAdmin.from('goals').select('status').is('deleted_at', null).eq('tenant_id', tenantId),
   ])
 
   const goals = goalsRes.data ?? []

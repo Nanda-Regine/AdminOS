@@ -10,7 +10,7 @@ export const sopAcknowledgementFunction = inngest.createFunction(
     const sops = await step.run('get-required-sops', async () => {
       const { data } = await supabaseAdmin
         .from('sop_documents')
-        .select('id, tenant_id, title, requires_acknowledgement')
+        .select('id, tenant_id, title, requires_acknowledgement').is('deleted_at', null)
         .eq('requires_acknowledgement', true)
 
       return data ?? []
@@ -29,7 +29,7 @@ export const sopAcknowledgementFunction = inngest.createFunction(
         // tracked for acknowledgement either way.
         const { data: allStaff } = await supabaseAdmin
           .from('staff')
-          .select('id, tenant_id, user_id, full_name, phone')
+          .select('id, tenant_id, user_id, full_name, phone').is('deleted_at', null)
           .eq('tenant_id', sop.tenant_id)
           .not('user_id', 'is', null)
 

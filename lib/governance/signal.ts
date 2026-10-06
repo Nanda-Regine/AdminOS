@@ -24,8 +24,8 @@ const daysUntil = (d: string | null): number | null => {
 
 export async function buildGovernanceIntel(tenantId: string): Promise<GovernanceIntel> {
   const [compRes, contractRes, healthRes, valRes] = await Promise.all([
-    supabaseAdmin.from('compliance_items').select('title, due_date, status, item_type, penalty_description').eq('tenant_id', tenantId).neq('status', 'completed'),
-    supabaseAdmin.from('contracts').select('status, end_date').eq('tenant_id', tenantId),
+    supabaseAdmin.from('compliance_items').select('title, due_date, status, item_type, penalty_description').is('deleted_at', null).eq('tenant_id', tenantId).neq('status', 'completed'),
+    supabaseAdmin.from('contracts').select('status, end_date').is('deleted_at', null).eq('tenant_id', tenantId),
     supabaseAdmin.from('business_health_snapshots').select('overall_score').eq('tenant_id', tenantId).order('snapshot_date', { ascending: false }).limit(1).maybeSingle(),
     supabaseAdmin.from('valuation_snapshots').select('estimated_value').eq('tenant_id', tenantId).order('snapshot_date', { ascending: false }).limit(1).maybeSingle(),
   ])

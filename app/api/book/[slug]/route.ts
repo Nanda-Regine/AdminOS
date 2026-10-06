@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { checkRateLimit } from '@/lib/security/rateLimit'
 import { z } from 'zod'
+import { upsertContact } from '@/lib/contacts/upsert'
+import { validatePhone } from '@/lib/integrations/phone'
 
 const bookingSchema = z.object({
   serviceId:    z.string().uuid(),
@@ -31,12 +33,12 @@ export async function GET(_request: Request, { params }: { params: Promise<{ slu
   // Fetch active services
   const { data: services, error: servicesError } = await supabaseAdmin
     .from('booking_services')
-    .select('id, name, duration_minutes, price, colour')
+    .select('id, name, duration_minutes, price, colour').is('deleted_at', null)
     .eq('tenant_id', tenant.id)
     .eq('active', true)
     .order('name')
 
-  if (servicesError) return NextResponse.json({ error: servicesError.message }, { status: 400 })
+  if (servicesError) return NextResponse.json({ error: 'Could not load services' }, { status: 500 })
 
   return NextResponse.json({
     tenant: {
@@ -69,7 +71,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
 
   let body: z.infer<typeof bookingSchema>
   try { body = bookingSchema.parse(await request.json()) } catch (e) {
-    return NextResponse.json({ error: 'Invalid request', detail: e }, { status: 400 })
+    void e
+    return NextResponse.json({ error: 'Please check the booking details and try again' }, { status: 400 })
+  }
+
+  if (!validatePhone(body.contactPhone).valid) {
+    return NextResponse.json({ error: 'Please enter a valid phone number' }, { status: 422 })
   }
 
   // Validate time range
@@ -82,7 +89,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
   // Verify service belongs to this tenant
   const { data: service } = await supabaseAdmin
     .from('booking_services')
-    .select('id')
+    .select('id').is('deleted_at', null)
     .eq('id', body.serviceId)
     .eq('tenant_id', tenantId)
     .eq('active', true)
@@ -92,30 +99,40 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
     return NextResponse.json({ error: 'Service not found' }, { status: 404 })
   }
 
-  // Upsert contact by phone + tenant_id
-  const { data: contact, error: contactError } = await supabaseAdmin
-    .from('contacts')
-    .upsert(
-      {
-        tenant_id: tenantId,
-        phone:     body.contactPhone,
-        name:      body.contactName,
-        email:     body.contactEmail ?? null,
-      },
-      { onConflict: 'tenant_id,phone', ignoreDuplicates: false }
-    )
-    .select('id')
-    .single()
+  // A staff id from a public form is untrusted: it must be a live member of
+  // THIS business, or anyone could attach bookings to another tenant's staff.
+  if (body.staffId) {
+    const { data: staff } = await supabaseAdmin
+      .from('staff')
+      .select('id').is('deleted_at', null)
+      .eq('id', body.staffId)
+      .eq('tenant_id', tenantId)
+      .maybeSingle()
+    if (!staff) return NextResponse.json({ error: 'That staff member is not available' }, { status: 404 })
+  }
 
-  if (contactError || !contact) {
-    return NextResponse.json({ error: contactError?.message ?? 'Failed to create contact' }, { status: 400 })
+  // Find-or-create the customer. (Was a contacts upsert writing a 'name' column
+  // that doesn't exist, against a DEFERRABLE unique key Postgres won't use as
+  // an ON CONFLICT arbiter — every public booking failed. See lib/contacts/upsert.)
+  let contactId: string
+  try {
+    contactId = await upsertContact({
+      tenantId,
+      phone:    body.contactPhone,
+      fullName: body.contactName,
+      email:    body.contactEmail ?? null,
+      source:   'booking_page',
+    })
+  } catch (e) {
+    console.error('[book] contact upsert failed', e)
+    return NextResponse.json({ error: 'Could not save your details — please try again' }, { status: 500 })
   }
 
   // Check for staff conflicts if staffId provided
   if (body.staffId) {
     const { data: conflicts } = await supabaseAdmin
       .from('bookings')
-      .select('id')
+      .select('id').is('deleted_at', null)
       .eq('tenant_id', tenantId)
       .eq('staff_id', body.staffId)
       .not('status', 'in', '(cancelled,no_show)')
@@ -134,7 +151,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
     .insert({
       tenant_id:  tenantId,
       service_id: body.serviceId,
-      contact_id: contact.id,
+      contact_id: contactId,
       staff_id:   body.staffId ?? null,
       start_at:   body.startAt,
       end_at:     body.endAt,
@@ -145,7 +162,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
     .select()
     .single()
 
-  if (bookingError) return NextResponse.json({ error: bookingError.message }, { status: 400 })
+  if (bookingError) {
+    console.error('[book] booking insert failed', bookingError)
+    return NextResponse.json({ error: 'Could not confirm the booking — please try again' }, { status: 500 })
+  }
 
   return NextResponse.json(
     {

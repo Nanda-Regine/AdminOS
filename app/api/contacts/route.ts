@@ -29,7 +29,7 @@ export async function GET(request: Request) {
 
   let query = supabaseAdmin
     .from('contacts')
-    .select('*', { count: 'exact' })
+    .select('*', { count: 'exact' }).is('deleted_at', null)
     .eq('tenant_id', tenantId)
     .order('updated_at', { ascending: false })
     .range(offset, offset + limit - 1)
@@ -65,7 +65,7 @@ export async function POST(request: Request) {
   if (body.phone) {
     const { data: existing } = await supabaseAdmin
       .from('contacts')
-      .select('id')
+      .select('id').is('deleted_at', null)
       .eq('tenant_id', tenantId)
       .eq('phone', body.phone)
       .single()

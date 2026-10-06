@@ -61,7 +61,7 @@ export const GET = withRoute({ action: 'leave.request', query: listQuery }, asyn
     q,
     supabaseAdmin
       .from('staff')
-      .select('leave_balance, leave_taken')
+      .select('leave_balance, leave_taken').is('deleted_at', null)
       .eq('id', staffId)
       .eq('tenant_id', ctx.tenantId)
       .maybeSingle(),
@@ -158,7 +158,7 @@ export const POST = withRoute({
   const requesterId = ctx.userId
   after(async () => {
     const { data: staff } = await supabaseAdmin
-      .from('staff').select('full_name').eq('id', staffId).eq('tenant_id', tenantId).maybeSingle()
+      .from('staff').select('full_name').is('deleted_at', null).eq('id', staffId).eq('tenant_id', tenantId).maybeSingle()
     const who = staff?.full_name ?? 'A team member'
     const label = LEAVE_LABELS[body.leaveType]
     const span = body.startDate === body.endDate ? body.startDate : `${body.startDate} → ${body.endDate}`

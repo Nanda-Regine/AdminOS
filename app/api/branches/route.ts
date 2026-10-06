@@ -25,7 +25,7 @@ export async function GET(request: Request) {
 
   let query = supabaseAdmin
     .from('branches')
-    .select('*')
+    .select('*').is('deleted_at', null)
     .eq('tenant_id', tenantId)
     .order('name')
 

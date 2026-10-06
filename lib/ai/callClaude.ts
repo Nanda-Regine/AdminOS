@@ -8,6 +8,7 @@ import {
   MODELS,
 } from '@/lib/ai/costControls'
 import { callGroq } from '@/lib/ai/providers/groq'
+import { supabaseAdmin } from '@/lib/supabase/admin'
 import { callGemini } from '@/lib/ai/providers/gemini'
 
 const anthropic = new Anthropic({
@@ -161,24 +162,40 @@ export async function callClaudeWithCache(
   }
 }
 
-export interface AgentCallOpts {
-  tenantId?: string
-  plan?:     string
+/**
+ * Who pays for an AI call. REQUIRED on every call: tenantId + plan drive the
+ * per-tenant daily budget and the usage log. It was optional, and ~20 call
+ * sites (document upload, WhatsApp intent/sentiment, inbound voice, debt and
+ * cold-lead drafts) omitted it — those calls skipped the budget and were never
+ * recorded (Session 20; same class as Session 12's P0#1). As a required type,
+ * an unmetered call no longer compiles.
+ */
+export interface TenantAI {
+  tenantId: string
+  plan:     string
+}
+
+export interface AgentCallOpts extends TenantAI {
   feature?:  string
   model?:    string  // explicit model override — skips feature routing
+}
+
+/** Load the plan for a tenant's AI calls. Unknown tenant → 'trial' budget. */
+export async function tenantAI(tenantId: string): Promise<TenantAI> {
+  const { data } = await supabaseAdmin.from('tenants').select('plan').eq('id', tenantId).maybeSingle()
+  return { tenantId, plan: (data?.plan as string | undefined) ?? 'trial' }
 }
 
 export async function callClaudeAgent(
   systemPrompt: string,
   userMessage: string,
-  maxTokens = 500,
-  opts?: AgentCallOpts
+  maxTokens: number,
+  opts: AgentCallOpts
 ) {
-  const plan    = opts?.plan    ?? 'trial'
-  const feature = opts?.feature ?? 'agent_call'
+  const plan    = opts.plan
+  const feature = opts.feature ?? 'agent_call'
 
-  // Budget check if we have a tenant context
-  if (opts?.tenantId) {
+  {
     const budget = await checkBudget(opts.tenantId, plan, maxTokens)
     if (!budget.allowed) {
       console.warn(`[AI:blocked] tenant=${opts.tenantId} feature=${feature} reason=${budget.reason}`)
@@ -192,14 +209,14 @@ export async function callClaudeAgent(
   // falls through to Claude below on any error (key missing/invalid, rate
   // limited), so a free-tier outage degrades quality rather than breaking
   // the feature outright.
-  const provider = opts?.model ? 'anthropic' : getProviderForFeature(feature)
+  const provider = opts.model ? 'anthropic' : getProviderForFeature(feature)
   if (provider === 'groq' || provider === 'gemini') {
     try {
       const result = provider === 'groq'
         ? await callGroq(systemPrompt, userMessage, maxTokens)
         : await callGemini(systemPrompt, userMessage, maxTokens)
 
-      if (opts?.tenantId) {
+      {
         void recordUsage({
           tenantId:   opts.tenantId,
           plan,
@@ -216,7 +233,7 @@ export async function callClaudeAgent(
     }
   }
 
-  const model = opts?.model ?? getModelForFeature(feature, plan)
+  const model = opts.model ?? getModelForFeature(feature, plan)
 
   const response = await withRetry(() =>
     anthropic.messages.create({
@@ -227,7 +244,7 @@ export async function callClaudeAgent(
     })
   )
 
-  if (opts?.tenantId) {
+  {
     void recordUsage({
       tenantId:   opts.tenantId,
       plan,
@@ -246,33 +263,33 @@ export async function callClaudeAgent(
 export async function classifyIntent(
   text: string,
   tenantContext: string,
-  opts?: AgentCallOpts
+  opts: TenantAI
 ): Promise<string> {
   const result = await callClaudeAgent(
     `${tenantContext}\n\nClassify the intent of the following message into ONE of: leave_request, invoice_query, general_faq, complaint, appointment, wellness_checkin, document_request, other. Reply with ONLY the intent label.`,
     text,
     50,
-    { feature: 'intent_classify', model: MODELS.HAIKU, ...opts }
+    { ...opts, feature: 'intent_classify', model: MODELS.HAIKU }
   )
   return result.trim().toLowerCase()
 }
 
 export async function classifySentiment(
   text: string,
-  opts?: AgentCallOpts
+  opts: TenantAI
 ): Promise<string> {
   const result = await callClaudeAgent(
     'Classify the sentiment of this message into ONE of: positive, neutral, negative, urgent. Reply with ONLY the label.',
     text,
     20,
-    { feature: 'sentiment_classify', model: MODELS.HAIKU, ...opts }
+    { ...opts, feature: 'sentiment_classify', model: MODELS.HAIKU }
   )
   const sentiment = result.trim().toLowerCase()
   const valid = ['positive', 'neutral', 'negative', 'urgent']
   return valid.includes(sentiment) ? sentiment : 'neutral'
 }
 
-export async function classifyDocument(extractedText: string): Promise<{
+export async function classifyDocument(extractedText: string, opts: TenantAI): Promise<{
   category: 'strategy' | 'invoice' | 'hr' | 'report' | 'contract'
   confidence: number
 }> {
@@ -280,7 +297,7 @@ export async function classifyDocument(extractedText: string): Promise<{
     'Classify this document into ONE of: strategy, invoice, hr, report, contract. Reply with JSON only: {"category":"...", "confidence": 0.0-1.0}',
     extractedText.slice(0, 3000),
     100,
-    { feature: 'document_classify' }
+    { ...opts, feature: 'document_classify' }
   )
   try {
     const jsonMatch = result.match(/\{[\s\S]*\}/)
@@ -291,7 +308,8 @@ export async function classifyDocument(extractedText: string): Promise<{
 }
 
 export async function extractGoalsFromDoc(
-  text: string
+  text: string,
+  opts: TenantAI
 ): Promise<
   Array<{
     title: string
@@ -305,7 +323,7 @@ export async function extractGoalsFromDoc(
     'Extract all business goals, KPIs, and milestones from this document. Reply with a JSON array only: [{"title":"...","description":"...","quarter":"...","target_metric":"...","target_value":0}]',
     text.slice(0, 5000),
     1000,
-    { feature: 'document_extract' }
+    { ...opts, feature: 'document_extract' }
   )
   try {
     const jsonMatch = result.match(/\[[\s\S]*\]/)
@@ -322,7 +340,7 @@ export async function draftRecoveryMessage(params: {
   daysOverdue: number
   tone: string
   includePaymentLink: boolean
-}): Promise<string> {
+}, opts: TenantAI): Promise<string> {
   return callClaudeAgent(
     `You draft payment reminders for ${params.tenantName}, a South African business, to send to its own customers.
 
@@ -342,7 +360,7 @@ State only: what is owed, how overdue it is, and how to make contact or pay. Alw
     // the generic 'agent_call' bucket. 'chase_message' is deliberately kept
     // off the free-provider list (costControls.ts) — this wording carries
     // hard legal must-nots and is not a place to risk a weaker model.
-    { feature: 'chase_message' }
+    { ...opts, feature: 'chase_message' }
   )
 }
 
@@ -350,14 +368,14 @@ export async function draftColdLeadMessage(params: {
   tenantName: string
   contact: string
   daysSinceContact: number | null
-}): Promise<string> {
+}, opts: TenantAI): Promise<string> {
   return callClaudeAgent(
     `You draft short, warm WhatsApp re-engagement messages for ${params.tenantName}, a South African business, to send to its own past customer or lead who has gone quiet.
 
 Draft a friendly, low-pressure check-in under 200 characters. No sales pitch, no discount codes, no urgency language. Just a genuine "we haven't heard from you in a while, how can we help" tone. Reply ONLY with the message text.`,
     `Contact: ${params.contact}\nDays since last contact: ${params.daysSinceContact ?? 'unknown (never contacted)'}`,
     150,
-    { feature: 'cold_lead_nudge' }
+    { ...opts, feature: 'cold_lead_nudge' }
   )
 }
 
@@ -370,7 +388,7 @@ export async function generateDailyBrief(tenantData: {
   wellnessAvg: number
   topGoals: string[]
   fxRates?: { usdZar?: number; eurZar?: number; gbpZar?: number }
-}): Promise<string> {
+}, opts: TenantAI): Promise<string> {
   return callClaudeAgent(
     `You are a world-class business advisor with deep knowledge of South African SME operations. Generate a concise daily brief. Be direct, data-driven, and actionable. Connect insights to company goals. If FX rates are provided, briefly note USD/ZAR and EUR/ZAR impact on import-dependent businesses. Max 300 words.`,
     JSON.stringify(tenantData),
@@ -378,6 +396,6 @@ export async function generateDailyBrief(tenantData: {
     // Was previously untagged (silently used Haiku via the 'agent_call'
     // default) instead of the Sonnet-tier 'daily_brief' routing this
     // feature was actually built for.
-    { feature: 'daily_brief' }
+    { ...opts, feature: 'daily_brief' }
   )
 }

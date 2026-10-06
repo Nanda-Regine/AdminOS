@@ -1,5 +1,6 @@
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { OPEN_INVOICE_STATUSES, outstanding } from '@/lib/invoices/status'
+import { emp201DueDate } from '@/lib/people/workingDays'
 
 export interface WeeklyForecast {
   weekStart:  string   // ISO date
@@ -73,21 +74,24 @@ export async function generateCashflowForecast(
     // Upcoming expense claims
     supabaseAdmin
       .from('expenses')
-      .select('amount, submitted_at')
+      .select('amount, submitted_at').is('deleted_at', null)
       .eq('tenant_id', tenantId)
       .eq('status', 'approved'),
 
     // Payroll runs
     supabaseAdmin
       .from('payroll_runs')
-      .select('total_net, total_paye, total_uif_employer, total_sdl, period_month, period_year')
+      .select('total_net, total_paye, total_uif_employee, total_uif_employer, total_sdl, period_month, period_year').is('deleted_at', null)
       .eq('tenant_id', tenantId)
-      .in('status', ['finalised']),
+      .in('status', ['finalised', 'paid'])
+      .order('period_year', { ascending: false })
+      .order('period_month', { ascending: false })
+      .limit(1),
 
-    // Tenant plan for estimate sizing
+    // Tenant settings (payroll_day)
     supabaseAdmin
       .from('tenants')
-      .select('id')
+      .select('id, settings')
       .eq('id', tenantId)
       .single(),
   ])
@@ -136,35 +140,30 @@ export async function generateCashflowForecast(
     })
   }
 
-  // ── Outflows from payroll (estimate next month's based on last run) ───────────
-  const payrollRuns = payrollResult.data ?? []
-  if (payrollRuns.length > 0) {
-    const lastRun = payrollRuns[payrollRuns.length - 1]
-    // Next payroll on 25th of next month
-    const nextPayDate = new Date(today.getFullYear(), today.getMonth() + 1, 25)
-    if (nextPayDate <= horizonEnd) {
-      if (lastRun.total_net) {
-        outflows.push({
-          date:     toISO(nextPayDate),
-          amount:   lastRun.total_net,
-          label:    'Payroll (net pay)',
-          category: 'payroll',
-          probability: 1,
-          source:   'payroll',
-        })
+  // ── Outflows from payroll: every pay day in the horizon, sized on the latest run ──
+  // Was ONE payroll (the 25th of next month) in a 90-day window — two to three
+  // months of salaries missing — from an unordered "last" run, and only for
+  // status 'finalised' (a 'paid' run is just as real). The SARS line also left
+  // out the employee UIF the employer withholds and pays over on the EMP201.
+  const lastRun = (payrollResult.data ?? [])[0]
+  if (lastRun) {
+    const settings = (tenantResult.data?.settings ?? {}) as { payroll_day?: number }
+    const payDay   = Math.min(28, Math.max(1, Number(settings.payroll_day) || 25))
+    const net      = Number(lastRun.total_net ?? 0)
+    const sars     = Number(lastRun.total_paye ?? 0) + Number(lastRun.total_uif_employee ?? 0)
+                   + Number(lastRun.total_uif_employer ?? 0) + Number(lastRun.total_sdl ?? 0)
+    const todayStr = toISO(today)
+    for (let m = 0; m <= 4; m++) {
+      const payDate = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + m, payDay))
+      const payStr  = toISO(payDate)
+      if (payStr >= todayStr && payDate <= horizonEnd && net > 0) {
+        outflows.push({ date: payStr, amount: net, label: 'Payroll (net pay)', category: 'payroll', probability: 1, source: 'payroll' })
       }
-      // PAYE + UIF + SDL due 7th of following month
-      const taxDate = new Date(today.getFullYear(), today.getMonth() + 2, 7)
-      const totalTax = (lastRun.total_paye ?? 0) + (lastRun.total_uif_employer ?? 0) + (lastRun.total_sdl ?? 0)
-      if (totalTax > 0 && taxDate <= horizonEnd) {
-        outflows.push({
-          date:     toISO(taxDate),
-          amount:   totalTax,
-          label:    'PAYE + UIF + SDL (SARS)',
-          category: 'tax',
-          probability: 1,
-          source:   'payroll',
-        })
+      // EMP201 for that payroll month: due the 7th of the following month,
+      // moved back to the last business day if the 7th is a weekend/holiday.
+      const due = emp201DueDate(payDate.getUTCFullYear(), payDate.getUTCMonth() + 1)
+      if (due >= todayStr && new Date(due) <= horizonEnd && sars > 0) {
+        outflows.push({ date: due, amount: sars, label: 'EMP201: PAYE + UIF + SDL (SARS)', category: 'tax', probability: 1, source: 'tax' })
       }
     }
   }

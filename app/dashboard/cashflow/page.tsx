@@ -50,12 +50,12 @@ export default async function CashflowPage() {
   const [invoiceResult, expenseResult, forecastResult] = await Promise.all([
     supabaseAdmin
       .from('invoices')
-      .select('id, contact_name, amount, amount_paid, due_date, status')
+      .select('id, contact_name, amount, amount_paid, due_date, status').is('deleted_at', null)
       .eq('tenant_id', tenantId)
       .neq('status', 'paid'),
     supabaseAdmin
       .from('expenses')
-      .select('id, amount, category, description, status, submitted_at, approved_at, paid_at')
+      .select('id, amount, category, description, status, submitted_at, approved_at, paid_at').is('deleted_at', null)
       .eq('tenant_id', tenantId)
       .is('paid_at', null)
       .neq('status', 'rejected'),

@@ -251,13 +251,13 @@ async function gatherFinancials(tenantId: string, from: string, to: string) {
   const [invoiceData, priorData] = await Promise.all([
     supabaseAdmin
       .from('invoices')
-      .select('total, status, subtotal')
+      .select('amount, status').is('deleted_at', null)
       .eq('tenant_id', tenantId)
       .gte('created_at', from)
       .lte('created_at', to),
     supabaseAdmin
       .from('invoices')
-      .select('total')
+      .select('amount').is('deleted_at', null)
       .eq('tenant_id', tenantId)
       .eq('status', 'paid')
       .gte('created_at', new Date(new Date(from).getTime() - (new Date(to).getTime() - new Date(from).getTime())).toISOString())
@@ -266,20 +266,22 @@ async function gatherFinancials(tenantId: string, from: string, to: string) {
 
   const revenue  = (invoiceData.data ?? [])
     .filter(i => i.status === 'paid')
-    .reduce((s, i) => s + (i.total ?? 0), 0)
+    .reduce((s, i) => s + Number(i.amount ?? 0), 0)
 
+  // `amount` is canonical; `total` is 0 on older rows (4 real invoices, 2026-10-06).
   const priorRevenue = (priorData.data ?? [])
-    .reduce((s, i) => s + (i.total ?? 0), 0)
+    .reduce((s, i) => s + Number(i.amount ?? 0), 0)
 
   // Approximate expenses via payroll + any expense records
   const { data: expenses } = await supabaseAdmin
     .from('expenses')
-    .select('amount')
+    .select('amount').is('deleted_at', null)
     .eq('tenant_id', tenantId)
+    .neq('status', 'rejected')   // a rejected claim was never a cost
     .gte('created_at', from)
     .lte('created_at', to)
 
-  const totalExpenses = (expenses ?? []).reduce((s, e) => s + (e.amount ?? 0), 0)
+  const totalExpenses = (expenses ?? []).reduce((s, e) => s + Number(e.amount ?? 0), 0)
   const netProfit     = revenue - totalExpenses
   const margin        = revenue > 0 ? (netProfit / revenue) * 100 : 0
   const revenueVsPrior = priorRevenue > 0 ? ((revenue - priorRevenue) / priorRevenue) * 100 : null
@@ -297,17 +299,17 @@ async function gatherFinancials(tenantId: string, from: string, to: string) {
 async function gatherCustomers(tenantId: string, from: string, to: string) {
   const { count: newCount } = await supabaseAdmin
     .from('contacts')
-    .select('*', { count: 'exact', head: true })
+    .select('*', { count: 'exact', head: true }).is('deleted_at', null)
     .eq('tenant_id', tenantId)
-    .eq('contact_type', 'customer')
+    .eq('contact_type', 'client')
     .gte('created_at', from)
     .lte('created_at', to)
 
   const { count: activeCount } = await supabaseAdmin
     .from('contacts')
-    .select('*', { count: 'exact', head: true })
+    .select('*', { count: 'exact', head: true }).is('deleted_at', null)
     .eq('tenant_id', tenantId)
-    .eq('contact_type', 'customer')
+    .eq('contact_type', 'client')
 
   const { data: npsData } = await supabaseAdmin
     .from('nps_surveys')
@@ -356,13 +358,13 @@ async function gatherInvoices(tenantId: string, from: string, to: string) {
 async function gatherStaff(tenantId: string, from: string, to: string) {
   const { count: headcount } = await supabaseAdmin
     .from('staff')
-    .select('*', { count: 'exact', head: true })
+    .select('*', { count: 'exact', head: true }).is('deleted_at', null)
     .eq('tenant_id', tenantId)
     .eq('active', true)
 
   const { count: leaves } = await supabaseAdmin
     .from('leave_requests')
-    .select('*', { count: 'exact', head: true })
+    .select('*', { count: 'exact', head: true }).is('deleted_at', null)
     .eq('tenant_id', tenantId)
     .eq('status', 'approved')
     .gte('created_at', from)
@@ -373,7 +375,7 @@ async function gatherStaff(tenantId: string, from: string, to: string) {
   // app/dashboard/ir-log/page.tsx: not yet acknowledged by the staff member.
   const { count: irCases } = await supabaseAdmin
     .from('disciplinary_records')
-    .select('*', { count: 'exact', head: true })
+    .select('*', { count: 'exact', head: true }).is('deleted_at', null)
     .eq('tenant_id', tenantId)
     .is('acknowledged_at', null)
 
@@ -390,15 +392,15 @@ async function gatherCompliance(tenantId: string, to: string) {
 
   const { count: overdueCount } = await supabaseAdmin
     .from('compliance_items')
-    .select('*', { count: 'exact', head: true })
+    .select('*', { count: 'exact', head: true }).is('deleted_at', null)
     .eq('tenant_id', tenantId)
     .eq('status', 'overdue')
 
   const { count: upcomingCount } = await supabaseAdmin
     .from('compliance_items')
-    .select('*', { count: 'exact', head: true })
+    .select('*', { count: 'exact', head: true }).is('deleted_at', null)
     .eq('tenant_id', tenantId)
-    .in('status', ['pending', 'in_progress'])
+    .in('status', ['upcoming', 'due'])
     .gte('due_date', today)
     .lte('due_date', in30days)
 
@@ -417,12 +419,12 @@ async function gatherGoals(tenantId: string) {
   // silently fabricating a number from a field that isn't there.
   const { data } = await supabaseAdmin
     .from('goals')
-    .select('status')
+    .select('status').is('deleted_at', null)
     .eq('tenant_id', tenantId)
-    .in('status', ['active', 'completed', 'cancelled'])
+    .in('status', ['active', 'achieved', 'missed'])
 
   const goals           = data ?? []
-  const completed       = goals.filter(g => g.status === 'completed').length
+  const completed       = goals.filter(g => g.status === 'achieved').length
   const total           = goals.length
   const overdue         = 0 // unknown — no deadline column to compute this from
   const completionRate  = total > 0 ? completed / total : 0
