@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
 import { sanitizeForAI } from '@/lib/security/sanitize'
-import { guard } from '@/lib/api/guard'
+import { guard, dbError } from '@/lib/api/guard'
 
 const createSchema = z.object({
   title:      z.string().min(1).max(500),
@@ -63,7 +63,7 @@ export async function GET(request: Request) {
   if (category) query = query.eq('category_id', category)
 
   const { data, error } = await query
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  if (error) return dbError(error)
   return NextResponse.json(data)
 }
 
@@ -95,6 +95,6 @@ export async function POST(request: Request) {
     .select()
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  if (error) return dbError(error)
   return NextResponse.json(data, { status: 201 })
 }

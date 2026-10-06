@@ -3,6 +3,7 @@ import { requireContext, AuthError } from '@/lib/auth/context'
 import { PermissionError } from '@/lib/auth/permissions'
 import { checkRateLimit } from '@/lib/security/rateLimit'
 import { z } from 'zod'
+import { dbError } from '@/lib/api/guard'
 
 const createSchema = z.discriminatedUnion('storage_mode', [
   z.object({
@@ -46,7 +47,7 @@ export async function GET(request: Request) {
     if (status) query = query.eq('status', status)
 
     const { data, error } = await query
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) return dbError(error)
 
     return NextResponse.json({ assets: data ?? [] })
   } catch (e) {
@@ -96,7 +97,7 @@ export async function POST(request: Request) {
       .select()
       .single()
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) return dbError(error)
 
     return NextResponse.json({ asset: data }, { status: 201 })
   } catch (e) {

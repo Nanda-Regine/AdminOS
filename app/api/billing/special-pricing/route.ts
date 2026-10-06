@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { checkPermission } from '@/lib/auth/permissions'
 import { z } from 'zod'
-import { guard } from '@/lib/api/guard'
+import { guard, dbError } from '@/lib/api/guard'
 
 // Special Pricing Programmes — verified discounts for qualifying businesses
 // Discount rates: NPO 50%, Youth/Township/Women 30%, Refugee 60%
@@ -37,7 +37,7 @@ export async function GET(request: Request) {
     .eq('tenant_id', tenantId)
     .order('applied_at', { ascending: false })
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  if (error) return dbError(error)
 
   const programmes = Object.entries(PROGRAMME_DISCOUNTS).map(([slug, pct]) => ({
     slug,
@@ -91,7 +91,7 @@ export async function POST(request: Request) {
     .select()
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  if (error) return dbError(error)
 
   return NextResponse.json({
     application: data,

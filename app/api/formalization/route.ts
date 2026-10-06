@@ -4,7 +4,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
 import { checkAchievements } from '@/lib/academy/checkAchievements'
 import { fireBusinessEvent } from '@/lib/academy/knowledgeGraph'
-import { guard } from '@/lib/api/guard'
+import { guard, dbError } from '@/lib/api/guard'
 
 const updateSchema = z.object({
   cipcRegistered:        z.boolean().optional(),
@@ -46,7 +46,7 @@ export async function GET(request: Request) {
     .eq('tenant_id', tenantId)
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  if (error) return dbError(error)
 
   // Compute completion score
   const boolFields = [
@@ -101,7 +101,7 @@ export async function PATCH(request: Request) {
     .select()
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  if (error) return dbError(error)
 
   // Fire events for newly-completed milestones
   for (const [dbField, eventType] of Object.entries(MILESTONE_EVENTS)) {

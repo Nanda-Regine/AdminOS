@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { requireContext, AuthError } from '@/lib/auth/context'
 import { PermissionError } from '@/lib/auth/permissions'
 import { z } from 'zod'
+import { dbError } from '@/lib/api/guard'
 
 const patchSchema = z.object({
   status: z.enum(['draft', 'in_review', 'approved', 'delivered']).optional(),
@@ -37,7 +38,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       .select()
       .single()
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) return dbError(error)
     if (!data) return new NextResponse('Not found', { status: 404 })
 
     return NextResponse.json({ asset: data })
@@ -55,7 +56,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     const { id } = await params
 
     const { error } = await ctx.db.from('creative_assets').update({ deleted_at: new Date().toISOString() }).eq('id', id) // soft delete (Rule #3)
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) return dbError(error)
 
     return new NextResponse(null, { status: 204 })
   } catch (e) {

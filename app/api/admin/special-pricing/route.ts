@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { requireSuperAdmin } from '@/lib/auth/context'
 import { z } from 'zod'
+import { dbError } from '@/lib/api/guard'
 
 // Super-admin route for reviewing special pricing applications
 // Auth: verifies against `admins` DB table via requireSuperAdmin — NOT JWT metadata
@@ -35,7 +36,7 @@ export async function GET(request: Request) {
     .eq('status', status)
     .order('applied_at', { ascending: true })
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  if (error) return dbError(error)
   return NextResponse.json(data)
 }
 
@@ -77,7 +78,7 @@ export async function PATCH(request: Request) {
     .select()
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  if (error) return dbError(error)
 
   // If approved: record plan change with discount flag (tenant will see on next invoice)
   if (body.decision === 'approved') {

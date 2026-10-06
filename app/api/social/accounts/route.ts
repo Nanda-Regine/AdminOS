@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
 import { checkPermission } from '@/lib/auth/permissions'
-import { guard } from '@/lib/api/guard'
+import { guard, dbError } from '@/lib/api/guard'
 
 const connectSchema = z.object({
   platform:    z.enum(['facebook','instagram','google_reviews','twitter','linkedin']),
@@ -28,7 +28,7 @@ export async function GET(request: Request) {
     .eq('tenant_id', tenantId)
     .order('platform')
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  if (error) return dbError(error)
   return NextResponse.json(data)
 }
 
@@ -64,7 +64,7 @@ export async function POST(request: Request) {
     .select('id, platform, account_name, connected_at')
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  if (error) return dbError(error)
   return NextResponse.json(data, { status: 201 })
 }
 
@@ -89,6 +89,6 @@ export async function DELETE(request: Request) {
     .eq('tenant_id', tenantId)
     .eq('platform', platform)
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  if (error) return dbError(error)
   return new NextResponse(null, { status: 204 })
 }

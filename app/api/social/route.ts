@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
 import { sanitizeForAI } from '@/lib/security/sanitize'
-import { guard } from '@/lib/api/guard'
+import { guard, dbError } from '@/lib/api/guard'
 
 const replySchema = z.object({
   messageId:    z.string().uuid(),
@@ -38,7 +38,7 @@ export async function GET(request: Request) {
   if (unreplied)  query = query.is('replied_at', null)
 
   const { data, error } = await query
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  if (error) return dbError(error)
   return NextResponse.json(data)
 }
 
@@ -68,6 +68,6 @@ export async function PATCH(request: Request) {
     .select()
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  if (error) return dbError(error)
   return NextResponse.json(data)
 }

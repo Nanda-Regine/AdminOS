@@ -4,7 +4,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { requireAddon } from '@/lib/billing/gates'
 import { checkRateLimit } from '@/lib/security/rateLimit'
 import { randomBytes } from 'crypto'
-import { guard } from '@/lib/api/guard'
+import { guard, dbError } from '@/lib/api/guard'
 
 export const runtime = 'nodejs'
 
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
       expires_at:  expiresAt,
     })
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return dbError(error)
 
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://admin-os-six.vercel.app'
   return NextResponse.json({

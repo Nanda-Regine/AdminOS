@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
 import { checkPermission } from '@/lib/auth/permissions'
-import { guard } from '@/lib/api/guard'
+import { guard, dbError } from '@/lib/api/guard'
 
 const createSchema = z.object({
   name:           z.string().min(1).max(300),
@@ -34,7 +34,7 @@ export async function GET(request: Request) {
   if (active !== null) query = query.eq('active', active === 'true')
 
   const { data, error } = await query
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  if (error) return dbError(error)
   return NextResponse.json(data)
 }
 
@@ -67,6 +67,6 @@ export async function POST(request: Request) {
     .select()
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  if (error) return dbError(error)
   return NextResponse.json(data, { status: 201 })
 }

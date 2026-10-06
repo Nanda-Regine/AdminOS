@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import { guard } from '@/lib/api/guard'
+import { guard, dbError } from '@/lib/api/guard'
 import { allRows } from '@/lib/supabase/fetchAll'
 
 // GET /api/benchmarks/[businessType]
@@ -26,7 +26,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ busi
     .eq('business_type', businessType)
     .order('metric_name')
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  if (error) return dbError(error)
 
   if (!benchmarks || benchmarks.length === 0) {
     return NextResponse.json({

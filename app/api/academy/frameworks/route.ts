@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { getRelevantFrameworks } from '@/lib/academy/knowledgeGraph'
-import { guard } from '@/lib/api/guard'
+import { guard, dbError } from '@/lib/api/guard'
 
 // GET /api/academy/frameworks — get frameworks relevant to current business context
 // ?event=first_invoice.sent — get frameworks triggered by a business event
@@ -55,6 +55,6 @@ export async function GET(request: Request) {
   if (tag)     query = query.contains('situation_tags', [tag])
 
   const { data, error } = await query
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  if (error) return dbError(error)
   return NextResponse.json(data)
 }

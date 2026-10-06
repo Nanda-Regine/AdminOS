@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
-import { guard } from '@/lib/api/guard'
+import { guard, dbError } from '@/lib/api/guard'
 import { allRows } from '@/lib/supabase/fetchAll'
 
 const tierSchema = z.object({
@@ -34,7 +34,7 @@ export async function GET(_request: Request) {
     .eq('tenant_id', tenantId)
     .maybeSingle()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  if (error) return dbError(error)
 
   // Account summary derived from the loyalty_points ledger (there is no
   // loyalty_accounts table). Each row carries a running `balance`; a member's
@@ -45,7 +45,7 @@ export async function GET(_request: Request) {
     .eq('tenant_id', tenantId)
     .order('created_at', { ascending: false }).order('id').range(lo, hi))
 
-  if (summaryError) return NextResponse.json({ error: summaryError.message }, { status: 400 })
+  if (summaryError) return dbError(summaryError)
 
   const latestBalance = new Map<string, number>()
   for (const row of ledger ?? []) {
@@ -95,6 +95,6 @@ export async function POST(request: Request) {
     .select()
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  if (error) return dbError(error)
   return NextResponse.json(data, { status: 200 })
 }

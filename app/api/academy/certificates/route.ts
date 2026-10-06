@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import { guard } from '@/lib/api/guard'
+import { guard, dbError } from '@/lib/api/guard'
 
 // GET /api/academy/certificates — list all certificates earned by this user
 export async function GET(request: Request) {
@@ -19,6 +19,6 @@ export async function GET(request: Request) {
     .eq('user_id', user.id)
     .order('issued_at', { ascending: false })
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  if (error) return dbError(error)
   return NextResponse.json(data)
 }

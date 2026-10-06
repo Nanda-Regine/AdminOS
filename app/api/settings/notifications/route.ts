@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import { guard } from '@/lib/api/guard'
+import { guard, dbError } from '@/lib/api/guard'
 
 /**
  * Owner notification controls, persisted in tenants.settings:
@@ -62,6 +62,6 @@ export async function POST(request: Request) {
   }
 
   const { error } = await supabaseAdmin.from('tenants').update({ settings }).eq('id', tenantId)
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  if (error) return dbError(error)
   return NextResponse.json({ ok: true })
 }

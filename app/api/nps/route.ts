@@ -4,7 +4,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
 import { fireBusinessEvent } from '@/lib/academy/knowledgeGraph'
 import { inngest } from '@/inngest/client'
-import { guard } from '@/lib/api/guard'
+import { guard, dbError } from '@/lib/api/guard'
 
 const sendSchema = z.object({
   contactIds:  z.array(z.string().uuid()).min(1).max(100),
@@ -46,7 +46,7 @@ export async function POST(request: Request) {
     .insert(rows)
     .select('id, contact_id, survey_token, channel')
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  if (error) return dbError(error)
 
   // Queue WhatsApp delivery for each survey
   if (body.channel === 'whatsapp' && data?.length) {
@@ -99,7 +99,7 @@ export async function GET(request: Request) {
     .gte('sent_at', from)
     .order('sent_at', { ascending: false })
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  if (error) return dbError(error)
 
   // Aggregate NPS score
   const responded = (data ?? []).filter(s => s.score !== null)

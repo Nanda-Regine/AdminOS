@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { DECISION_CATALOGUE, DECISION_DEFAULTS, type Tier } from '@/lib/autonomy/tiers'
-import { guard } from '@/lib/api/guard'
+import { guard, dbError } from '@/lib/api/guard'
 
 // GET  /api/autonomy → the effective tier for every governed decision.
 // POST /api/autonomy {domain, decision_type, tier} → set one.
@@ -47,6 +47,6 @@ export async function POST(request: Request) {
   const { error } = await supabaseAdmin
     .from('tenant_autonomy_config')
     .upsert({ tenant_id: tenantId, domain: body.domain, decision_type: body.decision_type, tier: body.tier, updated_at: new Date().toISOString() }, { onConflict: 'tenant_id,domain,decision_type' })
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  if (error) return dbError(error)
   return NextResponse.json({ ok: true })
 }

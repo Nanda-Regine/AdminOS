@@ -15,6 +15,7 @@
 import { NextResponse } from 'next/server'
 import { getContext, type Context } from '@/lib/auth/context'
 import { can, type Action } from '@/lib/auth/roleMatrix'
+import { mapError } from '@/lib/api/handler'
 
 export type Guarded = { ctx: Context; denied?: undefined } | { ctx?: undefined; denied: NextResponse }
 
@@ -25,4 +26,16 @@ export async function guard(action: Action): Promise<Guarded> {
     return { denied: NextResponse.json({ error: 'You do not have permission to do this.', code: 'forbidden' }, { status: 403 }) }
   }
   return { ctx }
+}
+
+/**
+ * The legacy-route twin of withRoute's error mapping: log the real database
+ * error server-side, send the user the same friendly message withRoute would
+ * ("That already exists", "Something went wrong…") — never Postgres's own text,
+ * which names tables, columns and constraints.
+ */
+export function dbError(error: unknown): NextResponse {
+  const [status, body, report] = mapError(error)
+  if (report) console.error('[route] database error', error)
+  return NextResponse.json(body, { status })
 }

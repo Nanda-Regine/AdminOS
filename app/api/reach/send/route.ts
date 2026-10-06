@@ -5,6 +5,7 @@ import { requireAddon } from '@/lib/billing/gates'
 import { requirePermission } from '@/lib/auth/permissions'
 import { sendWhatsApp } from '@/lib/whatsapp/send'
 import { Redis } from '@upstash/redis'
+import { dbError } from '@/lib/api/guard'
 
 export const runtime = 'nodejs'
 // Allow up to 5 minutes for large audience sends
@@ -105,7 +106,7 @@ export async function POST(request: NextRequest) {
       .from('broadcast_campaigns')
       .update({ status: 'draft' })
       .eq('id', campaignId)
-    return NextResponse.json({ error: contactsErr.message }, { status: 500 })
+    return dbError(contactsErr)
   }
 
   const recipients = contacts ?? []

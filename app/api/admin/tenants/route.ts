@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { writeAuditLog, getClientIp } from '@/lib/security/audit'
 import { requireSuperAdmin } from '@/lib/auth/context'
+import { dbError } from '@/lib/api/guard'
 
 export async function GET(request: Request) {
   const admin = await requireSuperAdmin()
@@ -46,7 +47,7 @@ export async function PATCH(request: Request) {
     .single()
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 })
+    return dbError(error)
   }
 
   await writeAuditLog({

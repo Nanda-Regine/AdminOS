@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
 import { sastDate } from '@/lib/time/sast'
-import { guard } from '@/lib/api/guard'
+import { guard, dbError } from '@/lib/api/guard'
 
 const createSchema = z.object({
   staffId:            z.string().uuid().optional(),
@@ -43,7 +43,7 @@ export async function GET(request: Request) {
   }
 
   const { data, error } = await query
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  if (error) return dbError(error)
 
   // Mark expired licenses
   const today = sastDate()
@@ -88,7 +88,7 @@ export async function POST(request: Request) {
     .select()
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  if (error) return dbError(error)
 
   // Auto-create compliance item if expiry date is set
   if (body.expiryDate) {

@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
 import { sastDate } from '@/lib/time/sast'
-import { guard } from '@/lib/api/guard'
+import { guard, dbError } from '@/lib/api/guard'
 
 const updateSchema = z.object({
   id:     z.string().uuid(),
@@ -35,7 +35,7 @@ export async function GET(request: Request) {
   if (to)     query = query.lte('due_date', to)
 
   const { data, error } = await query
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  if (error) return dbError(error)
 
   // Also compute overdue status for items past due date
   const today = sastDate()
@@ -74,6 +74,6 @@ export async function PATCH(request: Request) {
     .select()
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  if (error) return dbError(error)
   return NextResponse.json(data)
 }

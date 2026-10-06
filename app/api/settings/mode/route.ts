@@ -4,6 +4,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
 import { requirePermission } from '@/lib/auth/permissions'
 import { TenantMode } from '@/lib/tenant/mode'
+import { dbError } from '@/lib/api/guard'
 
 const schema = z.object({
   mode: z.enum(['solo', 'team']),
@@ -52,7 +53,7 @@ export async function PATCH(request: Request) {
     .select('id, mode')
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  if (error) return dbError(error)
 
   return NextResponse.json(data)
 }

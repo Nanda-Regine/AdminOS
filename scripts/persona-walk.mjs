@@ -31,6 +31,10 @@ const WALKS = {
     { path: '/dashboard/payroll', expect: [] },
     { path: '/dashboard/money', expect: [] },
     { path: '/dashboard/inbox', expect: [] },
+    { path: '/dashboard/analytics', expect: [] },
+    { path: '/dashboard/cashflow', expect: [] },
+    { path: '/dashboard/sequences/new', expect: [] },
+    { path: '/dashboard/settings', expect: ['Business Details', 'Financial year ends'] },
   ],
   ngo: [
     { path: '/dashboard', expect: [] },
@@ -81,6 +85,9 @@ const WALKS = {
     { path: '/dashboard/staff', blocked: true },
     { path: '/dashboard/money', blocked: true },
     { path: '/dashboard/documents', blocked: true },
+    { path: '/dashboard/reach/new', blocked: true },
+    { path: '/dashboard/sequences/new', blocked: true },
+    { path: '/dashboard/settings/onboarding', blocked: true },
   ],
   school: [
     { path: '/dashboard', expect: [] },

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import { guard } from '@/lib/api/guard'
+import { guard, dbError } from '@/lib/api/guard'
 
 /**
  * Business logo, stored as a base64 data URL in tenants.settings.logo_url.
@@ -31,7 +31,7 @@ export async function POST(request: Request) {
   const { data: row } = await supabaseAdmin.from('tenants').select('settings').eq('id', tenantId).maybeSingle()
   const settings = { ...((row?.settings ?? {}) as Record<string, unknown>), logo_url: dataUrl }
   const { error } = await supabaseAdmin.from('tenants').update({ settings }).eq('id', tenantId)
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  if (error) return dbError(error)
   return NextResponse.json({ ok: true })
 }
 
@@ -47,6 +47,6 @@ export async function DELETE() {
   const settings = { ...((row?.settings ?? {}) as Record<string, unknown>) }
   delete settings.logo_url
   const { error } = await supabaseAdmin.from('tenants').update({ settings }).eq('id', tenantId)
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  if (error) return dbError(error)
   return NextResponse.json({ ok: true })
 }

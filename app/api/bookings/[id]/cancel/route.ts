@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import { guard } from '@/lib/api/guard'
+import { guard, dbError } from '@/lib/api/guard'
 
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const gate = await guard('bookings.write'); if (gate.denied) return gate.denied
@@ -20,7 +20,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     .eq('id', id)
     .eq('tenant_id', tenantId)
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  if (error) return dbError(error)
 
   const origin = new URL(_req.url).origin
   return NextResponse.redirect(new URL('/dashboard/bookings', origin))

@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
 import { sanitizeForAI } from '@/lib/security/sanitize'
-import { guard } from '@/lib/api/guard'
+import { guard, dbError } from '@/lib/api/guard'
 
 const createSchema = z.object({
   category:  z.enum(['need_help','can_help','experience','supplier_review','celebration']),
@@ -40,7 +40,7 @@ export async function GET(request: Request) {
   if (province) query = query.eq('province', province)
 
   const { data, error } = await query
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  if (error) return dbError(error)
 
   // Strip tenant_id from anonymous posts
   const sanitized = (data ?? []).map(p => ({
@@ -84,6 +84,6 @@ export async function POST(request: Request) {
     .select()
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  if (error) return dbError(error)
   return NextResponse.json(data, { status: 201 })
 }

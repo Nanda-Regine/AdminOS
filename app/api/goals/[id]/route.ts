@@ -4,7 +4,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
 import { fireBusinessEvent } from '@/lib/academy/knowledgeGraph'
 import { checkAchievements } from '@/lib/academy/checkAchievements'
-import { guard } from '@/lib/api/guard'
+import { guard, dbError } from '@/lib/api/guard'
 
 const updateSchema = z.object({
   title:       z.string().min(1).max(500).optional(),
@@ -49,7 +49,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     .select()
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  if (error) return dbError(error)
 
   // On first goal completion, fire event and check achievements
   if (body.status === 'completed') {

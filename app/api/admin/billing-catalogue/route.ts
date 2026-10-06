@@ -4,6 +4,7 @@ import { requireSuperAdmin } from '@/lib/auth/context'
 import { writeAuditLog, getClientIp } from '@/lib/security/audit'
 import { ADDON_SLUGS } from '@/lib/billing/addons'
 import { z } from 'zod'
+import { dbError } from '@/lib/api/guard'
 
 // Operator-only editor for the billing catalogue — the single source of truth for
 // plan/add-on prices and the bundling ladder. Prices are data, not code: editing
@@ -77,7 +78,7 @@ export async function PATCH(request: Request) {
   }
 
   const { data, error } = await supabaseAdmin.from(table).update(updates).eq('slug', slug).select().single()
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  if (error) return dbError(error)
 
   await writeAuditLog({
     actor: admin.id,

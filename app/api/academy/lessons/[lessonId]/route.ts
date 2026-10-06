@@ -5,7 +5,7 @@ import { z } from 'zod'
 import { inngest } from '@/inngest/client'
 import { checkAchievements } from '@/lib/academy/checkAchievements'
 import { updateLearningStreak } from '@/lib/academy/checkAchievements'
-import { guard } from '@/lib/api/guard'
+import { guard, dbError } from '@/lib/api/guard'
 
 const completeSchema = z.object({
   score:            z.number().min(0).max(100).optional(),
@@ -86,7 +86,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ les
     .select()
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  if (error) return dbError(error)
 
   // Fire lesson completion event (triggers streak update + achievement check)
   void inngest.send({

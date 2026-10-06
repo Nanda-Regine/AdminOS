@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
+import { dbError } from '@/lib/api/guard'
 
 // Public contract signing. The signing model lives in `contract_signatures`
 // (one row per signer, each with its own auto-generated `token`), NOT on the
@@ -93,7 +94,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     })
     .eq('id', invite.id)
 
-  if (sigError) return NextResponse.json({ error: sigError.message }, { status: 400 })
+  if (sigError) return dbError(sigError)
 
   // When every signer on the contract has signed, mark the contract signed.
   const { data: outstanding } = await supabaseAdmin

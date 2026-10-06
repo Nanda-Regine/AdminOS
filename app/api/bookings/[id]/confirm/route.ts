@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { inngest } from '@/inngest/client'
-import { guard } from '@/lib/api/guard'
+import { guard, dbError } from '@/lib/api/guard'
 
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const gate = await guard('bookings.write'); if (gate.denied) return gate.denied
@@ -23,7 +23,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     .select()
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  if (error) return dbError(error)
 
   // Fire event so bookingReminder function can schedule the 24h reminder
   await inngest.send({

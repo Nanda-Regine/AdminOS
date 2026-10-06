@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
+import { dbError } from '@/lib/api/guard'
 
 const bodySchema = z.object({
   staff: z.array(z.object({
@@ -39,7 +40,7 @@ export async function POST(request: Request) {
   }))
 
   const { error } = await supabaseAdmin.from('staff').insert(rows)
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  if (error) return dbError(error)
 
   return NextResponse.json({ success: true, added: rows.length })
 }

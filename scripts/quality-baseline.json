@@ -2,7 +2,7 @@
   "routes_no_permission": 10,
   "write_routes_no_zod": 24,
   "routes_hard_delete": 1,
-  "routes_leak_db_error": 46,
+  "routes_leak_db_error": 0,
   "routes_select_star": 35,
   "write_routes_no_audit": 71,
   "routes_rate_limited": 30,

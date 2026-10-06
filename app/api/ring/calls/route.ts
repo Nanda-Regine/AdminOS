@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { requireAddon } from '@/lib/billing/gates'
-import { guard } from '@/lib/api/guard'
+import { guard, dbError } from '@/lib/api/guard'
 
 export const runtime = 'nodejs'
 
@@ -31,7 +31,7 @@ export async function GET(request: Request) {
     .order('started_at', { ascending: false })
     .range(offset, offset + limit - 1)
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return dbError(error)
 
   // Summary stats
   const { data: stats } = await supabaseAdmin
