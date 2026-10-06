@@ -3144,3 +3144,130 @@ Remaining advisor WARNs, as follow-ups:
 - HMS Push for the Huawei build.
 - Payslip PDF download in the app.
 - The 17 VAT invoices decision and the WhatsApp templates are still open (Session 18).
+
+---
+
+## Session 20 (2026-10-06) — Full-system verification: DB ↔ code, wiring, every nav page, 7 industry personas
+
+**Nanda's brief:**
+1. Test the code against the live database using the Supabase access token in `.env.local`; make sure the code matches the DB.
+2. Make sure every API route and AI feature is actually connected.
+3. Open every page on the nav menu; review its details, features, UI and operational capability; find the gaps and fill them.
+4. Every page must fully serve its purpose for running a business.
+5. Take on 7 industry user roles and test the app from each one's point of view.
+
+This plan was written **before any work started**. Findings and fixes are appended
+under "Results" as each workstream closes.
+
+### Ground rules for this session
+- **Rule Zero:** `.env.local` is read only. Keys are loaded by scripts and never printed.
+- Prod is the test target, because local `next dev` is broken on this machine (Session 15).
+  Code fixes reach prod by push → Vercel auto-deploy (the webhook was confirmed working again in Session 19).
+- Reads against prod use the Management API through a new helper, `scripts/sql.mjs`.
+  Schema changes go in a migration file first, then get applied; nothing is changed ad hoc.
+- QA data in prod is clearly tagged (tenant slug `qa-persona-*`, emails `nandaregine+persona-*@gmail.com`).
+  It is never mixed into real tenants. Cleanup is listed at the end.
+- Soft delete only, UTC timestamps only, `tsc --noEmit` = 0 and `npm test` green before every commit.
+- **Debugger mode:** every bug found → hunt its siblings. Money, tax and payroll bugs go first.
+- Nanda's uncommitted GTM edit in `app/layout.tsx` is hers; it's left out of every commit this session.
+- Each tab is measured against the 7-point Definition of Done from Session 16b.
+
+### Baseline (start of session)
+- **Surface:** 49 nav-menu entries (`lib/nav/features.ts`), 57 dashboard pages, 160 API routes, 17 test files (128 tests).
+- **`quality-scan` scores:**
+
+  | Signal | Count |
+  |---|---|
+  | Routes with no permission check | 63 |
+  | Write routes with no zod validation | 25 |
+  | Routes with a hard delete | 9 |
+  | Routes that leak DB errors | 52 |
+  | Routes using `select *` | 40 |
+  | Write routes with no audit log | 74 |
+  | Routes on `withRoute` | 54 |
+  | Pages with no permission check | 17 |
+  | Pages with no empty state | 23 |
+  | Pages with an unbounded query | 25 |
+
+- **Prod tenants:** 8. Only `mzansi-test-traders` (retail, partner plan) has meaningful seed data: 9 staff, 16 invoices, 14 contacts.
+  - 6 tenants have no `business_type`.
+  - 4 tenants have 0 `user_roles` rows. withRoute fails closed for them, so those owners get 401 on migrated routes.
+
+### Workstream A — Code ↔ DB contract (brief item 1)
+Pull the live schema: columns, types, nullability, defaults, check constraints, enums, FKs, RPC functions,
+storage buckets and RLS policies. Then check every DB touch in `app/`, `lib/`, `inngest/` and `components/` against it:
+1. **Reads.** Every `.from(t).select(cols)`, including embeds and aliases. Validate through PostgREST
+   (`scripts/audit_selects.mjs`, extended to `lib/` + `inngest/`).
+2. **Writes.**
+   - Every `.insert/.update/.upsert` payload key must exist on the table.
+   - Required NOT NULL columns with no default must be supplied (the class of bug `notifications.user_id` was).
+3. **Filters.** Every `.eq/.in/.order/.is/.gte` column must exist. String literals compared to enum or check columns
+   must be legal values (the class of bug the `processQueue.ts` status was).
+4. **RPCs.** Every `.rpc('fn')` must exist, with matching argument names.
+5. **Storage.** Every `.storage.from('bucket')` must exist, and its public/private setting must match how the code uses it.
+6. **Types.** Generated DB types must be in step with the live schema. Regenerate them if they have drifted.
+7. **Tables nothing uses, and tables the code uses that don't exist.**
+
+**Output:** a mismatch list. Fix in code where the code is wrong, and in a migration where the DB is missing a real model.
+
+### Workstream B — API routes & AI features wired (brief item 2)
+1. **Every client call to `/api/*`**, from pages, components and the Expo app: does the route exist, and does it export that HTTP method?
+   Do the request body keys match what the route reads, and does the response shape match what the caller reads?
+2. **Orphan routes:** routes nothing calls. Classify each as webhook/cron/external, dead, or a missing UI hookup that needs building.
+3. **AI features:**
+   - Inventory every model call. Each must go through the metered client: cost budget plus routing (Groq/Gemini/Claude).
+   - Model IDs must be current.
+   - Failures must surface to the user, never fail silently.
+   - The prompt must get real tenant data (not empty context because of a wrong column).
+4. **Inngest:** every `inngest.send('event')` must have a registered function. Every function must be reachable by an event or a cron.
+5. **Env wiring:** compare every `process.env.X` the code reads with the names in `.env.local` and Vercel (names only, never values).
+   List missing keys and the features each one disables.
+6. **Live smoke against prod:** hit every GET route as a QA-tenant user and record status and shape.
+   Fire each AI feature once with real seeded data.
+
+### Workstream C — Every nav page, page by page (brief items 3 + 4)
+For each of the 49 nav entries, in value-chain order (Command → Get Paid → Win Work → Deliver → Team → Govern → Grow → Setup):
+- **Purpose:** the one sentence a business owner would use for "what is this page for?"
+- **Data:** which tables and routes it reads; whether real tenant data shows up.
+- **Features:** every button, form and action. Does each one work end to end (UI → route → DB → visible result)?
+- **UI:** loading, empty, error and mobile states; navigation in and out; consistency with the Card-glass design.
+- **Operational capability:** can a real business run that function from this page alone?
+  What's missing that a competitor (Xero, Sage One, Zoho, Bitrix) or an SA operator would expect?
+- **DoD 7-point check:** authz, zod, soft delete + audit, pagination, states, tests, error capture.
+- **Gap → fix:** fix what's buildable in-session. Anything that needs a product decision or external setup goes to "Needs Nanda".
+
+The sweep uses code reading, the live schema, `scripts/screen-audit.mjs` (Playwright against prod) and the persona runs below.
+
+### Workstream D — 7 industry personas (brief item 5)
+Each persona gets its own QA tenant in prod, with `business_type` set so industry nav filtering is tested.
+Each tenant is seeded with realistic SA data: ZAR, VAT at 15%, SA names, IDs/phones in SA format.
+Each persona signs in with **their own role**. Non-owner personas get an owner created alongside them,
+so the role matrix is exercised for real, not just as owner.
+
+| # | Persona | Industry (`business_type`) | Role | Day-in-the-life they must be able to complete |
+|---|---|---|---|---|
+| 1 | Lindiwe, owner of a 4-chair salon, Mdantsane | `salons` | owner | Take bookings; ring up cash Quick Sales; restock products; see stylist hours and pay; check today's cash; message clients on WhatsApp |
+| 2 | Nomsa, finance & admin officer at a community NGO, East London | `ngo` | admin | Log donor-funded expenses and approve claims; run payroll for 6 staff; produce the board pack; track NPO/SARS compliance deadlines; POPIA register |
+| 3 | Sipho, site manager at a building contractor, Gqeberha | `trades` | manager | Assign site tasks; log a safety incident; order from suppliers; track materials stock; approve leave; raise a progress invoice. **Must NOT see payroll** |
+| 4 | Zanele, receptionist at a GP clinic, Mthatha | `clinic` | staff | Book and reschedule patients; update contact records; answer the inbox; file documents. **Must be blocked from finance, payroll and settings** |
+| 5 | Jabu, videographer / creative studio owner, Johannesburg | `creative` | owner | Quote → contract → invoice → get paid; manage creative assets; run a follow-up sequence; see cash and tax position |
+| 6 | Themba, delivery driver at a logistics firm, East London | `logistics` | field_agent | See own tasks/deliveries; clock in and out; update a customer contact. **Everything else must be blocked, cleanly, with no broken screens** |
+| 7 | Mrs Naidoo, bursar at an independent school, Durban | `school` | manager | Invoice school fees for a class of parents; chase arrears; record expenses; announcements to staff; compliance calendar |
+
+For each persona:
+1. Walk their nav as they would see it, and check the industry filter shows the right pages.
+2. Run their task list through the UI (Playwright against prod) and the API.
+3. Record friction, dead ends, wrong permissions, empty or meaningless screens, and jargon.
+4. **Authz matrix test:** call every route action as this role and assert allowed → 2xx, forbidden → 403.
+   Calls into another tenant's data must give 404.
+
+**Output:** a per-persona scorecard (tasks completed / blocked / broken) and a fix list.
+
+### Workstream E — Fix, verify, report
+- Fixes are batched by domain, with a commit per batch. `tsc` 0, tests green and the ratchet (`quality-scan`) must not regress.
+- After deploy, re-run the screen audit and the persona scripts. A fix only counts once it's verified on prod.
+- Results are appended below. Memory is updated, and a "Needs Nanda" list is kept for anything that needs her decision or a dashboard toggle.
+- **QA cleanup:** the persona tenants stay for regression runs unless Nanda says otherwise. They are clearly tagged and can be removed by soft delete.
+
+### Results
+_(appended as each workstream closes)_
