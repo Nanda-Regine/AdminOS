@@ -10,10 +10,14 @@ import { featuresByCategory, type BusinessType } from '@/lib/nav/features'
 
 
 
-export function Sidebar({ businessType }: { businessType?: BusinessType | null }) {
-  // Computed per render, not at module scope: the sidebar is now scoped to the
-  // tenant's industry, so it cannot be a module-level constant shared by all.
-  const NAV_GROUPS = featuresByCategory(businessType)
+export function Sidebar({ businessType, permissions }: {
+  businessType?: BusinessType | null
+  /** The caller's permissions in this tenant; null = unscoped (super-admin). */
+  permissions?: readonly string[] | null
+}) {
+  // Computed per render, not at module scope: the sidebar is scoped to the
+  // tenant's industry and the caller's role, so it cannot be a shared constant.
+  const NAV_GROUPS = featuresByCategory(businessType, permissions)
   const pathname = usePathname()
   const router = useRouter()
   const [open, setOpen] = useState(false)

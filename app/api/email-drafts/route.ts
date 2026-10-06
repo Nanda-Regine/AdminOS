@@ -1,25 +1,22 @@
-import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { z } from 'zod'
+import { withRoute } from '@/lib/api/withRoute'
 
-export async function GET(request: Request) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new NextResponse('Unauthorized', { status: 401 })
+const DRAFT_COLUMNS =
+  'id, email_type, category, subject, body, recipient_name, recipient_email, tone_used, language_used, status, sent_at, created_at'
 
-  const tenantId = user.app_metadata?.tenant_id as string
-  const url = new URL(request.url)
-  const page = parseInt(url.searchParams.get('page') ?? '1')
+const listQuery = z.object({ page: z.coerce.number().int().min(1).catch(1) })
+
+// Was open to any login (no role check) and returned raw DB errors.
+export const GET = withRoute({ action: 'email.drafts', query: listQuery }, async ({ ctx, query }) => {
   const limit = 20
-  const offset = (page - 1) * limit
-
-  const { data, count, error } = await supabase
+  const offset = (query.page - 1) * limit
+  const { data, count, error } = await ctx.db
     .from('email_drafts')
-    .select('*', { count: 'exact' }).is('deleted_at', null)
-    .eq('tenant_id', tenantId)
+    .select(DRAFT_COLUMNS, { count: 'exact' })
+    .eq('tenant_id', ctx.tenantId)
+    .is('deleted_at', null)
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1)
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-
-  return NextResponse.json({ data, count, page, limit })
-}
+  if (error) throw error
+  return { data: data ?? [], count: count ?? 0, page: query.page, limit }
+})

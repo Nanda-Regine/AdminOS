@@ -3472,3 +3472,57 @@ Source: the Claude API migration guide (§ Migrating to Claude Sonnet 5, then §
 **Not in this plan:**
 - Haiku 4.5 stays as it is; it's the cheapest current model.
 - Premium-plan Opus 4.8 → Opus 5.5 ($4/$20, cheaper than 4.8's $5/$25) is a separate decision. On Opus 5.5 thinking cannot be disabled at all; effort is the only control, and its default is `medium`.
+
+#### Session 20 continued (2026-10-06, second sitting): role-aware nav, My Day, email honesty
+**Shipped first:** `c70e338` + both docs commits were verified (tsc 0, 131/131 tests) and **pushed**. Vercel auto-deploys them.
+
+**Workstream C/D findings, fixed (committed, NOT yet pushed; see "Resume here"):**
+1. **The sidebar ignored role.** Every login saw all 49 entries; a driver tapped into a wall of 404s.
+   - Every `FEATURES` entry now declares `requires` (the permission its page checks, any-of for lists).
+   - `canOpenFeature()` filters it, fail-closed; super-admins are unscoped. The layout passes `getContext()` permissions to the Sidebar.
+   - Default-role nav sizes: owner 49 · admin 48 · manager 33 (no payroll) · staff 9 · field_agent 7 · client 5.
+   - `tests/navAccess.test.ts` asserts each nav `requires` matches a `checkPermission` call in that page or its segment layout, so the nav and the page can't drift apart.
+2. **The Command Center showed the owner's cockpit to every login** (debtors, net position, runway, contracts), read via the admin client.
+   - Roles without `view_analytics` now get **My Day** (`app/dashboard/MyDay.tsx`): own tasks, own bookings today, own shifts, own leave + balance, today's clock status, announcements they may see (`canSeeAnnouncement`), unacknowledged SOPs for their role, and shortcuts limited to pages they can open.
+   - If the login isn't linked to a staff row, it says so and points to the invite code.
+   - In the management view, every decision item, constraint and scorecard lens is gated by its own permission. A manager has no inbox and no settings access, so those links were dead ends.
+   - The compliance-deadline links pointed to POPIA settings; they now point to `/dashboard/compliance`.
+3. **UTC clock on a SAST business.** The greeting said "Good morning" until 14:00, and between 00:00 and 02:00 the dashboard date/"today" was yesterday. New `lib/time/sast.ts` (tested) is used by the Command Center and My Day.
+   - **Siblings not yet swept:** other `toISOString().slice(0,10)` "today" filters across pages.
+4. **Ungated client-component pages.** Inbox, Documents, Creative Assets, Email Studio, Langa and Community now have segment `layout.tsx` gates matching their APIs. Getting Started and Integrations are gated on `manage_settings`.
+5. **Email silently never sent.** Resend's SDK resolves `{ error }` and every caller ignored it. With the key revoked and `RESEND_FROM_EMAIL` missing in Vercel, Email Studio marked drafts "sent", and the onboarding and trial-nudge steps reported success. Nothing was ever delivered.
+   - New `lib/email/send.ts`: `sendEmail` throws an `EmailError` (`not_configured` | `rejected`), and `escapeHtml` escapes owner and business names in HTML emails.
+   - `/api/email-drafts` (GET) and `/api/email-drafts/[id]` (GET, PATCH, POST send, DELETE) are rebuilt on withRoute with the new action `email.drafts` (= `view_analytics`, same as the Pen agent).
+     - DELETE is now a **soft delete** (it was hard).
+     - Send returns **503** when email isn't configured and **502** when Resend rejects. A draft is marked sent only once Resend accepts it; resending an already-sent draft returns 409.
+     - PATCH only edits drafts that haven't been sent.
+   - Email Studio shows server errors. A 403/429 used to leave the compose box silently empty.
+6. **The Pen agent generated every email twice.** It streamed one version, then called the model again in a fire-and-forget promise to save the draft: double the AI cost, a saved draft that differed from what was on screen, and serverless killed the promise.
+   - The draft is now saved from the streamed text in the stream's `flush()`.
+   - Pen also had **no role check** (now `email.drafts`) and didn't pass `plan` to metering.
+7. **The onboarding sequence drifted.** `sleepUntil(Date.now()+N)` was re-evaluated on replay, so "day 3" landed around day 4 and "day 7" around day 11. It's now anchored to `event.ts`.
+
+**Verified:** `tsc --noEmit` 0 · `npm test` 138/138.
+
+**Open: persona findings not yet fixed (next session, in order):**
+- **Tasks leak.** `/api/tasks` GET and `/dashboard/tasks` return *every* tenant task to any member, including the external `client` role. Writes are already scoped to own tasks (`loadEditable`).
+  - Fix: roles holding `view_own_data_only` read only tasks assigned to their staff row OR created by them. Apply to the page, `GET /api/tasks` and `/api/tasks/[id]/comments`, which still uses bare `getUser` with `select *` and raw errors.
+- **Sipho (manager) can't log a safety incident on the web.** The page needs `manage_staff`, while `safety.report` is MEMBER. Split it: a report form for members, the register for `hr.records`.
+- **Zanele (receptionist/staff) has no Inbox.** The default staff role lacks `view_communications`. Needs Nanda's decision, or a role-permission editor in Settings if none exists (check).
+- **The `/api/agents/langa` plan** comes from `user.app_metadata.plan` (often unset → 'trial'). Use `tenantAI()`.
+- **Sidebar "Active Agents" chip list** shows Alex/Care, which are unbuilt.
+- **Persona tenants (Workstream D)** are not created yet. The authz-matrix script is not written yet (cookie auth: sign in with supabase-js → build the `sb-<ref>-auth-token` cookie).
+- **54 no-UI routes:** still to be resolved page by page (Academy, Loyalty, public `/book/[slug]` page, Goals, NPS, Projects, …).
+- **Workstream F (SA law):** not started.
+
+**Needs Nanda:**
+- **Expo:** she has created an Expo dev account. To link it: `! cd expo-app && npx eas-cli login`, then `npx eas-cli init`. That prints the project id; set `EAS_PROJECT_ID` and `EXPO_OWNER` (as EAS env vars or in your shell); `app.config.ts` reads both. After that, `eas build --profile preview` produces a test APK.
+- **Vercel env:** `RESEND_FROM_EMAIL` plus a live `RESEND_API_KEY`, otherwise no email leaves AdminOS (now reported honestly instead of faked).
+- **GTM snippet in `app/layout.tsx`:** still uncommitted and still loads before cookie consent (POPIA). It needs the same consent gate as PostHog before it ships.
+
+**Resume here:**
+1. Push the commit from this sitting. Watch the Vercel deploy. Sign in as owner and as a staff login, and check the sidebar plus Command Center vs My Day on prod.
+2. Fix the tasks leak.
+3. Fix the safety report split.
+4. Build the persona tenants and the authz-matrix script (Workstream D).
+5. Then Workstream C page by page.

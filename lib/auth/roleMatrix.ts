@@ -123,6 +123,9 @@ export const ACTIONS = {
   'communications.read':  'view_communications', // inbox, ring
   'communications.reply': 'view_communications',
   'broadcasts.send':      'send_broadcasts',     // reach campaigns, push to colleagues
+  // Email Studio drafts with the Pen agent, an orchestrator persona that reads
+  // business data — same requirement as the other orchestrator agents.
+  'email.drafts':         'view_analytics',
 
   // ── Ops ─────────────────────────────────────────────────────────────────
   // Tasks have no dedicated permission yet (see memory

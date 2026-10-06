@@ -1,8 +1,6 @@
 import { inngest } from '@/inngest/client'
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import { Resend } from 'resend'
-
-const resend = new Resend(process.env.RESEND_API_KEY!)
+import { sendEmail, escapeHtml } from '@/lib/email/send'
 
 export const trialNudgeSequence = inngest.createFunction(
   { id: 'trial-nudge-sequence', retries: 1, triggers: [{ event: 'adminos/trial.expiring' }] },
@@ -20,8 +18,8 @@ export const trialNudgeSequence = inngest.createFunction(
     })
 
     const ownerEmail = (tenant?.settings as Record<string, string>)?.owner_email
-    const ownerName  = (tenant?.settings as Record<string, string>)?.owner_name ?? 'there'
-    const businessName = tenant?.name ?? 'your business'
+    const ownerName  = escapeHtml((tenant?.settings as Record<string, string>)?.owner_name ?? 'there')
+    const businessName = escapeHtml(tenant?.name ?? 'your business')
 
     if (!ownerEmail) return { status: 'no_email' }
 
@@ -43,8 +41,9 @@ export const trialNudgeSequence = inngest.createFunction(
     })
 
     await step.run('send-nudge-email', async () => {
-      await resend.emails.send({
-        from: process.env.RESEND_FROM_EMAIL!,
+      // Throws when Resend refuses, so the step fails visibly instead of
+      // returning status 'sent' for an email that never left.
+      await sendEmail({
         to: ownerEmail,
         subject: subjects[urgency],
         html: `

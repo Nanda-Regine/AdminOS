@@ -1,7 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { TopBar } from '@/components/dashboard/TopBar'
-import { redirect } from 'next/navigation'
+import { redirect, notFound } from 'next/navigation'
+import { checkPermission } from '@/lib/auth/permissions'
 import { OnboardingTraining } from './OnboardingTraining'
 import { toLang } from '@/lib/onboarding/training'
 
@@ -11,6 +12,8 @@ export default async function GettingStartedPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+  // Business setup is the owner's job; staff land on their own "My Day".
+  if (!(await checkPermission('manage_settings'))) notFound()
   const tenantId = user.app_metadata?.tenant_id as string
 
   const { data: tenant } = await supabaseAdmin

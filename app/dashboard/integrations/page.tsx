@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
+import { redirect, notFound } from 'next/navigation'
+import { checkPermission } from '@/lib/auth/permissions'
 import { TopBar } from '@/components/dashboard/TopBar'
 import { getLoadSheddingStatus } from '@/lib/integrations/loadshedding'
 import { getWeather } from '@/lib/integrations/weather'
@@ -13,6 +14,7 @@ export default async function IntegrationsPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+  if (!(await checkPermission('manage_settings'))) notFound()
 
   // Fetch all three in parallel
   const [shedding, weather, fx] = await Promise.all([

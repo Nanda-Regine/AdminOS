@@ -5,6 +5,8 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { checkRateLimit } from '@/lib/security/rateLimit'
 import { checkBudget } from '@/lib/ai/costControls'
 import { z } from 'zod'
+import { getContext } from '@/lib/auth/context'
+import { can } from '@/lib/auth/roleMatrix'
 
 const bodySchema = z.object({
   tone: z.enum(['formal', 'friendly', 'firm', 'urgent']),
@@ -24,8 +26,14 @@ export async function POST(request: Request) {
   const tenantId = user.app_metadata?.tenant_id as string
   if (!tenantId) return new NextResponse('Tenant not found', { status: 403 })
 
+  // Same gate as the Email Studio page and /api/email-drafts. It had none.
+  const ctx = await getContext()
+  if (!ctx || ctx.tenantId !== tenantId || !can(ctx, 'email.drafts')) {
+    return NextResponse.json({ error: 'You do not have permission to use Email Studio.' }, { status: 403 })
+  }
+
   const { success } = await checkRateLimit('agents', tenantId)
-  if (!success) return new NextResponse('Too Many Requests', { status: 429 })
+  if (!success) return NextResponse.json({ error: 'Too many requests. Please wait a moment.' }, { status: 429 })
 
   let body: z.infer<typeof bodySchema>
   try {
@@ -53,44 +61,61 @@ Include:
   const plan = tenant?.plan ?? 'solo'
   const budget = await checkBudget(tenantId, plan, 1500)
   if (!budget.allowed) {
-    return NextResponse.json({ error: 'Daily AI budget exceeded.' }, { status: 429 })
+    return NextResponse.json({ error: 'Daily AI budget exceeded. Try again tomorrow or upgrade your plan.' }, { status: 429 })
   }
 
-  let stream: ReadableStream
+  let stream: ReadableStream<Uint8Array>
   try {
     stream = await orchestrator.stream({
       agentName: 'pen',
       userMessage,
       tenantId,
+      plan,
       metadata: { tone: body.tone, emailType: body.emailType, language: body.language },
     })
   } catch {
     return NextResponse.json({ error: 'Stream failed. Please try again.' }, { status: 500 })
   }
 
+  // The draft is saved from the very text the user watched stream in. It used
+  // to call the model a second time (double the AI cost, and a different email
+  // from the one on screen) in a promise left running after the response —
+  // which serverless kills, so drafts went missing at random. flush() runs
+  // while the response is still open.
   if (body.saveDraft) {
-    void orchestrator.run({
-      agentName: 'pen',
-      userMessage,
-      tenantId,
-      metadata: { tone: body.tone, emailType: body.emailType },
-    }).then(async (result) => {
-      const lines = result.response.split('\n')
-      const subjectLine = lines.find((l) => l.startsWith('Subject:'))
-      const subject = subjectLine ? subjectLine.replace('Subject:', '').trim() : `${body.emailType} — ${body.recipientName}`
-
-      await supabaseAdmin.from('email_drafts').insert({
-        tenant_id: tenantId,
-        subject,
-        body: result.response,
-        recipient_email: body.recipientEmail,
-        recipient_name: body.recipientName,
-        email_type: body.emailType,   // NOT NULL — was omitted, so every draft-save silently 400'd
-        category: body.emailType,
-        tone_used: body.tone,
-        status: 'draft',
-      })
-    }).catch((e) => { console.error('[Pen] draft save failed:', e?.message ?? e) })
+    let text = ''
+    let pending = ''
+    const decoder = new TextDecoder()
+    stream = stream.pipeThrough(new TransformStream<Uint8Array, Uint8Array>({
+      transform(chunk, controller) {
+        controller.enqueue(chunk)
+        pending += decoder.decode(chunk, { stream: true })
+        const lines = pending.split('\n')
+        pending = lines.pop() ?? ''
+        for (const line of lines) {
+          if (!line.startsWith('data: ') || line === 'data: [DONE]') continue
+          try { text += (JSON.parse(line.slice(6)) as { text?: string }).text ?? '' } catch { /* not a text delta */ }
+        }
+      },
+      async flush() {
+        if (!text.trim()) return
+        const subjectLine = text.split('\n').find((l) => l.trim().startsWith('Subject:'))
+        const subject = subjectLine ? subjectLine.replace('Subject:', '').trim() : `${body.emailType} — ${body.recipientName}`
+        const { error } = await supabaseAdmin.from('email_drafts').insert({
+          tenant_id: tenantId,
+          subject,
+          body: text,
+          recipient_email: body.recipientEmail,
+          recipient_name: body.recipientName,
+          email_type: body.emailType,   // NOT NULL
+          category: body.emailType,
+          tone_used: body.tone,
+          language_used: body.language,
+          status: 'draft',
+        })
+        if (error) console.error('[Pen] draft save failed:', error.message)
+      },
+    }))
   }
 
   return new Response(stream, {

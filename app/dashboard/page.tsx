@@ -10,6 +10,9 @@ import { publishSignal, financeMode } from '@/lib/signals/bus'
 import { getDailyBrief } from '@/lib/signals/brief'
 import { getSetupState } from '@/lib/tenant/setup-state'
 import { BriefCard } from './BriefCard'
+import { MyDay } from './MyDay'
+import { getContext } from '@/lib/auth/context'
+import { sastDate, sastHour, sastMonthStartUTC, sastDateLabel, greetingFor } from '@/lib/time/sast'
 import {
   ArrowRight, AlertTriangle, CheckCircle2, Sparkles, Wallet, Users, Package,
   MessageSquare, ClipboardList, CalendarClock, PenLine, Target, ShieldCheck,
@@ -30,10 +33,21 @@ export default async function CommandCenter() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const tenantId = user.app_metadata?.tenant_id as string
+  const ctx = await getContext()
+  if (!ctx) redirect('/login')
+  const firstName = user.user_metadata?.full_name?.split(' ')[0] || user.email?.split('@')[0] || 'there'
+
+  // The owner's cockpit (debtors, net position, runway, contracts) is for
+  // management. Everyone else gets their own day — this page used to show
+  // the full cockpit to every login, read through the admin client.
+  const may = (p: Parameters<typeof ctx.has>[0]) => ctx.has(p)
+  if (!may('view_analytics')) return <MyDay ctx={ctx} firstName={firstName} />
+
+  const tenantId = ctx.tenantId
   const now = new Date()
-  const todayISO = now.toISOString().slice(0, 10)
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+  // Business days are SAST; the server runs in UTC.
+  const todayISO = sastDate(now)
+  const monthStart = sastMonthStartUTC(now)
   const days30Ago = new Date(Date.now() - 30 * 86400000).toISOString()
   const days1Ago = new Date(Date.now() - 24 * 3600000).toISOString()
 
@@ -126,34 +140,36 @@ export default async function CommandCenter() {
   })
 
   // ── NEEDS YOU NOW (the decision queue — OODA "act") ───────────────────────
+  // Each item only for someone who can act on it (a manager has no inbox,
+  // payroll or settings access by default — those links were dead ends).
   const decisions = [
-    { n: pendingExpenses,    label: 'expense claim',       href: '/dashboard/expenses',   icon: Wallet,        tone: 'amber' as const },
-    { n: pendingLeave,       label: 'leave request',       href: '/dashboard/team',       icon: Users,         tone: 'indigo' as const },
-    { n: recoveryReview,     label: 'recovery escalation', href: '/dashboard/invoices',   icon: AlertTriangle, tone: 'red' as const },
-    { n: contractsAwaiting,  label: 'contract to send',    href: '/dashboard/contracts',  icon: PenLine,       tone: 'indigo' as const },
-    { n: lowStock.length,    label: 'item to reorder',     href: '/dashboard/inventory',  icon: Package,       tone: 'amber' as const },
-    { n: pendingBookings,    label: 'booking to confirm',  href: '/dashboard/bookings',   icon: CalendarClock, tone: 'indigo' as const },
-    { n: needAttention,      label: 'customer waiting',    href: '/dashboard/inbox',      icon: MessageSquare, tone: 'red' as const },
-    { n: overdueTasks,       label: 'overdue task',        href: '/dashboard/tasks',      icon: ClipboardList, tone: 'red' as const },
-  ].filter(d => d.n > 0).sort((a, b) => ({ red: 0, amber: 1, indigo: 2 }[a.tone] - { red: 0, amber: 1, indigo: 2 }[b.tone]))
+    { n: pendingExpenses,    label: 'expense claim',       href: '/dashboard/expenses',   icon: Wallet,        tone: 'amber' as const,  ok: may('view_financials') },
+    { n: pendingLeave,       label: 'leave request',       href: '/dashboard/team',       icon: Users,         tone: 'indigo' as const, ok: may('approve_leave') },
+    { n: recoveryReview,     label: 'recovery escalation', href: '/dashboard/invoices',   icon: AlertTriangle, tone: 'red' as const,    ok: may('manage_invoices') },
+    { n: contractsAwaiting,  label: 'contract to send',    href: '/dashboard/contracts',  icon: PenLine,       tone: 'indigo' as const, ok: may('view_financials') },
+    { n: lowStock.length,    label: 'item to reorder',     href: '/dashboard/inventory',  icon: Package,       tone: 'amber' as const,  ok: may('manage_inventory') },
+    { n: pendingBookings,    label: 'booking to confirm',  href: '/dashboard/bookings',   icon: CalendarClock, tone: 'indigo' as const, ok: may('manage_contacts') },
+    { n: needAttention,      label: 'customer waiting',    href: '/dashboard/inbox',      icon: MessageSquare, tone: 'red' as const,    ok: may('view_communications') },
+    { n: overdueTasks,       label: 'overdue task',        href: '/dashboard/tasks',      icon: ClipboardList, tone: 'red' as const,    ok: true },
+  ].filter(d => d.ok && d.n > 0).sort((a, b) => ({ red: 0, amber: 1, indigo: 2 }[a.tone] - { red: 0, amber: 1, indigo: 2 }[b.tone]))
   const decisionCount = decisions.reduce((s, d) => s + d.n, 0)
 
   // ── THE CONSTRAINT (Theory of Constraints — the one bottleneck) ───────────
   type Constraint = { headline: string; detail: string; action: string; href: string }
   const constraints: (Constraint | null)[] = [
-    netPosition < 0
+    netPosition < 0 && may('view_financials')
       ? { headline: 'You owe more than you are owed', detail: `${formatZAR(apTotal)} in bills vs ${formatZAR(arTotal)} owed to you (net ${formatZAR(netPosition)}).`, action: 'Chase collections & stage payments', href: '/dashboard/cashflow' }
       : null,
-    arStuck > 0
+    arStuck > 0 && may('manage_invoices')
       ? { headline: `${formatZAR(arStuck)} is stuck in collections`, detail: `Invoices past 60 days tie up cash you have already earned.`, action: recoveryReview > 0 ? 'Review the recovery queue' : 'Open the debt register', href: '/dashboard/invoices' }
       : null,
-    lowStock.length > 0
+    lowStock.length > 0 && may('manage_inventory')
       ? { headline: `${lowStock.length} product${lowStock.length > 1 ? 's are' : ' is'} at/below reorder level`, detail: `A stockout stops sales — reorder before you run dry.`, action: 'Review inventory & reorder', href: '/dashboard/inventory' }
       : null,
-    complianceDue.length > 0
-      ? { headline: `${complianceDue.length} compliance deadline${complianceDue.length > 1 ? 's' : ''} within 2 weeks`, detail: complianceDue[0]?.penalty_description || 'Missing a deadline can carry penalties.', action: 'Open the compliance checklist', href: '/dashboard/settings/compliance' }
+    complianceDue.length > 0 && may('view_financials')
+      ? { headline: `${complianceDue.length} compliance deadline${complianceDue.length > 1 ? 's' : ''} within 2 weeks`, detail: complianceDue[0]?.penalty_description || 'Missing a deadline can carry penalties.', action: 'Open the compliance calendar', href: '/dashboard/compliance' }
       : null,
-    needAttention > 0
+    needAttention > 0 && may('view_communications')
       ? { headline: `${needAttention} customer${needAttention > 1 ? 's are' : ' is'} unhappy or urgent`, detail: `Negative conversations churn customers fastest — respond first.`, action: 'Open the inbox', href: '/dashboard/inbox' }
       : null,
   ]
@@ -180,32 +196,30 @@ export default async function CommandCenter() {
   type Sign = { label: string; value: string; status: 'good' | 'watch' | 'bad'; href: string }
   const good = 'good' as const, watch = 'watch' as const, bad = 'bad' as const
   const overduePctOfAr = arTotal > 0 ? arOverdue / arTotal : 0
-  const scorecard: { lens: string; icon: typeof Wallet; signs: Sign[] }[] = [
+  const scorecard: { lens: string; icon: typeof Wallet; signs: Sign[]; ok: boolean }[] = [
     { lens: 'Money', icon: Wallet, signs: [
       { label: 'Owed to you', value: formatZAR(arTotal), status: overduePctOfAr > 0.3 ? bad : overduePctOfAr > 0.1 ? watch : good, href: '/dashboard/invoices' },
       { label: 'You owe', value: formatZAR(apTotal), status: apTotal > arTotal ? watch : good, href: '/dashboard/expenses' },
       { label: 'Net position', value: formatZAR(netPosition), status: netPosition < 0 ? bad : good, href: '/dashboard/cashflow' },
       { label: 'Invoiced this month', value: formatZAR(invoicedThisMonth), status: good, href: '/dashboard/invoices' },
-    ]},
+    ], ok: may('view_financials') },
     { lens: 'Customers', icon: MessageSquare, signs: [
       { label: 'Open conversations', value: String(openConvos), status: needAttention > 0 ? bad : good, href: '/dashboard/inbox' },
       { label: 'Need attention', value: String(needAttention), status: needAttention > 0 ? bad : good, href: '/dashboard/inbox' },
-    ]},
+    ], ok: may('view_communications') },
     { lens: 'Operations', icon: Package, signs: [
       { label: 'Low stock', value: String(lowStock.length), status: lowStock.length > 0 ? bad : good, href: '/dashboard/inventory' },
       { label: 'Open tasks', value: String(openTasks), status: overdueTasks > 0 ? watch : good, href: '/dashboard/tasks' },
       { label: 'Bookings today', value: String(bookingsToday), status: good, href: '/dashboard/bookings' },
-    ]},
+    ], ok: true },
     { lens: 'People', icon: Users, signs: [
       { label: 'Active team', value: String(staffCount), status: good, href: '/dashboard/team' },
       { label: 'Pending leave', value: String(pendingLeave), status: pendingLeave > 0 ? watch : good, href: '/dashboard/team' },
-    ]},
+    ], ok: may('approve_leave') || may('manage_staff') },
   ]
 
-  const firstName = user.user_metadata?.full_name?.split(' ')[0] || user.email?.split('@')[0] || 'there'
-  const hour = now.getHours()
-  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
-  const dateStr = now.toLocaleDateString('en-ZA', { weekday: 'long', day: 'numeric', month: 'long' })
+  const greeting = greetingFor(sastHour(now))
+  const dateStr = sastDateLabel(now)
   let state = constraint ? (netPosition < 0 || arStuck > 0 ? 'needs attention' : 'on watch') : 'running smoothly'
   let stateColor = state === 'running smoothly' ? '#34D399' : state === 'on watch' ? '#FBBF24' : '#F87171'
   if (setup.isNew) { state = 'ready to set up'; stateColor = 'var(--indigo-light)' }
@@ -236,11 +250,11 @@ export default async function CommandCenter() {
             <h2 className="text-xl font-semibold mt-1.5 max-w-3xl" style={{ color: 'var(--text-primary)' }}>
               {setup.isNew ? `Welcome to AdminOS — let's set up your business in a few steps.` : constraint ? constraint.headline : decisionCount > 0 ? `${decisionCount} decision${decisionCount > 1 ? 's' : ''} waiting for you` : 'Everything is handled — no decisions pending.'}
             </h2>
-            <div className="flex items-center gap-4 mt-2 flex-wrap text-sm" style={{ color: 'var(--text-muted)' }}>
+            {may('view_financials') && <div className="flex items-center gap-4 mt-2 flex-wrap text-sm" style={{ color: 'var(--text-muted)' }}>
               <span>Net position <strong style={{ color: netPosition < 0 ? '#F87171' : '#34D399' }}>{formatZAR(netPosition)}</strong></span>
               {runwayMonths !== null && <span>· ≈ {Math.max(0, Math.round(runwayMonths))} mo runway at current burn</span>}
               <span>· {formatZAR(arOverdue)} overdue</span>
-            </div>
+            </div>}
             {setup.isNew ? (
               <Link href="/dashboard/getting-started" className="inline-flex items-center gap-2 mt-3 px-4 py-2 rounded-xl text-sm font-semibold transition-all hover:opacity-90"
                 style={{ background: 'var(--indigo)', color: '#fff' }}>
@@ -309,7 +323,7 @@ export default async function CommandCenter() {
                 <Link href="/dashboard/health" className="text-xs font-medium" style={{ color: 'var(--indigo-light)' }}>Full health →</Link>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
-                {scorecard.map((group) => (
+                {scorecard.filter(g => g.ok).map((group) => (
                   <div key={group.lens}>
                     <div className="flex items-center gap-1.5 mb-2">
                       <group.icon className="w-3.5 h-3.5" style={{ color: 'var(--text-muted)' }} />
@@ -406,14 +420,14 @@ export default async function CommandCenter() {
             </div>
 
             {/* ── GOVERNANCE watch: contracts + compliance ───────────────── */}
-            {(contractsExpiring > 0 || complianceDue.length > 0 || contractsAwaiting > 0) && (
+            {may('view_financials') && (contractsExpiring > 0 || complianceDue.length > 0 || contractsAwaiting > 0) && (
               <div className="glass rounded-2xl p-5">
                 <div className="flex items-center gap-2 mb-3">
                   <ShieldCheck className="w-4 h-4" style={{ color: '#38BDF8' }} />
                   <p className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: 'var(--text-muted)' }}>On the horizon</p>
                 </div>
                 <div className="space-y-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
-                  {complianceDue.length > 0 && <Link href="/dashboard/settings/compliance" className="flex items-center justify-between hover:underline"><span>Compliance deadlines ≤14d</span><span className="font-semibold" style={{ color: '#F87171' }}>{complianceDue.length}</span></Link>}
+                  {complianceDue.length > 0 && <Link href="/dashboard/compliance" className="flex items-center justify-between hover:underline"><span>Compliance deadlines ≤14d</span><span className="font-semibold" style={{ color: '#F87171' }}>{complianceDue.length}</span></Link>}
                   {contractsExpiring > 0 && <Link href="/dashboard/contracts" className="flex items-center justify-between hover:underline"><span>Contracts expiring ≤30d</span><span className="font-semibold" style={{ color: '#F59E0B' }}>{contractsExpiring}</span></Link>}
                   {contractsAwaiting > 0 && <Link href="/dashboard/contracts" className="flex items-center justify-between hover:underline"><span>Contracts awaiting signature</span><span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{contractsAwaiting}</span></Link>}
                 </div>

@@ -82,6 +82,12 @@ export default function EmailStudioPage() {
         signal: abortRef.current.signal,
       })
 
+      // A 403/429 is JSON, not a stream — it used to leave the box silently empty.
+      if (!res.ok) {
+        const j = await res.json().catch(() => null) as { error?: string } | null
+        setGeneratedEmail(j?.error ?? 'Failed to generate email. Please try again.')
+        return
+      }
       if (!res.body) throw new Error('No stream')
       const reader = res.body.getReader()
       const decoder = new TextDecoder()
@@ -133,10 +139,13 @@ export default function EmailStudioPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'send' }),
       })
-      if (!res.ok) throw new Error('send failed')
+      if (!res.ok) {
+        const j = await res.json().catch(() => null) as { error?: string } | null
+        throw new Error(j?.error ?? "Couldn't send that email. Check the recipient address and try again.")
+      }
       setDrafts((prev) => prev.map((d) => d.id === id ? { ...d, status: 'sent' } : d))
-    } catch {
-      setActionError("Couldn't send that email. Check the recipient address and try again.")
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : "Couldn't send that email. Check the recipient address and try again.")
     } finally {
       setSendingId(null)
     }
