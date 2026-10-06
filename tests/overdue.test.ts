@@ -4,7 +4,7 @@ import { daysOverdue, todayDateString } from '../lib/debt/overdue.ts'
 
 const NOW = new Date('2026-07-18T09:00:00Z')
 
-test('counts whole days a due date is past (UTC)', () => {
+test('counts whole days a due date is past', () => {
   assert.equal(daysOverdue('2026-07-08', NOW), 10)
   assert.equal(daysOverdue('2026-07-17', NOW), 1)
 })
@@ -22,4 +22,10 @@ test('missing or invalid dates are 0, never negative or NaN', () => {
 
 test('todayDateString is YYYY-MM-DD', () => {
   assert.equal(todayDateString(NOW), '2026-07-18')
+})
+
+test('the overdue day turns at 00:00 SAST, not 02:00', () => {
+  const justAfterSastMidnight = new Date('2026-07-18T22:30:00Z') // 00:30 SAST on the 19th
+  assert.equal(todayDateString(justAfterSastMidnight), '2026-07-19')
+  assert.equal(daysOverdue('2026-07-18', justAfterSastMidnight), 1)
 })

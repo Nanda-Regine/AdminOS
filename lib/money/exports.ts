@@ -19,6 +19,7 @@
  */
 
 import { labelFor, codeFor, isValidKey } from '../finance/chartOfAccounts.ts'
+import { sastDate } from '../time/sast.ts'
 
 export const VAT_RATE = 0.15
 
@@ -46,8 +47,16 @@ const booked = (e: ExportExpense) => e.status === 'approved' || e.status === 'pa
 export const invoiceVat = (i: ExportInvoice) =>
   i.vat_amount == null ? vatFromInclusive(Number(i.amount || 0)) : Number(i.vat_amount)
 const row = (cells: (string | number)[]) => cells.map(csvCell).join(',')
-const inWindow = (iso: string, from?: string, to?: string) =>
-  (!from || iso >= from) && (!to || iso <= to)
+/**
+ * Is a UTC timestamp inside [from, to], both SAST calendar dates (YYYY-MM-DD,
+ * inclusive)? It compared the raw UTC string against the bounds, so a sale at
+ * 01:00 SAST on the 1st (23:00 UTC the day before) landed in the previous
+ * month's VAT201 and P&L.
+ */
+const inWindow = (iso: string, from?: string, to?: string) => {
+  const day = sastDate(new Date(iso))
+  return (!from || day >= from.slice(0, 10)) && (!to || day <= to.slice(0, 10))
+}
 
 /** VAT201 working paper: output VAT (sales) vs input VAT (purchases) → net payable. */
 export function buildVat201WorkingPaper(

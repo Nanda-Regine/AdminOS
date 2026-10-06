@@ -17,12 +17,14 @@
  */
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000
+// SAST = UTC+2, no DST. Inlined (not imported from lib/time/sast) so this
+// module stays import-free for the node test runner.
+const SAST_OFFSET_MS = 2 * 60 * 60 * 1000
 
 /**
  * Whole days a due date is past, floored at 0. Not-yet-due or missing → 0.
- * Date-only difference in UTC — matches the DB's GREATEST(0, CURRENT_DATE -
- * due_date) closely enough for tiering; a few hours' timezone skew never moves
- * an invoice more than one day, and the tiers have multi-day bands.
+ * Date-only difference against the SAST calendar day: an invoice due
+ * yesterday is overdue from 00:00 SAST, not 02:00 (Vercel runs in UTC).
  */
 export function daysOverdue(dueDate: string | Date | null | undefined, now: Date = new Date()): number {
   if (!dueDate) return 0
@@ -30,13 +32,14 @@ export function daysOverdue(dueDate: string | Date | null | undefined, now: Date
   if (isNaN(due.getTime())) return 0
 
   const dueMidnight = Date.UTC(due.getUTCFullYear(), due.getUTCMonth(), due.getUTCDate())
-  const nowMidnight = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+  const sast = new Date(now.getTime() + SAST_OFFSET_MS)
+  const nowMidnight = Date.UTC(sast.getUTCFullYear(), sast.getUTCMonth(), sast.getUTCDate())
 
   const diff = Math.floor((nowMidnight - dueMidnight) / MS_PER_DAY)
   return diff > 0 ? diff : 0
 }
 
-/** Today's date as YYYY-MM-DD (UTC) — for a `due_date < :today` query bound. */
+/** Today's SAST date as YYYY-MM-DD — for a `due_date < :today` query bound. */
 export function todayDateString(now: Date = new Date()): string {
-  return now.toISOString().slice(0, 10)
+  return new Date(now.getTime() + SAST_OFFSET_MS).toISOString().slice(0, 10)
 }

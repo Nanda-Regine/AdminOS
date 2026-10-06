@@ -8,6 +8,7 @@ import {
   buildIncomeStatement, buildExpensesByCategory, buildIncomeBySource, buildIncomeByCategory, buildArAging,
   type ExportInvoice, type ExportExpense,
 } from '@/lib/money/exports'
+import { sastDate } from '@/lib/time/sast'
 
 // GET /api/money/export?type=vat201|journal|income_statement|expenses_by_category|
 //   income_by_source|income_by_category|ar_aging [&month=YYYY-MM | &from=YYYY-MM-DD&to=YYYY-MM-DD]
@@ -30,16 +31,17 @@ export const GET = withRoute({
 }, async ({ ctx, query: q }) => {
   const { tenantId } = ctx
 
-  // A month wins over explicit from/to — from = 1st, to = last day 23:59:59.
+  // A month wins over explicit from/to — from = 1st, to = last day. Both are
+  // inclusive SAST calendar dates (lib/money/exports inWindow).
   let from = q.from
-  let to = q.to ? `${q.to}T23:59:59` : undefined
+  let to = q.to
   let periodLabel: string | undefined
   if (q.month) {
     const [y, m] = q.month.split('-').map(Number)
     const lastDay = new Date(y, m, 0).getDate()
     from = `${q.month}-01`
-    to = `${q.month}-${String(lastDay).padStart(2, '0')}T23:59:59`
-    periodLabel = new Date(y, m - 1, 1).toLocaleDateString('en-ZA', { month: 'long', year: 'numeric' })
+    to = `${q.month}-${String(lastDay).padStart(2, '0')}`
+    periodLabel = new Date(y, m - 1, 1).toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg', month: 'long', year: 'numeric' })
   }
 
   // Every row, paged: these were plain selects, so a tenant past 1000
@@ -55,7 +57,7 @@ export const GET = withRoute({
           .eq('tenant_id', tenantId).is('deleted_at', null).order('id').range(a, b)),
   ])
 
-  const stamp = q.month ?? new Date().toISOString().slice(0, 10)
+  const stamp = q.month ?? sastDate()
   const label = periodLabel ?? (from || to ? `${from ?? 'start'} to ${q.to ?? stamp}` : undefined)
   let csv: string
   let filename: string

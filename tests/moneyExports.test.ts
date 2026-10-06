@@ -8,7 +8,7 @@ const inv = (o: Partial<ExportInvoice>): ExportInvoice => ({
 const exp = (o: Partial<ExportExpense>): ExportExpense => ({
   category: 'travel', description: null, amount: 0, created_at: '2026-09-12T10:00:00Z', status: 'approved', ...o,
 })
-const SEPT = { from: '2026-09-01', to: '2026-09-30T23:59:59' }
+const SEPT = { from: '2026-09-01', to: '2026-09-30' }
 
 test('VAT201: cancelled and draft invoices are not sales', () => {
   const { summary } = buildVat201WorkingPaper([
@@ -68,4 +68,13 @@ test('csvCell neutralises formulas in text but leaves numbers alone', () => {
   assert.equal(csvCell('-500.00'), '-500.00')
   assert.equal(csvCell(-12), '-12')
   assert.equal(csvCell('Acme, Ltd'), '"Acme, Ltd"')
+})
+
+test('VAT201: periods follow the SAST calendar day, not UTC', () => {
+  const { summary } = buildVat201WorkingPaper([
+    inv({ amount: 1150, vat_amount: 150, created_at: '2026-08-31T23:00:00Z' }), // 01:00 SAST 1 Sept → September
+    inv({ amount: 2300, vat_amount: 300, created_at: '2026-09-30T22:30:00Z' }), // 00:30 SAST 1 Oct → October
+  ], [], SEPT)
+  assert.equal(summary.salesIncl, 1150)
+  assert.equal(summary.outputVat, 150)
 })
