@@ -92,6 +92,6 @@ CREATE INDEX IF NOT EXISTS notifications_tenant_created_idx
 -- through GET /api/expenses/[id]/receipt as a short-lived signed URL after the
 -- same own-or-finance check as the claim itself.
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-VALUES ('expense-receipts', 'expense-receipts', false, 5242880,
+VALUES ('expense-receipts', 'expense-receipts', false, 4194304,
         ARRAY['image/jpeg','image/png','image/webp','application/pdf'])
 ON CONFLICT (id) DO NOTHING;

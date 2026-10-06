@@ -11,7 +11,16 @@ const clockSchema = z.object({
   lng:          z.number().min(-180).max(180).optional(),
   locationName: z.string().max(200).optional(),
   deviceId:     z.string().max(100).optional(),
+  /**
+   * When the event happened, for clock-ins captured offline (load-shedding, no
+   * data) and sent later by the app's queue. Bounded to the last 12 hours and
+   * audit-flagged, so it can't be used to rewrite yesterday's attendance.
+   */
+  occurredAt:   z.string().datetime({ offset: true }).optional(),
 })
+
+const MAX_BACKDATE_MS = 12 * 3600_000
+const MAX_SKEW_MS = 2 * 60_000
 
 const COLUMNS = 'id, staff_id, event_type, timestamp, lat, lng, location_name, device_id, created_at'
 
@@ -46,11 +55,18 @@ export const POST = withRoute({
   action: 'clock.self',
   body: clockSchema,
   status: 201,
-  audit: 'clock.event',
   resourceType: 'clock_event',
   rateLimit: 'api',
-}, async ({ ctx, body }) => {
+}, async ({ ctx, body, audit }) => {
   await assertMayActFor(ctx, body.staffId)
+
+  let at: Date | null = null
+  if (body.occurredAt) {
+    at = new Date(body.occurredAt)
+    const age = Date.now() - at.getTime()
+    if (age < -MAX_SKEW_MS) throw new RouteError(400, 'That time is in the future — check the phone’s date and time.', 'bad_time')
+    if (age > MAX_BACKDATE_MS) throw new RouteError(400, 'Offline clock events older than 12 hours can’t be sent — ask HR to capture it.', 'too_old')
+  }
 
   const last = unwrap(await supabaseAdmin
     .from('clock_events')
@@ -64,12 +80,15 @@ export const POST = withRoute({
   // of today — the missing clock-out shows on the team page for HR to fix.
   const stale = last && Date.now() - new Date(last.timestamp).getTime() > STALE_MS
   const state = !last || stale ? 'none' : last.event_type
+  if (at && last && new Date(last.timestamp).getTime() > at.getTime()) {
+    throw new RouteError(409, 'A later clock event is already recorded — this offline entry is out of order.', 'out_of_order')
+  }
   const allowed = NEXT[state] ?? NEXT.none
   if (!allowed.includes(body.eventType)) {
     throw new RouteError(409, `Can't ${body.eventType.replace('_', ' ')} right now — the last entry was ${(last?.event_type ?? 'none').replace('_', ' ')}.`, 'invalid_sequence')
   }
 
-  return unwrap(await supabaseAdmin
+  const row = unwrap(await supabaseAdmin
     .from('clock_events')
     .insert({
       tenant_id:     ctx.tenantId,
@@ -79,9 +98,19 @@ export const POST = withRoute({
       lng:           body.lng ?? null,
       location_name: body.locationName ?? null,
       device_id:     body.deviceId ?? null,
+      ...(at ? { timestamp: at.toISOString() } : {}),
     })
     .select(COLUMNS)
     .single(), { required: true })
+
+  // Offline-captured events are flagged so HR can spot a pattern of them.
+  await audit({
+    action: 'clock.event',
+    resourceType: 'clock_event',
+    resourceId: row.id,
+    metadata: { eventType: body.eventType, offlineCapture: Boolean(at), occurredAt: at?.toISOString() },
+  })
+  return row
 })
 
 const listQuery = z.object({

@@ -48,3 +48,35 @@ jobs:
 
       - name: Quality ratchet
         run: node scripts/quality-scan.cjs --check
+
+  # The Expo staff/owner app (expo-app/). Type-check plus a full Android JS
+  # bundle — the bundle catches unresolvable imports and Babel/NativeWind
+  # errors that tsc can't, i.e. what would otherwise fail an EAS build.
+  mobile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: expo-app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: expo-app/package-lock.json
+
+      - name: Install
+        run: npm ci --no-audit --no-fund
+
+      - name: Type-check
+        run: npx tsc --noEmit
+
+      - name: Android bundle
+        env:
+          # Public placeholders — the bundle only needs them to exist.
+          EXPO_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder
+          CI: '1'
+        run: npx expo export --platform android --output-dir dist

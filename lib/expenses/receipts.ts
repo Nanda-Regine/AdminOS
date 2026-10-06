@@ -11,7 +11,9 @@
 
 export const RECEIPT_BUCKET = 'expense-receipts'
 export const RECEIPT_PREFIX = `storage:${RECEIPT_BUCKET}/`
-export const RECEIPT_MAX_BYTES = 5 * 1024 * 1024
+// Under Vercel's 4.5 MB request-body limit, which would otherwise reject the
+// upload before the route can explain why.
+export const RECEIPT_MAX_BYTES = 4 * 1024 * 1024
 
 export function isStoredReceipt(ref: string | null | undefined): boolean {
   return typeof ref === 'string' && ref.startsWith(RECEIPT_PREFIX)

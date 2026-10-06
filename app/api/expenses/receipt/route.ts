@@ -6,7 +6,7 @@ import { RECEIPT_BUCKET, RECEIPT_PREFIX, RECEIPT_MAX_BYTES, sniffReceiptType } f
 
 const fileSchema = z.instanceof(Blob, { message: 'No file received.' })
   .refine((f) => f.size > 0, 'The file is empty.')
-  .refine((f) => f.size <= RECEIPT_MAX_BYTES, 'Receipts can be at most 5 MB — retake the photo at a lower quality.')
+  .refine((f) => f.size <= RECEIPT_MAX_BYTES, 'Receipts can be at most 4 MB — retake the photo at a lower quality.')
 
 // POST /api/expenses/receipt — multipart upload (field "file") of a receipt
 // photo or PDF. Returns a `receiptRef` to pass to POST /api/expenses. The file

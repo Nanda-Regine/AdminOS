@@ -4,6 +4,7 @@ import { can } from '@/lib/auth/roleMatrix'
 import { z } from 'zod'
 import { withRoute, unwrap, notFound, badRequest, RouteError } from '@/lib/api/withRoute'
 import { isTenantReceiptRef } from '@/lib/expenses/receipts'
+import { isValidKey, labelFor } from '@/lib/finance/chartOfAccounts'
 import { pushToUsers, usersWithPermission } from '@/lib/notifications/push'
 import { after } from 'next/server'
 import { ownStaffId } from '@/lib/people/ownStaff'
@@ -39,7 +40,9 @@ export const GET = withRoute({ action: 'expenses.submit', query: listQuery }, as
 const createSchema = z.object({
   staffId:     z.string().uuid(),
   amount:      z.number().positive().max(10_000_000),
-  category:    z.string().min(1).max(100),
+  // A chart-of-accounts expense key (lib/finance/chartOfAccounts) — free text
+  // here broke the categorised reports and VAT/accountant exports.
+  category:    z.string().refine((k) => isValidKey('expense', k), 'Choose a category from the list.'),
   description: z.string().max(500).optional(),
   // https only: the finance page renders this as a link, and z.url() alone
   // accepts javascript: URLs.
@@ -96,7 +99,7 @@ export const POST = withRoute({
   await notifyTenant(tenantId, {
     type: 'approval.needed',
     title: 'Expense to approve',
-    body: `A new expense claim for R${Number(body.amount).toLocaleString('en-ZA')}${body.category ? ` (${body.category})` : ''} is waiting for your approval.`,
+    body: `A new expense claim for R${Number(body.amount).toLocaleString('en-ZA')} (${labelFor('expense', body.category)}) is waiting for your approval.`,
     actionUrl: '/dashboard/expenses',
     dedupeKey: `expense-${data.id}`,
     whatsapp: true,
@@ -107,7 +110,7 @@ export const POST = withRoute({
     const approvers = (await usersWithPermission(tenantId, 'view_financials')).filter((id) => id !== userId)
     await pushToUsers(tenantId, approvers, {
       title: 'Expense to approve',
-      body: `R${Number(body.amount).toLocaleString('en-ZA')} — ${body.category}`,
+      body: `R${Number(body.amount).toLocaleString('en-ZA')} — ${labelFor('expense', body.category)}`,
       route: '/approvals',
     })
   })
