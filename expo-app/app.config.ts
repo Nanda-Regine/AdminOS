@@ -19,13 +19,15 @@ import type { ExpoConfig } from 'expo/config'
  */
 
 const store = (process.env.APP_STORE ?? 'play') as 'play' | 'huawei'
-const projectId = process.env.EAS_PROJECT_ID
+// EAS project @mirembe-muse/adminos (created 2026-10-06). Not secret — Expo
+// expects both committed; the env vars only override for a fork/staging project.
+const projectId = process.env.EAS_PROJECT_ID || 'f7ab3299-0a6a-4eb8-9057-f6ce890aa1c3'
 const version = '1.0.0'
 
 const config: ExpoConfig = {
   name: 'AdminOS',
   slug: 'adminos',
-  owner: process.env.EXPO_OWNER || undefined,
+  owner: process.env.EXPO_OWNER || 'mirembe-muse',
   version,
   scheme: 'adminos',
   orientation: 'portrait',

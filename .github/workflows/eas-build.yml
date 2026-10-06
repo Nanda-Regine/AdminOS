@@ -1,0 +1,55 @@
+# Store builds for the AdminOS mobile app, run on Expo's build servers.
+# Manual only: Actions → "EAS build" → Run workflow → pick a profile.
+#   preview            test APK (sideload / closed testers)
+#   production         Play Store AAB
+#   production-huawei  AppGallery APK
+#   all-stores         production + production-huawei
+# Needs the repo secret EXPO_TOKEN (a robot token on the mirembe-muse Expo account).
+name: EAS build
+
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: Build profile
+        required: true
+        default: preview
+        type: choice
+        options: [preview, production, production-huawei, all-stores]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: expo-app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: expo-app/package-lock.json
+
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install
+        run: npm ci --no-audit --no-fund
+
+      - name: Type-check
+        run: npx tsc --noEmit
+
+      # --no-wait: the build runs on EAS; follow it at expo.dev/accounts/mirembe-muse/projects/adminos/builds
+      - name: Build
+        run: |
+          if [ "${{ inputs.profile }}" = "all-stores" ]; then
+            eas build --platform android --profile production --non-interactive --no-wait
+            eas build --platform android --profile production-huawei --non-interactive --no-wait
+          else
+            eas build --platform android --profile "${{ inputs.profile }}" --non-interactive --no-wait
+          fi
