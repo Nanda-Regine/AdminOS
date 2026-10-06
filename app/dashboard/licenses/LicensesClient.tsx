@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { daysUntil } from '@/lib/time/sast'
 import { useRouter } from 'next/navigation'
 import { BadgeCheck } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
@@ -30,12 +31,7 @@ const FIELD =
   'placeholder:text-[var(--text-dim)] focus:outline-none focus:ring-2 focus:ring-[var(--indigo)]'
 const LABEL = 'block text-xs font-medium mb-1 text-[var(--text-secondary)]'
 
-function daysLeft(d: string | null): number | null {
-  if (!d) return null
-  return Math.round(
-    (new Date(d + 'T00:00:00').getTime() - new Date(new Date().toDateString()).getTime()) / 86_400_000
-  )
-}
+const daysLeft = (d: string | null): number | null => (d ? daysUntil(d) : null)
 
 /**
  * Expiry state is derived from the licence's own reminder window rather than a
@@ -52,7 +48,7 @@ function expiryState(r: LicenseRow): { label: string; tone: 'green' | 'yellow' |
 }
 
 const fmt = (d: string | null) =>
-  d ? new Date(d + 'T00:00:00').toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg', day: '2-digit', month: 'short', year: 'numeric' }) : '—'
+  d ? new Date(d + 'T12:00:00Z').toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg', day: '2-digit', month: 'short', year: 'numeric' }) : '—'
 
 export function LicensesClient({ rows, staff }: { rows: LicenseRow[]; staff: StaffOption[] }) {
   const router = useRouter()

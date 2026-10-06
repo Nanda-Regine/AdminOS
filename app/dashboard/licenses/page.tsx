@@ -1,5 +1,6 @@
 import { redirect, notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { daysUntil } from '@/lib/time/sast'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { TopBar } from '@/components/dashboard/TopBar'
 import { Card } from '@/components/ui/card'
@@ -51,9 +52,7 @@ export default async function LicensesPage() {
     staff_name: l.staff_id ? byId.get(l.staff_id) ?? null : null,
   }))
 
-  const today = new Date(new Date().toDateString()).getTime()
-  const days = (d: string | null) =>
-    d === null ? null : Math.round((new Date(d + 'T00:00:00').getTime() - today) / 86_400_000)
+  const days = (d: string | null) => (d === null ? null : daysUntil(d))
 
   const expired = rows.filter(r => { const n = days(r.expiry_date); return n !== null && n < 0 }).length
   const dueSoon = rows.filter(r => {

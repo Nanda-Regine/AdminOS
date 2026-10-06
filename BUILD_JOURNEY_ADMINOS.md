@@ -3703,3 +3703,6 @@ Started at the DoD API signals; the sweep kept opening onto sibling bugs (debugg
 - Get Paid → Grow page-by-page functional review with the personas.
 - No-UI routes (Academy, Loyalty, public `/book/[slug]`, Goals, Projects, task comments, board-pack/portal UI).
 - Contacts search `.or()` interpolates raw user text into the PostgREST filter (tenant filter still holds, but a comma/paren breaks the query) — escape it.
+
+**Regression gate after deploy (b2718dd):** authz matrix clean for all 12 logins (0 apiBad, 0 pagesBad, 0 cross-tenant leaks; the 1 unguarded-2xx flag is clinic staff reading creative assets via `manage_documents`, which is in the staff default — expected). Persona walk 122/122 (salon's `/dashboard` timed out once on the first cold hit; re-run 24/24).
+- The walk surfaced React #418 on `/dashboard/compliance`: deadline countdowns used the runtime's local midnight, so the UTC server and SAST browser disagreed 00:00–02:00 SAST (a real off-by-one, plus failed hydration). Same bug on Licences (server + client). Fixed with `daysUntil()` in `lib/time/sast.ts` (tested at the midnight edge); dates format from `T12:00:00Z`.

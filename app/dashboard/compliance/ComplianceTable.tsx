@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { daysUntil } from '@/lib/time/sast'
 import { useRouter } from 'next/navigation'
 import { ShieldCheck } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
@@ -34,15 +35,14 @@ const STATUS: Record<Status, { label: string; tone: 'green' | 'yellow' | 'red' |
 }
 const statusOf = (s: string) => STATUS[(s as Status)] ?? STATUS.upcoming
 
+// Due dates are SAST calendar dates. Both helpers work on the date itself,
+// never the runtime's local midnight: the server is UTC and the browser SAST,
+// so between 00:00 and 02:00 SAST the old countdown was a day out and the
+// page failed hydration (React #418).
 const fmtDate = (d: string | null) =>
-  d ? new Date(d + 'T00:00:00').toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg', day: '2-digit', month: 'short', year: 'numeric' }) : '—'
+  d ? new Date(d + 'T12:00:00Z').toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg', day: '2-digit', month: 'short', year: 'numeric' }) : '—'
 
-function daysAway(d: string | null): number | null {
-  if (!d) return null
-  const due = new Date(d + 'T00:00:00').getTime()
-  const today = new Date(new Date().toDateString()).getTime()
-  return Math.round((due - today) / 86_400_000)
-}
+const daysAway = (d: string | null): number | null => (d ? daysUntil(d) : null)
 
 export function ComplianceTable({ rows }: { rows: ComplianceRow[] }) {
   const router = useRouter()

@@ -39,3 +39,14 @@ export function greetingFor(hour: number): string {
 export function sastDateLabel(now: Date = new Date()): string {
   return now.toLocaleDateString('en-ZA', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Africa/Johannesburg' })
 }
+
+/**
+ * Whole days from today (SAST) to a `YYYY-MM-DD` date: 0 = today, negative =
+ * past. Calendar arithmetic on the dates themselves, so the UTC server and a
+ * SAST browser agree — `new Date(d + 'T00:00:00')` is runtime-local midnight
+ * and was a day out between 00:00 and 02:00 SAST (and failed hydration).
+ */
+export function daysUntil(ymd: string, now: Date = new Date()): number {
+  const n = (s: string) => Date.UTC(+s.slice(0, 4), +s.slice(5, 7) - 1, +s.slice(8, 10)) / 86_400_000
+  return n(ymd) - n(sastDate(now))
+}
