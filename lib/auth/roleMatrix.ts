@@ -171,6 +171,15 @@ export function can(
   return caller.permissions.includes(need)
 }
 
+/**
+ * True for roles scoped to their own records (staff, field_agent, client by
+ * default). MEMBER actions such as tasks.read let these roles in, but list
+ * reads must then narrow to the caller's own rows. Super-admins are unscoped.
+ */
+export function seesOnlyOwnData(caller: { permissions: readonly string[]; isSuperAdmin?: boolean }): boolean {
+  return !caller.isSuperAdmin && caller.permissions.includes('view_own_data_only')
+}
+
 /** Which default roles may perform an action — for docs, tests and UI hints. */
 export function defaultRolesFor(action: Action): RoleName[] {
   return ROLES.filter((role) => can({ permissions: DEFAULT_ROLE_PERMISSIONS[role] }, action))

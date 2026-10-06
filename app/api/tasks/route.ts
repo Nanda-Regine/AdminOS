@@ -5,6 +5,7 @@ import { withRoute, unwrap, badRequest } from '@/lib/api/withRoute'
 import { isTenantStaff, ownStaffId } from '@/lib/people/ownStaff'
 import { TASK_STATUSES, TASK_PRIORITIES, TASK_COLUMNS, compareTasks } from '@/lib/ops/tasks'
 import { notifyStaffMember } from '@/lib/notifications/staff'
+import { taskVisibilityFilter } from '@/lib/ops/taskScope'
 
 const createSchema = z.object({
   title:       z.string().trim().min(1).max(500),
@@ -27,7 +28,8 @@ const listQuery = z.object({
   limit:      z.coerce.number().int().min(1).max(500).default(200),
 })
 
-// GET /api/tasks — every member works the tenant's task board (tasks.read).
+// GET /api/tasks — managers see the tenant's whole board; own-data roles
+// (staff, field_agent, client) see tasks assigned to or created by them.
 // ?mine=true → only tasks assigned to the caller's own staff record.
 export const GET = withRoute({ action: 'tasks.read', query: listQuery }, async ({ ctx, query }) => {
   let q = supabaseAdmin
@@ -37,6 +39,9 @@ export const GET = withRoute({ action: 'tasks.read', query: listQuery }, async (
     .is('deleted_at', null)
     .order('created_at', { ascending: false })
     .limit(query.limit)
+
+  const scope = await taskVisibilityFilter(ctx)
+  if (scope) q = q.or(scope)
 
   if (query.mine === 'true') {
     const own = await ownStaffId(ctx.tenantId, ctx.userId)

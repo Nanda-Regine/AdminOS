@@ -1,4 +1,6 @@
-import { createClient } from '@/lib/supabase/server'
+import { getContext } from '@/lib/auth/context'
+import { seesOnlyOwnData } from '@/lib/auth/roleMatrix'
+import { taskVisibilityFilter } from '@/lib/ops/taskScope'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { TopBar } from '@/components/dashboard/TopBar'
 import { Card } from '@/components/ui/card'
@@ -134,19 +136,25 @@ function TaskColumn({
 }
 
 export default async function TasksPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const ctx = await getContext()
+  if (!ctx) redirect('/login')
+  const tenantId = ctx.tenantId
 
-  const tenantId = user.app_metadata?.tenant_id as string
+  // Own-data roles (staff, field_agent, client) see only tasks assigned to or
+  // created by them — this page used to show every member the whole board.
+  const scope = await taskVisibilityFilter(ctx)
+  const ownOnly = seesOnlyOwnData(ctx)
+  let tasksQuery = supabaseAdmin
+    .from('tasks')
+    .select('id, title, description, status, priority, due_date, assigned_to, source, created_at')
+    .eq('tenant_id', tenantId)
+    .is('deleted_at', null)
+    .order('created_at', { ascending: false })
+    .limit(1000)
+  if (scope) tasksQuery = tasksQuery.or(scope)
 
   const [tasksResult, staffResult] = await Promise.all([
-    supabaseAdmin
-      .from('tasks')
-      .select('id, title, description, status, priority, due_date, assigned_to, source, created_at')
-      .eq('tenant_id', tenantId)
-      .is('deleted_at', null)
-      .limit(1000),
+    tasksQuery,
     supabaseAdmin
       .from('staff')
       .select('id, full_name')
@@ -175,7 +183,7 @@ export default async function TasksPage() {
   return (
     <div>
       <TopBar
-        title="Tasks"
+        title={ownOnly ? 'My tasks' : 'Tasks'}
         subtitle={`${allTasks.length} total · ${todo.length + inProgress.length} open`}
         actions={<CreateTaskModal staff={staffList} />}
       />

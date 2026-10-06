@@ -1,75 +1,43 @@
-import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
+import { supabaseAdmin } from '@/lib/supabase/admin'
+import { withRoute, unwrap, notFound } from '@/lib/api/withRoute'
+import { canSeeTask } from '@/lib/ops/taskScope'
+
+const COMMENT_COLUMNS = 'id, task_id, user_id, body, created_at'
 
 const createSchema = z.object({
-  body: z.string().min(1).max(5000),
+  body: z.string().trim().min(1).max(5000),
 })
 
-async function verifyTaskOwnership(taskId: string, tenantId: string): Promise<boolean> {
-  const { data } = await supabaseAdmin
-    .from('tasks')
-    .select('id').is('deleted_at', null)
-    .eq('id', taskId)
-    .eq('tenant_id', tenantId)
-    .single()
-  return !!data
-}
+// Comments follow the task's visibility: own-data roles may only read and
+// comment on tasks assigned to or created by them (lib/ops/taskScope.ts).
+// Before this, the route used bare getUser + select * + raw DB errors, and
+// any member could read the thread on any task by id.
 
-export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
-
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new NextResponse('Unauthorized', { status: 401 })
-
-  const tenantId = user.app_metadata?.tenant_id as string
-  if (!tenantId) return new NextResponse('No tenant', { status: 400 })
-
-  const taskExists = await verifyTaskOwnership(id, tenantId)
-  if (!taskExists) return new NextResponse('Not found', { status: 404 })
-
-  const { data, error } = await supabaseAdmin
+export const GET = withRoute({ action: 'tasks.read' }, async ({ ctx, params }) => {
+  if (!(await canSeeTask(ctx, params.id))) throw notFound('Task not found')
+  return unwrap(await supabaseAdmin
     .from('task_comments')
-    .select('*').is('deleted_at', null)
-    .eq('task_id', id)
-    .eq('tenant_id', tenantId)
+    .select(COMMENT_COLUMNS)
+    .eq('task_id', params.id)
+    .eq('tenant_id', ctx.tenantId)
+    .is('deleted_at', null)
     .order('created_at', { ascending: true })
+    .limit(500)) ?? []
+})
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
-  return NextResponse.json(data)
-}
-
-export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
-
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new NextResponse('Unauthorized', { status: 401 })
-
-  const tenantId = user.app_metadata?.tenant_id as string
-  if (!tenantId) return new NextResponse('No tenant', { status: 400 })
-
-  const taskExists = await verifyTaskOwnership(id, tenantId)
-  if (!taskExists) return new NextResponse('Not found', { status: 404 })
-
-  let body: z.infer<typeof createSchema>
-  try { body = createSchema.parse(await request.json()) } catch (e) {
-    return NextResponse.json({ error: 'Invalid request', detail: e }, { status: 400 })
-  }
-
-  const { data, error } = await supabaseAdmin
+export const POST = withRoute({
+  action: 'tasks.write',
+  body: createSchema,
+  status: 201,
+  audit: 'task.commented',
+  resourceType: 'task',
+  rateLimit: 'api',
+}, async ({ ctx, body, params }) => {
+  if (!(await canSeeTask(ctx, params.id))) throw notFound('Task not found')
+  return unwrap(await supabaseAdmin
     .from('task_comments')
-    .insert({
-      task_id:   id,
-      tenant_id: tenantId,
-      user_id:   user.id,
-      body:      body.body,
-    })
-    .select()
-    .single()
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
-  return NextResponse.json(data, { status: 201 })
-}
+    .insert({ task_id: params.id, tenant_id: ctx.tenantId, user_id: ctx.userId, body: body.body })
+    .select(COMMENT_COLUMNS)
+    .single(), { required: true })
+})

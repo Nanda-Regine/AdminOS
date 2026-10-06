@@ -1,13 +1,13 @@
 {
-  "routes_no_permission": 61,
+  "routes_no_permission": 58,
   "write_routes_no_zod": 25,
-  "routes_hard_delete": 8,
-  "routes_leak_db_error": 52,
-  "routes_select_star": 39,
-  "write_routes_no_audit": 74,
-  "routes_rate_limited": 28,
-  "routes_on_withRoute": 56,
-  "pages_no_permission": 17,
+  "routes_hard_delete": 7,
+  "routes_leak_db_error": 49,
+  "routes_select_star": 36,
+  "write_routes_no_audit": 72,
+  "routes_rate_limited": 30,
+  "routes_on_withRoute": 59,
+  "pages_no_permission": 15,
   "pages_no_empty_state": 23,
   "pages_unbounded_query": 25
 }

@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
   ACTIONS, ALL_PERMISSIONS, DEFAULT_ROLE_PERMISSIONS, MEMBER, ROLES,
-  can, defaultRolesFor, isRoleName, type Action,
+  can, defaultRolesFor, isRoleName, seesOnlyOwnData, type Action,
 } from '../lib/auth/roleMatrix.ts'
 
 const actions = Object.keys(ACTIONS) as Action[]
@@ -66,4 +66,11 @@ test('defaultRolesFor + isRoleName', () => {
   assert.ok(isRoleName('field_agent'))
   assert.equal(isRoleName('hr_manager'), false)
   assert.equal(isRoleName('super_admin'), false)
+})
+
+test('only staff, field_agent and client are scoped to their own records', () => {
+  const scoped = ROLES.filter((r) => seesOnlyOwnData({ permissions: DEFAULT_ROLE_PERMISSIONS[r] }))
+  assert.deepEqual([...scoped].sort(), ['client', 'field_agent', 'staff'])
+  // A super-admin is never scoped, whatever their role grants.
+  assert.equal(seesOnlyOwnData({ permissions: DEFAULT_ROLE_PERMISSIONS.staff, isSuperAdmin: true }), false)
 })
