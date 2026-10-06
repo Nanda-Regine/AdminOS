@@ -4,6 +4,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
 import { getTenantAddons } from '@/lib/billing/planGates'
 import { guard } from '@/lib/api/guard'
+import { syncStatutoryCalendar } from '@/lib/compliance/sync'
 
 const updateSchema = z.object({
   name:             z.string().min(1).max(300).optional(),
@@ -122,6 +123,10 @@ export async function PATCH(request: Request) {
     .select()
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  if (error) return NextResponse.json({ error: 'Could not save your business details.' }, { status: 400 })
+  // IRP6/ITR14/NPO dates hang off the year end and business type.
+  if (body.financialYearEndMonth !== undefined || body.businessType !== undefined) {
+    await syncStatutoryCalendar(tenantId).catch((e) => console.error('calendar resync failed', tenantId, e))
+  }
   return NextResponse.json(data)
 }

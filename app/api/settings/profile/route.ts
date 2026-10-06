@@ -5,6 +5,7 @@ import { buildCachedSystemPrompt } from '@/lib/ai/buildSystemPrompt'
 import { writeAuditLog } from '@/lib/security/audit'
 import { Tenant } from '@/types/database'
 import { guard } from '@/lib/api/guard'
+import { syncStatutoryCalendar } from '@/lib/compliance/sync'
 
 export async function POST(request: Request) {
   const gate = await guard('settings.write'); if (gate.denied) return gate.denied
@@ -82,5 +83,7 @@ export async function POST(request: Request) {
     action: 'tenant.settings.updated',
   })
 
+  // The NPO annual report and the ITR14/IT12EI wording depend on business type.
+  if (businessType) await syncStatutoryCalendar(tenantId).catch((e) => console.error('calendar resync failed', tenantId, e))
   return NextResponse.json({ success: true })
 }

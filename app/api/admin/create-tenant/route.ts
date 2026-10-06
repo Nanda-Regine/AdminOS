@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { writeAuditLog, getClientIp } from '@/lib/security/audit'
+import { syncStatutoryCalendar } from '@/lib/compliance/sync'
 import { seedDefaultRoles, assignRole } from '@/lib/auth/permissions'
 import { requireSuperAdmin } from '@/lib/auth/context'
 import { z } from 'zod'
@@ -67,6 +68,7 @@ export async function POST(request: Request) {
   // user_roles row gets nothing. Seeding is idempotent and tenant-scoped, so it
   // is safe even if the invite below fails and the owner is attached later.
   await seedDefaultRoles(tenant.id)
+  await syncStatutoryCalendar(tenant.id).catch((e) => console.error('compliance calendar seed failed', tenant.id, e))
 
   // 4. Invite the owner via Supabase Auth (sends a magic-link email).
   //

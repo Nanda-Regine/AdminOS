@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { buildCachedSystemPrompt } from '@/lib/ai/buildSystemPrompt'
+import { syncStatutoryCalendar } from '@/lib/compliance/sync'
 import { seedDefaultRoles, assignRole } from '@/lib/auth/permissions'
 import { Tenant } from '@/types/database'
 
@@ -68,6 +69,10 @@ export async function GET(request: Request) {
       // dashboard until they paid. Seeding is idempotent, so both can run.
       await seedDefaultRoles(tenant.id)
       await assignRole({ userId: user.id, tenantId: tenant.id, roleName: 'owner' })
+
+      // SA statutory calendar (EMP201, EMP501, IRP6, ITR14, COIDA). Google
+      // signups never got one — only the email path seeded it. Non-fatal.
+      await syncStatutoryCalendar(tenant.id).catch((e) => console.error('compliance calendar seed failed', tenant.id, e))
 
       await supabaseAdmin.auth.admin.updateUserById(user.id, {
         // tenant_id and role are security claims: app_metadata only. The user

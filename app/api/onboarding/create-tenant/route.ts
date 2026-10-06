@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { buildCachedSystemPrompt } from '@/lib/ai/buildSystemPrompt'
+import { syncStatutoryCalendar } from '@/lib/compliance/sync'
 import { seedDefaultRoles, assignRole } from '@/lib/auth/permissions'
 import { Tenant } from '@/types/database'
 import { z } from 'zod'
@@ -83,14 +84,11 @@ export async function POST(request: Request) {
   await seedDefaultRoles(tenant.id)
   await assignRole({ userId: user.id, tenantId: tenant.id, roleName: 'owner' })
 
-  // Pre-load the SA statutory calendar — EMP201, IRP6, ITR14, CIPC, COIDA,
-  // EMP501 with their penalty text. Idempotent (unique on tenant+type+due_date),
-  // and non-fatal: a tenant that exists without a calendar is recoverable, a
-  // signup that 500s because of one is not.
-  const { error: seedErr } = await supabaseAdmin.rpc('seed_compliance_calendar', {
-    p_tenant_id: tenant.id,
-  })
-  if (seedErr) console.error('compliance calendar seed failed', tenant.id, seedErr.message)
+  // Pre-load the SA statutory calendar — EMP201, EMP501, IRP6, ITR14, COIDA
+  // (lib/compliance/calendar.ts, dates checked against SARS). Idempotent and
+  // non-fatal: a tenant without a calendar is recoverable (the monthly roll
+  // fills it), a signup that 500s because of one is not.
+  await syncStatutoryCalendar(tenant.id).catch((e) => console.error('compliance calendar seed failed', tenant.id, e))
 
   // tenant_id and role are security claims: app_metadata (service-role writable
   // only), never user_metadata (user-writable). Onboarding UI state stays in
