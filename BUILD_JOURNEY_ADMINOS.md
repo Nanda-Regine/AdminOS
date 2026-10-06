@@ -3034,3 +3034,86 @@ rate-limited 12 → 16, on withRoute 4 → 22, unbounded pages 27 → 26.
 performance, disciplinary, EE, safety, IR log, handbook, shifts). Same method:
 read every route + page, verify columns/constraints live, chase siblings,
 withRoute + matrix, then `--write-baseline`.
+
+---
+
+## Session 19 (2026-10-05/06) — Mobile app: Play Store + AppGallery readiness
+
+**Commits:** `480b5ef` (role-aware RLS for people + money tables), `945dae4` (Phase 2 People/HR sweep, every HR route on withRoute), `a827895` (mobile backend), `0eca1d8` (offline clock, claim categories, receipt cap, CI mobile job), `6b873b1` (Expo app rewrite).
+The first two landed at the end of Session 18 and weren't journaled until now.
+
+### What was wrong before
+The old `expo-app/` could not ship:
+- It read Supabase tables directly with the anon key. That's the P0 RLS exposure from Session 16.
+- It persisted payslips and profile data to plain AsyncStorage.
+- It had no account deletion (a hard Play requirement) and no store build config.
+- 0 of 12 staff rows had a login, so no employee could get in at all.
+
+The backend also had real bugs that the app surfaced:
+- **Sick leave deducted annual leave.** Every leave request was implicitly annual (BCEA s20 vs s22).
+- **Leave requests could not be created by employees.** No route existed.
+- **Tenant-level owner alerts leaked to staff** through the notifications route.
+- **`/api/conversations/reply` sent WhatsApp to any number in the body,** with no role gate.
+- **Langa and the agent routes had no role gate.** Any logged-in staff member could query the business's finances.
+- **Tasks:**
+  - no authorisation on update or delete
+  - hard delete (Rule #3)
+  - cross-tenant assignee accepted
+  - priority sorted alphabetically, so "urgent" ranked below "high"
+- **Expense receipts:** `javascript:` URLs were accepted, and receipts sat in a public bucket. Category was free text.
+- **FOUND 2026-10-06 (live schema):** `notifications.user_id` is NOT NULL in prod, but `lib/notifications/notify.ts` writes tenant-level alerts with `user_id: null`. **Every in-app notification since August has failed silently.** The table has 0 rows. The fix is part of the mobile migration (§5, `DROP NOT NULL`).
+
+### What was built
+**Backend:**
+- Bearer-token auth through `createClient()` and middleware.
+- `/api/me` is a single round-trip home payload, gated per permission.
+- Leave API with BCEA types and SA working days (`lib/people/workingDays.ts`: Easter via Meeus, Sunday→Monday rule).
+- Withdraw-own-pending leave; the employee is notified of the decision.
+- Push via the Expo Push API; dead tokens are soft-revoked.
+- WhatsApp invite codes for staff: SHA-256 stored, atomic claim, rate limited, generated staff logins for people without email.
+- Account deletion: ban + unlink immediately, anonymise after 30 days via the `accountDeletionPurge` cron. Business records are kept per BCEA s31 and TAA s29, as the page discloses.
+- Private `expense-receipts` bucket, 5-minute signed URLs, file type sniffed from bytes, 4 MB cap.
+- Staff directory; own-only documents; payslips only from **paid** runs.
+- Offline clock `occurredAt` (at most 12h old, at most 2 min skew, out-of-order rejected, audit-flagged).
+- Tests 116 → 128. Ratchet: withRoute 38 → 54, no-permission routes 69 → 63.
+
+**Expo app (SDK 57, expo-router, NativeWind, TanStack Query):**
+- `app.config.ts` plus EAS profiles: `preview` APK, `production` AAB for Play, `production-huawei` APK. Package `za.co.adminos`. Background location, audio and storage permissions are blocked.
+- Tabs come from permissions. Employees get Home · Clock · Leave · Pay · More. Managers get Home · Approvals · Inbox · More.
+- Privacy and security:
+  - Session in chunked SecureStore.
+  - Sensitive queries are never written to disk.
+  - The cache is bound to its owner.
+  - Sign-out clears the cache, the offline queue and the push token.
+  - Optional biometric lock with a 2-minute grace period.
+- Offline clock queue for load-shedding.
+- Generated icon, splash and store graphics (pure-Node PNG encoder; `sharp` hangs on OneDrive).
+- `expo-app/STORE_LISTING.md` is the full console handoff: Data safety table, listing copy, device checklist, AppGallery steps.
+
+### Verification
+- Web: `tsc` 0, 128/128 tests pass, ratchet shows no regressions.
+- Expo: `tsc` 0 on the last full run.
+- A clean `npm ci` + `expo export --platform android` in a scratch copy ran out of system memory on this laptop; the OneDrive copy timed out crawling `node_modules`. **The CI `mobile` job now runs that bundle on every push and is the authority.**
+
+### Needs Nanda (Claude is not permitted to apply prod migrations)
+1. **Apply migrations** in the Supabase SQL editor, in order:
+   1. `20261004_lock_down_rls_disabled_tables.sql`
+   2. `20261005_role_aware_rls_people.sql`
+   3. `20261005_wellness_burnout_trigger_fix.sql`
+   4. `20261005_mobile_app_foundations.sql`
+
+   The last one also fixes the dead notification spine. Until it's applied, leave requests, invites, deletion, receipt upload and push registration return errors.
+2. Deploy the web app. The webhook has been unreliable; trigger a deploy manually if needed.
+3. `eas login` and `eas init`, then set the EAS env vars (see STORE_LISTING.md §1).
+4. Firebase: upload `google-services.json` and the FCM V1 key.
+5. Play Console: org account (D-U-N-S), then a 12-tester / 14-day closed test. Start early.
+6. Huawei enterprise developer verification.
+7. Screenshots from the preview build, and a designed feature graphic.
+8. Reviewer logins: owner + linked staff on the test tenant.
+9. After launch, set `NEXT_PUBLIC_PLAY_STORE_URL` / `NEXT_PUBLIC_APPGALLERY_URL` in Vercel.
+
+### Next
+- Remaining Phase 2 sweeps: Customers & comms, Ops, Compliance, AI, Growth, Settings.
+- HMS Push for the Huawei build.
+- Payslip PDF download in the app.
+- The 17 VAT invoices decision and the WhatsApp templates are still open (Session 18).
