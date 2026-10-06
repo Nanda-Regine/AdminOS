@@ -1,28 +1,53 @@
 {
-  "cli": { "version": ">= 7.0.0" },
+  "cli": {
+    "version": ">= 16.0.0",
+    "appVersionSource": "remote"
+  },
   "build": {
+    "base": {
+      "node": "22.18.0",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://adminos.co.za"
+      }
+    },
     "development": {
+      "extends": "base",
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "environment": "development",
+      "env": { "APP_STORE": "play" }
     },
     "preview": {
+      "extends": "base",
       "distribution": "internal",
-      "android": { "buildType": "apk" }
+      "environment": "preview",
+      "android": { "buildType": "apk" },
+      "channel": "preview",
+      "env": { "APP_STORE": "play" }
     },
     "production": {
-      "autoIncrement": true
+      "extends": "base",
+      "environment": "production",
+      "autoIncrement": true,
+      "channel": "production",
+      "android": { "buildType": "app-bundle" },
+      "env": { "APP_STORE": "play" }
+    },
+    "production-huawei": {
+      "extends": "base",
+      "environment": "production",
+      "autoIncrement": true,
+      "channel": "production-huawei",
+      "android": { "buildType": "apk" },
+      "env": { "APP_STORE": "huawei" }
     }
   },
   "submit": {
     "production": {
-      "ios": {
-        "appleId": "YOUR_APPLE_ID",
-        "ascAppId": "YOUR_APP_STORE_CONNECT_ID",
-        "appleTeamId": "YOUR_APPLE_TEAM_ID"
-      },
       "android": {
         "serviceAccountKeyPath": "./google-service-account.json",
-        "track": "production"
+        "track": "internal",
+        "releaseStatus": "draft"
       }
     }
   }

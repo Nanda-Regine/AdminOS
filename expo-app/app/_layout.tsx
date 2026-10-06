@@ -1,80 +1,116 @@
 import 'react-native-url-polyfill/auto'
 import '../global.css'
 import { useEffect } from 'react'
-import { Stack, router } from 'expo-router'
-import { usePushNotifications } from '@/hooks/usePushNotifications'
-import { useOfflineQueue } from '@/hooks/useOfflineQueue'
+import { Text, View } from 'react-native'
+import { Stack, router, useSegments } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
 import * as SplashScreen from 'expo-splash-screen'
 import * as Updates from 'expo-updates'
-import { QueryClient } from '@tanstack/react-query'
+import NetInfo from '@react-native-community/netinfo'
+import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client'
-import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister'
-import AsyncStorage from '@react-native-async-storage/async-storage'
+import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '@/lib/supabase'
-import { useAuthStore } from '@/store/auth'
-import { warmCache } from '@/lib/cacheWarmer'
+import { queryClient, persister, shouldPersist } from '@/lib/queryClient'
+import { flushClockQueue } from '@/lib/offlineQueue'
+import { CONFIG_ERROR } from '@/lib/config'
+import { useSession } from '@/store/session'
+import { usePushRegistration } from '@/hooks/usePushRegistration'
+import { useAppLock } from '@/hooks/useAppLock'
+import { Button, C } from '@/components/ui'
 
-SplashScreen.preventAutoHideAsync()
+SplashScreen.preventAutoHideAsync().catch(() => undefined)
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 1000 * 60 * 5,
-      gcTime: 1000 * 60 * 60 * 24 * 3, // keep cache 3 days (was 1 day)
-      retry: 2,
-      networkMode: 'offlineFirst',
-    },
-  },
-})
-
-const persister = createAsyncStoragePersister({ storage: AsyncStorage })
-
-async function checkOTA() {
+/** Apply a downloaded OTA update on the next cold start — never mid-task. */
+async function fetchUpdateQuietly() {
+  if (__DEV__ || !Updates.isEnabled) return
   try {
-    const update = await Updates.checkForUpdateAsync()
-    if (update.isAvailable) {
-      await Updates.fetchUpdateAsync()
-      await Updates.reloadAsync()
-    }
-  } catch {}
+    const r = await Updates.checkForUpdateAsync()
+    if (r.isAvailable) await Updates.fetchUpdateAsync()
+  } catch {
+    /* offline or no channel — try next launch */
+  }
+}
+
+function AuthGate() {
+  const status = useSession((s) => s.status)
+  const segments = useSegments()
+
+  useEffect(() => {
+    if (status === 'loading') return
+    const inAuth = segments[0] === '(auth)'
+    if (status === 'signedOut' && !inAuth) router.replace('/login')
+    if (status === 'signedIn' && inAuth) router.replace('/')
+  }, [status, segments])
+
+  return null
+}
+
+function LockScreen({ onUnlock }: { onUnlock: () => void }) {
+  return (
+    <View className="absolute inset-0 bg-navy-900 items-center justify-center px-8 gap-4" accessibilityViewIsModal>
+      <Ionicons name="lock-closed" size={40} color={C.brand} />
+      <Text className="text-white text-xl font-bold">AdminOS is locked</Text>
+      <Text className="text-slate-400 text-center">Unlock with your fingerprint, face or device PIN.</Text>
+      <View className="self-stretch mt-2"><Button label="Unlock" icon="finger-print" onPress={onUnlock} /></View>
+    </View>
+  )
 }
 
 export default function RootLayout() {
-  const { setSession } = useAuthStore()
-  usePushNotifications()
-  useOfflineQueue()
+  const status = useSession((s) => s.status)
+  const setSession = useSession((s) => s.setSession)
+  const { locked, unlock } = useAppLock(status === 'signedIn')
+  usePushRegistration()
 
   useEffect(() => {
-    checkOTA()
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      SplashScreen.hideAsync()
-      if (!session) {
-        router.replace('/(auth)/login')
-      } else {
-        const r = session.user.app_metadata?.role ?? 'staff'
-        const tenantId = session.user.app_metadata?.tenant_id
-        if (tenantId) {
-          warmCache(queryClient, tenantId)
-        }
-        router.replace(r === 'owner' || r === 'manager' ? '/(owner)' : '/(my-admin)')
-      }
-    })
+    supabase.auth.getSession()
+      .then(({ data }) => setSession(data.session))
+      .catch(() => setSession(null))
+      .finally(() => SplashScreen.hideAsync().catch(() => undefined))
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session)
-      if (!session) router.replace('/(auth)/login')
     })
-
+    fetchUpdateQuietly()
     return () => subscription.unsubscribe()
-  }, [])
+  }, [setSession])
+
+  // Send offline clock-ins whenever we come back online (and on launch).
+  useEffect(() => {
+    if (status !== 'signedIn') return
+    flushClockQueue().then((r) => { if (r.sent) void queryClient.invalidateQueries({ queryKey: ['clock'] }) })
+    return NetInfo.addEventListener((s) => {
+      if (s.isConnected && s.isInternetReachable !== false) {
+        flushClockQueue().then((r) => { if (r.sent) void queryClient.invalidateQueries({ queryKey: ['clock'] }) })
+      }
+    })
+  }, [status])
+
+  if (CONFIG_ERROR) {
+    return (
+      <View className="flex-1 bg-navy-900 items-center justify-center px-8">
+        <Text className="text-white text-lg font-bold mb-2">AdminOS can’t start</Text>
+        <Text className="text-slate-400 text-center">{CONFIG_ERROR}</Text>
+      </View>
+    )
+  }
 
   return (
-    <PersistQueryClientProvider client={queryClient} persistOptions={{ persister }}>
-      <StatusBar style="light" />
-      <Stack screenOptions={{ headerShown: false }} />
-    </PersistQueryClientProvider>
+    <SafeAreaProvider>
+      <PersistQueryClientProvider
+        client={queryClient}
+        persistOptions={{
+          persister,
+          maxAge: 1000 * 60 * 60 * 24 * 3,
+          dehydrateOptions: { shouldDehydrateQuery: shouldPersist },
+        }}
+      >
+        <StatusBar style="light" />
+        <AuthGate />
+        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: C.bg }, animation: 'slide_from_right' }} />
+        {locked && <LockScreen onUnlock={unlock} />}
+      </PersistQueryClientProvider>
+    </SafeAreaProvider>
   )
 }

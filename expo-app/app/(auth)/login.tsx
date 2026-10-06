@@ -1,107 +1,109 @@
 import { useState } from 'react'
-import {
-  View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView,
-  Platform, ActivityIndicator, Alert,
-} from 'react-native'
+import { Alert, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, Text, View } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
-import * as LocalAuthentication from 'expo-local-authentication'
 import { supabase } from '@/lib/supabase'
-import { useAuthStore } from '@/store/auth'
+import { Button, Field } from '@/components/ui'
+import { SUPPORT_EMAIL, WEB_SIGNUP_URL, PRIVACY_URL } from '@/lib/config'
+
+const STAFF_DOMAIN = 'staff.adminos.co.za'
+
+/** "thandi.k7p2" → "thandi.k7p2@staff.adminos.co.za" (staff logins without email). */
+function toLoginEmail(input: string): string {
+  const v = input.trim().toLowerCase()
+  return v.includes('@') ? v : `${v}@${STAFF_DOMAIN}`
+}
+
+function friendlyAuthError(message: string): string {
+  if (/invalid login credentials/i.test(message)) return 'That email or password is incorrect.'
+  if (/banned|suspended/i.test(message)) return 'This login has been disabled. Contact your employer or AdminOS support.'
+  if (/network|fetch/i.test(message)) return 'You appear to be offline. Check your connection and try again.'
+  if (/rate|too many/i.test(message)) return 'Too many attempts. Please wait a few minutes and try again.'
+  return message
+}
 
 export default function LoginScreen() {
-  const [email, setEmail] = useState('')
+  const [login, setLogin] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
-  const setSession = useAuthStore(s => s.setSession)
+  const [error, setError] = useState<string | null>(null)
 
   async function signIn() {
-    if (!email || !password) return
+    if (!login.trim() || !password) { setError('Enter your email (or staff login) and password.'); return }
     setLoading(true)
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+    setError(null)
+    const { error: err } = await supabase.auth.signInWithPassword({ email: toLoginEmail(login), password })
     setLoading(false)
-    if (error) { Alert.alert('Sign in failed', error.message); return }
-    setSession(data.session)
-    const role = data.session.user.app_metadata?.role ?? 'staff'
-    router.replace(role === 'owner' || role === 'manager' ? '/(owner)' : '/(my-admin)')
+    if (err) setError(friendlyAuthError(err.message))
+    // On success the session listener in the root layout routes to the app.
   }
 
-  async function tryBiometric() {
-    const result = await LocalAuthentication.authenticateAsync({ promptMessage: 'Sign in to AdminOS' })
-    if (result.success) {
-      const { data } = await supabase.auth.getSession()
-      if (data.session) {
-        setSession(data.session)
-        const role = data.session.user.app_metadata?.role ?? 'staff'
-        router.replace(role === 'owner' || role === 'manager' ? '/(owner)' : '/(my-admin)')
-      }
-    }
+  function forgot() {
+    Alert.alert(
+      'Forgot your password?',
+      'Employees: ask your employer to send you a new app code — entering it lets you choose a new password.\n\nBusiness owners: email us from your account’s address and we’ll help you back in.',
+      [
+        { text: 'I have a new code', onPress: () => router.push('/invite') },
+        { text: 'Email support', onPress: () => Linking.openURL(`mailto:${SUPPORT_EMAIL}?subject=AdminOS%20password%20help`) },
+        { text: 'Close', style: 'cancel' },
+      ],
+    )
   }
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      className="flex-1 bg-navy-900"
-    >
-      <View className="flex-1 justify-center px-6">
-        {/* Logo */}
-        <View className="items-center mb-12">
-          <View className="w-16 h-16 rounded-2xl bg-brand items-center justify-center mb-4">
-            <Text className="text-white text-2xl font-bold">AO</Text>
+    <SafeAreaView className="flex-1 bg-navy-900">
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} className="flex-1">
+        <ScrollView contentContainerClassName="flex-grow justify-center px-6 py-10" keyboardShouldPersistTaps="handled">
+          <View className="items-center mb-10">
+            <View className="w-16 h-16 rounded-2xl bg-brand items-center justify-center mb-4">
+              <Text className="text-white text-3xl font-extrabold">A</Text>
+            </View>
+            <Text accessibilityRole="header" className="text-white text-2xl font-bold">AdminOS</Text>
+            <Text className="text-slate-400 text-sm mt-1">Your work, pay and team — in your pocket</Text>
           </View>
-          <Text className="text-white text-2xl font-bold">AdminOS</Text>
-          <Text className="text-gray-400 text-sm mt-1">The OS that runs your business</Text>
-        </View>
 
-        {/* Form */}
-        <View className="space-y-4">
-          <View>
-            <Text className="text-gray-400 text-xs mb-1.5 uppercase tracking-wide">Email</Text>
-            <TextInput
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
+          <View className="gap-4">
+            <Field
+              label="Email or staff login"
+              value={login}
+              onChangeText={setLogin}
               autoCapitalize="none"
-              autoComplete="email"
+              autoCorrect={false}
+              keyboardType="email-address"
+              autoComplete="username"
+              textContentType="username"
               placeholder="you@business.co.za"
-              placeholderTextColor="#6B7280"
-              className="bg-white/10 border border-white/20 rounded-xl px-4 py-3.5 text-white text-sm"
+              returnKeyType="next"
             />
-          </View>
-          <View>
-            <Text className="text-gray-400 text-xs mb-1.5 uppercase tracking-wide">Password</Text>
-            <TextInput
+            <Field
+              label="Password"
               value={password}
               onChangeText={setPassword}
               secureTextEntry
               autoComplete="password"
+              textContentType="password"
               placeholder="••••••••"
-              placeholderTextColor="#6B7280"
-              className="bg-white/10 border border-white/20 rounded-xl px-4 py-3.5 text-white text-sm"
+              returnKeyType="go"
+              onSubmitEditing={signIn}
             />
+            {error ? <Text accessibilityLiveRegion="assertive" className="text-red-300 text-sm">{error}</Text> : null}
+            <Button label="Sign in" onPress={signIn} loading={loading} />
+            <Pressable onPress={forgot} accessibilityRole="button" className="items-center py-2">
+              <Text className="text-brand-light text-sm">Forgot password?</Text>
+            </Pressable>
           </View>
 
-          <TouchableOpacity
-            onPress={signIn}
-            disabled={loading}
-            className="bg-brand rounded-xl py-4 items-center mt-2"
-          >
-            {loading
-              ? <ActivityIndicator color="#fff" />
-              : <Text className="text-white font-semibold text-base">Sign In</Text>
-            }
-          </TouchableOpacity>
-
-          <TouchableOpacity onPress={tryBiometric} className="items-center py-3">
-            <Text className="text-brand text-sm">Use Face ID / Fingerprint</Text>
-          </TouchableOpacity>
-        </View>
-
-        <TouchableOpacity onPress={() => router.push('/(auth)/signup')} className="items-center mt-6">
-          <Text className="text-gray-500 text-sm">
-            New to AdminOS? <Text className="text-brand">Create account</Text>
-          </Text>
-        </TouchableOpacity>
-      </View>
-    </KeyboardAvoidingView>
+          <View className="mt-8 gap-3">
+            <Button label="I have an invite code" variant="secondary" icon="key-outline" onPress={() => router.push('/invite')} />
+            <Text className="text-slate-500 text-xs text-center leading-5">
+              Business owner?{' '}
+              <Text className="text-brand-light" onPress={() => Linking.openURL(WEB_SIGNUP_URL)}>Create your business on the web</Text>
+              , then sign in here.{'\n'}
+              <Text className="text-slate-500 underline" onPress={() => Linking.openURL(PRIVACY_URL)}>Privacy policy</Text>
+            </Text>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   )
 }
