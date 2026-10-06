@@ -8,6 +8,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { OPEN_INVOICE_STATUSES, outstanding } from '@/lib/invoices/status'
 import { daysOverdue } from '@/lib/debt/overdue'
 import { sastDate } from '@/lib/time/sast'
+import { allRows } from '@/lib/supabase/fetchAll'
 export { AGENT_DEFINITIONS, type AgentType } from './agents.config'
 
 // Fetch real DB data for agents that need it
@@ -90,7 +91,7 @@ async function buildAdvisorContext(
 
   const [convResult, invoiceResult, staffResult, goalResult, leaveResult, insightsResult] = await Promise.all([
     supabaseAdmin.from('conversations').select('status, sentiment, intent').eq('tenant_id', tenantId).gte('created_at', sevenDaysAgo),
-    supabaseAdmin.from('invoices').select('amount, amount_paid, due_date, status').eq('tenant_id', tenantId).in('status', [...OPEN_INVOICE_STATUSES]).is('deleted_at', null),
+    allRows((lo, hi) => supabaseAdmin.from('invoices').select('amount, amount_paid, due_date, status').eq('tenant_id', tenantId).in('status', [...OPEN_INVOICE_STATUSES]).is('deleted_at', null).order('id').range(lo, hi)),
     supabaseAdmin.from('staff').select('wellness_scores, after_hours_flag').is('deleted_at', null).eq('tenant_id', tenantId),
     supabaseAdmin.from('goals').select('title, target_metric, current_value, target_value, progress_pct, status').is('deleted_at', null).eq('tenant_id', tenantId).eq('status', 'active').limit(5),
     supabaseAdmin.from('leave_requests').select('status', { count: 'exact' }).is('deleted_at', null).eq('tenant_id', tenantId).eq('status', 'approved').gte('end_date', sastDate()),

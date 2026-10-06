@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { guard } from '@/lib/api/guard'
+import { allRows } from '@/lib/supabase/fetchAll'
 
 // GET /api/benchmarks/[businessType]
 // Returns anonymised sector benchmarks for a business type
@@ -37,14 +38,14 @@ export async function GET(request: Request, { params }: { params: Promise<{ busi
 
   // Fetch this tenant's own annual revenue for comparison
   const oneYearAgo = new Date(Date.now() - 365 * 86400000).toISOString()
-  const { data: revenueData } = await supabaseAdmin
+  const { data: revenueData } = await allRows((lo, hi) => supabaseAdmin
     .from('invoices')
-    .select('total').is('deleted_at', null)
+    .select('amount').is('deleted_at', null)
     .eq('tenant_id', tenantId)
     .eq('status', 'paid')
-    .gte('created_at', oneYearAgo)
+    .gte('created_at', oneYearAgo).order('id').range(lo, hi))
 
-  const myRevenue = (revenueData ?? []).reduce((sum, inv) => sum + Number(inv.total ?? 0), 0)
+  const myRevenue = (revenueData ?? []).reduce((sum, inv) => sum + Number(inv.amount ?? 0), 0)
 
   // Compute tenant's percentile position
   const revBenchmark = benchmarks.find(b => b.metric_name === 'annual_revenue_zar')

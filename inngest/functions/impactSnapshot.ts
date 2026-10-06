@@ -1,6 +1,7 @@
 import { inngest } from '@/inngest/client'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { sastDate } from '@/lib/time/sast'
+import { allRows } from '@/lib/supabase/fetchAll'
 
 // Runs weekly on Monday at 2am — calculates platform-wide impact metrics
 export const impactSnapshotFunction = inngest.createFunction(
@@ -36,7 +37,7 @@ export const impactSnapshotFunction = inngest.createFunction(
       supabaseAdmin.from('stokvel_groups').select('id', { count: 'exact', head: true }).is('deleted_at', null).eq('status', 'active'),
       supabaseAdmin.from('academy_certificates').select('id', { count: 'exact', head: true }),
       supabaseAdmin.from('mentor_connections').select('id', { count: 'exact', head: true }).eq('status', 'active'),
-      supabaseAdmin.from('invoices').select('amount').is('deleted_at', null).eq('status', 'paid'),
+      allRows((lo, hi) => supabaseAdmin.from('invoices').select('amount').is('deleted_at', null).eq('status', 'paid').order('id').range(lo, hi)),
     ])
 
     const totalDebt = (debtRecovered.data ?? []).reduce((s, inv) => s + Number(inv.amount ?? 0), 0)

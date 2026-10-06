@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/card'
 import { redirect, notFound } from 'next/navigation'
 import { CashflowChart } from '@/components/dashboard/CashflowChart'
 import { checkPermission } from '@/lib/auth/permissions'
+import { allRows } from '@/lib/supabase/fetchAll'
 
 export const dynamic = 'force-dynamic'
 
@@ -48,17 +49,17 @@ export default async function CashflowPage() {
   // so anything dated on/before today is clamped to today to sit at the front of
   // the forward window (we have no real future payment schedule for them).
   const [invoiceResult, expenseResult, forecastResult] = await Promise.all([
-    supabaseAdmin
+    allRows((lo, hi) => supabaseAdmin
       .from('invoices')
       .select('id, contact_name, amount, amount_paid, due_date, status').is('deleted_at', null)
       .eq('tenant_id', tenantId)
-      .neq('status', 'paid'),
-    supabaseAdmin
+      .neq('status', 'paid').order('id').range(lo, hi)),
+    allRows((lo, hi) => supabaseAdmin
       .from('expenses')
       .select('id, amount, category, description, status, submitted_at, approved_at, paid_at').is('deleted_at', null)
       .eq('tenant_id', tenantId)
       .is('paid_at', null)
-      .neq('status', 'rejected'),
+      .neq('status', 'rejected').order('id').range(lo, hi)),
     supabaseAdmin
       .from('cashflow_forecasts')
       .select('generated_at')

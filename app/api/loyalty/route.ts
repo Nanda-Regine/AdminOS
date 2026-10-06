@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
 import { guard } from '@/lib/api/guard'
+import { allRows } from '@/lib/supabase/fetchAll'
 
 const tierSchema = z.object({
   name:      z.string().min(1).max(100),
@@ -38,11 +39,11 @@ export async function GET(_request: Request) {
   // Account summary derived from the loyalty_points ledger (there is no
   // loyalty_accounts table). Each row carries a running `balance`; a member's
   // current outstanding is their most recent row's balance.
-  const { data: ledger, error: summaryError } = await supabaseAdmin
+  const { data: ledger, error: summaryError } = await allRows((lo, hi) => supabaseAdmin
     .from('loyalty_points')
     .select('contact_id, balance, created_at')
     .eq('tenant_id', tenantId)
-    .order('created_at', { ascending: false })
+    .order('created_at', { ascending: false }).order('id').range(lo, hi))
 
   if (summaryError) return NextResponse.json({ error: summaryError.message }, { status: 400 })
 

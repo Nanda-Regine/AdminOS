@@ -9,6 +9,7 @@ import { PiggyBank } from 'lucide-react'
 import { redirect, notFound } from 'next/navigation'
 import { CreateStokvelModal, AddMemberModal } from './StokvelActions'
 import { checkPermission } from '@/lib/auth/permissions'
+import { allRows } from '@/lib/supabase/fetchAll'
 
 // Real schema (verified against prod):
 //   stokvel_groups(id, name, rules, contribution_amount, frequency, status, created_at)
@@ -99,10 +100,10 @@ export default async function StokvelPage() {
   // group ids instead (groups are already tenant-filtered above).
   const groupIds = groups.map(g => g.id)
   const { data: contribData } = groupIds.length
-    ? await supabaseAdmin
+    ? await allRows((lo, hi) => supabaseAdmin
         .from('stokvel_contributions')
         .select('group_id, member_id, amount, status, period_month, period_year')
-        .in('group_id', groupIds)
+        .in('group_id', groupIds).order('id').range(lo, hi))
     : { data: [] }
   const contributions = (contribData || []) as ContributionRow[]
 

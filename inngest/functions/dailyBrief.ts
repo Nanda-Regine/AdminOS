@@ -8,6 +8,7 @@ import { todayDateString } from '@/lib/debt/overdue'
 import Anthropic from '@anthropic-ai/sdk'
 import { recentWellnessAvg } from '@/lib/people/wellness'
 import { sastDate, sastDayStartUTC } from '@/lib/time/sast'
+import { allRows } from '@/lib/supabase/fetchAll'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
 
@@ -25,7 +26,7 @@ export const dailyBriefEngine = inngest.createFunction(
         supabaseAdmin.from('tenants').select('name, plan, settings, language_primary').eq('id', tenant_id).single(),
         supabaseAdmin.from('conversations').select('id, status, intent, sentiment').eq('tenant_id', tenant_id).eq('status', 'open'),
         // Open + past due by due_date (days_overdue is a stale trigger column; see lib/invoices/status).
-        supabaseAdmin.from('invoices').select('amount, amount_paid').eq('tenant_id', tenant_id).in('status', [...OPEN_INVOICE_STATUSES]).lt('due_date', todayDateString()).is('deleted_at', null),
+        allRows((lo, hi) => supabaseAdmin.from('invoices').select('amount, amount_paid').eq('tenant_id', tenant_id).in('status', [...OPEN_INVOICE_STATUSES]).lt('due_date', todayDateString()).is('deleted_at', null).order('id').range(lo, hi)),
         supabaseAdmin.from('staff').select('id, full_name, wellness_scores').is('deleted_at', null).eq('tenant_id', tenant_id).eq('active', true),
         supabaseAdmin.from('goals').select('title, progress_pct, status').is('deleted_at', null).eq('tenant_id', tenant_id).eq('status', 'active').limit(5),
         supabaseAdmin.from('workflow_queue').select('workflow_type, status, created_at').eq('tenant_id', tenant_id).gte('created_at', sastDayStartUTC()).order('created_at', { ascending: false }).limit(20),

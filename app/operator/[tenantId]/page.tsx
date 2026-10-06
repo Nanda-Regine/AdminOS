@@ -6,6 +6,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { OWED_INVOICE_STATUSES, outstanding } from '@/lib/invoices/status'
 import { requireSuperAdmin } from '@/lib/auth/context'
 import { getUsage } from '@/lib/billing/usage'
+import { allRows } from '@/lib/supabase/fetchAll'
 
 interface Props {
   params: Promise<{ tenantId: string }>
@@ -22,7 +23,7 @@ export default async function OperatorTenantPage({ params }: Props) {
     supabaseAdmin.from('subscriptions').select('*').eq('tenant_id', tenantId).maybeSingle(),
     supabaseAdmin.from('staff').select('id', { count: 'exact' }).is('deleted_at', null).eq('tenant_id', tenantId),
     supabaseAdmin.from('conversations').select('id', { count: 'exact' }).eq('tenant_id', tenantId).eq('status', 'open'),
-    supabaseAdmin.from('invoices').select('amount, amount_paid').eq('tenant_id', tenantId).in('status', [...OWED_INVOICE_STATUSES]).is('deleted_at', null),
+    allRows((lo, hi) => supabaseAdmin.from('invoices').select('amount, amount_paid').eq('tenant_id', tenantId).in('status', [...OWED_INVOICE_STATUSES]).is('deleted_at', null).order('id').range(lo, hi)),
   ])
 
   if (!tenantRes.data) notFound()

@@ -53,13 +53,22 @@ console.log('write routes w/o audit log:', routes.filter((r) => r.writes && !r.a
 console.log('rate limited:', c(routes, 'rl'))
 
 // â”€â”€ Dashboard pages
+const PAGE_PERM = /requirePermission|checkPermission|getUserPermissions|\bcan\(ctx,|seesOnlyOwnData\(/
+// A segment layout.tsx gate (used for client-component pages) covers every page under it.
+function layoutGated(f) {
+  for (let d = path.dirname(f); d.replace(/\\/g, '/').startsWith(root + '/app/dashboard/'); d = path.dirname(d)) {
+    const l = path.join(d, 'layout.tsx')
+    if (fs.existsSync(l) && PAGE_PERM.test(fs.readFileSync(l, 'utf8'))) return true
+  }
+  return false
+}
 const pages = walk(root + '/app/dashboard', 'page.tsx').map((f) => {
   const s = fs.readFileSync(f, 'utf8')
   return {
     f: rel(f).replace('app/dashboard/', '').replace('/page.tsx', '').replace('page.tsx', '(root)'),
     lines: s.split('\n').length,
     client: /^['"]use client['"]/m.test(s),
-    perm: /requirePermission|checkPermission|getUserPermissions|\bcan\(ctx,|seesOnlyOwnData\(/.test(s), // can()/seesOnlyOwnData = role-scoped rendering via the role matrix
+    perm: PAGE_PERM.test(s) || layoutGated(f), // can()/seesOnlyOwnData = role-scoped rendering; a segment layout gate counts too
     empty: /No .* yet|empty|EmptyState|nothing/i.test(s),
     anyCount: (s.match(/: any\b|as any\b/g) || []).length,
     alert: /\balert\(|confirm\(/.test(s),
@@ -76,6 +85,33 @@ console.log('\n`any` usages total:', pages.reduce((a, p) => a + p.anyCount, 0))
 console.log('\nlargest pages (lines):', pages.sort((a, b) => b.lines - a.lines).slice(0, 10).map((p) => `${p.f}:${p.lines}`).join(', '))
 
 // ── Scores + ratchet. Lower is better unless in HIGHER_IS_BETTER.
+// ── Money reads that can be silently truncated
+// PostgREST returns at most 1000 rows. A select on a money table that is summed
+// in code must page (allRows/fetchAll) or be bounded (.limit/.range/.single).
+// Every Quick Sale is an invoice row, so a busy shop passes 1000 in weeks.
+const MONEY_TABLES = ['invoices', 'expenses', 'payslips', 'payroll_runs', 'stokvel_contributions', 'loyalty_points']
+function walkCode(d, o = []) {
+  for (const x of fs.readdirSync(d)) {
+    const p = path.join(d, x)
+    if (x === 'node_modules' || x.startsWith('.')) continue
+    fs.statSync(p).isDirectory() ? walkCode(p, o) : /\.(ts|tsx)$/.test(x) && o.push(p)
+  }
+  return o
+}
+const moneyUnpaged = []
+for (const f of ['app', 'lib', 'inngest'].flatMap((d) => walkCode(path.join(root, d)))) {
+  const src = fs.readFileSync(f, 'utf8')
+  for (const m of src.matchAll(/\.from\('([a-z_]+)'\)/g)) {
+    if (!MONEY_TABLES.includes(m[1])) continue
+    const stmt = src.slice(m.index, m.index + 420).split(/\n\s*\n|\n\s*(?:const|let|if|return|await)\b|\n\s*supabaseAdmin|\n\s*ctx\.db|\n\s*supabase\b/)[0]
+    if (!/\.select\(/.test(stmt)) continue
+    if (/\.(limit|range|single|maybeSingle)\(|head: true|\.eq\('id'|\.in\('id'|fetchAll|allRows/.test(stmt)) continue
+    if (/\.(update|insert|delete|upsert)\(/.test(stmt.split('.select(')[0])) continue
+    moneyUnpaged.push(rel(f) + ':' + src.slice(0, m.index).split('\n').length)
+  }
+}
+console.log('\nmoney-table selects not paged/bounded (reviewed ones are bounded by filters):', moneyUnpaged.length, '\n ', moneyUnpaged.join(', '))
+
 const metrics = {
   routes_no_permission: noPerm.length,
   write_routes_no_zod: noZod.length,
@@ -88,6 +124,7 @@ const metrics = {
   pages_no_permission: pages.filter((p) => !p.perm).length,
   pages_no_empty_state: pages.filter((p) => !p.empty).length,
   pages_unbounded_query: c(pages, 'unbounded'),
+  money_reads_unpaged: moneyUnpaged.length,
 }
 const HIGHER_IS_BETTER = new Set(['routes_rate_limited', 'routes_on_withRoute'])
 const baselinePath = path.join(__dirname, 'quality-baseline.json')

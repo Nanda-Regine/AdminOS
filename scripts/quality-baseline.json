@@ -7,7 +7,8 @@
   "write_routes_no_audit": 71,
   "routes_rate_limited": 30,
   "routes_on_withRoute": 62,
-  "pages_no_permission": 11,
+  "pages_no_permission": 2,
   "pages_no_empty_state": 23,
-  "pages_unbounded_query": 25
+  "pages_unbounded_query": 24,
+  "money_reads_unpaged": 12
 }

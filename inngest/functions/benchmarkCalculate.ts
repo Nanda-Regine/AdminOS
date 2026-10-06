@@ -1,6 +1,6 @@
 import { inngest } from '@/inngest/client'
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import { fetchAll } from '@/lib/supabase/fetchAll'
+import { fetchAll, allRows } from '@/lib/supabase/fetchAll'
 
 // Calculates the median of a numeric array (returns null if empty)
 function median(values: number[]): number | null {
@@ -45,21 +45,21 @@ export const benchmarkCalculateFunction = inngest.createFunction(
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
 
         const [invoiceData, staffData, payrollData] = await Promise.all([
-          supabaseAdmin
+          allRows((lo, hi) => supabaseAdmin
             .from('invoices')
-            .select('tenant_id, total').is('deleted_at', null)
+            .select('tenant_id, amount').is('deleted_at', null)
             .in('tenant_id', tenantIds)
             .eq('status', 'paid')
-            .gte('created_at', thirtyDaysAgo.toISOString()),
+            .gte('created_at', thirtyDaysAgo.toISOString()).order('id').range(lo, hi)),
           supabaseAdmin
             .from('staff')
             .select('tenant_id, id').is('deleted_at', null)
             .in('tenant_id', tenantIds),
-          supabaseAdmin
+          allRows((lo, hi) => supabaseAdmin
             .from('payroll_runs')
             .select('tenant_id, total_gross').is('deleted_at', null)
             .in('tenant_id', tenantIds)
-            .gte('created_at', thirtyDaysAgo.toISOString()),
+            .gte('created_at', thirtyDaysAgo.toISOString()).order('id').range(lo, hi)),
         ])
 
         const invoices = invoiceData.data ?? []
@@ -69,7 +69,7 @@ export const benchmarkCalculateFunction = inngest.createFunction(
         // Monthly revenue per tenant (sum of paid invoices in last 30d)
         const revenueByTenant: Record<string, number> = {}
         for (const inv of invoices) {
-          revenueByTenant[inv.tenant_id] = (revenueByTenant[inv.tenant_id] ?? 0) + Number(inv.total ?? 0)
+          revenueByTenant[inv.tenant_id] = (revenueByTenant[inv.tenant_id] ?? 0) + Number(inv.amount ?? 0)
         }
 
         // Staff count per tenant

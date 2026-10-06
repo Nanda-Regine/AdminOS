@@ -13,6 +13,7 @@ import { BriefCard } from './BriefCard'
 import { MyDay } from './MyDay'
 import { getContext } from '@/lib/auth/context'
 import { sastDate, sastHour, sastMonthStartUTC, sastDateLabel, greetingFor } from '@/lib/time/sast'
+import { allRows } from '@/lib/supabase/fetchAll'
 import {
   ArrowRight, AlertTriangle, CheckCircle2, Sparkles, Wallet, Users, Package,
   MessageSquare, ClipboardList, CalendarClock, PenLine, Target, ShieldCheck,
@@ -56,8 +57,8 @@ export default async function CommandCenter() {
     taskRes, convRes, goalRes, complianceRes, auditRes,
   ] = await Promise.all([
     // Owed only — neq('paid') also counted drafts and cancelled invoices as receivables.
-    supabaseAdmin.from('invoices').select('amount, amount_paid, status, due_date, contact_name, created_at, recovery_status').eq('tenant_id', tenantId).in('status', [...OWED_INVOICE_STATUSES]).is('deleted_at', null),
-    supabaseAdmin.from('expenses').select('amount, status, paid_at, created_at').is('deleted_at', null).eq('tenant_id', tenantId),
+    allRows((lo, hi) => supabaseAdmin.from('invoices').select('amount, amount_paid, status, due_date, contact_name, created_at, recovery_status').eq('tenant_id', tenantId).in('status', [...OWED_INVOICE_STATUSES]).is('deleted_at', null).order('id').range(lo, hi)),
+    allRows((lo, hi) => supabaseAdmin.from('expenses').select('amount, status, paid_at, created_at').is('deleted_at', null).eq('tenant_id', tenantId).order('id').range(lo, hi)),
     supabaseAdmin.from('products').select('name, current_stock, reorder_level, cost_price').is('deleted_at', null).eq('tenant_id', tenantId),
     supabaseAdmin.from('staff').select('id', { count: 'exact', head: true }).is('deleted_at', null).eq('tenant_id', tenantId).eq('active', true),
     supabaseAdmin.from('leave_requests').select('id', { count: 'exact', head: true }).is('deleted_at', null).eq('tenant_id', tenantId).eq('status', 'pending'),

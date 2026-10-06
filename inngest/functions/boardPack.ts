@@ -4,6 +4,7 @@ import { isOwed, outstanding } from '@/lib/invoices/status'
 import { daysOverdue } from '@/lib/debt/overdue'
 import { checkBudget, recordUsage, getModelForFeature } from '@/lib/ai/costControls'
 import Anthropic from '@anthropic-ai/sdk'
+import { allRows } from '@/lib/supabase/fetchAll'
 
 const anthropic = new Anthropic()
 
@@ -249,19 +250,19 @@ export const boardPackMonthlyCron = inngest.createFunction(
 
 async function gatherFinancials(tenantId: string, from: string, to: string) {
   const [invoiceData, priorData] = await Promise.all([
-    supabaseAdmin
+    allRows((lo, hi) => supabaseAdmin
       .from('invoices')
       .select('amount, status').is('deleted_at', null)
       .eq('tenant_id', tenantId)
       .gte('created_at', from)
-      .lte('created_at', to),
-    supabaseAdmin
+      .lte('created_at', to).order('id').range(lo, hi)),
+    allRows((lo, hi) => supabaseAdmin
       .from('invoices')
       .select('amount').is('deleted_at', null)
       .eq('tenant_id', tenantId)
       .eq('status', 'paid')
       .gte('created_at', new Date(new Date(from).getTime() - (new Date(to).getTime() - new Date(from).getTime())).toISOString())
-      .lt('created_at', from),
+      .lt('created_at', from).order('id').range(lo, hi)),
   ])
 
   const revenue  = (invoiceData.data ?? [])
@@ -273,13 +274,13 @@ async function gatherFinancials(tenantId: string, from: string, to: string) {
     .reduce((s, i) => s + Number(i.amount ?? 0), 0)
 
   // Approximate expenses via payroll + any expense records
-  const { data: expenses } = await supabaseAdmin
+  const { data: expenses } = await allRows((lo, hi) => supabaseAdmin
     .from('expenses')
     .select('amount').is('deleted_at', null)
     .eq('tenant_id', tenantId)
     .neq('status', 'rejected')   // a rejected claim was never a cost
     .gte('created_at', from)
-    .lte('created_at', to)
+    .lte('created_at', to).order('id').range(lo, hi))
 
   const totalExpenses = (expenses ?? []).reduce((s, e) => s + Number(e.amount ?? 0), 0)
   const netProfit     = revenue - totalExpenses
@@ -332,7 +333,7 @@ async function gatherCustomers(tenantId: string, from: string, to: string) {
 }
 
 async function gatherInvoices(tenantId: string, from: string, to: string) {
-  const { data } = await supabaseAdmin
+  const { data } = await allRows((lo, hi) => supabaseAdmin
     .from('invoices')
     .select('amount, amount_paid, status, due_date')
     .eq('tenant_id', tenantId)
@@ -340,7 +341,7 @@ async function gatherInvoices(tenantId: string, from: string, to: string) {
     .neq('status', 'draft')
     .neq('status', 'cancelled')
     .gte('created_at', from)
-    .lte('created_at', to)
+    .lte('created_at', to).order('id').range(lo, hi))
 
   const invoices = data ?? []
   // amount is the canonical value column (`total` is vestigial and null on

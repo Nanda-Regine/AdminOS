@@ -1,5 +1,6 @@
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { sastDate } from '@/lib/time/sast'
+import { allRows } from '@/lib/supabase/fetchAll'
 
 // Revenue multiples by sector (SA SME context — conservative)
 const REVENUE_MULTIPLES: Record<string, number> = {
@@ -60,12 +61,12 @@ export interface ValuationResult {
 
 async function getRevenueTTM(tenantId: string): Promise<number> {
   const oneYearAgo = new Date(Date.now() - 365 * 86400000).toISOString()
-  const { data } = await supabaseAdmin
+  const { data } = await allRows((lo, hi) => supabaseAdmin
     .from('invoices')
     .select('amount').is('deleted_at', null)
     .eq('tenant_id', tenantId)
     .eq('status', 'paid')
-    .gte('created_at', oneYearAgo)
+    .gte('created_at', oneYearAgo).order('id').range(lo, hi))
 
   return (data ?? []).reduce((s, inv) => s + Number(inv.amount ?? 0), 0)
 }
@@ -76,9 +77,9 @@ async function getExitReadiness(tenantId: string): Promise<ExitReadinessResult> 
   const [sopResult, clientResult, healthResult, staffResult] = await Promise.all([
     supabaseAdmin.from('sop_documents').select('id', { count: 'exact', head: true }).is('deleted_at', null)
       .eq('tenant_id', tenantId).eq('status', 'active'),
-    supabaseAdmin.from('invoices').select('contact_id, amount').is('deleted_at', null)
+    allRows((lo, hi) => supabaseAdmin.from('invoices').select('contact_id, amount').is('deleted_at', null)
       .eq('tenant_id', tenantId).eq('status', 'paid')
-      .gte('created_at', new Date(Date.now() - 365 * 86400000).toISOString()),
+      .gte('created_at', new Date(Date.now() - 365 * 86400000).toISOString()).order('id').range(lo, hi)),
     supabaseAdmin.from('business_health_snapshots').select('overall_score')
       .eq('tenant_id', tenantId).order('snapshot_date', { ascending: false }).limit(1).single(),
     supabaseAdmin.from('staff').select('id', { count: 'exact', head: true }).is('deleted_at', null)

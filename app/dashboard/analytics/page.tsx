@@ -5,6 +5,7 @@ import { StatCard } from '@/components/dashboard/StatCard'
 import { Card } from '@/components/ui/card'
 import { redirect, notFound } from 'next/navigation'
 import { checkPermission } from '@/lib/auth/permissions'
+import { allRows } from '@/lib/supabase/fetchAll'
 
 type WellnessEntry = { score: number; date: string }
 
@@ -43,10 +44,10 @@ export default async function AnalyticsPage() {
       .eq('tenant_id', tenantId)
       .eq('role', 'assistant')
       .gte('created_at', thirtyDaysAgo.toISOString()),
-    supabaseAdmin
+    allRows((lo, hi) => supabaseAdmin
       .from('invoices')
       .select('amount, amount_paid, status, due_date').is('deleted_at', null)
-      .eq('tenant_id', tenantId),
+      .eq('tenant_id', tenantId).order('id').range(lo, hi)),
     supabaseAdmin
       .from('staff')
       .select('wellness_scores, full_name').is('deleted_at', null)

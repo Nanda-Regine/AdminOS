@@ -38,3 +38,14 @@ test('surfaces query errors instead of returning a partial list', async () => {
     /boom/,
   )
 })
+
+test('allRows: every page, in the { data, error } shape', async () => {
+  const { allRows } = await import('../lib/supabase/fetchAll.ts')
+  const rows = Array.from({ length: 2500 }, (_, i) => ({ amount: i }))
+  const page = (from: number, to: number) => Promise.resolve({ data: rows.slice(from, to + 1), error: null })
+  const r = await allRows(page)
+  assert.equal(r.error, null)
+  assert.equal(r.data!.length, 2500)
+  const failing = () => Promise.resolve({ data: null, error: { message: 'boom' } })
+  assert.match((await allRows(failing)).error!.message, /boom/)
+})

@@ -9,6 +9,7 @@
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { OWED_INVOICE_STATUSES } from '@/lib/invoices/status'
 import { sastDate, sastDayStartUTC } from '@/lib/time/sast'
+import { allRows } from '@/lib/supabase/fetchAll'
 
 export type CalendarEventType =
   | 'leave_approved' | 'leave_pending'
@@ -63,14 +64,14 @@ export async function getCalendarEvents(tenantId: string, from: string, to: stri
       .in('status', ['approved', 'pending'])
       .lte('start_date', to)
       .gte('end_date', from),
-    supabaseAdmin
+    allRows((lo, hi) => supabaseAdmin
       .from('invoices')
       .select('id, contact_name, amount, due_date, status')
       .eq('tenant_id', tenantId)
       .in('status', [...OWED_INVOICE_STATUSES])
       .is('deleted_at', null)
       .gte('due_date', from)
-      .lte('due_date', to),
+      .lte('due_date', to).order('id').range(lo, hi)),
     supabaseAdmin
       .from('bookings')
       .select('id, start_at, status, service:booking_services(name), contact:contacts(name:full_name)').is('deleted_at', null)

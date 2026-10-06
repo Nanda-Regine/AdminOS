@@ -10,6 +10,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { OPEN_INVOICE_STATUSES, outstanding } from '@/lib/invoices/status'
 import { todayDateString } from '@/lib/debt/overdue'
 import { sastDate } from '@/lib/time/sast'
+import { allRows } from '@/lib/supabase/fetchAll'
 
 export interface HealthDimension {
   score:   number   // 0–100
@@ -66,7 +67,7 @@ async function scoreFinancial(tenantId: string): Promise<HealthDimension> {
   const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString()
 
   const [overdueRes, recentPaidRes, invoiceRes] = await Promise.all([
-    supabaseAdmin
+    allRows((lo, hi) => supabaseAdmin
       .from('invoices')
       // Open and past due by due_date — nothing in the app ever sets status
       // 'overdue', so filtering on it counted almost nothing.
@@ -74,19 +75,19 @@ async function scoreFinancial(tenantId: string): Promise<HealthDimension> {
       .eq('tenant_id', tenantId)
       .in('status', [...OPEN_INVOICE_STATUSES])
       .lt('due_date', todayDateString())
-      .is('deleted_at', null),
-    supabaseAdmin
+      .is('deleted_at', null).order('id').range(lo, hi)),
+    allRows((lo, hi) => supabaseAdmin
       .from('invoices')
       .select('amount, amount_paid, paid_at')
       .eq('tenant_id', tenantId)
       .eq('status', 'paid')
       .is('deleted_at', null)
-      .gte('paid_at', thirtyDaysAgo),
-    supabaseAdmin
+      .gte('paid_at', thirtyDaysAgo).order('id').range(lo, hi)),
+    allRows((lo, hi) => supabaseAdmin
       .from('invoices')
       .select('amount_due, due_date, status').is('deleted_at', null)
       .eq('tenant_id', tenantId)
-      .gte('created_at', ninetyDaysAgo),
+      .gte('created_at', ninetyDaysAgo).order('id').range(lo, hi)),
   ])
 
   const overdue    = overdueRes.data  ?? []

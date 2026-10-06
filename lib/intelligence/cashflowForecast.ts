@@ -1,6 +1,7 @@
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { OPEN_INVOICE_STATUSES, outstanding } from '@/lib/invoices/status'
 import { emp201DueDate } from '@/lib/people/workingDays'
+import { allRows } from '@/lib/supabase/fetchAll'
 
 export interface WeeklyForecast {
   weekStart:  string   // ISO date
@@ -62,21 +63,21 @@ export async function generateCashflowForecast(
 
   const [invoicesResult, expensesResult, payrollResult, tenantResult] = await Promise.all([
     // Outstanding invoices
-    supabaseAdmin
+    allRows((lo, hi) => supabaseAdmin
       .from('invoices')
       .select('id, amount, amount_paid, due_date, status, created_at')
       .eq('tenant_id', tenantId)
       .in('status', [...OPEN_INVOICE_STATUSES])
       .is('deleted_at', null)
       .gte('due_date', toISO(addDays(today, -90)))
-      .lte('due_date', toISO(horizonEnd)),
+      .lte('due_date', toISO(horizonEnd)).order('id').range(lo, hi)),
 
     // Upcoming expense claims
-    supabaseAdmin
+    allRows((lo, hi) => supabaseAdmin
       .from('expenses')
       .select('amount, submitted_at').is('deleted_at', null)
       .eq('tenant_id', tenantId)
-      .eq('status', 'approved'),
+      .eq('status', 'approved').order('id').range(lo, hi)),
 
     // Payroll runs
     supabaseAdmin

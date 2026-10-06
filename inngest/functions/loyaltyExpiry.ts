@@ -1,5 +1,6 @@
 import { inngest } from '@/inngest/client'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { allRows } from '@/lib/supabase/fetchAll'
 
 // Runs on Dec 31 at 11pm — expires all outstanding loyalty points at year end
 export const loyaltyExpiryFunction = inngest.createFunction(
@@ -15,10 +16,10 @@ export const loyaltyExpiryFunction = inngest.createFunction(
     // latest row per (tenant_id, contact_id, programme_id) client-side —
     // Supabase's JS client has no DISTINCT ON.
     const accounts = await step.run('get-accounts-with-points', async () => {
-      const { data } = await supabaseAdmin
+      const { data } = await allRows((lo, hi) => supabaseAdmin
         .from('loyalty_points')
         .select('tenant_id, contact_id, programme_id, balance, created_at')
-        .order('created_at', { ascending: true })
+        .order('created_at', { ascending: true }).order('id').range(lo, hi))
 
       const latestByGroup = new Map<string, { tenant_id: string; contact_id: string; programme_id: string; balance: number }>()
       for (const row of data ?? []) {
