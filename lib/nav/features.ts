@@ -124,7 +124,8 @@ export const FEATURES: Feature[] = [
   { href: '/dashboard/contracts',           label: 'Contracts',  icon: FileSignature, category: 'Govern', requires: 'view_financials' },
   { href: '/dashboard/compliance',          label: 'Compliance Calendar', icon: CalendarClock, category: 'Govern', requires: 'view_financials' },
   { href: '/dashboard/licenses',            label: 'Licences & Permits', icon: BadgeCheck, category: 'Govern', requires: 'manage_staff' },
-  { href: '/dashboard/safety',              label: 'Safety Incidents', icon: ShieldAlert, category: 'Govern', requires: 'manage_staff' },
+  // Everyone may report (OHSA); the page shows HR the register, others their own reports.
+  { href: '/dashboard/safety',              label: 'Safety Incidents', icon: ShieldAlert, category: 'Govern' },
   { href: '/dashboard/settings/employment-equity', label: 'Employment Equity', icon: PieChart, category: 'Govern', requires: 'manage_staff' },
   { href: '/dashboard/settings/compliance', label: 'POPIA & Data',        icon: ShieldCheck,   category: 'Govern', requires: 'manage_settings' },
   { href: '/dashboard/valuation',           label: 'Valuation',  icon: Gauge,         category: 'Govern', requires: 'view_financials' },

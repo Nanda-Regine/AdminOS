@@ -55,7 +55,7 @@ const pages = walk(root + '/app/dashboard', 'page.tsx').map((f) => {
     f: rel(f).replace('app/dashboard/', '').replace('/page.tsx', '').replace('page.tsx', '(root)'),
     lines: s.split('\n').length,
     client: /^['"]use client['"]/m.test(s),
-    perm: /requirePermission|checkPermission|getUserPermissions/.test(s),
+    perm: /requirePermission|checkPermission|getUserPermissions|\bcan\(ctx,|seesOnlyOwnData\(/.test(s), // can()/seesOnlyOwnData = role-scoped rendering via the role matrix
     empty: /No .* yet|empty|EmptyState|nothing/i.test(s),
     anyCount: (s.match(/: any\b|as any\b/g) || []).length,
     alert: /\balert\(|confirm\(/.test(s),

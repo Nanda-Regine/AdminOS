@@ -65,3 +65,9 @@ test('a manager sees no payroll; an owner sees everything', () => {
   assert.ok(!visibleTo('manager').includes('/dashboard/payroll'))
   assert.equal(visibleTo('owner').length, entries.length)
 })
+
+test('every role can reach Safety to report an incident (OHSA)', () => {
+  for (const role of ['owner', 'manager', 'staff', 'field_agent'] as const) {
+    assert.ok(visibleTo(role).includes('/dashboard/safety'), `${role} cannot reach /dashboard/safety`)
+  }
+})

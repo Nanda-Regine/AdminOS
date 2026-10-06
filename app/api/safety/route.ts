@@ -2,6 +2,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
 import { withRoute, unwrap, notFound } from '@/lib/api/withRoute'
 import { isTenantStaff } from '@/lib/people/ownStaff'
+import { can } from '@/lib/auth/roleMatrix'
 
 const createSchema = z.object({
   staffId:          z.string().uuid().optional(),
@@ -35,7 +36,7 @@ export const GET = withRoute({ action: 'safety.report', query: listQuery }, asyn
     .is('deleted_at', null)
     .order('incident_date', { ascending: false })
     .limit(500)
-  if (!ctx.permissions.includes('manage_staff') && !ctx.isSuperAdmin) q = q.eq('created_by', ctx.userId)
+  if (!can(ctx, 'hr.records')) q = q.eq('created_by', ctx.userId)
   if (query.type) q = q.eq('incident_type', query.type)
   if (query.from) q = q.gte('incident_date', query.from)
   if (query.to)   q = q.lte('incident_date', query.to)

@@ -9,6 +9,7 @@ import { Modal } from '@/components/ui/modal'
 import { DataTable, type Column, type FilterDef } from '@/components/ui/DataTable'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { useOpenOnParam } from '@/lib/hooks/useOpenOnParam'
+import { sastDate } from '@/lib/time/sast'
 
 export type IncidentType =
   | 'near_miss' | 'minor_injury' | 'major_injury' | 'fatality' | 'property_damage' | 'environmental'
@@ -65,7 +66,13 @@ function truncate(s: string, n: number) {
   return s.length > n ? s.slice(0, n - 1) + '…' : s
 }
 
-export function SafetyClient({ rows, staff }: { rows: IncidentRow[]; staff: StaffOption[] }) {
+/**
+ * `register` = HR's full incident register. Without it the caller is a
+ * reporter: they see only their own reports, and the form leaves out the
+ * investigation fields (root cause, corrective action, IOD filing) that HR
+ * completes.
+ */
+export function SafetyClient({ rows, staff, register }: { rows: IncidentRow[]; staff: StaffOption[]; register: boolean }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -206,9 +213,11 @@ export function SafetyClient({ rows, staff }: { rows: IncidentRow[]; staff: Staf
       {rows.length === 0 ? (
         <EmptyState
           icon={ShieldAlert}
-          title="No incidents reported yet"
-          body="Log near misses, injuries and property damage as they happen — major injuries and fatalities automatically raise a COIDA compliance reminder."
-          action={{ label: 'Report your first incident', href: '/dashboard/safety?new=1' }}
+          title={register ? 'No incidents reported yet' : "You haven't reported any incidents"}
+          body={register
+            ? 'Log near misses, injuries and property damage as they happen — injuries automatically raise COIDA and OHSA compliance reminders.'
+            : 'Saw a near miss, an injury or damage at work? Report it here and HR is reminded of what has to be filed, and by when.'}
+          action={{ label: register ? 'Report your first incident' : 'Report an incident', href: '/dashboard/safety?new=1' }}
         />
       ) : (
         <DataTable
@@ -217,7 +226,7 @@ export function SafetyClient({ rows, staff }: { rows: IncidentRow[]; staff: Staf
           filters={filters}
           getRowKey={r => r.id}
           searchPlaceholder="Search incidents…"
-          csvFilename="safety-incidents"
+          csvFilename={register ? 'safety-incidents' : 'my-safety-reports'}
           initialSort={{ key: 'incident_date', dir: 'desc' }}
         />
       )}
@@ -227,7 +236,7 @@ export function SafetyClient({ rows, staff }: { rows: IncidentRow[]; staff: Staf
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className={LABEL} htmlFor="idt">Incident date *</label>
-              <input id="idt" name="incidentDate" type="date" required defaultValue={new Date().toISOString().slice(0, 10)} className={FIELD} />
+              <input id="idt" name="incidentDate" type="date" required defaultValue={sastDate()} className={FIELD} />
             </div>
             <div>
               <label className={LABEL} htmlFor="itp">Type *</label>
@@ -269,6 +278,7 @@ export function SafetyClient({ rows, staff }: { rows: IncidentRow[]; staff: Staf
             <textarea id="ia" name="immediateAction" maxLength={2000} rows={2} className={FIELD} />
           </div>
 
+          {register && (<>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className={LABEL} htmlFor="rc">Root cause</label>
@@ -294,6 +304,7 @@ export function SafetyClient({ rows, staff }: { rows: IncidentRow[]; staff: Staf
               </div>
             )}
           </fieldset>
+          </>)}
 
           {error && (
             <div className="rounded-lg px-3 py-2 text-sm"
