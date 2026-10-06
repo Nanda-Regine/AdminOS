@@ -3095,24 +3095,51 @@ The backend also had real bugs that the app surfaced:
 - Expo: `tsc` 0 on the last full run.
 - A clean `npm ci` + `expo export --platform android` in a scratch copy ran out of system memory on this laptop; the OneDrive copy timed out crawling `node_modules`. **The CI `mobile` job now runs that bundle on every push and is the authority.**
 
-### Needs Nanda (Claude is not permitted to apply prod migrations)
-1. **Apply migrations** in the Supabase SQL editor, in order:
-   1. `20261004_lock_down_rls_disabled_tables.sql`
-   2. `20261005_role_aware_rls_people.sql`
-   3. `20261005_wellness_burnout_trigger_fix.sql`
-   4. `20261005_mobile_app_foundations.sql`
+### Migrations applied to production — 2026-10-06 ✅
+Applied on Nanda's instruction through the Supabase Management API (access token in `.env.local`). Each ran in its own transaction, in this order, and each returned 201:
+1. `20261004_lock_down_rls_disabled_tables.sql`: RLS is on for the 13 tables that had none. The 2 definer views are now `security_invoker` and revoked from client roles.
+2. `20261005_role_aware_rls_people.sql`:
+   - Adds `has_permission()` and `is_own_staff()`.
+   - Role-aware SELECT on 15 people/money tables.
+   - Client writes revoked. Clients keep only own-row INSERT on clock events, leave and expenses, and those inserts are born pending.
+   - Tenant self-upgrade closed.
+   - The spoofable `sage_connections` and `payment_events` policies are dropped.
+3. `20261005_wellness_burnout_trigger_fix.sql`: wellness check-ins no longer freeze after the 3rd entry.
+4. `20261005_mobile_app_foundations.sql`: leave types, staff invites, account deletion, push revocation, nullable `notifications.user_id` (the notification spine works again), private `expense-receipts` bucket.
 
-   The last one also fixes the dead notification spine. Until it's applied, leave requests, invites, deletion, receipt upload and push registration return errors.
-2. Deploy the web app. The webhook has been unreliable; trigger a deploy manually if needed.
-3. `eas login` and `eas init`, then set the EAS env vars (see STORE_LISTING.md §1).
-4. Firebase: upload `google-services.json` and the FCM V1 key.
-5. Play Console: org account (D-U-N-S), then a 12-tester / 14-day closed test. Start early.
-6. Huawei enterprise developer verification.
-7. Screenshots from the preview build, and a designed feature graphic.
-8. Reviewer logins: owner + linked staff on the test tenant.
-9. After launch, set `NEXT_PUBLIC_PLAY_STORE_URL` / `NEXT_PUBLIC_APPGALLERY_URL` in Vercel.
+**Pre-flight checks:**
+- All 24 referenced tables and views exist, plus `current_tenant_id()`.
+- A parser that resolves the client behind every `.from()` call on an affected table found zero session-client calls in app/, lib/, components/ or inngest/. Everything goes through `supabaseAdmin`.
+- Browser realtime feeds now stream invoice events only to users with finance permissions. This is intended; before, they leaked to all staff.
+- The prior policy set was snapshotted before applying. It was tenant-only `ALL` / `SELECT` policies, so a rollback is a simple re-create.
+
+**Verified after applying:**
+- All schema objects are present; 0 public tables without RLS.
+- Anonymous probe with the public key: `staff`, `payslips`, `invoices`, `leave_requests`, `overdue_invoices`, `wellness_summary`, `sage_connections`, `payment_events` and `staff_invites` all return **401**. `notifications`, `contract_signatures`, `plan_catalogue` and `tenants` return empty.
+- Supabase security advisor: **0 ERROR** (was 15).
+- Live site: `/`, `/login`, `/app` and `/account/delete` return 200; `/api/me` returns 401 when not logged in.
+- Vercel deployed `d5d7811` (the latest), and the auto-deploy webhook is working again.
+
+**The P0 anon-key RLS exposure from Session 16 is closed.**
+
+Remaining advisor WARNs, as follow-ups:
+- 10 SECURITY DEFINER functions are executable by anon. Review each and revoke where it isn't meant to be public.
+- 13 functions have a mutable `search_path`.
+- pg_graphql exposes tables. Consider disabling the GraphQL extension if unused.
+- Leaked-password protection is off, and OTP expiry is long. Both are Auth dashboard toggles.
+
+### Needs Nanda
+1. `eas login` and `eas init`, then set the EAS env vars (see STORE_LISTING.md §1).
+2. Firebase: upload `google-services.json` and the FCM V1 key.
+3. Play Console: org account (D-U-N-S), then a 12-tester / 14-day closed test. Start early.
+4. Huawei enterprise developer verification.
+5. Screenshots from the preview build, and a designed feature graphic.
+6. Reviewer logins: owner + linked staff on the test tenant.
+7. After launch, set `NEXT_PUBLIC_PLAY_STORE_URL` / `NEXT_PUBLIC_APPGALLERY_URL` in Vercel.
+8. Supabase Auth dashboard: turn on leaked-password protection and shorten OTP expiry.
 
 ### Next
+- Security advisor WARNs above (anon-executable SECURITY DEFINER functions first).
 - Remaining Phase 2 sweeps: Customers & comms, Ops, Compliance, AI, Growth, Settings.
 - HMS Push for the Huawei build.
 - Payslip PDF download in the app.
