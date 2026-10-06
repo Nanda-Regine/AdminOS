@@ -4,6 +4,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
 import { fireBusinessEvent } from '@/lib/academy/knowledgeGraph'
 import { sastDate } from '@/lib/time/sast'
+import { guard } from '@/lib/api/guard'
 
 const createSchema = z.object({
   contactId:    z.string().uuid().optional(),
@@ -22,6 +23,7 @@ const createSchema = z.object({
 })
 
 export async function GET(request: Request) {
+  const gate = await guard('contracts.read'); if (gate.denied) return gate.denied
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new NextResponse('Unauthorized', { status: 401 })
@@ -52,6 +54,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const gate = await guard('contracts.write'); if (gate.denied) return gate.denied
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new NextResponse('Unauthorized', { status: 401 })

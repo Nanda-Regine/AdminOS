@@ -4,6 +4,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
 import { fireBusinessEvent } from '@/lib/academy/knowledgeGraph'
 import { checkAchievements } from '@/lib/academy/checkAchievements'
+import { guard } from '@/lib/api/guard'
 
 const createSchema = z.object({
   title:         z.string().min(1).max(500),
@@ -15,6 +16,7 @@ const createSchema = z.object({
 })
 
 export async function GET(request: Request) {
+  const gate = await guard('analytics.read'); if (gate.denied) return gate.denied
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new NextResponse('Unauthorized', { status: 401 })
@@ -39,6 +41,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const gate = await guard('insight.write'); if (gate.denied) return gate.denied
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new NextResponse('Unauthorized', { status: 401 })

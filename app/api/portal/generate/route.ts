@@ -4,10 +4,13 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { requireAddon } from '@/lib/billing/gates'
 import { checkRateLimit } from '@/lib/security/rateLimit'
 import { randomBytes } from 'crypto'
+import { guard } from '@/lib/api/guard'
 
 export const runtime = 'nodejs'
 
 export async function POST(request: NextRequest) {
+  // The link opens this customer's invoices to whoever holds it: invoice staff only.
+  const gate = await guard('invoices.read'); if (gate.denied) return gate.denied
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new NextResponse('Unauthorized', { status: 401 })

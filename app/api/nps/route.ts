@@ -4,6 +4,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
 import { fireBusinessEvent } from '@/lib/academy/knowledgeGraph'
 import { inngest } from '@/inngest/client'
+import { guard } from '@/lib/api/guard'
 
 const sendSchema = z.object({
   contactIds:  z.array(z.string().uuid()).min(1).max(100),
@@ -19,6 +20,7 @@ const respondSchema = z.object({
 
 // POST /api/nps — send NPS surveys
 export async function POST(request: Request) {
+  const gate = await guard('broadcasts.send'); if (gate.denied) return gate.denied
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new NextResponse('Unauthorized', { status: 401 })
@@ -78,6 +80,7 @@ export async function POST(request: Request) {
 
 // GET /api/nps — list surveys + aggregate score
 export async function GET(request: Request) {
+  const gate = await guard('analytics.read'); if (gate.denied) return gate.denied
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new NextResponse('Unauthorized', { status: 401 })

@@ -1,17 +1,18 @@
-import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { TopBar } from '@/components/dashboard/TopBar'
 import { Card } from '@/components/ui/card'
 import { redirect } from 'next/navigation'
+import { getContext } from '@/lib/auth/context'
+import { can } from '@/lib/auth/roleMatrix'
 import { CreateArticleModal } from './CreateArticleModal'
 import { KnowledgeBaseTable, type KbArticle } from './KnowledgeBaseTable'
 
 export default async function KnowledgeBasePage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
-
-  const tenantId = user.app_metadata?.tenant_id as string
+  // Every member reads the knowledge base (kb.read); only kb.write may add to it.
+  const ctx = await getContext()
+  if (!ctx) redirect('/login')
+  const tenantId = ctx.tenantId
+  const canWrite = can(ctx, 'kb.write')
 
   // Real columns only. The page previously selected slug/body/category — none of
   // which exist on kb_articles (body is `content`, category is a `category_id`
@@ -49,7 +50,7 @@ export default async function KnowledgeBasePage() {
       <TopBar
         title="Knowledge Base"
         subtitle={`${articles.length} articles · ${publishedCount} published`}
-        actions={<CreateArticleModal />}
+        actions={canWrite ? <CreateArticleModal /> : undefined}
       />
       <div className="p-4 md:p-6 space-y-6">
 

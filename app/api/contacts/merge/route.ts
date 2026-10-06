@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { writeAuditLog } from '@/lib/security/audit'
 import { z } from 'zod'
+import { guard } from '@/lib/api/guard'
 
 export const runtime = 'nodejs'
 
@@ -13,6 +14,7 @@ const mergeSchema = z.object({
 })
 
 export async function POST(request: Request) {
+  const gate = await guard('contacts.write'); if (gate.denied) return gate.denied
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new NextResponse('Unauthorized', { status: 401 })
@@ -52,24 +54,26 @@ export async function POST(request: Request) {
   // Merge tags (unique)
   const mergedTags = [...new Set(contacts.flatMap(c => (c.tags as string[]) ?? []))]
 
-  // Reassign conversations, invoices, call_logs to the keeper
-  await Promise.all([
+  // Reassign everything that points at a merged contact to the keeper — every
+  // FK into contacts. Only 3 of these 12 were moved before, and the hard delete
+  // below then cascaded away loyalty points and nulled the link on bookings,
+  // tasks, contracts, projects, NPS surveys and creative assets.
+  const REFERENCING = [
+    'conversations', 'invoices', 'call_logs', 'bookings', 'tasks', 'contracts', 'projects',
+    'nps_surveys', 'loyalty_points', 'broadcast_recipients', 'creative_assets', 'portal_sessions',
+  ] as const
+  const moved = await Promise.all(REFERENCING.map((table) =>
     supabaseAdmin
-      .from('conversations')
+      .from(table)
       .update({ contact_id: keepId })
       .in('contact_id', mergeIds)
       .eq('tenant_id', tenantId),
-    supabaseAdmin
-      .from('invoices')
-      .update({ contact_id: keepId })
-      .in('contact_id', mergeIds)
-      .eq('tenant_id', tenantId),
-    supabaseAdmin
-      .from('call_logs')
-      .update({ contact_id: keepId })
-      .in('contact_id', mergeIds)
-      .eq('tenant_id', tenantId),
-  ])
+  ))
+  const failed = REFERENCING.filter((_, i) => moved[i].error)
+  if (failed.length) {
+    console.error('[contacts/merge] reassign failed', failed, moved.map((m) => m.error?.message).filter(Boolean))
+    return NextResponse.json({ error: 'Could not move all records to the kept contact. Nothing was removed; please try again.' }, { status: 500 })
+  }
 
   // Update keeper with merged totals + tags
   const { error: updateErr } = await supabaseAdmin
@@ -89,11 +93,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Failed to update primary contact' }, { status: 500 })
   }
 
-  // Soft-delete merged contacts (set deleted_at — hard delete only if no FK issues)
-  // Since contacts have no deleted_at column we do a hard delete of the absorbed records
+  // Soft delete the absorbed contacts (Rule #3; contacts has had deleted_at
+  // since the Phase 1 soft-delete migration).
   const { error: deleteErr } = await supabaseAdmin
     .from('contacts')
-    .delete()
+    .update({ deleted_at: new Date().toISOString() })
     .in('id', mergeIds)
     .eq('tenant_id', tenantId)
 

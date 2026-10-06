@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { writeAuditLog } from '@/lib/security/audit'
 import { z } from 'zod'
+import { guard } from '@/lib/api/guard'
 
 interface Params { params: Promise<{ id: string }> }
 
@@ -18,6 +19,7 @@ const patchSchema = z.object({
 })
 
 export async function GET(_req: Request, { params }: Params) {
+  const gate = await guard('contacts.read'); if (gate.denied) return gate.denied
   const { id } = await params
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -82,6 +84,7 @@ export async function GET(_req: Request, { params }: Params) {
 }
 
 export async function PATCH(request: Request, { params }: Params) {
+  const gate = await guard('contacts.write'); if (gate.denied) return gate.denied
   const { id } = await params
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -119,6 +122,7 @@ export async function PATCH(request: Request, { params }: Params) {
 }
 
 export async function DELETE(_req: Request, { params }: Params) {
+  const gate = await guard('contacts.write'); if (gate.denied) return gate.denied
   const { id } = await params
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -126,13 +130,18 @@ export async function DELETE(_req: Request, { params }: Params) {
 
   const tenantId = user.app_metadata?.tenant_id as string
 
-  const { error } = await supabaseAdmin
+  // Soft delete (Rule #3). It was a hard delete that also orphaned the
+  // contact's invoices, bookings and conversations.
+  const { data: gone, error } = await supabaseAdmin
     .from('contacts')
-    .delete()
+    .update({ deleted_at: new Date().toISOString() })
     .eq('id', id)
     .eq('tenant_id', tenantId)
+    .is('deleted_at', null)
+    .select('id')
 
   if (error) return NextResponse.json({ error: 'Delete failed' }, { status: 500 })
+  if (!gone?.length) return NextResponse.json({ error: 'Contact not found' }, { status: 404 })
 
   await writeAuditLog({
     tenantId,

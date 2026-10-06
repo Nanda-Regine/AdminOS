@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { guard } from '@/lib/api/guard'
 
 /**
  * Business logo, stored as a base64 data URL in tenants.settings.logo_url.
@@ -11,6 +12,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 const MAX_LEN = 400_000 // ~300 KB once base64-decoded
 
 export async function POST(request: Request) {
+  const gate = await guard('settings.write'); if (gate.denied) return gate.denied
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new NextResponse('Unauthorized', { status: 401 })
@@ -34,6 +36,7 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE() {
+  const gate = await guard('settings.write'); if (gate.denied) return gate.denied
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new NextResponse('Unauthorized', { status: 401 })

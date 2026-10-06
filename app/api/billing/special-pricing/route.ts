@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { checkPermission } from '@/lib/auth/permissions'
 import { z } from 'zod'
+import { guard } from '@/lib/api/guard'
 
 // Special Pricing Programmes — verified discounts for qualifying businesses
 // Discount rates: NPO 50%, Youth/Township/Women 30%, Refugee 60%
@@ -22,6 +23,7 @@ const applySchema = z.object({
 
 // GET /api/billing/special-pricing — list my applications
 export async function GET(request: Request) {
+  const gate = await guard('billing.manage'); if (gate.denied) return gate.denied
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new NextResponse('Unauthorized', { status: 401 })

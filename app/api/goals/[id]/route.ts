@@ -4,6 +4,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
 import { fireBusinessEvent } from '@/lib/academy/knowledgeGraph'
 import { checkAchievements } from '@/lib/academy/checkAchievements'
+import { guard } from '@/lib/api/guard'
 
 const updateSchema = z.object({
   title:       z.string().min(1).max(500).optional(),
@@ -14,6 +15,7 @@ const updateSchema = z.object({
 })
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const gate = await guard('insight.write'); if (gate.denied) return gate.denied
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new NextResponse('Unauthorized', { status: 401 })

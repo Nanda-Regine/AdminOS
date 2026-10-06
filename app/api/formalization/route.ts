@@ -4,6 +4,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
 import { checkAchievements } from '@/lib/academy/checkAchievements'
 import { fireBusinessEvent } from '@/lib/academy/knowledgeGraph'
+import { guard } from '@/lib/api/guard'
 
 const updateSchema = z.object({
   cipcRegistered:        z.boolean().optional(),
@@ -31,6 +32,7 @@ const MILESTONE_EVENTS: Record<string, string> = {
 }
 
 export async function GET(request: Request) {
+  const gate = await guard('settings.read'); if (gate.denied) return gate.denied
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new NextResponse('Unauthorized', { status: 401 })
@@ -59,6 +61,7 @@ export async function GET(request: Request) {
 }
 
 export async function PATCH(request: Request) {
+  const gate = await guard('settings.write'); if (gate.denied) return gate.denied
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new NextResponse('Unauthorized', { status: 401 })

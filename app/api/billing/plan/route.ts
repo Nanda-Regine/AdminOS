@@ -4,6 +4,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { checkPermission } from '@/lib/auth/permissions'
 import { z } from 'zod'
 import { sastDate } from '@/lib/time/sast'
+import { guard } from '@/lib/api/guard'
 
 const VALID_PLANS = ['solo','grow','operate','scale','partner'] as const
 
@@ -16,6 +17,7 @@ const changePlanSchema = z.object({
 
 // GET /api/billing/plan — current plan + available plans
 export async function GET(request: Request) {
+  const gate = await guard('billing.manage'); if (gate.denied) return gate.denied
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new NextResponse('Unauthorized', { status: 401 })

@@ -54,7 +54,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     ctx.require('manage_documents')
     const { id } = await params
 
-    const { error } = await ctx.db.from('creative_assets').delete().eq('id', id)
+    const { error } = await ctx.db.from('creative_assets').update({ deleted_at: new Date().toISOString() }).eq('id', id) // soft delete (Rule #3)
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
     return new NextResponse(null, { status: 204 })

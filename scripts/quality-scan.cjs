@@ -25,7 +25,11 @@ const routes = walk(root + '/app/api', 'route.ts').map((f) => {
     f: rel(f).replace('app/api/', ''),
     writes: methods.some((m) => m !== 'GET'),
     wrapped: /withRoute\(/.test(s),
-    perm: /requirePermission|checkPermission|requireSuperAdmin|withRoute\(/.test(s),
+    // Every exported method needs its own check. Counting the file as checked
+    // when any method was let open GETs hide behind guarded POSTs (Session 20:
+    // ~80 methods across 51 routes).
+    perm: s.split(/(?=export (?:async function|const) (?:GET|POST|PUT|PATCH|DELETE)\b)/).slice(1)
+      .every((m) => /requirePermission|checkPermission|requireSuperAdmin|withRoute\(|\bguard\(|can\(ctx|ctx\.require\(/.test(m)),
     zod: /z\.object|safeParse|\.parse\(/.test(s) || /\bbody:/.test(cfg),
     hardDel: /\.delete\(\)/.test(s),
     selStar: /select\('\*'/.test(s),

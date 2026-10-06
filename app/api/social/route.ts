@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
 import { sanitizeForAI } from '@/lib/security/sanitize'
+import { guard } from '@/lib/api/guard'
 
 const replySchema = z.object({
   messageId:    z.string().uuid(),
@@ -11,6 +12,7 @@ const replySchema = z.object({
 
 // GET /api/social — inbox of all social messages across platforms
 export async function GET(request: Request) {
+  const gate = await guard('settings.read'); if (gate.denied) return gate.denied
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new NextResponse('Unauthorized', { status: 401 })
@@ -42,6 +44,7 @@ export async function GET(request: Request) {
 
 // PATCH /api/social — mark message as replied
 export async function PATCH(request: Request) {
+  const gate = await guard('settings.write'); if (gate.denied) return gate.denied
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new NextResponse('Unauthorized', { status: 401 })

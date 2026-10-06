@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
+import { guard } from '@/lib/api/guard'
 
 const updateSchema = z.object({
   status:     z.enum(['active','completed','declined']),
@@ -9,6 +10,7 @@ const updateSchema = z.object({
 })
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const gate = await guard('insight.write'); if (gate.denied) return gate.denied
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new NextResponse('Unauthorized', { status: 401 })

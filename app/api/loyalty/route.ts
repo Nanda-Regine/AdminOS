@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
+import { guard } from '@/lib/api/guard'
 
 const tierSchema = z.object({
   name:      z.string().min(1).max(100),
@@ -17,6 +18,7 @@ const upsertSchema = z.object({
 })
 
 export async function GET(_request: Request) {
+  const gate = await guard('analytics.read'); if (gate.denied) return gate.denied
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new NextResponse('Unauthorized', { status: 401 })
@@ -63,6 +65,7 @@ export async function GET(_request: Request) {
 }
 
 export async function POST(request: Request) {
+  const gate = await guard('settings.write'); if (gate.denied) return gate.denied
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new NextResponse('Unauthorized', { status: 401 })

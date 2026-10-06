@@ -74,3 +74,26 @@ test('only staff, field_agent and client are scoped to their own records', () =>
   // A super-admin is never scoped, whatever their role grants.
   assert.equal(seesOnlyOwnData({ permissions: DEFAULT_ROLE_PERMISSIONS.staff, isSuperAdmin: true }), false)
 })
+
+// Session 20 (Workstream D): the legacy-route guard sweep. These were open to
+// every login; each now matches the permission its page already checks.
+test('business settings, bank details and AI autonomy are owner/admin only', () => {
+  assert.deepEqual(defaultRolesFor('settings.write'), ['owner', 'admin'])
+  assert.deepEqual(defaultRolesFor('settings.read'), ['owner', 'admin'])
+  assert.deepEqual(defaultRolesFor('privacy.erase'), ['owner', 'admin'])
+})
+
+test('contracts and the compliance calendar follow finance; licences follow HR', () => {
+  assert.deepEqual(defaultRolesFor('contracts.write'), ['owner', 'admin', 'manager'])
+  assert.deepEqual(defaultRolesFor('compliance.read'), ['owner', 'admin', 'manager'])
+  assert.deepEqual(defaultRolesFor('licences.read'), ['owner', 'admin'])
+})
+
+test('bookings follow contacts: the receptionist and the driver work them, a client does not', () => {
+  assert.deepEqual(defaultRolesFor('bookings.write'), ['owner', 'admin', 'manager', 'staff', 'field_agent'])
+})
+
+test('everyone reads the knowledge base; only document keepers write it', () => {
+  assert.deepEqual(defaultRolesFor('kb.read'), [...ROLES])
+  assert.deepEqual(defaultRolesFor('kb.write'), ['owner', 'admin', 'manager', 'staff'])
+})

@@ -3,12 +3,14 @@ import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { writeAuditLog, getClientIp } from '@/lib/security/audit'
 import { z } from 'zod'
+import { guard } from '@/lib/api/guard'
 
 const bodySchema = z.object({
   identifier: z.string().min(1).max(200),
 })
 
 export async function POST(request: Request) {
+  const gate = await guard('privacy.erase'); if (gate.denied) return gate.denied
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new NextResponse('Unauthorized', { status: 401 })
@@ -16,11 +18,9 @@ export async function POST(request: Request) {
   const tenantId = user.app_metadata?.tenant_id as string
   if (!tenantId) return new NextResponse('Tenant not found', { status: 403 })
 
-  // Only admin users should be able to delete contact data
-  const role = user.app_metadata?.role as string
-  if (role !== 'admin' && role !== 'owner' && role !== 'super_admin') {
-    return new NextResponse('Forbidden — admin access required', { status: 403 })
-  }
+  // Who may erase is decided by guard('privacy.erase') above, against the
+  // caller's user_roles row. The JWT `role` claim checked here before goes
+  // stale when a role changes, and named a 'super_admin' role that can't exist.
 
   let body: z.infer<typeof bodySchema>
   try {

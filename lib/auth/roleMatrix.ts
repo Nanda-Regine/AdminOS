@@ -120,6 +120,16 @@ export const ACTIONS = {
   // ── Customers & comms ───────────────────────────────────────────────────
   'contacts.read':        'manage_contacts',
   'contacts.write':       'manage_contacts',
+  // Bookings are customer appointments; the bookings page checks manage_contacts.
+  'bookings.read':        'manage_contacts',
+  'bookings.write':       'manage_contacts',
+  'broadcasts.read':      'send_broadcasts',     // reach campaigns + sequences lists
+  // Knowledge base articles answer customers on WhatsApp: everyone reads them,
+  // the document keepers write them.
+  'kb.read':              MEMBER,
+  'kb.write':             'manage_documents',
+  // POPIA erasure of a customer's conversation history (s24 correction/deletion).
+  'privacy.erase':        'manage_settings',
   'communications.read':  'view_communications', // inbox, ring
   'communications.reply': 'view_communications',
   'broadcasts.send':      'send_broadcasts',     // reach campaigns, push to colleagues
@@ -134,9 +144,23 @@ export const ACTIONS = {
   'tasks.write':          MEMBER,
   'documents.read':       'manage_documents',
   'documents.write':      'manage_documents',
+  // ── Govern ──────────────────────────────────────────────────────────────
+  // Contracts and the compliance calendar sit with finance: both pages check
+  // view_financials. Licences/permits sit with HR (the licences page checks
+  // manage_staff).
+  'contracts.read':       'view_financials',
+  'contracts.write':      'view_financials',
+  'compliance.read':      'view_financials',
+  'compliance.write':     'view_financials',
+  'licences.read':        'manage_staff',
+  'licences.write':       'manage_staff',
 
   // ── Insight / settings ──────────────────────────────────────────────────
   'analytics.read':       'view_analytics',
+  // Goals, NPS, loyalty, benchmarks, coaching, mentorship and projects are
+  // owner/manager insight surfaces (no staff-facing page).
+  'insight.write':        'view_analytics',
+  'settings.read':        'manage_settings',
   'settings.write':       'manage_settings',
   'billing.manage':       'manage_billing',
 

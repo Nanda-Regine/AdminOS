@@ -2,11 +2,13 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
+import { guard } from '@/lib/api/guard'
 
 const dismissSchema = z.object({ triggeredId: z.string().uuid() })
 
 // GET /api/academy/triggered — get pending contextual learning nudges for this user
 export async function GET(request: Request) {
+  const gate = await guard('academy.learn'); if (gate.denied) return gate.denied
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new NextResponse('Unauthorized', { status: 401 })
@@ -30,6 +32,7 @@ export async function GET(request: Request) {
 
 // PATCH /api/academy/triggered — dismiss a nudge without completing it
 export async function PATCH(request: Request) {
+  const gate = await guard('academy.learn'); if (gate.denied) return gate.denied
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new NextResponse('Unauthorized', { status: 401 })

@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
 import { checkPermission } from '@/lib/auth/permissions'
+import { guard } from '@/lib/api/guard'
 
 const connectSchema = z.object({
   platform:    z.enum(['facebook','instagram','google_reviews','twitter','linkedin']),
@@ -13,6 +14,7 @@ const connectSchema = z.object({
 
 // GET /api/social/accounts — list connected social accounts
 export async function GET(request: Request) {
+  const gate = await guard('settings.read'); if (gate.denied) return gate.denied
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new NextResponse('Unauthorized', { status: 401 })
@@ -57,6 +59,7 @@ export async function POST(request: Request) {
       account_name: body.accountName,
       access_token: body.accessToken,
       connected_at: new Date().toISOString(),
+      deleted_at:   null,
     }, { onConflict: 'tenant_id,platform,account_id' })
     .select('id, platform, account_name, connected_at')
     .single()
@@ -82,7 +85,7 @@ export async function DELETE(request: Request) {
 
   const { error } = await supabaseAdmin
     .from('social_accounts')
-    .delete()
+    .update({ deleted_at: new Date().toISOString() }) // soft delete (Rule #3); reconnecting revives the row
     .eq('tenant_id', tenantId)
     .eq('platform', platform)
 

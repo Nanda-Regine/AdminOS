@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { getEffectiveAddons } from '@/lib/billing/addons'
+import { guard } from '@/lib/api/guard'
 
 // GET /api/billing/addons — the add-on catalogue plus what this tenant is
 // entitled to (paid or bundled by plan).
@@ -14,6 +15,7 @@ import { getEffectiveAddons } from '@/lib/billing/addons'
 // the verified webhook) and the plan bundle. Do not reintroduce a self-serve
 // activation path that bypasses payment.
 export async function GET() {
+  const gate = await guard('billing.manage'); if (gate.denied) return gate.denied
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new NextResponse('Unauthorized', { status: 401 })

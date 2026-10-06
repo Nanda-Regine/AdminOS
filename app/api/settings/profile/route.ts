@@ -4,8 +4,10 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { buildCachedSystemPrompt } from '@/lib/ai/buildSystemPrompt'
 import { writeAuditLog } from '@/lib/security/audit'
 import { Tenant } from '@/types/database'
+import { guard } from '@/lib/api/guard'
 
 export async function POST(request: Request) {
+  const gate = await guard('settings.write'); if (gate.denied) return gate.denied
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 

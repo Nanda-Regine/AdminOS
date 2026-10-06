@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
 import { getTenantAddons } from '@/lib/billing/planGates'
+import { guard } from '@/lib/api/guard'
 
 const updateSchema = z.object({
   name:             z.string().min(1).max(300).optional(),
@@ -21,6 +22,7 @@ const updateSchema = z.object({
 
 // GET /api/tenant/me — full tenant profile for dashboard bootstrap
 export async function GET(request: Request) {
+  const gate = await guard('settings.read'); if (gate.denied) return gate.denied
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new NextResponse('Unauthorized', { status: 401 })
@@ -78,6 +80,7 @@ export async function GET(request: Request) {
 
 // PATCH /api/tenant/me — update tenant settings
 export async function PATCH(request: Request) {
+  const gate = await guard('settings.write'); if (gate.denied) return gate.denied
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new NextResponse('Unauthorized', { status: 401 })

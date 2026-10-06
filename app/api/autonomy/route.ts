@@ -2,10 +2,12 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { DECISION_CATALOGUE, DECISION_DEFAULTS, type Tier } from '@/lib/autonomy/tiers'
+import { guard } from '@/lib/api/guard'
 
 // GET  /api/autonomy → the effective tier for every governed decision.
 // POST /api/autonomy {domain, decision_type, tier} → set one.
 export async function GET() {
+  const gate = await guard('settings.read'); if (gate.denied) return gate.denied
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new NextResponse('Unauthorized', { status: 401 })
@@ -26,6 +28,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const gate = await guard('settings.write'); if (gate.denied) return gate.denied
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new NextResponse('Unauthorized', { status: 401 })

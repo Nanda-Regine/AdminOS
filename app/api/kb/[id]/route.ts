@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
 import { sanitizeForAI } from '@/lib/security/sanitize'
+import { guard } from '@/lib/api/guard'
 
 const updateSchema = z.object({
   title:      z.string().min(1).max(500).optional(),
@@ -13,6 +14,7 @@ const updateSchema = z.object({
 })
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const gate = await guard('kb.read'); if (gate.denied) return gate.denied
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new NextResponse('Unauthorized', { status: 401 })
@@ -34,6 +36,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 }
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const gate = await guard('kb.write'); if (gate.denied) return gate.denied
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new NextResponse('Unauthorized', { status: 401 })
@@ -68,6 +71,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 }
 
 export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const gate = await guard('kb.write'); if (gate.denied) return gate.denied
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new NextResponse('Unauthorized', { status: 401 })
@@ -79,7 +83,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
 
   const { error } = await supabaseAdmin
     .from('kb_articles')
-    .delete()
+    .update({ deleted_at: new Date().toISOString() }) // soft delete (Rule #3)
     .eq('id', id)
     .eq('tenant_id', tenantId)
 

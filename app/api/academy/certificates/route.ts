@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { guard } from '@/lib/api/guard'
 
 // GET /api/academy/certificates — list all certificates earned by this user
 export async function GET(request: Request) {
+  const gate = await guard('academy.learn'); if (gate.denied) return gate.denied
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new NextResponse('Unauthorized', { status: 401 })

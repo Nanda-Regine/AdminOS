@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { inngest } from '@/inngest/client'
 import { checkAchievements } from '@/lib/academy/checkAchievements'
 import { updateLearningStreak } from '@/lib/academy/checkAchievements'
+import { guard } from '@/lib/api/guard'
 
 const completeSchema = z.object({
   score:            z.number().min(0).max(100).optional(),
@@ -13,6 +14,7 @@ const completeSchema = z.object({
 
 // GET /api/academy/lessons/[lessonId] — get lesson with content
 export async function GET(request: Request, { params }: { params: Promise<{ lessonId: string }> }) {
+  const gate = await guard('academy.learn'); if (gate.denied) return gate.denied
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new NextResponse('Unauthorized', { status: 401 })
@@ -54,6 +56,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ less
 
 // POST /api/academy/lessons/[lessonId] — mark lesson complete
 export async function POST(request: Request, { params }: { params: Promise<{ lessonId: string }> }) {
+  const gate = await guard('academy.learn'); if (gate.denied) return gate.denied
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new NextResponse('Unauthorized', { status: 401 })

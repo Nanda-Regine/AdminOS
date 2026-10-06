@@ -1,27 +1,19 @@
-import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { supabaseAdmin } from '@/lib/supabase/admin'
-import { requireAdminOSPlan } from '@/lib/billing/planGates'
+import { withRoute, RouteError, unwrap } from '@/lib/api/withRoute'
+import { hasAdminOSPlan } from '@/lib/billing/planGates'
 
-export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new NextResponse('Unauthorized', { status: 401 })
-
-  const tenantId = user.app_metadata?.tenant_id as string
-  if (!tenantId) return new NextResponse('No tenant', { status: 400 })
-
-  try { await requireAdminOSPlan('scale') } catch { return NextResponse.json({ error: 'Scale plan or higher required' }, { status: 403 }) }
-
-  const { id } = await params
-
-  const { data, error } = await supabaseAdmin
-    .from('board_packs')
-    .select('*')
-    .eq('id', id)
-    .eq('tenant_id', tenantId)
-    .single()
-
-  if (error) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-  return NextResponse.json(data)
-}
+// One board pack, with its full pack_data. Same gate as the list: money.read
+// (view_financials) plus the Scale plan. Had no role check before.
+export const GET = withRoute(
+  { action: 'money.read' },
+  async ({ ctx, params }) => {
+    if (!(await hasAdminOSPlan('scale'))) {
+      throw new RouteError(402, 'Board packs are on the Scale plan or higher.', 'plan_required')
+    }
+    return unwrap(await ctx.db
+      .from('board_packs')
+      .select('id, period_label, period_start, period_end, status, pack_data, pdf_url, generated_by, created_at')
+      .eq('id', params.id)
+      .eq('tenant_id', ctx.tenantId)
+      .maybeSingle(), { required: true, what: 'Board pack' })
+  },
+)

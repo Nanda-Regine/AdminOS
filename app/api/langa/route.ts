@@ -8,6 +8,7 @@ import { chatWithLanga, LangaMessage } from '@/lib/ai/agents/langa'
 import { sanitizeForAI } from '@/lib/security/sanitize'
 import { fireBusinessEvent } from '@/lib/academy/knowledgeGraph'
 import { checkRateLimit } from '@/lib/security/rateLimit'
+import { guard } from '@/lib/api/guard'
 
 const chatSchema = z.object({
   message: z.string().min(1).max(2000),
@@ -115,6 +116,7 @@ export async function POST(request: Request) {
 
 // GET /api/langa — list recent Langa conversations for this user
 export async function GET(request: Request) {
+  const gate = await guard('analytics.read'); if (gate.denied) return gate.denied
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new NextResponse('Unauthorized', { status: 401 })
