@@ -3632,3 +3632,35 @@ Sources checked 2026-10-06:
 - Zanele (staff) still has no Inbox: the product decision is unchanged.
 
 **Resume here:** Workstream C page by page (start with Settings → Business: year end, incorporation date, the tenant/me drift), then Workstream F (SA law), using the persona tenants + `authz-matrix.mjs` + `persona-walk.mjs` as the regression gate after each deploy.
+
+#### Session 20 continued (2026-10-06, fifth sitting): migration applied; Workstream C begins
+**Revoke migration applied** (Nanda approved): `20261006_revoke_public_definer_rpcs.sql`. Verified: the anon RPC call `search_kb_articles` returns 401, and the in-app `/api/kb?q=` returns 200.
+
+**Shipped (all pushed and deployed; tsc 0, `npm test` 161/161, ratchet re-baselined):**
+1. **Settings → Business Details** (`0ee3d06`). The profile card was read-only: nothing could set the year end, incorporation date, UIF reference (printed on payslips) or pay day (read by the forecast).
+   - New `BusinessDetailsForm`: registered/trading name, industry, contact, CIPC number, incorporation date, year-end month, income tax / PAYE / SDL / UIF references, pay day. Errors are shown per field.
+   - `POST /api/settings/profile` is on withRoute + zod. Formats are from SARS's PAYE BRS and VAT guides: VAT 10 digits starting with 4; PAYE 10 digits starting with 7; SDL `L`+9; UIF `U`+9; SDL/UIF share PAYE's last 9 digits. Also validates CIPC number, branch code and account number.
+   - Changing invoice bank details now writes a critical audit entry (field names only) and sends the owner an alert (in-app + WhatsApp).
+   - Year-end, incorporation-date and industry changes resync the statutory calendar.
+   - The industry picker follows the recorded product decision: clinic/legal are offered only to a tenant that already has one. **Note:** the clinic persona sits outside the marketed industries; that's fine for QA.
+   - `tenant/me` PATCH removed: it had no caller and wrote 6 non-existent columns.
+   - **Verified on prod (QA NGO):**
+     - driver → 403
+     - bad VAT → field message
+     - year end → June moved IRP6 to 31 Dec, ITR14 and IRP6 P2 to 30 Jun, and the NPO report to 31 Mar; back → restored
+     - bank change → alert + `tenant.bank_details_changed` audit
+2. **Money totals no longer stop at 1000 rows** (`5c4f943`). PostgREST caps responses at 1000 rows, and **every Quick Sale is an invoice row**. So past ~1000 invoices, the dashboard, Analytics, Cashflow, health score, valuation, forecast, money/sales signals, agent context, board pack, daily brief and stokvel totals all undercounted. Platform jobs (benchmarks, impact snapshot, loyalty expiry) read all tenants in one capped query.
+   - `allRows()` is applied to 31 aggregate reads.
+   - Benchmarks (route + cron) summed `invoices.total`; they now use `amount`.
+   - The sales signal's `.limit(2000)` was silently capped at 1000.
+   - New ratchet metric `money_reads_unpaged` (12 left; each reviewed as filter-bounded).
+3. **Page gates** for reach, sequences (send_broadcasts) and the settings setup wizard (manage_settings). The scan now counts segment `layout.tsx` gates: pages_no_permission 11 → 2 (onboarding flow, role-aware root).
+4. **No raw Postgres errors** (`4e0fe37`): `dbError()` reuses withRoute's `mapError` (409/400/404/logged 500). 79 sites in 48 routes; routes_leak_db_error 46 → 0.
+5. **persona-walk** now waits for its marker: streamed 404s and data land after networkidle, which caused 3 false results. **Full walk on prod: 122/122** (salon 24, ngo 16, trades 18, clinic 18, creative 14, logistics 20, school 12).
+
+**Workstream C — remaining, in order:**
+- **DoD API signals:** write routes with no audit (71), write routes with no zod (24), `select *` (35).
+- **Pages with no empty state (23).** Unbounded page lists (24) beyond money: inventory, suppliers, contracts, documents, team clock_events, inbox messages, sequences enrolments.
+- **Get Paid → Grow page-by-page functional review** (Purpose/Data/Features/UI/Ops) with the personas.
+- **54 no-UI routes** (Academy, Loyalty, public `/book/[slug]` page, Goals, NPS, Projects, task comments, board-pack/portal APIs).
+- `/api/engineering/feedback` (unauthenticated Jarvis proxy); Zanele/staff Inbox decision; Sonnet 5.5 go-ahead.

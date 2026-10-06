@@ -126,6 +126,10 @@ for (const [key, steps] of Object.entries(WALKS)) {
         const resp = await page.goto(BASE + step.path, { waitUntil: 'networkidle', timeout: 30000 })
         status = resp?.status() ?? null
       } catch (e) { err = String(e).slice(0, 200) }
+      // The dashboard streams (loading.tsx): the 404 UI or the data can land
+      // after networkidle. Wait for the thing this step checks before reading.
+      const marker = step.blocked ? 'Page not found' : step.expect?.[0]
+      if (marker) await page.getByText(marker, { exact: false }).first().waitFor({ timeout: 10000 }).catch(() => {})
       const text = await page.locator('body').innerText().catch(() => '')
       const landed = new URL(page.url()).pathname
       const notFound = /Page Not Found|This page could not be found|page doesn.t exist/i.test(text)
