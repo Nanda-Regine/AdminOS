@@ -3526,3 +3526,43 @@ Source: the Claude API migration guide (§ Migrating to Claude Sonnet 5, then §
 3. Fix the safety report split.
 4. Build the persona tenants and the authz-matrix script (Workstream D).
 5. Then Workstream C page by page.
+
+#### Session 20 continued (2026-10-06, third sitting): tasks leak, safety split, SAST sweep, money periods
+`838a51c` was already on `origin/main` at the start (the "NOT pushed" note above was stale).
+
+**Shipped (all pushed; tsc 0, `npm test` 142/142, quality ratchet no regressions):**
+1. **Tasks leak closed** (`484f53c`). New `lib/ops/taskScope.ts`, plus `seesOnlyOwnData()` in the role matrix (super-admins are never scoped).
+   - Staff, field_agent and client logins now read only tasks assigned to their staff row or created by them. Covers `GET /api/tasks`, `/dashboard/tasks` (titled "My tasks" for them) and the comments route.
+   - `/api/tasks/[id]/comments` is rebuilt on withRoute: a task-visibility 404, explicit columns, a soft-delete filter, audit and rate limit.
+2. **Expo linked** (`cf8635e`). `app.config.ts` defaults to EAS project `mirembe-muse/adminos`. New manual `EAS build` GitHub workflow (preview / production / production-huawei / all-stores), which **needs the repo secret `EXPO_TOKEN`**.
+3. **Safety split** (`0509ae7`). Every member can now open Safety Incidents.
+   - `hr.records` gets the register and its stats.
+   - Everyone else gets "Report a safety incident" and their own reports. The form leaves out the HR investigation fields.
+   - "IOD not yet reported" now counts minor injuries too (COIDA W.Cl.2 covers every injury on duty).
+   - `quality-scan` now recognises `can(ctx, …)` / `seesOnlyOwnData(` as page permission checks.
+4. **AI/billing** (`6e7f1cb`).
+   - Langa is metered on `tenants.plan` via `tenantAI()`. It read `app_metadata.plan`, so every tenant got the trial budget.
+   - Langa's history is trimmed to the 20 turns it uses, and raw zod errors are no longer echoed.
+   - Removed the dead `requirePlan`/`hasPlan`: same bug, plus retired plan names that passed every tenant. `BillingGateOverlay` labels now use solo…partner.
+   - The sidebar agents now read Langa · Pen · Chase · Doc (it showed Alex and Care, which are unbuilt). Deleted the unused `AgentStatusBar`, which listened to a non-existent `audit_logs` table.
+5. **Money periods** (`bd7fb52`). The VAT201 / P&L / journal / income exports compared UTC `created_at` with the period bounds. **A sale at 01:00 SAST on the 1st landed in the previous month's VAT201.**
+   - They now compare SAST calendar days.
+   - `todayDateString()`/`daysOverdue()` use the SAST day, so invoices go overdue at 00:00 SAST.
+   - Tests cover both midnight edges.
+6. **App-wide SAST sweep** (`2fa0568`).
+   - 25 "today" filters now use `sastDate()`.
+   - UTC-midnight bounds are now SAST in: the daily brief, lesson cap, IR-log month, bookings week and today, and the calendar booking range.
+   - **80 `toLocaleDateString/TimeString` calls in 56 files** now pass `timeZone: 'Africa/Johannesburg'`. Server-rendered times were 2h behind: a 09:00 booking showed 07:00.
+
+**Still open (in order):**
+1. Persona tenants + authz-matrix script (Workstream D).
+2. Workstream C page by page.
+3. Workstream F (SA law).
+4. 54 no-UI routes. `/api/tasks/[id]/comments` joins this list: no UI calls it yet, so the task board needs a comments thread.
+5. Zanele/staff Inbox decision.
+6. The Sonnet 5.5 go-ahead.
+
+**Needs Nanda (unchanged + new):**
+- GitHub repo secret `EXPO_TOKEN` (robot token, mirembe-muse Expo account) for the EAS build workflow.
+- `RESEND_FROM_EMAIL` + a live `RESEND_API_KEY` in Vercel.
+- The GTM consent gate in `app/layout.tsx` (still uncommitted, still hers).
