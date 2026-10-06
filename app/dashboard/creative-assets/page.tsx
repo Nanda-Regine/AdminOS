@@ -370,7 +370,7 @@ export default function CreativeAssetsPage() {
                           {cat?.label}{contact ? ` · ${contact.name}` : ''}
                           {asset.storage_mode === 'hosted' && asset.file_size_bytes ? ` · ${formatSize(asset.file_size_bytes)}` : ''}
                           {asset.storage_mode === 'external' ? ` · linked (${asset.external_provider})` : ''}
-                          {' · '}{new Date(asset.created_at).toLocaleDateString('en-ZA')}
+                          {' · '}{new Date(asset.created_at).toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg' })}
                         </p>
                       </div>
                     </div>

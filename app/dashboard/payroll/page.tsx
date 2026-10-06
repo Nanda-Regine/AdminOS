@@ -86,7 +86,7 @@ export default async function PayrollPage() {
               <div>
                 <p className="text-sm text-[var(--text-muted)] mb-1">Latest run</p>
                 <h3 className="font-semibold text-[var(--text-primary)] text-lg">
-                  {new Date(latestRun.period_year, latestRun.period_month - 1, 1).toLocaleDateString('en-ZA', { month: 'long', year: 'numeric' })}
+                  {new Date(latestRun.period_year, latestRun.period_month - 1, 1).toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg', month: 'long', year: 'numeric' })}
                 </h3>
                 <div className="mt-2">
                   <Badge variant={statusVariant[latestRun.status] || 'gray'}>{statusLabel[latestRun.status] ?? latestRun.status}</Badge>

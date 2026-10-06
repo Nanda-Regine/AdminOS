@@ -82,7 +82,7 @@ export function LiveActivityFeed({ initial }: { initial: ActivityItem[] }) {
               <p className="text-xs text-[var(--text-muted)] capitalize">{item.sub}</p>
             </div>
             <span className="text-xs text-[var(--text-secondary)] shrink-0">
-              {item.time.toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' })}
+              {item.time.toLocaleTimeString('en-ZA', { timeZone: 'Africa/Johannesburg', hour: '2-digit', minute: '2-digit' })}
             </span>
           </div>
         )

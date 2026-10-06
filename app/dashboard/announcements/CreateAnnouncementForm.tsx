@@ -31,7 +31,7 @@ export function CreateAnnouncementForm() {
           audience,
           pinned,
           // Send an ISO datetime (API expects z.string().datetime()); date input is YYYY-MM-DD.
-          expiresAt: expiresAt ? new Date(expiresAt + 'T23:59:59Z').toISOString() : undefined,
+          expiresAt: expiresAt ? new Date(expiresAt + 'T23:59:59+02:00').toISOString() : undefined,
         }),
       })
       if (!res.ok) {

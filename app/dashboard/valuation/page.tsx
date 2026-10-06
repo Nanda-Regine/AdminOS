@@ -53,6 +53,7 @@ function formatValuation(val: number): string {
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-ZA', {
+    timeZone: 'Africa/Johannesburg',
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -129,7 +130,7 @@ export default async function ValuationPage() {
                         title={formatValuation(snap.valuation_estimate)}
                       />
                       <p className="text-xs text-[var(--text-dim)]">
-                        {new Date(snap.created_at).toLocaleDateString('en-ZA', { month: 'short' })}
+                        {new Date(snap.created_at).toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg', month: 'short' })}
                       </p>
                     </div>
                   )

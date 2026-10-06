@@ -143,12 +143,12 @@ export default async function BillingPage({
               </div>
               <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
                 {isOnTrial
-                  ? `Trial expires ${trialEndsAt.toLocaleDateString('en-ZA')} — ${daysRemaining} days remaining`
+                  ? `Trial expires ${trialEndsAt.toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg' })} — ${daysRemaining} days remaining`
                   : trialExpired
-                    ? `Your free trial ended ${trialEndsAt.toLocaleDateString('en-ZA')} — choose a plan to keep AdminOS`
+                    ? `Your free trial ended ${trialEndsAt.toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg' })} — choose a plan to keep AdminOS`
                     : hasActiveSub
-                      ? `Active since ${new Date(sub.created_at ?? tenant.created_at).toLocaleDateString('en-ZA')}`
-                      : `Member since ${createdAt.toLocaleDateString('en-ZA')}`}
+                      ? `Active since ${new Date(sub.created_at ?? tenant.created_at).toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg' })}`
+                      : `Member since ${createdAt.toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg' })}`}
               </p>
             </div>
             {isOnTrial && (
@@ -274,7 +274,7 @@ export default async function BillingPage({
                     </div>
                   ) : paidActive ? (
                     <div>
-                      {expiresAt && <p className="text-xs mb-3" style={{ color: 'var(--text-dim)' }}>Renews {new Date(expiresAt).toLocaleDateString('en-ZA')}</p>}
+                      {expiresAt && <p className="text-xs mb-3" style={{ color: 'var(--text-dim)' }}>Renews {new Date(expiresAt).toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg' })}</p>}
                       <div className="py-2 text-center text-xs font-medium rounded-xl" style={{ background: 'rgba(34,197,94,0.1)', color: '#22C55E' }}>Add-on active</div>
                       <CancelAddonButton slug={slug} />
                     </div>
@@ -308,7 +308,7 @@ export default async function BillingPage({
                 <tbody>
                   {payments.map((p) => (
                     <tr key={p.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                      <td className="px-5 py-3 text-xs" style={{ color: 'var(--text-muted)' }}>{new Date(p.created_at).toLocaleDateString('en-ZA')}</td>
+                      <td className="px-5 py-3 text-xs" style={{ color: 'var(--text-muted)' }}>{new Date(p.created_at).toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg' })}</td>
                       <td className="px-5 py-3" style={{ color: 'var(--text-secondary)' }}>{p.event_type.replace(/_/g, ' ')}</td>
                       <td className="px-5 py-3">{p.plan ? <PlanBadge plan={p.plan} /> : <span style={{ color: 'var(--text-dim)' }}>—</span>}</td>
                       <td className="px-5 py-3 font-medium" style={{ color: 'var(--text-primary)' }}>{p.amount ? zar(Number(p.amount)) : '—'}</td>

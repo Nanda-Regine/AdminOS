@@ -387,7 +387,7 @@ export default function EmailStudioPage() {
                           </span>
                           <span className="text-xs text-[var(--text-muted)] capitalize">{draft.tone_used}</span>
                           <span className="text-xs text-[var(--text-dim)]">·</span>
-                          <span className="text-xs text-[var(--text-muted)]">{new Date(draft.created_at).toLocaleDateString('en-ZA')}</span>
+                          <span className="text-xs text-[var(--text-muted)]">{new Date(draft.created_at).toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg' })}</span>
                         </div>
                         <p className="text-sm font-medium text-[var(--text-primary)] truncate">{draft.subject}</p>
                         <p className="text-xs text-[var(--text-muted)] truncate">To: {draft.recipient_name} ({draft.recipient_email})</p>

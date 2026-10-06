@@ -162,8 +162,6 @@ export class AgentOrchestrator {
     }
 
     if (req.agentName === 'insight') {
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
       const [convRes, invoiceRes, goalRes] = await Promise.all([
         supabaseAdmin.from('conversations').select('id', { count: 'exact' }).eq('tenant_id', req.tenantId).eq('status', 'open'),
         supabaseAdmin.from('invoices').select('amount, amount_paid, due_date').eq('tenant_id', req.tenantId).in('status', [...OPEN_INVOICE_STATUSES]).is('deleted_at', null).limit(200),

@@ -193,7 +193,7 @@ export default async function StaffDetailPage({
               {contactRow(<MapPin className="w-4 h-4 flex-shrink-0" />, staff.address)}
               {contactRow(<IdCard className="w-4 h-4 flex-shrink-0" />, staff.id_number ? `ID ${staff.id_number}` : null)}
               {contactRow(<Calendar className="w-4 h-4 flex-shrink-0" />,
-                staff.start_date ? `Started ${new Date(staff.start_date).toLocaleDateString('en-ZA')}` : null)}
+                staff.start_date ? `Started ${new Date(staff.start_date).toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg' })}` : null)}
 
               {(staff.emergency_contact_name || staff.emergency_contact_phone) && (
                 <div className="mt-4 pt-4" style={{ borderTop: '1px solid var(--border)' }}>
@@ -271,7 +271,7 @@ export default async function StaffDetailPage({
                     <div key={p.id} className="px-5 py-3.5 flex items-center justify-between">
                       <div>
                         <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-                          {new Date(p.created_at).toLocaleDateString('en-ZA', { month: 'long', year: 'numeric' })}
+                          {new Date(p.created_at).toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg', month: 'long', year: 'numeric' })}
                         </p>
                         <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
                           Gross {formatZAR(p.gross)} · Deductions {formatZAR(p.deductions)}

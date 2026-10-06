@@ -37,7 +37,7 @@ export async function buildSalesIntel(tenantId: string): Promise<SalesIntel> {
   const attentionList: AttentionConvo[] = attentionRows.slice(0, 6).map(c => ({
     name: c.contact_name || 'Unknown',
     sentiment: c.sentiment || 'negative',
-    when: c.updated_at ? new Date(c.updated_at).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short' }) : '',
+    when: c.updated_at ? new Date(c.updated_at).toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg', day: 'numeric', month: 'short' }) : '',
   }))
 
   // Stale = clients/leads not contacted in 30+ days, most valuable first.

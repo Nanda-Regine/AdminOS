@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
+import { sastDate } from '@/lib/time/sast'
 
 const updateSchema = z.object({
   id:     z.string().uuid(),
@@ -35,7 +36,7 @@ export async function GET(request: Request) {
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
 
   // Also compute overdue status for items past due date
-  const today = new Date().toISOString().split('T')[0]
+  const today = sastDate()
   const enriched = (data ?? []).map(item => ({
     ...item,
     status: item.status === 'upcoming' && item.due_date < today ? 'overdue' : item.status,

@@ -8,6 +8,7 @@ import { getTenantAutonomy } from '@/lib/autonomy/config'
 import { resolveTier } from '@/lib/autonomy/tiers'
 import { checkBudget } from '@/lib/ai/costControls'
 import { draftColdLeadMessage } from '@/lib/ai/callClaude'
+import { sastDate } from '@/lib/time/sast'
 
 // Autonomy: sales/going_cold_nudge (default B — draft, owner sends; a tenant
 // may opt into A to have AdminOS message the customer directly). Weekly,
@@ -63,7 +64,7 @@ export const coldLeadNudgeEngine = inngest.createFunction(
           title: `${context.staleContacts.length} contact${context.staleContacts.length === 1 ? '' : 's'} going cold`,
           body: `Not contacted in 30+ days: ${names}.`,
           actionUrl: '/dashboard/sales',
-          dedupeKey: `cold-lead-${tenant_id}-${new Date().toISOString().slice(0, 10)}`,
+          dedupeKey: `cold-lead-${tenant_id}-${sastDate()}`,
           dedupeHours: 24 * 6,
           whatsapp: true,
         })
@@ -103,7 +104,7 @@ export const coldLeadNudgeEngine = inngest.createFunction(
           title: `${drafted.length} re-engagement message${drafted.length === 1 ? '' : 's'} ready to send`,
           body: `Auto-send is off — drafts ready to copy and send yourself:\n\n${body}`,
           actionUrl: '/dashboard/sales',
-          dedupeKey: `cold-lead-${tenant_id}-${new Date().toISOString().slice(0, 10)}`,
+          dedupeKey: `cold-lead-${tenant_id}-${sastDate()}`,
           dedupeHours: 24 * 6,
           whatsapp: true,
         })
@@ -134,7 +135,7 @@ export const coldLeadNudgeEngine = inngest.createFunction(
           title: `Reached out to ${sent} cold contact${sent === 1 ? '' : 's'}`,
           body: `AdminOS sent a re-engagement message to ${sent} contact${sent === 1 ? '' : 's'} who'd gone quiet.`,
           actionUrl: '/dashboard/sales',
-          dedupeKey: `cold-lead-sent-${tenant_id}-${new Date().toISOString().slice(0, 10)}`,
+          dedupeKey: `cold-lead-sent-${tenant_id}-${sastDate()}`,
           dedupeHours: 24 * 6,
           whatsapp: false,
         })

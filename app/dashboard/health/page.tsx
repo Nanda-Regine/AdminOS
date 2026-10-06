@@ -161,6 +161,7 @@ export default async function HealthPage() {
                   <p className="text-xs text-[var(--text-muted)]">
                     Last updated:{' '}
                     {new Date(latest.created_at).toLocaleDateString('en-ZA', {
+                      timeZone: 'Africa/Johannesburg',
                       weekday: 'short',
                       day: 'numeric',
                       month: 'long',
@@ -212,7 +213,7 @@ export default async function HealthPage() {
                 <h3 className="font-semibold text-[var(--text-primary)] mb-4">Score Trend (Last {trend.length} Snapshots)</h3>
                 <HealthTrendChart
                   data={trend.map((snap) => ({
-                    label: new Date(snap.created_at).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short' }),
+                    label: new Date(snap.created_at).toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg', day: 'numeric', month: 'short' }),
                     score: snap.overall_score,
                   }))}
                 />
@@ -239,6 +240,7 @@ export default async function HealthPage() {
                           >
                             <td className="py-2 text-[var(--text-secondary)]">
                               {new Date(snap.created_at).toLocaleDateString('en-ZA', {
+                                timeZone: 'Africa/Johannesburg',
                                 day: 'numeric',
                                 month: 'short',
                                 year: 'numeric',

@@ -6,6 +6,7 @@ import { writeAuditLog } from '@/lib/security/audit'
 import { upsertContact } from '@/lib/contacts/upsert'
 import { notifyTenant } from '@/lib/notifications/notify'
 import { Tenant, Message, WellnessScore } from '@/types/database'
+import { sastDate } from '@/lib/time/sast'
 
 interface WorkflowContext {
   tenant: Tenant
@@ -152,7 +153,7 @@ const steps = {
         title: 'AI replies paused for today',
         body: 'Your daily AI limit was reached, so customers are getting a holding reply and need a human answer. It resets at midnight — or upgrade your plan for a higher limit.',
         actionUrl: '/dashboard/inbox',
-        dedupeKey: `ai-budget-${new Date().toISOString().slice(0, 10)}`,
+        dedupeKey: `ai-budget-${sastDate()}`,
         whatsapp: true,
       })
       return
@@ -288,7 +289,7 @@ const steps = {
 
     if (!staff) return
 
-    const newEntry: WellnessScore       = { score, date: new Date().toISOString().split('T')[0] }
+    const newEntry: WellnessScore       = { score, date: sastDate() }
     const history: WellnessScore[]      = Array.isArray(staff.wellness_scores) ? staff.wellness_scores : []
     const updatedScores: WellnessScore[] = [...history.slice(-11), newEntry]
 

@@ -54,7 +54,7 @@ export const GET = withRoute({ action: 'payroll.read', query }, async ({ ctx, qu
 
   // ── EMP201 working paper CSV, Excel-friendly UTF-8 BOM ─────────────────────
   const { data: tenant } = await supabaseAdmin.from('tenants').select('name').eq('id', tenantId).maybeSingle()
-  const monthName = new Date(year, month - 1, 1).toLocaleDateString('en-ZA', { month: 'long', year: 'numeric' })
+  const monthName = new Date(year, month - 1, 1).toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg', month: 'long', year: 'numeric' })
   const humanize = (k: string) => k.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
     .replace(/\bPaye\b/i, 'PAYE').replace(/\bUif\b/i, 'UIF').replace(/\bSdl\b/i, 'SDL').replace(/\bEti\b/i, 'ETI')
   const cell = (v: unknown) => {
@@ -67,7 +67,7 @@ export const GET = withRoute({ action: 'payroll.read', query }, async ({ ctx, qu
     ['EMP201 Working Paper'].map(cell).join(','),
     ['Business', tenant?.name ?? ''].map(cell).join(','),
     ['Period', monthName].map(cell).join(','),
-    ['Generated', new Date().toLocaleDateString('en-ZA')].map(cell).join(','),
+    ['Generated', new Date().toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg' })].map(cell).join(','),
     '',
     ['Item', 'Amount (ZAR)'].map(cell).join(','),
     ...Object.entries(emp201)

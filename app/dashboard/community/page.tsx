@@ -39,7 +39,7 @@ function timeAgo(iso: string): string {
   if (h < 24)   return `${h}h ago`
   const d = Math.floor(h / 24)
   if (d < 7)    return `${d}d ago`
-  return new Date(iso).toLocaleDateString('en-ZA', { month: 'short', day: 'numeric' })
+  return new Date(iso).toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg', month: 'short', day: 'numeric' })
 }
 
 function catMeta(key: string) {

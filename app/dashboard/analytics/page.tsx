@@ -171,7 +171,7 @@ export default async function AnalyticsPage() {
             {days14.map((day) => {
               const count  = volumeByDay[day] || 0
               const height = maxVolume > 0 ? Math.round((count / maxVolume) * 100) : 0
-              const label  = new Date(day + 'T12:00:00').toLocaleDateString('en-ZA', { weekday: 'short', day: 'numeric' })
+              const label  = new Date(day + 'T12:00:00').toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg', weekday: 'short', day: 'numeric' })
               return (
                 <div key={day} className="flex-1 flex flex-col items-center gap-1 group relative">
                   {count > 0 && (

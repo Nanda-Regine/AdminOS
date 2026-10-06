@@ -1,4 +1,5 @@
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { sastDate } from '@/lib/time/sast'
 
 // Revenue multiples by sector (SA SME context — conservative)
 const REVENUE_MULTIPLES: Record<string, number> = {
@@ -169,7 +170,7 @@ export async function saveValuationSnapshot(result: ValuationResult): Promise<vo
   // onConflict on the real unique key — see saveCashflowForecast.
   const { error } = await supabaseAdmin.from('valuation_snapshots').upsert({
     tenant_id:             result.tenantId,
-    snapshot_date:         new Date().toISOString().split('T')[0],
+    snapshot_date:         sastDate(),
     revenue_multiple_value: result.revenueValue,
     revenue_multiple_used:  result.revenueMultiple,
     ebitda_value:           result.ebitdaValue,

@@ -75,6 +75,7 @@ export default async function CompliancePage() {
               </div>
               <div className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
                 Due {new Date(next.due_date + 'T00:00:00').toLocaleDateString('en-ZA', {
+                  timeZone: 'Africa/Johannesburg',
                   day: '2-digit', month: 'long', year: 'numeric',
                 })}
                 {next.penalty_description && (

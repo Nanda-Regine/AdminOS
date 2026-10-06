@@ -60,7 +60,7 @@ const TYPE_TONE: Record<IncidentType, 'yellow' | 'red' | 'gray'> = {
 }
 
 const fmt = (d: string) =>
-  new Date(d).toLocaleDateString('en-ZA', { day: '2-digit', month: 'short', year: 'numeric' })
+  new Date(d).toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg', day: '2-digit', month: 'short', year: 'numeric' })
 
 function truncate(s: string, n: number) {
   return s.length > n ? s.slice(0, n - 1) + '…' : s

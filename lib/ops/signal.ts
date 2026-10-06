@@ -67,7 +67,7 @@ export async function buildOpsIntel(tenantId: string): Promise<OpsIntel> {
     .filter(b => (b.start_at ?? '').slice(0, 10) === todayISO)
     .map(b => ({
       id: b.id,
-      when: new Date(b.start_at).toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' }),
+      when: new Date(b.start_at).toLocaleTimeString('en-ZA', { timeZone: 'Africa/Johannesburg', hour: '2-digit', minute: '2-digit' }),
       who: embedName(b.contact, 'full_name') || 'Walk-in',
       service: embedName(b.service, 'name') || 'Appointment',
       status: b.status,

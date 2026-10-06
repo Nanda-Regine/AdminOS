@@ -145,10 +145,10 @@ export function ContactsTable({ rows }: { rows: ContactRow[] }) {
       key: 'last_contacted_at',
       header: 'Last Contacted',
       accessor: c => c.last_contacted_at ?? '',
-      csv: c => (c.last_contacted_at ? new Date(c.last_contacted_at).toLocaleDateString('en-ZA') : ''),
+      csv: c => (c.last_contacted_at ? new Date(c.last_contacted_at).toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg' }) : ''),
       render: c => (
         <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-          {c.last_contacted_at ? new Date(c.last_contacted_at).toLocaleDateString('en-ZA') : '—'}
+          {c.last_contacted_at ? new Date(c.last_contacted_at).toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg' }) : '—'}
         </span>
       ),
     },

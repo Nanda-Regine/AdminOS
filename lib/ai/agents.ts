@@ -7,6 +7,7 @@
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { OPEN_INVOICE_STATUSES, outstanding } from '@/lib/invoices/status'
 import { daysOverdue } from '@/lib/debt/overdue'
+import { sastDate } from '@/lib/time/sast'
 export { AGENT_DEFINITIONS, type AgentType } from './agents.config'
 
 // Fetch real DB data for agents that need it
@@ -71,7 +72,7 @@ async function buildLookupContext(
 
     if (prevConvs.data?.length) {
       const convText = prevConvs.data.map((c) =>
-        `- ${new Date(c.created_at).toLocaleDateString('en-ZA')}: ${c.intent} (${c.sentiment ?? 'neutral'}) — ${c.status}`
+        `- ${new Date(c.created_at).toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg' })}: ${c.intent} (${c.sentiment ?? 'neutral'}) — ${c.status}`
       ).join('\n')
       parts.push(`CONTACT HISTORY:\n${convText}`)
     }
@@ -92,7 +93,7 @@ async function buildAdvisorContext(
     supabaseAdmin.from('invoices').select('amount, amount_paid, due_date, status').eq('tenant_id', tenantId).in('status', [...OPEN_INVOICE_STATUSES]).is('deleted_at', null),
     supabaseAdmin.from('staff').select('wellness_scores, after_hours_flag').is('deleted_at', null).eq('tenant_id', tenantId),
     supabaseAdmin.from('goals').select('title, target_metric, current_value, target_value, progress_pct, status').is('deleted_at', null).eq('tenant_id', tenantId).eq('status', 'active').limit(5),
-    supabaseAdmin.from('leave_requests').select('status', { count: 'exact' }).is('deleted_at', null).eq('tenant_id', tenantId).eq('status', 'approved').gte('end_date', new Date().toISOString().split('T')[0]),
+    supabaseAdmin.from('leave_requests').select('status', { count: 'exact' }).is('deleted_at', null).eq('tenant_id', tenantId).eq('status', 'approved').gte('end_date', sastDate()),
     // Load stored business insights (AI memory) — last 10
     supabaseAdmin.from('business_insights').select('insight, category, extracted_at').eq('tenant_id', tenantId).order('extracted_at', { ascending: false }).limit(10),
   ])

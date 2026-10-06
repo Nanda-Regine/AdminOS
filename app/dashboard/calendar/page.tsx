@@ -7,9 +7,10 @@ import { redirect, notFound } from 'next/navigation'
 import { checkPermission } from '@/lib/auth/permissions'
 import { buildMonthGrid, monthGridRange, monthLabel, parseMonthParam, adjacentMonthParam } from '@/lib/calendar/monthGrid'
 import { getCalendarEvents, groupEventsByDate, EVENT_STYLE, type CalendarEvent } from '@/lib/calendar/events'
+import { sastDate } from '@/lib/time/sast'
 
 function todayStr(): string {
-  return new Date().toISOString().slice(0, 10)
+  return sastDate()
 }
 
 function formatDayHeading(dateStr: string): string {

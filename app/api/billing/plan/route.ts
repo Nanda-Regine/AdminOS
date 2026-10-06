@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { checkPermission } from '@/lib/auth/permissions'
 import { z } from 'zod'
+import { sastDate } from '@/lib/time/sast'
 
 const VALID_PLANS = ['solo','grow','operate','scale','partner'] as const
 
@@ -71,7 +72,7 @@ export async function POST(request: Request) {
     reason:        body.reason ?? 'user_requested',
     changed_by:    user.id,
     payfast_token: body.payfastToken ?? null,
-    effective_date: new Date().toISOString().split('T')[0],
+    effective_date: sastDate(),
   })
 
   // Plan activation on UPGRADE comes ONLY from the verified payment webhook

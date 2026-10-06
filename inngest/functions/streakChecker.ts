@@ -1,12 +1,13 @@
 import { inngest } from '@/inngest/client'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { awardAchievement } from '@/lib/academy/checkAchievements'
+import { sastDate } from '@/lib/time/sast'
 
 // Runs daily at midnight — breaks streaks for users who missed a day
 export const streakCheckerFunction = inngest.createFunction(
   { id: 'streak-checker-daily', triggers: [{ cron: '0 0 * * *' }] },
   async () => {
-    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]
+    const yesterday = sastDate(new Date(Date.now() - 86400000))
 
     // Find streaks where last_activity_date is before yesterday (i.e. broken)
     const { data: brokenStreaks } = await supabaseAdmin
@@ -43,7 +44,7 @@ export const onLessonCompleted = inngest.createFunction(
       lesson_id: string
     }
 
-    const today = new Date().toISOString().split('T')[0]
+    const today = sastDate()
 
     // Get or create streak record
     const { data: existing } = await supabaseAdmin
@@ -56,7 +57,7 @@ export const onLessonCompleted = inngest.createFunction(
 
     if (existing) {
       const lastDate  = existing.last_activity_date
-      const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]
+      const yesterday = sastDate(new Date(Date.now() - 86400000))
 
       if (lastDate === today) {
         return { streak: existing.current_streak }  // already counted today

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Modal, FormField, inputCls, inputSty, Btn } from '@/components/ui/modal'
+import { sastDate } from '@/lib/time/sast'
 
 interface Props {
   staff: Array<{ id: string; full_name: string }>
@@ -14,7 +15,7 @@ export function LogIncidentModal({ staff }: Props) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const today = new Date().toISOString().split('T')[0]
+  const today = sastDate()
 
   const [form, setForm] = useState({
     staffId: '',

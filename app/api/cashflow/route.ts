@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { generateCashflowForecast, saveCashflowForecast, type CashflowForecast } from '@/lib/intelligence/cashflowForecast'
 import { withRoute, unwrap } from '@/lib/api/withRoute'
+import { sastDate } from '@/lib/time/sast'
 
 // GET /api/cashflow[?refresh=true] — today's 90-day forecast (cached per day).
 // Was open to any logged-in member of the tenant; cash position is financials.
@@ -9,7 +10,7 @@ export const GET = withRoute({
   action: 'money.read',
   query: z.object({ refresh: z.enum(['true', 'false']).optional() }),
 }, async ({ ctx, query }) => {
-  const today = new Date().toISOString().split('T')[0]
+  const today = sastDate()
 
   if (query.refresh !== 'true') {
     const cached = unwrap(await supabaseAdmin

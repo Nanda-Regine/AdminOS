@@ -33,8 +33,8 @@ export const GET = withRoute({ action: 'invoices.read' }, async ({ request, ctx,
     receiptNumber:    `RCT-${invoiceNumber}`,
     invoiceNumber,
     paidDate:         invoice.paid_at
-      ? new Date(invoice.paid_at).toLocaleDateString('en-ZA')
-      : new Date().toLocaleDateString('en-ZA'),
+      ? new Date(invoice.paid_at).toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg' })
+      : new Date().toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg' }),
     companyName:      tenant?.name ?? 'Company',
     companyAddress:   settings?.address ?? null,
     companyVatNumber: settings?.vat_number ?? null,

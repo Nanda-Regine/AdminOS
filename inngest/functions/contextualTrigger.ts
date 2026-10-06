@@ -1,5 +1,6 @@
 import { inngest } from '@/inngest/client'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { sastDayStartUTC } from '@/lib/time/sast'
 
 // Routes business events to relevant academy lessons
 // Fired whenever a significant business event occurs (invoice sent, staff added, etc.)
@@ -41,15 +42,13 @@ export const contextualTriggerFunction = inngest.createFunction(
     // columns are tenant_id/user_id/trigger_id/triggered_at/dismissed_at/
     // completed_at (no created_at).
     const todayCount = await step.run('check-daily-count', async () => {
-      const todayStart = new Date()
-      todayStart.setHours(0, 0, 0, 0)
 
       const { count } = await supabaseAdmin
         .from('triggered_lessons')
         .select('id', { count: 'exact', head: true })
         .eq('tenant_id', tenant_id)
         .eq('user_id', user_id)
-        .gte('triggered_at', todayStart.toISOString())
+        .gte('triggered_at', sastDayStartUTC())
 
       return count ?? 0
     })

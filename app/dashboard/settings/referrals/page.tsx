@@ -123,7 +123,7 @@ export default async function ReferralsPage() {
                     <div>
                       <p className="text-sm font-medium text-[var(--text-primary)]">{String(meta.business_name || 'Business')}</p>
                       <p className="text-xs text-[var(--text-dim)]">
-                        Signed up {new Date(log.created_at).toLocaleDateString('en-ZA')}
+                        Signed up {new Date(log.created_at).toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg' })}
                       </p>
                     </div>
                     <Badge variant={subscribed ? 'green' : 'yellow'}>

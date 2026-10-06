@@ -9,6 +9,7 @@
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { OPEN_INVOICE_STATUSES, outstanding } from '@/lib/invoices/status'
 import { todayDateString } from '@/lib/debt/overdue'
+import { sastDate } from '@/lib/time/sast'
 
 export interface HealthDimension {
   score:   number   // 0–100
@@ -332,7 +333,7 @@ export async function saveHealthSnapshot(
   tenantId: string,
   result: HealthScoreResult
 ): Promise<void> {
-  const today = new Date().toISOString().split('T')[0]
+  const today = sastDate()
 
   await supabaseAdmin
     .from('business_health_snapshots')

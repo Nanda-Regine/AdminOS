@@ -27,7 +27,7 @@ function categoryVariant(cat: string): 'blue' | 'green' | 'yellow' | 'red' | 'pu
 }
 
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-ZA', { year: 'numeric', month: 'short', day: 'numeric' })
+  return new Date(iso).toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg', year: 'numeric', month: 'short', day: 'numeric' })
 }
 
 export function KnowledgeBaseTable({ rows }: { rows: KbArticle[] }) {

@@ -163,6 +163,7 @@ export default async function CashflowPage() {
               <p className="text-xs text-[var(--text-dim)] hidden sm:block">
                 Last recalculated{' '}
                 {new Date(forecast.generated_at).toLocaleDateString('en-ZA', {
+                  timeZone: 'Africa/Johannesburg',
                   day: 'numeric', month: 'short',
                 })}
               </p>
@@ -228,7 +229,7 @@ export default async function CashflowPage() {
                     {entry.type === 'income' ? '+' : '−'}{formatCurrency(Number(entry.amount))}
                   </p>
                   <p className="text-xs text-[var(--text-dim)]">
-                    {new Date(entry.date).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short' })}
+                    {new Date(entry.date).toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg', day: 'numeric', month: 'short' })}
                   </p>
                 </div>
               </div>
@@ -258,7 +259,7 @@ export default async function CashflowPage() {
                       {entry.type === 'income' ? '+' : '−'}{formatCurrency(Number(entry.amount))}
                     </p>
                     <p className="text-xs text-[var(--text-dim)]">
-                      {new Date(entry.date).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short' })}
+                      {new Date(entry.date).toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg', day: 'numeric', month: 'short' })}
                     </p>
                   </div>
                 </div>

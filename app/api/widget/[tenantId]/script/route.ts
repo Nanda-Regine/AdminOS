@@ -172,7 +172,7 @@ function buildWidgetScript({ tenantId, tenantName, apiBase }: {
 
   function formatTime(iso) {
     try {
-      return new Date(iso).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+      return new Date(iso).toLocaleTimeString('en-ZA', { timeZone: 'Africa/Johannesburg', hour:'2-digit',minute:'2-digit'});
     } catch(e) { return ''; }
   }
 

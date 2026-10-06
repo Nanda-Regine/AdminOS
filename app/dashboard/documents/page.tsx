@@ -239,7 +239,7 @@ export default function DocumentsPage() {
                         {doc.original_filename}
                       </button>
                       <p className="text-xs text-[var(--text-dim)]">
-                        {new Date(doc.created_at).toLocaleDateString('en-ZA')} · {doc.uploaded_by || 'System'}
+                        {new Date(doc.created_at).toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg' })} · {doc.uploaded_by || 'System'}
                       </p>
                     </div>
                   </div>

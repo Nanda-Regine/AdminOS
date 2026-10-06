@@ -7,6 +7,7 @@ import { redirect, notFound } from 'next/navigation'
 import { AlertTriangle, CheckCircle, Clock } from 'lucide-react'
 import { LogIncidentModal } from './LogIncidentModal'
 import { checkPermission } from '@/lib/auth/permissions'
+import { sastMonthStartUTC } from '@/lib/time/sast'
 
 export const dynamic = 'force-dynamic'
 
@@ -22,9 +23,7 @@ export default async function IRLogPage() {
 
   const tenantId = user.app_metadata?.tenant_id as string
 
-  const monthStart = new Date()
-  monthStart.setDate(1)
-  monthStart.setHours(0, 0, 0, 0)
+  const monthStart = new Date(sastMonthStartUTC())
 
   const { data: staffList } = await supabaseAdmin
     .from('staff')
@@ -62,6 +61,7 @@ export default async function IRLogPage() {
     const acknowledged = Boolean(record.acknowledged_at)
     const recordDate = record.date
       ? new Date(record.date).toLocaleDateString('en-ZA', {
+          timeZone: 'Africa/Johannesburg',
           day: 'numeric',
           month: 'short',
           year: 'numeric',

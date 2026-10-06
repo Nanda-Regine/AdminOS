@@ -4,6 +4,7 @@ import { fetchAll } from '@/lib/supabase/fetchAll'
 import { notifyTenant } from '@/lib/notifications/notify'
 import { getTenantAutonomy } from '@/lib/autonomy/config'
 import { resolveTier, tierAllowsWhatsapp } from '@/lib/autonomy/tiers'
+import { sastDate } from '@/lib/time/sast'
 
 // Expense submission already fires a one-time alert (app/api/expenses/route.ts
 // → notifyTenant('approval.needed')). This is the separate nudge for
@@ -51,7 +52,7 @@ export const approvalReminderEngine = inngest.createFunction(
 
     await step.run('notify', async () => {
       const tier = resolveTier(await getTenantAutonomy(tenant_id), 'people', 'approval_reminder')
-      const today = new Date().toISOString().slice(0, 10)
+      const today = sastDate()
       const parts: string[] = []
       if (stale.leave.length) parts.push(`${stale.leave.length} leave request${stale.leave.length === 1 ? '' : 's'}`)
       if (stale.expenses.length) parts.push(`${stale.expenses.length} expense claim${stale.expenses.length === 1 ? '' : 's'}`)

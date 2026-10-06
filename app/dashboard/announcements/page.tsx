@@ -82,7 +82,7 @@ export default async function AnnouncementsPage() {
               {items.map((item) => {
                 const when = item.published_at || item.created_at
                 const createdDate = when
-                  ? new Date(when).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' })
+                  ? new Date(when).toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg', day: 'numeric', month: 'short', year: 'numeric' })
                   : '—'
                 const readCount = item.announcement_reads?.length ?? 0
 

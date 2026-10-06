@@ -7,6 +7,7 @@ import { OPEN_INVOICE_STATUSES, outstanding } from '@/lib/invoices/status'
 import { todayDateString } from '@/lib/debt/overdue'
 import Anthropic from '@anthropic-ai/sdk'
 import { recentWellnessAvg } from '@/lib/people/wellness'
+import { sastDate, sastDayStartUTC } from '@/lib/time/sast'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
 
@@ -17,10 +18,8 @@ export const dailyBriefEngine = inngest.createFunction(
     const { tenant_id } = event.data as { tenant_id: string }
 
     const intelligence = await step.run('aggregate-data', async () => {
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
-      const todayStr = today.toISOString().split('T')[0]
-      const in7Days  = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0]
+      const todayStr = sastDate()
+      const in7Days  = sastDate(new Date(Date.now() + 7 * 86400000))
 
       const [tenantRes, convRes, invoiceRes, staffRes, goalRes, wqRes, complianceRes, healthRes] = await Promise.all([
         supabaseAdmin.from('tenants').select('name, plan, settings, language_primary').eq('id', tenant_id).single(),
@@ -29,7 +28,7 @@ export const dailyBriefEngine = inngest.createFunction(
         supabaseAdmin.from('invoices').select('amount, amount_paid').eq('tenant_id', tenant_id).in('status', [...OPEN_INVOICE_STATUSES]).lt('due_date', todayDateString()).is('deleted_at', null),
         supabaseAdmin.from('staff').select('id, full_name, wellness_scores').is('deleted_at', null).eq('tenant_id', tenant_id).eq('active', true),
         supabaseAdmin.from('goals').select('title, progress_pct, status').is('deleted_at', null).eq('tenant_id', tenant_id).eq('status', 'active').limit(5),
-        supabaseAdmin.from('workflow_queue').select('workflow_type, status, created_at').eq('tenant_id', tenant_id).gte('created_at', today.toISOString()).order('created_at', { ascending: false }).limit(20),
+        supabaseAdmin.from('workflow_queue').select('workflow_type, status, created_at').eq('tenant_id', tenant_id).gte('created_at', sastDayStartUTC()).order('created_at', { ascending: false }).limit(20),
         // Compliance items due in the next 7 days
         supabaseAdmin.from('compliance_items').select('title, due_date, item_type').is('deleted_at', null).eq('tenant_id', tenant_id).in('status', ['upcoming','due']).gte('due_date', todayStr).lte('due_date', in7Days).order('due_date'),
         // Latest health score
@@ -105,7 +104,7 @@ export const dailyBriefEngine = inngest.createFunction(
 - Active goals: ${intelligence.activeGoals.map((g: { title: string; progress_pct?: number }) => `${g.title} (${Math.round(g.progress_pct ?? 0)}%)`).join(', ') || 'none'}
 - Automations run today: ${intelligence.automationsToday}${complianceSection}${healthSection}
 
-Today is ${new Date().toLocaleDateString('en-ZA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}. Max ${maxTokens === 900 ? 450 : 300} words.`,
+Today is ${new Date().toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}. Max ${maxTokens === 900 ? 450 : 300} words.`,
         }],
       })
 

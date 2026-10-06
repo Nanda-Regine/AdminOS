@@ -33,7 +33,7 @@ function contactOf(c: ContractRow): { full_name: string; email?: string } | null
   return Array.isArray(embed) ? embed[0] ?? null : embed
 }
 
-const dateZA = (d: string | null) => (d ? new Date(d).toLocaleDateString('en-ZA') : '')
+const dateZA = (d: string | null) => (d ? new Date(d).toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg' }) : '')
 
 export function ContractsTable({ rows }: { rows: ContractRow[] }) {
   const columns: Column<ContractRow>[] = [

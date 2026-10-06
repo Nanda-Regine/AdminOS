@@ -8,6 +8,7 @@
  */
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { OWED_INVOICE_STATUSES } from '@/lib/invoices/status'
+import { sastDate, sastDayStartUTC } from '@/lib/time/sast'
 
 export type CalendarEventType =
   | 'leave_approved' | 'leave_pending'
@@ -50,8 +51,9 @@ function eachDate(startStr: string, endStr: string): string[] {
 
 /** All calendar events in [from, to] (inclusive, both YYYY-MM-DD) for one tenant. */
 export async function getCalendarEvents(tenantId: string, from: string, to: string): Promise<CalendarEvent[]> {
-  const fromISO = `${from}T00:00:00Z`
-  const toISO   = `${to}T23:59:59Z`
+  // Booking instants bounded by the SAST days (date columns use from/to as-is).
+  const fromISO = sastDayStartUTC(from)
+  const toISO   = new Date(`${to}T23:59:59.999+02:00`).toISOString()
 
   const [leaveRes, invoiceRes, bookingRes, complianceRes, licenseRes, contractRes] = await Promise.all([
     supabaseAdmin
@@ -135,11 +137,11 @@ export async function getCalendarEvents(tenantId: string, from: string, to: stri
     const start = new Date(bk.start_at)
     events.push({
       id: `booking-${bk.id}`,
-      date: start.toISOString().slice(0, 10),
+      date: sastDate(start),
       type: 'booking',
       title: service?.name ?? 'Appointment',
       subtitle: contact?.name ?? undefined,
-      time: start.toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' }),
+      time: start.toLocaleTimeString('en-ZA', { timeZone: 'Africa/Johannesburg', hour: '2-digit', minute: '2-digit' }),
       href: '/dashboard/bookings',
     })
   }

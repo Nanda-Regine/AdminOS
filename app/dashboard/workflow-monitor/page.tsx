@@ -141,7 +141,7 @@ export default async function WorkflowMonitorPage() {
                     <p className="text-xs text-[var(--text-dim)] capitalize">{log.resource_type} · {log.resource_id?.slice(0, 8)}...</p>
                   </div>
                   <span className="text-xs text-[var(--text-dim)] shrink-0">
-                    {new Date(log.created_at).toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' })}
+                    {new Date(log.created_at).toLocaleTimeString('en-ZA', { timeZone: 'Africa/Johannesburg', hour: '2-digit', minute: '2-digit' })}
                   </span>
                 </div>
               ))}
@@ -181,7 +181,7 @@ export default async function WorkflowMonitorPage() {
                     <p className="text-xs text-[var(--text-dim)] capitalize">{conv.intent || 'general'} · {conv.sentiment || 'negative'}</p>
                   </div>
                   <span className="text-xs text-[var(--text-dim)]">
-                    {new Date(conv.updated_at).toLocaleDateString('en-ZA', { day: '2-digit', month: 'short' })}
+                    {new Date(conv.updated_at).toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg', day: '2-digit', month: 'short' })}
                   </span>
                 </Link>
               ))}

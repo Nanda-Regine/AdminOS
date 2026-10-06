@@ -28,8 +28,8 @@ export const GET = withRoute({ action: 'invoices.read' }, async ({ request, ctx,
 
   const html = generateInvoiceHTML({
     invoiceNumber:     invoice.invoice_number ?? invoice.id.slice(0, 8),
-    issueDate:         new Date(invoice.created_at).toLocaleDateString('en-ZA'),
-    dueDate:           invoice.due_date ? new Date(invoice.due_date).toLocaleDateString('en-ZA') : null,
+    issueDate:         new Date(invoice.created_at).toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg' }),
+    dueDate:           invoice.due_date ? new Date(invoice.due_date).toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg' }) : null,
     status:            invoice.status,
     companyName:       tenant?.name ?? 'Company',
     companyAddress:    settings?.address ?? null,

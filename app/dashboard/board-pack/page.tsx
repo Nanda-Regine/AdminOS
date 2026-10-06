@@ -57,11 +57,12 @@ function formatMonth(month: string): string {
   // month expected as YYYY-MM
   const [year, mon] = month.split('-')
   const d = new Date(Number(year), Number(mon) - 1, 1)
-  return d.toLocaleDateString('en-ZA', { month: 'long', year: 'numeric' })
+  return d.toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg', month: 'long', year: 'numeric' })
 }
 
 function formatDateTime(iso: string): string {
   return new Date(iso).toLocaleDateString('en-ZA', {
+    timeZone: 'Africa/Johannesburg',
     year: 'numeric',
     month: 'short',
     day: 'numeric',

@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
 import { fireBusinessEvent } from '@/lib/academy/knowledgeGraph'
+import { sastDate } from '@/lib/time/sast'
 
 const createSchema = z.object({
   contactId:    z.string().uuid().optional(),
@@ -40,8 +41,8 @@ export async function GET(request: Request) {
 
   if (status) query = query.eq('status', status)
   if (expiringSoon) {
-    const in30Days = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0]
-    const today    = new Date().toISOString().split('T')[0]
+    const in30Days = sastDate(new Date(Date.now() + 30 * 86400000))
+    const today    = sastDate()
     query = query.gte('end_date', today).lte('end_date', in30Days)
   }
 

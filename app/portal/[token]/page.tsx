@@ -111,7 +111,7 @@ export default async function PortalPage({ params }: Props) {
                     <div>
                       <p className="text-sm font-medium">{invoice.invoice_number ?? invoice.id.slice(0, 8)}</p>
                       {invoice.due_date && (
-                        <p className="text-xs text-white/40">Due {new Date(invoice.due_date).toLocaleDateString('en-ZA')}</p>
+                        <p className="text-xs text-white/40">Due {new Date(invoice.due_date).toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg' })}</p>
                       )}
                     </div>
                     <div className="text-right">
@@ -153,7 +153,7 @@ export default async function PortalPage({ params }: Props) {
                       </span>
                       {c.last_message_at && (
                         <p className="text-xs text-white/30 mt-1">
-                          {new Date(c.last_message_at).toLocaleDateString('en-ZA')}
+                          {new Date(c.last_message_at).toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg' })}
                         </p>
                       )}
                     </div>

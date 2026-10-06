@@ -182,7 +182,7 @@ export default async function ProductDetailPage({
                           {tx.reference || tx.notes || '—'}
                         </p>
                         <p className="text-xs mt-0.5" style={{ color: 'var(--text-dim)' }}>
-                          {new Date(tx.created_at).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          {new Date(tx.created_at).toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg', day: 'numeric', month: 'short', year: 'numeric' })}
                           {tx.unit_cost ? ` · ${money(tx.unit_cost)}/unit` : ''}
                         </p>
                       </div>

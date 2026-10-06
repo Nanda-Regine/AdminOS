@@ -5,6 +5,7 @@ import { buildOpsIntel } from '@/lib/ops/signal'
 import { notifyTenant } from '@/lib/notifications/notify'
 import { getTenantAutonomy } from '@/lib/autonomy/config'
 import { resolveTier, tierAllowsWhatsapp } from '@/lib/autonomy/tiers'
+import { sastDate } from '@/lib/time/sast'
 
 /**
  * Autonomy: ops/low_stock_reorder_alert (default A — "an alert, not an
@@ -48,7 +49,7 @@ export const lowStockAlertEngine = inngest.createFunction(
     await step.run('notify', async () => {
       const tier = resolveTier(await getTenantAutonomy(tenant_id), 'ops', 'low_stock_reorder_alert')
       const top = lowStockItems.slice(0, 5).map((i: { name: string; onHand: number; reorderAt: number }) => `${i.name} (${i.onHand}/${i.reorderAt})`).join(', ')
-      const today = new Date().toISOString().slice(0, 10)
+      const today = sastDate()
       await notifyTenant(tenant_id, {
         type: 'ops.low_stock',
         title: `${lowStockItems.length} product${lowStockItems.length === 1 ? '' : 's'} at or below reorder level`,

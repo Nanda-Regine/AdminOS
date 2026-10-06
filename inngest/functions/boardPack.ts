@@ -192,7 +192,7 @@ export const boardPackMonthlyCron = inngest.createFunction(
     const today      = new Date()
     const lastMonth  = new Date(today.getFullYear(), today.getMonth() - 1, 1)
     const monthEnd   = new Date(today.getFullYear(), today.getMonth(), 0)
-    const monthLabel = lastMonth.toLocaleDateString('en-ZA', { month: 'long', year: 'numeric' })
+    const monthLabel = lastMonth.toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg', month: 'long', year: 'numeric' })
 
     // tenants has no created_by column — the owner is recorded inside the
     // settings JSONB blob (settings.owner_user_id) at tenant-creation time,

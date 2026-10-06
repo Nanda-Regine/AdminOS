@@ -35,7 +35,7 @@ const STATUS: Record<Status, { label: string; tone: 'green' | 'yellow' | 'red' |
 const statusOf = (s: string) => STATUS[(s as Status)] ?? STATUS.upcoming
 
 const fmtDate = (d: string | null) =>
-  d ? new Date(d + 'T00:00:00').toLocaleDateString('en-ZA', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'
+  d ? new Date(d + 'T00:00:00').toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg', day: '2-digit', month: 'short', year: 'numeric' }) : '—'
 
 function daysAway(d: string | null): number | null {
   if (!d) return null

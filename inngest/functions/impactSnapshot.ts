@@ -1,11 +1,12 @@
 import { inngest } from '@/inngest/client'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { sastDate } from '@/lib/time/sast'
 
 // Runs weekly on Monday at 2am — calculates platform-wide impact metrics
 export const impactSnapshotFunction = inngest.createFunction(
   { id: 'impact-snapshot-weekly', triggers: [{ cron: '0 2 * * 1' }] },
   async () => {
-    const today = new Date().toISOString().split('T')[0]
+    const today = sastDate()
 
     const [
       totalBusinesses,

@@ -153,6 +153,7 @@ export default async function ExpensesPage() {
                 const catVariant = categoryColors[claim.category?.toLowerCase()] ?? 'gray'
                 const submittedDate = claim.submitted_at
                   ? new Date(claim.submitted_at).toLocaleDateString('en-ZA', {
+                      timeZone: 'Africa/Johannesburg',
                       day: 'numeric',
                       month: 'short',
                       year: 'numeric',
@@ -259,7 +260,7 @@ export default async function ExpensesPage() {
                         </td>
                         <td className="py-2 text-[var(--text-muted)] text-xs">
                           {claim.submitted_at
-                            ? new Date(claim.submitted_at).toLocaleDateString('en-ZA')
+                            ? new Date(claim.submitted_at).toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg' })
                             : '—'}
                         </td>
                       </tr>

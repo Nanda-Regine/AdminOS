@@ -37,7 +37,7 @@ export async function renderPayslip(payslip: Row, opts: { masked: boolean }): Pr
 
   const month = Number(run.period_month), year = Number(run.period_year)
   const hasPeriod = month >= 1 && month <= 12 && year > 2000
-  const fmt = (d: Date) => d.toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' })
+  const fmt = (d: Date) => d.toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg', day: 'numeric', month: 'short', year: 'numeric' })
 
   const components = (payslip.components as Array<{ label?: string; description?: string; amount: number; type?: string }> | null) ?? []
   // Components store deductions as negative amounts; the payslip lists them as

@@ -133,7 +133,7 @@ export default async function SalesCockpit() {
                     <div key={i} className="flex items-center gap-2">
                       <div className="flex-1 min-w-0">
                         <p className="text-sm truncate" style={{ color: 'var(--text-secondary)' }}>{c.name}</p>
-                        <p className="text-xs" style={{ color: 'var(--text-dim)' }}>{c.lastContacted ? `last ${new Date(c.lastContacted).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short' })}` : 'never contacted'}</p>
+                        <p className="text-xs" style={{ color: 'var(--text-dim)' }}>{c.lastContacted ? `last ${new Date(c.lastContacted).toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg', day: 'numeric', month: 'short' })}` : 'never contacted'}</p>
                       </div>
                       {c.value > 0 && <span className="text-xs font-semibold tabular-nums" style={{ color: 'var(--text-dim)' }}>{formatZAR(c.value)}</span>}
                     </div>

@@ -87,12 +87,14 @@ export const bookingReminderFunction = inngest.createFunction(
     const phone = (contact.whatsapp_number || contact.phone) as string
     const startDate = new Date(freshBooking.start_at)
     const dateStr = startDate.toLocaleDateString('en-ZA', {
+      timeZone: 'Africa/Johannesburg',
       weekday: 'long',
       year: 'numeric',
       month: 'long',
       day: 'numeric',
     })
     const timeStr = startDate.toLocaleTimeString('en-ZA', {
+      timeZone: 'Africa/Johannesburg',
       hour: '2-digit',
       minute: '2-digit',
     })

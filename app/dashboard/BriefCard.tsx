@@ -10,7 +10,7 @@ import { Sparkles, ChevronDown } from 'lucide-react'
  */
 export function BriefCard({ text, generatedAt }: { text: string; generatedAt: string }) {
   const [open, setOpen] = useState(false)
-  const when = new Date(generatedAt).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short' })
+  const when = new Date(generatedAt).toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg', day: 'numeric', month: 'short' })
 
   return (
     <div className="mt-3 rounded-xl overflow-hidden" style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid var(--border)' }}>

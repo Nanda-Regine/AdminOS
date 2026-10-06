@@ -5,6 +5,7 @@ import { buildGovernanceIntel } from '@/lib/governance/signal'
 import { notifyTenant } from '@/lib/notifications/notify'
 import { getTenantAutonomy } from '@/lib/autonomy/config'
 import { resolveTier, tierAllowsWhatsapp } from '@/lib/autonomy/tiers'
+import { sastDate } from '@/lib/time/sast'
 
 // Autonomy: governance/deadline_alert (default A). The compliance calendar
 // (app/dashboard/compliance) already shows every SARS/CIPC/Compensation Fund
@@ -47,7 +48,7 @@ export const deadlineAlertEngine = inngest.createFunction(
 
     await step.run('notify', async () => {
       const tier = resolveTier(await getTenantAutonomy(tenant_id), 'governance', 'deadline_alert')
-      const today = new Date().toISOString().slice(0, 10)
+      const today = sastDate()
       for (const d of due) {
         const when = d.daysLeft === 0 ? 'due today' : `due in ${d.daysLeft} day${d.daysLeft === 1 ? '' : 's'}`
         await notifyTenant(tenant_id, {

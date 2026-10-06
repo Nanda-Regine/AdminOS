@@ -24,7 +24,7 @@ export function DeleteAccountForm({ email }: { email: string }) {
       const body = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(body.error ?? `Error ${res.status}`)
       await createClient().auth.signOut().catch(() => undefined)
-      setDone(new Date(body.purgeAfter).toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' }))
+      setDone(new Date(body.purgeAfter).toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg', day: 'numeric', month: 'long', year: 'numeric' }))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
     } finally {

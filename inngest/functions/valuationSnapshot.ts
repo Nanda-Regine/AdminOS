@@ -2,13 +2,14 @@ import { inngest } from '@/inngest/client'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { fetchAll } from '@/lib/supabase/fetchAll'
 import { calculateValuation, saveValuationSnapshot } from '@/lib/intelligence/valuation'
+import { sastDate } from '@/lib/time/sast'
 
 // Runs weekly on Sunday at 3am — refreshes valuation snapshots for active Scale/Partner tenants
 // Solo/Grow tenants get monthly snapshots to manage API costs
 export const valuationSnapshotFunction = inngest.createFunction(
   { id: 'valuation-snapshot-weekly', retries: 1, triggers: [{ cron: '0 3 * * 0' }] },
   async ({ step }: any) => {
-    const today = new Date().toISOString().split('T')[0]
+    const today = sastDate()
 
     // Get Scale+ tenants (valuation tracking is a Scale/Partner feature)
     const targets = await step.run('get-target-tenants', async () => {

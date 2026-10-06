@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
+import { sastDate } from '@/lib/time/sast'
 
 const createSchema = z.object({
   staffId:            z.string().uuid().optional(),
@@ -34,8 +35,8 @@ export async function GET(request: Request) {
 
   if (staffId) query = query.eq('staff_id', staffId)
   if (expiringSoon) {
-    const today    = new Date().toISOString().split('T')[0]
-    const in60Days = new Date(Date.now() + 60 * 86400000).toISOString().split('T')[0]
+    const today    = sastDate()
+    const in60Days = sastDate(new Date(Date.now() + 60 * 86400000))
     query = query.gte('expiry_date', today).lte('expiry_date', in60Days)
   }
 
@@ -43,7 +44,7 @@ export async function GET(request: Request) {
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
 
   // Mark expired licenses
-  const today = new Date().toISOString().split('T')[0]
+  const today = sastDate()
   const enriched = (data ?? []).map(lic => ({
     ...lic,
     is_expired:   lic.expiry_date ? lic.expiry_date < today : false,

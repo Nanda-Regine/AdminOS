@@ -52,7 +52,7 @@ function expiryState(r: LicenseRow): { label: string; tone: 'green' | 'yellow' |
 }
 
 const fmt = (d: string | null) =>
-  d ? new Date(d + 'T00:00:00').toLocaleDateString('en-ZA', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'
+  d ? new Date(d + 'T00:00:00').toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg', day: '2-digit', month: 'short', year: 'numeric' }) : '—'
 
 export function LicensesClient({ rows, staff }: { rows: LicenseRow[]; staff: StaffOption[] }) {
   const router = useRouter()

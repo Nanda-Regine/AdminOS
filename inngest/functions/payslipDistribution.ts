@@ -45,7 +45,7 @@ export const payslipDistributionFunction = inngest.createFunction(
         }),
         tenantName: tenant?.name ?? 'your employer',
         phoneNumberId: settings?.whatsapp_phone_number_id ?? null,
-        period: run ? new Date(run.period_year, run.period_month - 1, 1).toLocaleDateString('en-ZA', { month: 'long', year: 'numeric' }) : '',
+        period: run ? new Date(run.period_year, run.period_month - 1, 1).toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg', month: 'long', year: 'numeric' }) : '',
       }
     })
 

@@ -273,6 +273,7 @@ export default async function TeamPage({ searchParams }: { searchParams: Promise
                       <span className="capitalize">{lastEvent.event_type.replace('_', ' ')}</span>{' '}
                       at{' '}
                       {new Date(lastEvent.created_at).toLocaleTimeString('en-ZA', {
+                        timeZone: 'Africa/Johannesburg',
                         hour: '2-digit',
                         minute: '2-digit',
                       })}

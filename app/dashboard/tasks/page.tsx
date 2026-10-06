@@ -121,6 +121,7 @@ function TaskColumn({
                   >
                     {isOverdue ? '⚠ ' : ''}
                     {new Date(task.due_date).toLocaleDateString('en-ZA', {
+                      timeZone: 'Africa/Johannesburg',
                       day: 'numeric',
                       month: 'short',
                     })}

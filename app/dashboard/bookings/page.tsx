@@ -8,6 +8,7 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import { redirect, notFound } from 'next/navigation'
 import { Calendar } from 'lucide-react'
 import { checkPermission } from '@/lib/auth/permissions'
+import { sastDate, sastDayStartUTC } from '@/lib/time/sast'
 
 const statusVariant: Record<string, 'green' | 'yellow' | 'red' | 'gray' | 'blue'> = {
   confirmed: 'green',
@@ -17,20 +18,20 @@ const statusVariant: Record<string, 'green' | 'yellow' | 'red' | 'gray' | 'blue'
   no_show: 'gray',
 }
 
+// The business's week, Monday to Sunday in SAST (the server runs in UTC).
 function getWeekBounds() {
-  const now = new Date()
-  const day = now.getDay() // 0=Sun
-  const monday = new Date(now)
-  monday.setDate(now.getDate() - ((day + 6) % 7))
-  monday.setHours(0, 0, 0, 0)
-  const sunday = new Date(monday)
-  sunday.setDate(monday.getDate() + 6)
-  sunday.setHours(23, 59, 59, 999)
+  const todayStr = sastDate()
+  const DAY = 86400_000
+  const today = new Date(`${todayStr}T00:00:00Z`) // date-only arithmetic
+  const mondayStr = new Date(today.getTime() - ((today.getUTCDay() + 6) % 7) * DAY).toISOString().slice(0, 10)
+  const nextMondayStr = new Date(new Date(`${mondayStr}T00:00:00Z`).getTime() + 7 * DAY).toISOString().slice(0, 10)
+  const monday = new Date(sastDayStartUTC(mondayStr))
+  const sunday = new Date(new Date(sastDayStartUTC(nextMondayStr)).getTime() - 1)
   return {
     // Display strings (date-only, matches the rest of the page's copy)
-    start: monday.toISOString().slice(0, 10),
-    end: sunday.toISOString().slice(0, 10),
-    todayStr: now.toISOString().slice(0, 10),
+    start: mondayStr,
+    end: new Date(new Date(`${mondayStr}T00:00:00Z`).getTime() + 6 * DAY).toISOString().slice(0, 10),
+    todayStr,
     // Real query bounds — `bookings.start_at` is a timestamptz, so filtering
     // with date-only strings against it silently drops anything after
     // midnight on the end day. Match the ISO-instant convention already used
@@ -43,7 +44,7 @@ function getWeekBounds() {
 function formatTime(datetime: string | null): string {
   if (!datetime) return '—'
   try {
-    return new Date(datetime).toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' })
+    return new Date(datetime).toLocaleTimeString('en-ZA', { timeZone: 'Africa/Johannesburg', hour: '2-digit', minute: '2-digit' })
   } catch {
     return datetime
   }
@@ -88,7 +89,7 @@ export default async function BookingsPage() {
   const bookings = bookingsResult.data || []
   const services = servicesResult.data || []
 
-  const todayBookings = bookings.filter(b => b.start_at?.slice(0, 10) === todayStr)
+  const todayBookings = bookings.filter(b => b.start_at && sastDate(new Date(b.start_at)) === todayStr)
   const confirmedCount = bookings.filter(b => b.status === 'confirmed').length
   const pendingCount = bookings.filter(b => b.status === 'pending').length
   const cancelledCount = bookings.filter(b => b.status === 'cancelled').length
@@ -182,7 +183,7 @@ export default async function BookingsPage() {
                   return (
                     <tr key={booking.id} className="hover:bg-[var(--surface-hover)] transition-colors">
                       <td className="px-5 py-3">
-                        <p className="font-medium text-[var(--text-primary)]">{booking.start_at?.slice(0, 10)}</p>
+                        <p className="font-medium text-[var(--text-primary)]">{booking.start_at ? sastDate(new Date(booking.start_at)) : ''}</p>
                         <p className="text-xs text-[var(--text-dim)]">{formatTime(booking.start_at)}</p>
                       </td>
                       <td className="px-5 py-3 text-[var(--text-secondary)]">

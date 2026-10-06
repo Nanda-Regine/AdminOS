@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { callClaudeWithCache } from '@/lib/ai/callClaude'
 import { writeAuditLog } from '@/lib/security/audit'
 import { notifyTenant } from '@/lib/notifications/notify'
+import { sastDate } from '@/lib/time/sast'
 
 interface EmailPayload {
   from: string
@@ -60,7 +61,7 @@ export async function POST(request: Request) {
       title: 'AI replies paused for today',
       body: `An email from ${payload.from} is waiting for a human reply — today's AI limit was reached.`,
       actionUrl: '/dashboard/inbox',
-      dedupeKey: `ai-budget-${new Date().toISOString().slice(0, 10)}`,
+      dedupeKey: `ai-budget-${sastDate()}`,
     })
   }
 

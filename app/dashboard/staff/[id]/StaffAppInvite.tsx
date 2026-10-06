@@ -94,7 +94,7 @@ export function StaffAppInvite({ staffId, linked, hasPhone }: { staffId: string;
               <p className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>Invite code</p>
               <p className="text-3xl font-mono font-bold tracking-widest" style={{ color: 'var(--text-primary)' }}>{invite.code}</p>
               <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
-                Expires {new Date(invite.expiresAt).toLocaleDateString('en-ZA', { day: 'numeric', month: 'long' })}
+                Expires {new Date(invite.expiresAt).toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg', day: 'numeric', month: 'long' })}
               </p>
             </div>
             <pre className="whitespace-pre-wrap rounded-xl p-3 text-xs" style={{ background: 'var(--surface-2)', color: 'var(--text-primary)' }}>

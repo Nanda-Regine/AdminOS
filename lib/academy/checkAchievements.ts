@@ -1,4 +1,5 @@
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { sastDate } from '@/lib/time/sast'
 
 export interface AchievementContext {
   tenantId: string
@@ -210,7 +211,7 @@ export async function updateLearningStreak(
   tenantId: string,
   userId: string
 ): Promise<number> {
-  const today = new Date().toISOString().split('T')[0]
+  const today = sastDate()
 
   const { data: existing } = await supabaseAdmin
     .from('learning_streaks')
@@ -222,7 +223,7 @@ export async function updateLearningStreak(
 
   if (existing) {
     const lastDate = existing.last_activity_date
-    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]
+    const yesterday = sastDate(new Date(Date.now() - 86400000))
 
     if (lastDate === today) {
       return existing.current_streak // already counted today

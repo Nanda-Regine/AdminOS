@@ -90,7 +90,7 @@ export default async function OperatorPage() {
                       </div>
                     </td>
                     <td className="px-4 py-3 text-white/40 text-xs">
-                      {new Date(tenant.created_at as string).toLocaleDateString('en-ZA')}
+                      {new Date(tenant.created_at as string).toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg' })}
                     </td>
                     <td className="px-4 py-3">
                       <Link

@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { calculateValuation, saveValuationSnapshot } from '@/lib/intelligence/valuation'
 import { fireBusinessEvent } from '@/lib/academy/knowledgeGraph'
 import { withRoute, unwrap } from '@/lib/api/withRoute'
+import { sastDate } from '@/lib/time/sast'
 
 // GET /api/valuation[?refresh=true] — today's valuation snapshot (cached per day).
 // Was open to any logged-in member of the tenant; a business valuation is financials.
@@ -11,7 +12,7 @@ export const GET = withRoute({
   query: z.object({ refresh: z.enum(['true', 'false']).optional() }),
 }, async ({ ctx, query }) => {
   const { tenantId, userId } = ctx
-  const today = new Date().toISOString().split('T')[0]
+  const today = sastDate()
 
   if (query.refresh !== 'true') {
     const cached = unwrap(await supabaseAdmin

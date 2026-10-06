@@ -90,7 +90,7 @@ export function StaffDocuments({ staffId, documents }: { staffId: string; docume
                 <div>
                   <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{doc.title}</p>
                   <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                    {doc.file_type ? `${doc.file_type} · ` : ''}Added {new Date(doc.created_at).toLocaleDateString('en-ZA')}
+                    {doc.file_type ? `${doc.file_type} · ` : ''}Added {new Date(doc.created_at).toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg' })}
                   </p>
                 </div>
                 {doc.expires_at && (
@@ -99,7 +99,7 @@ export function StaffDocuments({ staffId, documents }: { staffId: string; docume
                       background: expired ? 'rgba(239,68,68,0.15)' : 'rgba(148,163,184,0.12)',
                       color: expired ? '#F87171' : 'var(--text-dim)',
                     }}>
-                    {expired ? 'Expired' : `Expires ${new Date(doc.expires_at).toLocaleDateString('en-ZA')}`}
+                    {expired ? 'Expired' : `Expires ${new Date(doc.expires_at).toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg' })}`}
                   </span>
                 )}
               </a>

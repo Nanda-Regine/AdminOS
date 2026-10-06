@@ -207,7 +207,7 @@ export default async function ContactDetailPage({
                 <div className="flex items-center gap-3">
                   <Clock className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-dim)' }} />
                   <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                    Added {new Date(contact.created_at).toLocaleDateString('en-ZA')}
+                    Added {new Date(contact.created_at).toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg' })}
                   </span>
                 </div>
               </div>
@@ -234,7 +234,7 @@ export default async function ContactDetailPage({
                   <Shield className="w-4 h-4" style={{ color: contact.popia_consent ? '#22C55E' : '#94A3B8' }} />
                   <span className="text-xs" style={{ color: contact.popia_consent ? '#22C55E' : 'var(--text-dim)' }}>
                     {contact.popia_consent
-                      ? `POPIA consent given${contact.popia_consent_at ? ' · ' + new Date(contact.popia_consent_at).toLocaleDateString('en-ZA') : ''}`
+                      ? `POPIA consent given${contact.popia_consent_at ? ' · ' + new Date(contact.popia_consent_at).toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg' }) : ''}`
                       : 'No POPIA consent recorded'}
                   </span>
                 </div>
@@ -315,7 +315,7 @@ export default async function ContactDetailPage({
                         </div>
                         <div className="text-right flex-shrink-0">
                           <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                            {new Date(conv.updated_at).toLocaleDateString('en-ZA')}
+                            {new Date(conv.updated_at).toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg' })}
                           </p>
                           <Link href={`/dashboard/inbox?conv=${conv.id}`}
                             className="text-xs mt-1 inline-block"
@@ -363,7 +363,7 @@ export default async function ContactDetailPage({
                           </p>
                           {inv.due_date && (
                             <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                              Due {new Date(inv.due_date).toLocaleDateString('en-ZA')}
+                              Due {new Date(inv.due_date).toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg' })}
                             </p>
                           )}
                         </div>
