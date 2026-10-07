@@ -3706,3 +3706,34 @@ Started at the DoD API signals; the sweep kept opening onto sibling bugs (debugg
 
 **Regression gate after deploy (b2718dd):** authz matrix clean for all 12 logins (0 apiBad, 0 pagesBad, 0 cross-tenant leaks; the 1 unguarded-2xx flag is clinic staff reading creative assets via `manage_documents`, which is in the staff default — expected). Persona walk 122/122 (salon's `/dashboard` timed out once on the first cold hit; re-run 24/24).
 - The walk surfaced React #418 on `/dashboard/compliance`: deadline countdowns used the runtime's local midnight, so the UTC server and SAST browser disagreed 00:00–02:00 SAST (a real off-by-one, plus failed hydration). Same bug on Licences (server + client). Fixed with `daysUntil()` in `lib/time/sast.ts` (tested at the midnight edge); dates format from `T12:00:00Z`.
+
+### WhatsApp + Reach execution plan — Meta Tech Provider (decided 2026-10-07; Nanda starts Meta setup on the weekend)
+**Decision:** AdminOS becomes a Meta **Tech Provider** and each business connects its **own** number through Embedded Signup with **coexistence**. This delivers the homepage promise as written ("Link your existing number via Meta WhatsApp Cloud API. 3 minutes. No new SIM or number needed."). Not a shared AdminOS number for customer messaging.
+
+**Why (verified against Meta's docs, 2026-10-07):**
+- **Coexistence** (Meta docs: "Onboarding WhatsApp Business app users"): the same number runs on the WhatsApp Business app AND the Cloud API. Messages mirror both ways; contacts and the last 6 months of chat history can sync. Only Tech Providers / Solution Partners can offer it.
+  - Trade-offs: in the app, broadcast lists become read-only and disappearing messages, view-once and live location are switched off. Groups aren't available via the API. The number is capped at 20 msg/s (fine for SMEs).
+- **Billing:** with Tech Provider status each business's WhatsApp Business Account carries its own payment method, so the business pays Meta directly. AdminOS doesn't resell message costs (no margin or billing liability); our fee stays the software (plan + Reach add-on).
+- **Per-message pricing** (Meta docs: "Pricing", since 1 Jul 2025): charged per delivered template by category (marketing / utility / authentication) and country. SA rates come from Meta's downloadable rate cards; check them before quoting customers.
+  - **Service** (non-template replies inside the 24h customer-service window) are **free**. The AI inbox, AdminOS's core WhatsApp promise, carries no Meta cost.
+  - **Utility** templates (reminders, receipts, payslips, NPS) are cheap, and **free inside an open 24h window**.
+  - **Marketing** templates (Reach) are the expensive category. Right for a paid add-on, and the reason the POPIA s69 consent layer matters: opt-outs/blocks also lower the number's quality rating.
+  - **Click-to-WhatsApp ads** open a free 72h window (all message types free). Later growth feature: "run an ad, the AI takes the leads."
+  - Volume tiers lower utility/authentication rates, aggregated per business portfolio, monthly.
+- **Why not one shared AdminOS number:** one quality rating shared by every tenant (one spammy business gets it restricted for all), replies can't be routed back to the right business, and customers see AdminOS instead of the business. Acceptable **only** as a fallback for utility messages (payslips, reminders) from businesses not yet connected; never for Reach. `sendAsTenant` already does exactly this fallback.
+
+**Nanda (external, weekend; the long pole):**
+1. Meta Business **verification** for Mirembe Muse (Pty) Ltd (company registration docs, domain, business details).
+2. Set up the Meta app as a **Tech Provider**; request WhatsApp business **messaging** + **management** permissions via **app review**. Review needs screencasts of the flow; Claude scripts these once the Connect flow exists.
+3. Direct Tech Provider (recommended: no per-number partner fee, the code already speaks the Cloud API) vs **360dialog** partner (fallback if Meta review stalls).
+4. Note for the review: AdminOS's privacy policy must cover WhatsApp data processing and the US/EU AI providers (POPIA s72), which Workstream F checks anyway.
+
+**Claude (build in parallel; testable on Nanda's own number before approval):**
+1. **Connect WhatsApp** in Settings: Embedded Signup popup with coexistence → store the WABA ID, `meta_phone_number_id` and an **encrypted** per-business access token (new columns; token never sent to the client), register the number, subscribe the app to the WABA's webhooks. Replaces the super-admin `PATCH /api/admin/tenants` workaround. Also: disconnect, and a status card (connected / quality rating / messaging limit).
+2. **Template layer:** on connect, auto-submit AdminOS's standard **utility** templates (booking reminder, invoice reminder, payment receipt, payslip ready, NPS survey) to that business's WABA. Track approval via the `message_template_status_update` webhook in a templates table. Every business-initiated send uses an approved template; free-form text only inside the 24h window (tracked from last inbound message per contact). Closes the "WhatsApp templates" gap.
+3. **Reach v2:** compose → submit as a **marketing** template (`{{1}}` = first name) → approved (usually minutes–hours) → preview shows recipients, held back (no consent / opted out), and **estimated Meta cost** → send through the existing `reachCampaignSend` batches. Meta delivery errors (per-user marketing limits, undeliverable, re-engagement required) map to per-recipient status so delivery stats stay honest.
+4. **Pilot:** Jael (first beta user, `jael-malavila`) connects with coexistence first, then roll out to the other tenants.
+
+**Already in place from Session 20 (sixth sitting), reused as-is:** POPIA s69 consent + STOP handling (`lib/reach/consent.ts`, `marketing_opt_out_at`), `sendAsTenant` (business line, else platform line), resumable batched sending (Inngest `reachCampaignSend`), inbound routing by `meta_phone_number_id`, public NPS survey page.
+
+**Packaging check:** plans already promise "1 / 1 / 2 / 3 WhatsApp numbers". With the Tech Provider route, extra numbers are just more Embedded Signup connections per tenant (branches). The number limit per plan is enforced at connect time.
