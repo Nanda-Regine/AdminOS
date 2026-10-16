@@ -1,0 +1,44 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(./**/*.pem)",
+      "Read(./**/*.key)",
+      "Bash(rm -rf:*)",
+      "Bash(git push --force:*)",
+      "Bash(git push -f:*)",
+      "Bash(supabase db push:*)",
+      "Bash(supabase db reset --linked:*)",
+      "Bash(eas submit:*)",
+      "Bash(vercel --prod:*)",
+      "Read(./**/.dev.vars*)",
+      "Bash(wrangler deploy --env production:*)",
+      "Bash(wrangler r2 object delete:*)",
+      "Bash(wrangler r2 bucket delete:*)",
+      "Bash(wrangler kv namespace delete:*)",
+      "Bash(wrangler kv key delete:*)",
+      "Bash(wrangler d1 delete:*)",
+      "Bash(wrangler delete:*)",
+      "Bash(wrangler secret delete:*)",
+      "Bash(npx wrangler deploy --env production:*)",
+      "Bash(npx wrangler r2 object delete:*)",
+      "Bash(npx wrangler r2 bucket delete:*)",
+      "Bash(npx wrangler kv namespace delete:*)",
+      "Bash(npx wrangler kv key delete:*)",
+      "Bash(npx wrangler d1 delete:*)",
+      "Bash(npx wrangler delete:*)",
+      "Bash(npx wrangler secret delete:*)"
+    ],
+    "ask": [
+      "Bash(git push:*)",
+      "Bash(npm install:*)",
+      "Bash(eas build:*)",
+      "Bash(wrangler deploy:*)",
+      "Bash(wrangler secret put:*)",
+      "Bash(npx wrangler deploy:*)",
+      "Bash(npx wrangler secret put:*)",
+      "Bash(npm run deploy:prod:*)"
+    ]
+  }
+}
