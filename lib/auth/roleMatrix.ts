@@ -87,6 +87,8 @@ export const ACTIONS = {
   'invoices.write':       'manage_invoices',
   'money.read':           'view_financials',   // cashflow, valuation, money overview, reports
   'money.write':          'view_financials',   // quick sale, categorisation, profit-first
+  'bank.read':            'view_financials',   // imported bank statements + reconciliation
+  'bank.write':           'view_financials',   // import, categorise, confirm a match (marks the invoice paid)
   'expenses.submit':      MEMBER,              // anyone can submit a claim…
   'expenses.approve':     'view_financials',   // …only finance approves it
   'expenses.read_all':    'view_financials',   // everyone else sees only their own claims
