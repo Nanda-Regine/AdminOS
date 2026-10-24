@@ -7,7 +7,7 @@
     "base": {
       "node": "22.18.0",
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://adminos.co.za"
+        "EXPO_PUBLIC_API_URL": "https://www.adminos.co.za"
       }
     },
     "development": {
