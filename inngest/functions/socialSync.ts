@@ -6,6 +6,10 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 export const socialSyncFunction = inngest.createFunction(
   { id: 'social-sync-hourly', retries: 1, triggers: [{ cron: '0 * * * *' }] },
   async ({ step }: any) => {
+    // The platform calls below are not implemented. Don't read every tenant's
+    // access tokens hourly just to do nothing; flip this on when they exist.
+    if (process.env.SOCIAL_SYNC_ENABLED !== 'true') return { synced: 0, skipped: 'not_implemented' }
+
     // Step 1: Fetch all active social accounts
     // social_accounts has no page_id/last_synced_at columns — page_id is
     // account_id, and there's no sync-tracking column at all (not under any
