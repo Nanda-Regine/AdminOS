@@ -3,7 +3,7 @@
 name: cf-build
 on:
   push:
-    branches: [feat/cloudflare-workers]
+    branches: [main]
   workflow_dispatch:
 jobs:
   build:
