@@ -72,7 +72,7 @@ test('managers approve leave but cannot read staff records or HR files', () => {
 
 test('staff can clock, request leave, report safety, read the handbook — and nothing HR', () => {
   const s = { permissions: DEFAULT_ROLE_PERMISSIONS.staff }
-  for (const a of ['clock.self', 'leave.request', 'safety.report', 'handbook.read', 'handbook.acknowledge', 'shifts.read', 'announcements.read'] as const) {
+  for (const a of ['clock.self', 'leave.request', 'safety.report', 'ir.own', 'handbook.read', 'handbook.acknowledge', 'shifts.read', 'announcements.read'] as const) {
     assert.ok(can(s, a), a)
   }
   for (const a of ['staff.read', 'staff.write', 'leave.approve', 'hr.records', 'handbook.write', 'announcements.write', 'shifts.write'] as const) {
