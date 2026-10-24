@@ -187,7 +187,7 @@ export const debtRecoveryEngine = inngest.createFunction(
         const inv = context.invoice!
         await notifyTenant(tenant_id, {
           type: 'recovery.escalation',
-          title: 'Reminder due, but it can't be sent automatically',
+          title: "Reminder due, but it can't be sent automatically",
           body: !inv.contact_phone
             ? `${inv.contact_name ?? 'A customer'} has no phone number on file, so the reminder for R${owed.toFixed(2)} can't be sent. Add a number or contact them directly.`
             : `WhatsApp isn't connected yet, so the reminder for ${inv.contact_name ?? 'a customer'} (R${owed.toFixed(2)}) can't be sent automatically.`,
