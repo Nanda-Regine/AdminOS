@@ -215,7 +215,7 @@ export function BankClient({ hasLines }: { hasLines: boolean }) {
           >{t.label}</button>
         ))}
         {tab === 'unmatched' && highPairs.length > 0 && (
-          <Button size="sm" className="ml-auto" onClick={confirmAllHigh} loading={busy === 'bulk'}>
+          <Button size="sm" className="w-full sm:w-auto sm:ml-auto" onClick={confirmAllHigh} loading={busy === 'bulk'}>
             <CheckCircle2 className="w-4 h-4" aria-hidden /> Confirm {highPairs.length} sure match{highPairs.length === 1 ? '' : 'es'}
           </Button>
         )}

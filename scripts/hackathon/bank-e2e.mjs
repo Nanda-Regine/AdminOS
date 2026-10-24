@@ -53,7 +53,7 @@ try {
   const prevMatch = pre.body.rows?.find((r) => r.match)
   check('preview suggests the right invoice', prevMatch?.match?.invoiceId === inv.id, prevMatch ? `confidence=${prevMatch.match.confidence}` : 'no match')
   check('preview auto-categorises bank fee and fuel', pre.body.rows?.some((r) => r.category === 'bank_charges') && pre.body.rows?.some((r) => r.category === 'motor_vehicle'))
-  const written = await select('bank_transactions', `tenant_id=eq.${tenant.id}&select=id`)
+  const written = await select('bank_transactions', `tenant_id=eq.${tenant.id}&deleted_at=is.null&select=id`)
   check('preview wrote nothing', written.length === 0, `${written.length} rows`)
 
   const commit = await upload('commit', csv)

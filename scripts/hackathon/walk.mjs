@@ -11,6 +11,7 @@ const opt = (k) => (args.includes(k) ? args[args.indexOf(k) + 1] : null)
 const BASE = args.find(a => a.startsWith('http')) ?? 'https://www.adminos.co.za'
 const ONLY = opt('--only')?.split(',') ?? null
 const VP_ONLY = opt('--viewports')?.split(',') ?? null
+const DESKTOP_H = Number(opt('--height') ?? 900)
 const OUT = opt('--out') ? path.resolve(opt('--out')) : path.join(process.cwd(), 'scripts', 'audit-out', 'hackathon')
 fs.mkdirSync(OUT, { recursive: true })
 const H = { apikey: env.SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`, 'Content-Type': 'application/json' }
@@ -30,9 +31,9 @@ const STEPS = [
   ['staff', '/dashboard/staff'], ['tasks', '/dashboard/tasks'], ['contracts', '/dashboard/contracts'],
   ['goals', '/dashboard/getting-started'], ['health', '/dashboard/health'], ['inbox', '/dashboard/inbox'],
   ['expenses', '/dashboard/expenses'], ['analytics', '/dashboard/analytics'], ['calendar', '/dashboard/calendar'],
-  ['settings', '/dashboard/settings'],
+  ['settings', '/dashboard/settings'], ['bank', '/dashboard/bank'],
 ]
-const VPS = [{ n: 'desktop', width: 1440, height: 900 }, { n: 'mobile', width: 390, height: 844 }].filter(v => !VP_ONLY || VP_ONLY.includes(v.n))
+const VPS = [{ n: 'desktop', width: 1440, height: DESKTOP_H }, { n: 'mobile', width: 390, height: 844 }].filter(v => !VP_ONLY || VP_ONLY.includes(v.n))
 
 const session = await demoSession()
 const browser = await chromium.launch()

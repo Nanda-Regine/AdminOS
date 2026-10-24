@@ -13,7 +13,8 @@ email provider key is dead, so a signup email will not arrive.
 | 0:00 | Command Center `/dashboard` | "A founder opens one screen instead of five apps." | "R 14 134 is stuck in collections", Needs You Now, quarterly goals |
 | 0:30 | Cash Cockpit `/dashboard/money` | "It tells her who owes her money and who to chase first." | Net position, 60+ day debt, Review recovery queue |
 | 1:00 | Invoices `/dashboard/invoices` | "Tax invoices, receipts, and Quick Sale for cash customers." | Status chips, Record payment, **Quick Sale** button (open the modal, don't submit) |
-| 1:20 | Compliance `/dashboard/compliance` | "The fear every founder has, answered in one click." | The "If you miss it" penalty column |
+| 1:10 | **Bank & Reconcile `/dashboard/bank`** | "Upload an FNB statement and the books close themselves." | The categorised lines, a payment matched to its invoice, then tap **Confirm payment** (or **Confirm 2 sure matches**) and show the invoice flip to paid |
+| 1:30 | Compliance `/dashboard/compliance` | "The fear every founder has, answered in one click." | The "If you miss it" penalty column |
 | 1:50 | Inbox `/dashboard/inbox` | "WhatsApp-native, in the customer's own language." | The isiZulu conversation, answered in isiZulu |
 | 2:15 | Bookings `/dashboard/bookings` | "A booking link, reminders the day before." | This week's schedule |
 | 2:30 | Getting Started `/dashboard/getting-started` | "The guide speaks isiZulu, isiXhosa and Afrikaans too." | Language chips |
@@ -21,7 +22,7 @@ email provider key is dead, so a signup email will not arrive.
 | 3:00 | Roadmap slide | "Next: import an FNB statement, reconcile it to invoices, and give founders a bank-ready profile." | Live vs Next table |
 
 ## Don't claim
-- **Bank-statement import / reconciliation, pay-from-invoice, credit-readiness profile** — roadmap only.
+- **A live bank connection, pay-from-invoice, credit-readiness profile** — roadmap only. The bank loop is a CSV upload, not an FNB integration.
 - **Live WhatsApp sending for this tenant** — the Inbox conversations are sample data; the Meta Tech Provider
   onboarding is still in progress.
 - **Third-party integrations** (Gmail, Xero, PayFast) — shown as "coming soon" in Settings; don't open that tab.

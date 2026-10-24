@@ -23,20 +23,20 @@ AdminOS takes a young South African founder from "I have an idea" to "I run a bu
 
 | Step | What is built and live today |
 |------|------------------------------|
-| Get paid | Branded tax invoices and payment receipts, Quick Sale (cash / walk-in), 5-tier automated debt-recovery agent, Cash Cockpit |
+| Get paid | Branded tax invoices and payment receipts, Quick Sale (cash / walk-in), 5-tier automated debt-recovery agent, Cash Cockpit, **bank-statement import and reconciliation** (FNB / Capitec / ABSA / Standard Bank / Nedbank / TymeBank CSV: auto-categorised, payments matched to invoices and settled on one tap) |
 | Stay compliant | 19 SARS / CIPC / COIDA obligations pre-loaded with the real penalty for missing each, dates rolled forward monthly, POPIA consent layer |
 | Know your numbers | Chart-of-accounts categorisation from day one, health score, daily AI brief, accountant-ready exports (income statement, VAT, journal CSV), payroll with PAYE / UIF / SDL |
 | Grow | Bookings with 24h reminders, inventory with reorder alerts, suppliers with B-BBEE scorecard, staff, tasks and goals |
 | Built for SA | Mobile-first (tested at 390px), PWA / offline for load-shedding, English / isiZulu / isiXhosa / Afrikaans, Expo staff app |
 
-**Roadmap (not built yet — stated honestly):** bank-statement import and reconciliation (FNB / Capitec / ABSA / Tyme CSV), pay-from-invoice, and a consented credit-readiness profile for lenders.
+**Roadmap (not built yet — stated honestly):** a live bank connection (today the bank loop is CSV upload), pay-from-invoice, and a consented credit-readiness profile for lenders.
 
 <p>
   <img src="docs/hackathon/screens/dashboard__desktop.png" alt="Command Center on desktop" width="62%">
   <img src="docs/hackathon/screens/dashboard__mobile.png" alt="Command Center on a 390px phone" width="22%">
 </p>
 
-**Verification:** `npm test` (171 passing) · CI runs `tsc --noEmit`, tests and a quality ratchet · `scripts/persona-walk.mjs` walks 7 industry personas on production (122/122) · `scripts/hackathon/walk.mjs` drives the demo tenant with Playwright at desktop and phone width and reports console errors, failed loads and horizontal overflow.
+**Verification:** `npm test` (204 passing) · CI runs `tsc --noEmit`, tests and a quality ratchet · `scripts/persona-walk.mjs` walks 7 industry personas on production (122/122) · `scripts/hackathon/walk.mjs` drives the demo tenant with Playwright at desktop and phone width and reports console errors, failed loads and horizontal overflow.
 
 ---
 
