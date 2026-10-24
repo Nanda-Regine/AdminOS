@@ -28,7 +28,9 @@
  *     that you are then hand-rolling the tenant filter with no safety net.
  */
 
+import { cache } from 'react'
 import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser } from '@/lib/auth/currentUser'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import {
@@ -68,12 +70,14 @@ export interface Context {
  * logged-out view). Use `requireContext()` when absence is an error — which is
  * almost everywhere.
  */
-export async function getContext(): Promise<Context | null> {
+export const getContext = cache(async (): Promise<Context | null> => {
   const supabase = await createClient()
 
   // getUser() re-validates the JWT against Supabase — do not swap this for
   // getSession(), which trusts the cookie without verifying the signature.
-  const { data: { user } } = await supabase.auth.getUser()
+  // Memoised per request (see currentUser.ts); never across requests, so
+  // the result stays fail-closed on every new request.
+  const user = await getCurrentUser()
   if (!user) return null
 
   // app_metadata only. See rule 1 above.
@@ -82,11 +86,13 @@ export async function getContext(): Promise<Context | null> {
 
   if (user.app_metadata?.suspended === true) return null
 
-  const isSuperAdmin = await checkSuperAdmin(user.id)
-
-  // Role comes from user_roles filtered by tenant — holding a tenant_id you
-  // were never granted returns no row, which is what makes a spoof useless.
-  const assigned = await getUserPermissions(user.id, tenantId)
+  // Independent reads, run together. Role comes from user_roles filtered by
+  // tenant — holding a tenant_id you were never granted returns no row, which
+  // is what makes a spoof useless.
+  const [isSuperAdmin, assigned] = await Promise.all([
+    checkSuperAdmin(user.id),
+    getUserPermissions(user.id, tenantId),
+  ])
 
   // Fail closed. A user with no role record in this tenant has no business
   // here — most likely they are holding a tenant_id they were never granted.
@@ -113,7 +119,7 @@ export async function getContext(): Promise<Context | null> {
       if (!(isSuperAdmin || permissions.includes(permission))) throw new PermissionError(permission)
     },
   }
-}
+})
 
 /**
  * Resolve the caller's verified context, throwing AuthError if they have none.

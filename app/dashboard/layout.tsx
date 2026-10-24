@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic'
 
-import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser } from '@/lib/auth/currentUser'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { Sidebar } from '@/components/dashboard/Sidebar'
 import { RealtimeNotificationBar } from '@/components/dashboard/RealtimeNotificationBar'
@@ -14,23 +14,19 @@ export default async function DashboardLayout({ children }: { children: React.Re
   // sees Stokvel and a law firm no longer sees Creative Assets. Read here rather
   // than in the Sidebar because it is a client component, and this is the one
   // place every dashboard page already passes through.
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCurrentUser()
   const tenantId = user?.app_metadata?.tenant_id as string | undefined
-
-  let businessType: BusinessType | null = null
-  if (tenantId) {
-    const { data } = await supabaseAdmin
-      .from('tenants')
-      .select('business_type')
-      .eq('id', tenantId)
-      .maybeSingle()
-    businessType = (data?.business_type as BusinessType | null) ?? null
-  }
 
   // The caller's permissions scope the sidebar to pages they can actually open.
   // No role record → only member pages (fail closed); super-admins see all.
-  const ctx = user ? await getContext() : null
+  // Independent of the tenant read, so the two run together.
+  const [tenantRow, ctx] = await Promise.all([
+    tenantId
+      ? supabaseAdmin.from('tenants').select('business_type').eq('id', tenantId).maybeSingle()
+      : Promise.resolve({ data: null }),
+    user ? getContext() : Promise.resolve(null),
+  ])
+  const businessType = (tenantRow.data?.business_type as BusinessType | null) ?? null
   const permissions = ctx?.isSuperAdmin ? null : (ctx?.permissions ?? [])
 
   return (
