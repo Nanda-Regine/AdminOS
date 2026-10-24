@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server'
+
+import { safeEqual } from '@/lib/security/safeEqual'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import crypto from 'crypto'
 
@@ -35,7 +37,7 @@ export async function POST(request: Request) {
     .update(body)
     .digest('hex')}`
 
-  if (signature !== expectedSignature) {
+  if (!safeEqual(signature, expectedSignature)) {
     return new NextResponse('Forbidden', { status: 403 })
   }
 

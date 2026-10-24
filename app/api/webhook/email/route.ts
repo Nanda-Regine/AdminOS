@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server'
+
+import { safeEqual } from '@/lib/security/safeEqual'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { callClaudeWithCache } from '@/lib/ai/callClaude'
 import { writeAuditLog } from '@/lib/security/audit'
@@ -21,7 +23,7 @@ export async function POST(request: Request) {
   // forged email for any tenant_id and trigger a paid AI call + inject messages
   // into that tenant's inbox. Fails closed if HUB_INTERNAL_SECRET is unset.
   const hubSecret = process.env.HUB_INTERNAL_SECRET
-  if (!hubSecret || request.headers.get('x-hub-secret') !== hubSecret) {
+  if (!hubSecret || !safeEqual(request.headers.get('x-hub-secret'), hubSecret)) {
     return new NextResponse('Forbidden', { status: 403 })
   }
 

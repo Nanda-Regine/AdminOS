@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server'
+
+import { safeEqual } from '@/lib/security/safeEqual'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { writeAuditLog } from '@/lib/security/audit'
 import { createHash } from 'crypto'
@@ -49,7 +51,7 @@ export async function POST(request: Request) {
   // trust those and skip IP + signature checks. Only direct PayFast posts are re-validated.
   const fromHub =
     !!process.env.HUB_INTERNAL_SECRET &&
-    request.headers.get('x-hub-secret') === process.env.HUB_INTERNAL_SECRET
+    safeEqual(request.headers.get('x-hub-secret'), process.env.HUB_INTERNAL_SECRET)
 
   if (!fromHub) {
     const validIp = await verifyPayFastIp(request)

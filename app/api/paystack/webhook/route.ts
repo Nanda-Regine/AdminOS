@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server'
+
+import { safeEqual } from '@/lib/security/safeEqual'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 
 export const runtime = 'nodejs'
@@ -37,7 +39,7 @@ function addonByPlanCode(code: string | null): string | null {
 export async function POST(request: Request) {
   try {
     const hubSecret = process.env.HUB_INTERNAL_SECRET
-    if (!hubSecret || request.headers.get('x-hub-secret') !== hubSecret) {
+    if (!hubSecret || !safeEqual(request.headers.get('x-hub-secret'), hubSecret)) {
       return new NextResponse('Forbidden', { status: 403 })
     }
     const evt = await request.json().catch(() => null)
