@@ -41,6 +41,15 @@ export const DECISION_CATALOGUE: { domain: string; decision_type: string; label:
   { domain: 'governance', decision_type: 'deadline_alert', label: 'Compliance deadline alerts', description: 'Warn you before compliance deadlines.' },
 ]
 
+/**
+ * Rows to use when the tenant's config could not be read: every governed
+ * decision at C (surface-only). A DB blip must never fall back to the A
+ * defaults and message customers against what the owner set.
+ */
+export function failClosedRows(): AutonomyRow[] {
+  return DECISION_CATALOGUE.map(d => ({ domain: d.domain, decision_type: d.decision_type, tier: 'C' as Tier }))
+}
+
 export function resolveTier(rows: AutonomyRow[], domain: string, decisionType: string): Tier {
   const row = rows.find(r => r.domain === domain && r.decision_type === decisionType)
   if (row) return row.tier
