@@ -4,6 +4,13 @@ The story of building AdminOS from scratch to production-ready B2B SaaS, phase b
 
 ---
 
+## Page audit fix list, Batches 1-3 (Oct 24 2026)
+
+- **Shipped (PRs #1-#4, CI green):** truthful Ops/Inventory numbers; board pack + valuation now use inclusive SAST periods, payroll cost, real EBITDA and the real driver scores; IR acknowledge, staff offboarding, safety close-out and licence edit/renew APIs (no migrations).
+- **Open:** UI for safety update / licence renew / Expo IR screen; production deploy not confirmed (Vercel webhook history). Batches 4-8 queued, 6-8 need migration/payment approval. Detail: `BUILD_JOURNEY_ADMINOS.md` -> Session 22; plan: `docs/plans/page-audit-fix-list.md`.
+
+---
+
 ## FNB hackathon pack, bank reconciliation loop, security + readiness audits (Oct 24 2026)
 
 - **Submission:** pitch deck (14 slides, PDF + HTML), 3-minute demo flow with a "don't claim" list, README section, refreshed demo tenant (sample WhatsApp, bookings, seeded FNB-style statement). Live at adminos.co.za; repo is public.
