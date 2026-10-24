@@ -29,12 +29,13 @@ export default async function BankPage() {
   const tenantId = user.app_metadata?.tenant_id as string | undefined
   if (!tenantId) redirect('/dashboard')
 
-  const { count } = await supabaseAdmin
+  const { data: first } = await supabaseAdmin
     .from('bank_transactions')
-    .select('id', { count: 'exact', head: true })
+    .select('id')
     .eq('tenant_id', tenantId)
     .is('deleted_at', null)
-  const hasLines = (count ?? 0) > 0
+    .limit(1)
+  const hasLines = (first?.length ?? 0) > 0
 
   return (
     <>
