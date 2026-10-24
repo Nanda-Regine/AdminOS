@@ -1,5 +1,5 @@
 import { isLowStock } from '@/lib/inventory/lowStock'
-import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser } from '@/lib/auth/currentUser'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { TopBar } from '@/components/dashboard/TopBar'
 import { redirect } from 'next/navigation'
@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { formatZAR } from '@/lib/format'
 import { OWED_INVOICE_STATUSES } from '@/lib/invoices/status'
 import { daysOverdue } from '@/lib/debt/overdue'
-import { publishSignal, financeMode } from '@/lib/signals/bus'
+import { financeMode } from '@/lib/signals/bus'
 import { getDailyBrief } from '@/lib/signals/brief'
 import { getSetupState } from '@/lib/tenant/setup-state'
 import { BriefCard } from './BriefCard'
@@ -31,8 +31,7 @@ function daysUntil(d: string | null): number | null {
 const isTodayISO = (iso: string, todayISO: string) => (iso ?? '').slice(0, 10) === todayISO
 
 export default async function CommandCenter() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCurrentUser()
   if (!user) redirect('/login')
 
   const ctx = await getContext()
@@ -52,6 +51,9 @@ export default async function CommandCenter() {
   const monthStart = sastMonthStartUTC(now)
   const days30Ago = new Date(Date.now() - 30 * 86400000).toISOString()
   const days1Ago = new Date(Date.now() - 24 * 3600000).toISOString()
+
+  // Independent of the cockpit queries below: start now, await at the end.
+  const briefAndSetup = Promise.all([getDailyBrief(tenantId), getSetupState(tenantId)])
 
   const [
     invRes, expRes, prodRes, staffRes, leaveRes, contractRes, bookingRes,
@@ -116,31 +118,11 @@ export default async function CommandCenter() {
   const contractsExpiring = contracts.filter(c => { const d = daysUntil(c.end_date); return d !== null && d >= 0 && d <= 30 }).length
   const complianceDue = compliance.filter(c => { const d = daysUntil(c.due_date); return d !== null && d <= 14 })
 
-  // ── PUBLISH SIGNALS to the nervous system (Law 2: computed once, read everywhere)
-  const arOverdueSig = arOverdue
+  // Signals are published by the money / sales / ops / people / governance
+  // pages, not here: publishing on every dashboard view cost 5 Redis writes and
+  // 5 upserts per load and nothing reads them. Only `mode` is needed here.
   const mode = financeMode({ netPosition, runwayMonths, arStuck })
-  const [brief, setup] = await Promise.all([getDailyBrief(tenantId), getSetupState(tenantId)])
-  void publishSignal('money', tenantId, {
-    mode, arTotal, arOverdue: arOverdueSig, arStuck, apTotal, netPosition, runwayMonths, recoveryReview,
-    health: netPosition < 0 || arStuck > 0 ? 'bad' : arOverdueSig > 0 ? 'watch' : 'good',
-  })
-  void publishSignal('sales', tenantId, {
-    openConversations: conversations.length, needAttention,
-    pipelineValue: arTotal, health: needAttention > 0 ? 'bad' : 'good',
-  })
-  void publishSignal('ops', tenantId, {
-    lowStock: lowStock.length, stockoutRisk: lowStock.slice(0, 5).map(p => p.name),
-    bookingsToday, pendingBookings, overdueTasks, health: lowStock.length > 0 || overdueTasks > 0 ? 'watch' : 'good',
-  })
-  void publishSignal('people', tenantId, {
-    activeStaff: staffCount, pendingLeave, pendingExpenses, wellnessAvg: null,
-    health: pendingLeave > 0 || pendingExpenses > 0 ? 'watch' : 'good',
-  })
-  void publishSignal('governance', tenantId, {
-    complianceDue: complianceDue.length, contractsExpiring, contractsAwaiting,
-    health: complianceDue.length > 0 ? 'bad' : contractsExpiring > 0 ? 'watch' : 'good',
-  })
-
+  const [brief, setup] = await briefAndSetup
   // ── NEEDS YOU NOW (the decision queue — OODA "act") ───────────────────────
   // Each item only for someone who can act on it (a manager has no inbox,
   // payroll or settings access by default — those links were dead ends).
