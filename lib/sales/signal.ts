@@ -6,6 +6,8 @@
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { publishSignal, type SalesSignal } from '@/lib/signals/bus'
 import { allRows } from '@/lib/supabase/fetchAll'
+import { COUNTED_INVOICE_STATUSES, summariseContactMoney, type MoneyInvoice } from '@/lib/contacts/money'
+import { isOwed, outstanding } from '@/lib/invoices/status'
 
 export interface AttentionConvo { name: string; sentiment: string; when: string }
 export interface StaleContact { id: string; name: string; lastContacted: string | null; value: number; phone: string | null }
@@ -26,15 +28,18 @@ export async function buildSalesIntel(tenantId: string): Promise<SalesIntel> {
 
   const [convRes, contactRes, invRes] = await Promise.all([
     supabaseAdmin.from('conversations').select('contact_name, sentiment, status, updated_at').eq('tenant_id', tenantId).eq('status', 'open').order('updated_at', { ascending: false }),
-    // Top 2000 by spend. A plain .limit(2000) was silently cut to 1000 by PostgREST's max_rows.
+    // Up to 2000 contacts. A plain .limit(2000) was silently cut to 1000 by PostgREST's max_rows.
     allRows((lo, hi) => lo >= 2000 ? Promise.resolve({ data: [], error: null })
-      : supabaseAdmin.from('contacts').select('id, full_name, contact_type, total_paid, last_contacted_at, phone, wa_id').is('deleted_at', null).eq('tenant_id', tenantId).order('total_paid', { ascending: false }).order('id').range(lo, Math.min(hi, 1999))),
-    allRows((lo, hi) => supabaseAdmin.from('invoices').select('amount, amount_paid, status').is('deleted_at', null).eq('tenant_id', tenantId).neq('status', 'paid').order('id').range(lo, hi)),
+      : supabaseAdmin.from('contacts').select('id, full_name, contact_type, last_contacted_at, phone, wa_id').is('deleted_at', null).eq('tenant_id', tenantId).order('id').range(lo, Math.min(hi, 1999))),
+    // Every issued, non-voided invoice: money won (paid) and money still to collect (owed) both come from here.
+    allRows<MoneyInvoice>((lo, hi) => supabaseAdmin.from('invoices').select('contact_id, contact_phone, amount, amount_paid, status').is('deleted_at', null).eq('tenant_id', tenantId).in('status', [...COUNTED_INVOICE_STATUSES]).order('id').range(lo, hi)),
   ])
 
   const conversations = convRes.data ?? []
   const contacts = contactRes.data ?? []
   const invoices = invRes.data ?? []
+  // contacts.total_paid has no writer and disagrees with the invoices; derive per-contact revenue instead.
+  const money = summariseContactMoney(invoices, contacts.map(c => ({ id: c.id, phone: c.phone })))
 
   const attentionRows = conversations.filter(c => c.sentiment === 'negative' || c.sentiment === 'urgent')
   const attentionList: AttentionConvo[] = attentionRows.slice(0, 6).map(c => ({
@@ -47,18 +52,20 @@ export async function buildSalesIntel(tenantId: string): Promise<SalesIntel> {
   const staleContacts: StaleContact[] = contacts
     .filter(c => !c.last_contacted_at || c.last_contacted_at < cutoff)
     .filter(c => (c.contact_type ?? 'unknown') !== 'staff' && (c.contact_type ?? 'unknown') !== 'supplier')
-    .sort((a, b) => Number(b.total_paid || 0) - Number(a.total_paid || 0))
+    .sort((a, b) => (money.get(b.id)?.paid ?? 0) - (money.get(a.id)?.paid ?? 0))
     .slice(0, 6)
     .map(c => ({
       id: c.id,
       name: c.full_name || '(unnamed)',
       lastContacted: c.last_contacted_at,
-      value: Number(c.total_paid || 0),
+      value: money.get(c.id)?.paid ?? 0,
       phone: (c.phone || c.wa_id) ?? null,
     }))
 
-  const lifetimeRevenue = contacts.reduce((s, c) => s + Number(c.total_paid || 0), 0)
-  const pipelineValue = invoices.reduce((s, i) => s + Math.max(0, Number(i.amount || 0) - Number(i.amount_paid || 0)), 0)
+  // Everything actually received, including walk-in cash sales that belong to no contact.
+  const lifetimeRevenue = invoices.reduce((s, i) => s + Number(i.amount_paid || 0), 0)
+  // Money won but not yet collected: only invoices that are really owed (not draft / cancelled / paid).
+  const pipelineValue = invoices.filter(i => isOwed(i.status)).reduce((s, i) => s + outstanding(i), 0)
 
   const signal: SalesSignal = {
     openConversations: conversations.length,
