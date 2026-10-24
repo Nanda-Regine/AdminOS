@@ -11,6 +11,8 @@ import { ContactActions } from './ContactActions'
 import { MarketingConsent } from './MarketingConsent'
 import { avatarColor } from '@/lib/ui/avatarColor'
 import { checkPermission } from '@/lib/auth/permissions'
+import { invoicesForContact } from '@/lib/contacts/moneyServer'
+import { summariseContactMoney } from '@/lib/contacts/money'
 
 type Contact = {
   id:               string
@@ -106,13 +108,16 @@ export default async function ContactDetailPage({
 
   const tenantId = user.app_metadata?.tenant_id as string
 
-  const [contactRes, convsRes, invoicesRes] = await Promise.all([
-    supabaseAdmin
-      .from('contacts')
-      .select('*').is('deleted_at', null)
-      .eq('id', id)
-      .eq('tenant_id', tenantId)
-      .single(),
+  const contactRes = await supabaseAdmin
+    .from('contacts')
+    .select('*').is('deleted_at', null)
+    .eq('id', id)
+    .eq('tenant_id', tenantId)
+    .single()
+
+  if (!contactRes.data) notFound()
+
+  const [convsRes, allInvoices] = await Promise.all([
     supabaseAdmin
       .from('conversations')
       .select('id, channel, status, sentiment, intent, summary, created_at, updated_at')
@@ -120,20 +125,16 @@ export default async function ContactDetailPage({
       .eq('tenant_id', tenantId)
       .order('updated_at', { ascending: false })
       .limit(20),
-    supabaseAdmin
-      .from('invoices')
-      .select('id, invoice_number, amount, amount_paid, status, due_date, created_at').is('deleted_at', null)
-      .eq('tenant_id', tenantId)
-      .eq('contact_phone', (await supabaseAdmin.from('contacts').select('phone').is('deleted_at', null).eq('id', id).single()).data?.phone ?? '')
-      .order('created_at', { ascending: false })
-      .limit(20),
+    // Linked by contact_id (phone only as a fallback for invoices with no contact_id). The old query matched on
+    // phone alone, so a contact with a blank phone showed every blank-phone invoice in the tenant.
+    invoicesForContact(tenantId, { id, phone: (contactRes.data as Contact).phone }),
   ])
 
-  if (!contactRes.data) notFound()
-
-  const contact    = contactRes.data as Contact
+  // Money is derived from ALL of this contact's invoices; the contacts.total_* columns have no writer.
+  const money      = summariseContactMoney(allInvoices, [{ id, phone: (contactRes.data as Contact).phone }]).get(id)
+  const contact: Contact = { ...(contactRes.data as Contact), total_invoiced: money?.invoiced ?? 0, total_paid: money?.paid ?? 0, balance_owed: money?.owed ?? 0 }
   const convs      = (convsRes.data ?? []) as Conversation[]
-  const invoices   = (invoicesRes.data ?? []) as Invoice[]
+  const invoices   = allInvoices.slice(0, 20) as Invoice[]
   const color      = avatarColor(contact.id)
   const init       = initials(contact.full_name, contact.phone)
   const tcolor     = TYPE_COLORS[contact.contact_type ?? 'unknown'] ?? TYPE_COLORS.unknown

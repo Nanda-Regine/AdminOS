@@ -7,6 +7,8 @@ import { CreateContactModal } from './CreateContactModal'
 import { ContactsTable, type ContactRow } from './ContactsTable'
 import { formatZAR } from '@/lib/format'
 import { checkPermission } from '@/lib/auth/permissions'
+import { allRows } from '@/lib/supabase/fetchAll'
+import { contactMoneyForTenant } from '@/lib/contacts/moneyServer'
 
 export default async function ContactsPage() {
   const supabase = await createClient()
@@ -19,14 +21,25 @@ export default async function ContactsPage() {
 
   const tenantId = user.app_metadata?.tenant_id as string
 
-  const { data: contacts = [] } = await supabaseAdmin
-    .from('contacts')
-    .select('id, full_name, phone, email, company, contact_type, balance_owed, total_invoiced, total_paid, sentiment_score, last_contacted_at, tags, source, wa_id, created_at').is('deleted_at', null)
-    .eq('tenant_id', tenantId)
-    .order('updated_at', { ascending: false })
-    .limit(2000)
+  // Newest-touched first, capped at 2000. A plain .limit(2000) is silently cut to 1000 by PostgREST's max_rows.
+  type ListRow = Omit<ContactRow, 'balance_owed' | 'total_invoiced' | 'total_paid'>
+  const { data: contacts } = await allRows<ListRow>((lo, hi) => lo >= 2000
+    ? Promise.resolve({ data: [], error: null })
+    : supabaseAdmin
+      .from('contacts')
+      .select('id, full_name, phone, email, company, contact_type, sentiment_score, last_contacted_at, tags, source, wa_id, created_at').is('deleted_at', null)
+      .eq('tenant_id', tenantId)
+      .order('updated_at', { ascending: false })
+      .order('id')
+      .range(lo, Math.min(hi, 1999)))
 
-  const rows = (contacts ?? []) as ContactRow[]
+  // Money comes from the invoices — contacts.total_paid / balance_owed / total_invoiced have no writer (see lib/contacts/money.ts).
+  const list = contacts ?? []
+  const money = await contactMoneyForTenant(tenantId, list.map(c => ({ id: c.id, phone: c.phone })))
+  const rows: ContactRow[] = list.map(c => {
+    const m = money.get(c.id)
+    return { ...c, total_invoiced: m?.invoiced ?? 0, total_paid: m?.paid ?? 0, balance_owed: m?.owed ?? 0 }
+  })
 
   const totalContacts   = rows.length
   const withDebt        = rows.filter(c => c.balance_owed > 0).length

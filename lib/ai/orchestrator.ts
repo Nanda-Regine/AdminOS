@@ -4,6 +4,8 @@ import { writeAuditLog } from '@/lib/security/audit'
 import { recordUsage } from '@/lib/ai/costControls'
 import { OPEN_INVOICE_STATUSES, outstanding } from '@/lib/invoices/status'
 import { daysOverdue } from '@/lib/debt/overdue'
+import { summariseContactMoney } from '@/lib/contacts/money'
+import { invoicesForContact } from '@/lib/contacts/moneyServer'
 import type { AgentName, AgentConfig, OrchestratorRequest, OrchestratorResponse } from './types'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
@@ -119,13 +121,13 @@ export class AgentOrchestrator {
       const [contact, invoices, recentConvs] = await Promise.all([
         supabaseAdmin
           .from('contacts')
-          .select('full_name, company, sentiment_score, total_invoiced, total_paid, last_contacted_at').is('deleted_at', null)
+          .select('id, phone, full_name, company, sentiment_score, last_contacted_at').is('deleted_at', null)
           .eq('tenant_id', req.tenantId)
           .eq('phone', req.contactIdentifier)
           .maybeSingle(),
         supabaseAdmin
           .from('invoices')
-          .select('reference, amount, amount_paid, due_date, status, recovery_tier').is('deleted_at', null)
+          .select('invoice_number, reference, amount, amount_paid, due_date, status, recovery_tier').is('deleted_at', null)
           .eq('tenant_id', req.tenantId)
           .eq('contact_phone', req.contactIdentifier)
           .order('created_at', { ascending: false })
@@ -139,12 +141,17 @@ export class AgentOrchestrator {
           .limit(5),
       ])
 
-      if (contact.data) parts.push(`CONTACT: ${JSON.stringify(contact.data)}`)
+      if (contact.data) {
+        // Totals come from the contact's invoices; contacts.total_* have no writer (lib/contacts/money.ts).
+        const { id: contactId, phone: contactPhone, ...profile } = contact.data
+        const money = summariseContactMoney(await invoicesForContact(req.tenantId, { id: contactId, phone: contactPhone }), [{ id: contactId, phone: contactPhone }]).get(contactId)
+        parts.push(`CONTACT: ${JSON.stringify({ ...profile, total_invoiced: money?.invoiced ?? 0, total_paid: money?.paid ?? 0, balance_owed: money?.owed ?? 0 })}`)
+      }
       if (invoices.data?.length) {
         // Give the model what is actually owed and how late, computed — not the
         // stale days_overdue column or the gross amount.
         const inv = invoices.data.map((i) => ({
-          reference: i.reference, status: i.status, recovery_tier: i.recovery_tier,
+          reference: i.invoice_number ?? i.reference, status: i.status, recovery_tier: i.recovery_tier,
           outstanding: outstanding(i), days_overdue: daysOverdue(i.due_date),
         }))
         parts.push(`INVOICES: ${JSON.stringify(inv)}`)
