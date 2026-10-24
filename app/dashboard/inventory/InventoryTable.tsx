@@ -1,5 +1,6 @@
 'use client'
 
+import { isLowStock } from '@/lib/inventory/lowStock'
 import { Package } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { DataTable, type Column, type FilterDef } from '@/components/ui/DataTable'
@@ -14,12 +15,13 @@ export type ProductRow = {
   unit:             string | null
   current_stock:    number
   reorder_level:    number
+  active?:          boolean | null
   cost_price:       number | null
   unit_price:       number | null
 }
 
 const money = (v: number | null) => formatZAR(v, { cents: true })
-const isLow = (p: ProductRow) => Number(p.current_stock) <= Number(p.reorder_level)
+const isLow = isLowStock
 
 export function InventoryTable({ rows }: { rows: ProductRow[] }) {
   const categories = Array.from(new Set(rows.map(r => r.category).filter(Boolean))) as string[]

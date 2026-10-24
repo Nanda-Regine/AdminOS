@@ -1,3 +1,4 @@
+import { isLowStock } from '@/lib/inventory/lowStock'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { TopBar } from '@/components/dashboard/TopBar'
@@ -59,7 +60,7 @@ export default async function CommandCenter() {
     // Owed only — neq('paid') also counted drafts and cancelled invoices as receivables.
     allRows((lo, hi) => supabaseAdmin.from('invoices').select('amount, amount_paid, status, due_date, contact_name, created_at, recovery_status').eq('tenant_id', tenantId).in('status', [...OWED_INVOICE_STATUSES]).is('deleted_at', null).order('id').range(lo, hi)),
     allRows((lo, hi) => supabaseAdmin.from('expenses').select('amount, status, paid_at, created_at').is('deleted_at', null).eq('tenant_id', tenantId).order('id').range(lo, hi)),
-    supabaseAdmin.from('products').select('name, current_stock, reorder_level, cost_price').is('deleted_at', null).eq('tenant_id', tenantId),
+    supabaseAdmin.from('products').select('name, current_stock, reorder_level, cost_price, active').is('deleted_at', null).eq('tenant_id', tenantId),
     supabaseAdmin.from('staff').select('id', { count: 'exact', head: true }).is('deleted_at', null).eq('tenant_id', tenantId).eq('active', true),
     supabaseAdmin.from('leave_requests').select('id', { count: 'exact', head: true }).is('deleted_at', null).eq('tenant_id', tenantId).eq('status', 'pending'),
     supabaseAdmin.from('contracts').select('status, end_date').is('deleted_at', null).eq('tenant_id', tenantId),
@@ -95,7 +96,7 @@ export default async function CommandCenter() {
   const invoicedThisMonth = invoices.filter(i => i.created_at >= monthStart).reduce((s, i) => s + Number(i.amount || 0), 0)
 
   // ── OPERATIONS ────────────────────────────────────────────────────────────
-  const lowStock = products.filter(p => Number(p.current_stock) <= Number(p.reorder_level))
+  const lowStock = products.filter(isLowStock)
   const openTasks = tasks.length
   const overdueTasks = tasks.filter(t => t.due_date && new Date(t.due_date) < now).length
   const bookingsToday = bookings.filter(b => isTodayISO(b.start_at, todayISO)).length

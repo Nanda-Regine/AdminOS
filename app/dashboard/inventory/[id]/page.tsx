@@ -1,3 +1,4 @@
+import { isLowStock } from '@/lib/inventory/lowStock'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { TopBar } from '@/components/dashboard/TopBar'
@@ -16,6 +17,7 @@ type Product = {
   unit:          string | null
   current_stock: number
   reorder_level: number
+  active?: boolean | null
   cost_price:    number | null
   unit_price:    number | null
   created_at:    string
@@ -62,7 +64,7 @@ export default async function ProductDetailPage({
   const [productRes, txRes] = await Promise.all([
     supabaseAdmin
       .from('products')
-      .select('id, name, sku, category, unit, current_stock, reorder_level, cost_price, unit_price, created_at').is('deleted_at', null)
+      .select('id, name, sku, category, unit, current_stock, reorder_level, cost_price, unit_price, active, created_at').is('deleted_at', null)
       .eq('id', id)
       .eq('tenant_id', tenantId)
       .single(),
@@ -79,7 +81,7 @@ export default async function ProductDetailPage({
 
   const product      = productRes.data as Product
   const transactions = (txRes.data ?? []) as Transaction[]
-  const isLow         = Number(product.current_stock) <= Number(product.reorder_level)
+  const isLow         = isLowStock(product)
   const stockValue    = Number(product.current_stock) * Number(product.cost_price || 0)
   const retailValue   = Number(product.current_stock) * Number(product.unit_price || 0)
   const marginPct     = product.unit_price && product.cost_price

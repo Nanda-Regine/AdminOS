@@ -6,6 +6,8 @@
 
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { publishSignal, type OpsSignal } from '@/lib/signals/bus'
+import { isLowStock } from '@/lib/inventory/lowStock'
+import { sastDate, sastDayStartUTC } from '@/lib/time/sast'
 
 export interface LowStockItem { name: string; onHand: number; reorderAt: number; shortBy: number }
 export interface TodayBooking { id: string; when: string; who: string; service: string; status: string }
@@ -30,20 +32,25 @@ const embedName = (embed: unknown, field: string): string => {
 
 export async function buildOpsIntel(tenantId: string): Promise<OpsIntel> {
   const now = new Date()
-  const todayISO = now.toISOString().slice(0, 10)
+  const todayISO = sastDate(now)
   const in7 = new Date(Date.now() + 7 * 86400000).toISOString()
 
   const [prodRes, bookRes, taskRes] = await Promise.all([
-    supabaseAdmin.from('products').select('name, current_stock, reorder_level, cost_price, unit_price').is('deleted_at', null).eq('tenant_id', tenantId),
+    supabaseAdmin.from('products').select('name, current_stock, reorder_level, cost_price, unit_price, active').is('deleted_at', null).eq('tenant_id', tenantId),
     supabaseAdmin
       .from('bookings')
       .select('id, start_at, status, contact:contacts(full_name), service:booking_services(name)').is('deleted_at', null)
       .eq('tenant_id', tenantId)
-      .gte('start_at', todayISO)
+      .gte('start_at', sastDayStartUTC(todayISO))
+      .not('status', 'in', '("cancelled","no_show")')
       .lte('start_at', in7)
       .order('start_at'),
     supabaseAdmin.from('tasks').select('status, due_date').eq('tenant_id', tenantId).is('deleted_at', null).not('status', 'in', '("done","completed","cancelled")'),
   ])
+
+  // A failed read must not look like "all clear" (the DB has auto-paused before).
+  const failed = [prodRes, bookRes, taskRes].find(r => r.error)
+  if (failed?.error) throw new Error(`ops intel: ${failed.error.message}`)
 
   const products = prodRes.data ?? []
   const bookings = bookRes.data ?? []
@@ -51,7 +58,7 @@ export async function buildOpsIntel(tenantId: string): Promise<OpsIntel> {
 
   // ── Stock readiness ────────────────────────────────────────────────────────
   const lowStockItems: LowStockItem[] = products
-    .filter(p => Number(p.current_stock) <= Number(p.reorder_level))
+    .filter(isLowStock)
     .map(p => ({
       name: p.name,
       onHand: Number(p.current_stock),
@@ -64,7 +71,7 @@ export async function buildOpsIntel(tenantId: string): Promise<OpsIntel> {
 
   // ── Schedule ───────────────────────────────────────────────────────────────
   const bookingsToday: TodayBooking[] = bookings
-    .filter(b => (b.start_at ?? '').slice(0, 10) === todayISO)
+    .filter(b => b.start_at && sastDate(new Date(b.start_at)) === todayISO)
     .map(b => ({
       id: b.id,
       when: new Date(b.start_at).toLocaleTimeString('en-ZA', { timeZone: 'Africa/Johannesburg', hour: '2-digit', minute: '2-digit' }),
@@ -77,7 +84,7 @@ export async function buildOpsIntel(tenantId: string): Promise<OpsIntel> {
 
   // ── Work in flight ─────────────────────────────────────────────────────────
   const openTasks = tasks.length
-  const overdueTasks = tasks.filter(t => t.due_date && new Date(t.due_date) < now).length
+  const overdueTasks = tasks.filter(t => t.due_date && sastDate(new Date(t.due_date)) < todayISO).length
 
   const signal: OpsSignal = {
     lowStock: lowStockItems.length,
