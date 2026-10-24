@@ -4,7 +4,7 @@
   "name": "bank",
   "status": 200,
   "landed": "/dashboard/bank",
-  "ms": 15373,
+  "ms": 16296,
   "overflow": 0,
   "errs": [],
   "errorText": false
@@ -14,7 +14,7 @@
   "name": "bank",
   "status": 200,
   "landed": "/dashboard/bank",
-  "ms": 9628,
+  "ms": 11546,
   "overflow": 0,
   "errs": [],
   "errorText": false
