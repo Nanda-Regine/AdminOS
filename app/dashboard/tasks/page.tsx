@@ -72,7 +72,8 @@ function TaskColumn({
         )}
         {tasks.map((task) => {
           const assigneeName = task.assigned_to ? staffMap[task.assigned_to] : null
-          const isOverdue = task.due_date && new Date(task.due_date) < new Date()
+          // A finished task is never overdue: Done cards used to show a red warning.
+          const isOverdue = isOpenTask(task.status) && task.due_date && new Date(task.due_date) < new Date()
 
           return (
             <Card key={task.id} padding="sm">

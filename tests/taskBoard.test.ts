@@ -15,3 +15,7 @@ test('open means todo, in_progress or review (same rule as Ops and the API)', ()
   for (const s of ['todo', 'in_progress', 'review']) assert.equal(isOpenTask(s), true, s)
   for (const s of ['done', 'cancelled', 'completed', '', null, undefined]) assert.equal(isOpenTask(s as string), false, String(s))
 })
+
+test('a done task is not open, so it can never be flagged overdue', () => {
+  assert.equal(isOpenTask('done'), false)
+})
