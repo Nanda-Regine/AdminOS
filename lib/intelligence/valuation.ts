@@ -82,12 +82,12 @@ async function getCostsTTM(tenantId: string): Promise<number> {
       .from('expenses').select('amount').is('deleted_at', null)
       .eq('tenant_id', tenantId).neq('status', 'rejected')
       .gte('created_at', start).lt('created_at', endExclusive).order('id').range(lo, hi)),
-    supabaseAdmin
+    allRows((lo, hi) => supabaseAdmin
       .from('payroll_runs')
       .select('period_month, period_year, status, total_gross, total_uif_employer, total_sdl')
       .eq('tenant_id', tenantId).is('deleted_at', null)
       .in('status', ['finalised', 'paid'])
-      .gte('period_year', +yearAgo.slice(0, 4)),
+      .gte('period_year', +yearAgo.slice(0, 4)).order('id').range(lo, hi)),
   ])
   const expenseTotal = (expenses.data ?? []).reduce((s, e) => s + Number(e.amount ?? 0), 0)
   return expenseTotal + payrollCostInRange(payroll.data ?? [], yearAgo, today)

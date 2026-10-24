@@ -285,12 +285,12 @@ async function gatherFinancials(tenantId: string, from: string, to: string) {
       .neq('status', 'rejected')   // a rejected claim was never a cost
       .gte('created_at', start)
       .lt('created_at', endExclusive).order('id').range(lo, hi)),
-    supabaseAdmin
+    allRows((lo, hi) => supabaseAdmin
       .from('payroll_runs')
       .select('period_month, period_year, status, total_gross, total_uif_employer, total_sdl')
       .eq('tenant_id', tenantId).is('deleted_at', null)
       .in('status', ['finalised', 'paid'])
-      .gte('period_year', +from.slice(0, 4)).lte('period_year', +to.slice(0, 4)),
+      .gte('period_year', +from.slice(0, 4)).lte('period_year', +to.slice(0, 4)).order('id').range(lo, hi)),
   ])
 
   const revenue  = (invoiceData.data ?? [])
