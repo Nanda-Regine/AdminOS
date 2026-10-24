@@ -28,9 +28,8 @@ const fileTypeIcon: Record<string, string> = {
 // below, but the upload route has never accepted those MIME types — every
 // such upload 415'd. That's what Creative Assets (Cloudinary-backed) is for.
 const ACCEPTED = [
-  '.pdf', '.docx', '.doc', '.xlsx', '.xls', '.csv', '.pptx', '.txt', '.md', '.rtf',
-  '.jpg', '.jpeg', '.png', '.webp', '.gif', '.heic',
-  '.json', '.xml',
+  '.pdf', '.docx', '.xlsx', '.csv', '.txt',
+  '.jpg', '.jpeg', '.png', '.webp',
 ].join(',')
 
 export default function DocumentsPage() {
@@ -171,9 +170,9 @@ export default function DocumentsPage() {
         {/* Supported formats info */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
-            { icon: '📄', label: 'Documents', types: 'PDF, Word, PowerPoint, RTF' },
-            { icon: '📊', label: 'Spreadsheets', types: 'Excel, CSV, Numbers' },
-            { icon: '🖼️', label: 'Images', types: 'JPG, PNG, WEBP, HEIC' },
+            { icon: '📄', label: 'Documents', types: 'PDF, Word (.docx), text' },
+            { icon: '📊', label: 'Spreadsheets', types: 'Excel (.xlsx), CSV' },
+            { icon: '🖼️', label: 'Images', types: 'JPG, PNG, WEBP' },
             { icon: '🎬', label: 'Audio & Video', types: 'See Creative Assets →' },
           ].map((item) => (
             <div key={item.label} className="bg-[var(--surface-1)] border border-[var(--border)] rounded-lg p-3 text-center">

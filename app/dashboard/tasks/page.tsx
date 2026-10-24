@@ -9,7 +9,7 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import { redirect } from 'next/navigation'
 import { ListTodo } from 'lucide-react'
 import { CreateTaskModal, MoveTaskButton } from './TaskActions'
-import { compareTasks } from '@/lib/ops/tasks'
+import { compareTasks, boardColumns, isOpenTask } from '@/lib/ops/tasks'
 
 export const dynamic = 'force-dynamic'
 
@@ -172,20 +172,20 @@ export default async function TasksPage() {
   const staffMap: Record<string, string> = {}
   for (const s of staffList) staffMap[s.id] = s.full_name
 
-  const todo       = allTasks.filter(t => t.status === 'todo')
-  const inProgress = allTasks.filter(t => t.status === 'in_progress')
-  const done       = allTasks.filter(t => t.status === 'done')
+  const { todo, inProgress, review, done } = boardColumns(allTasks)
+  const shownCount = todo.length + inProgress.length + review.length + done.length
+  const openCount  = todo.length + inProgress.length + review.length
 
-  const urgentOpen = allTasks.filter(t => t.priority === 'urgent' && t.status !== 'done')
+  const urgentOpen = allTasks.filter(t => t.priority === 'urgent' && isOpenTask(t.status))
   const overdueOpen = allTasks.filter(
-    t => t.due_date && new Date(t.due_date) < new Date() && t.status !== 'done'
+    t => t.due_date && new Date(t.due_date) < new Date() && isOpenTask(t.status)
   )
 
   return (
     <div>
       <TopBar
         title={ownOnly ? 'My tasks' : 'Tasks'}
-        subtitle={`${allTasks.length} total · ${todo.length + inProgress.length} open`}
+        subtitle={`${shownCount} total · ${openCount} open`}
         actions={<CreateTaskModal staff={staffList} />}
       />
       <div className="p-4 md:p-6 space-y-5">
@@ -211,9 +211,12 @@ export default async function TasksPage() {
         )}
 
         {/* Kanban */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className={`grid grid-cols-1 gap-6 ${review.length ? 'md:grid-cols-4' : 'md:grid-cols-3'}`}>
           <TaskColumn title="To Do"      tasks={todo}       accent="border-[var(--border)]"   staffMap={staffMap} />
           <TaskColumn title="In Progress" tasks={inProgress} accent="border-yellow-400" staffMap={staffMap} />
+          {review.length > 0 && (
+            <TaskColumn title="In Review" tasks={review} accent="border-blue-400" staffMap={staffMap} />
+          )}
           <TaskColumn title="Done"        tasks={done}       accent="border-emerald-400" staffMap={staffMap} />
         </div>
 
