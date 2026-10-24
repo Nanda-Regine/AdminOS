@@ -34,6 +34,7 @@ type Staff = {
   wellness_scores:         Array<{ score: number; date: string }> | null
   after_hours_flag:        boolean | null
   user_id:                 string | null
+  active:                  boolean | null
   created_at:              string
 }
 
