@@ -3807,3 +3807,25 @@ Plan v1 assumed more was missing than is. The scan (92 file reads, read-only) fo
 **Changes from Plan v1:** the payments ledger moved ahead of auto-matching (no undo otherwise); hardening and speed moved to the front because they fix existing correctness and the slowest user-visible path; "predictive brief" depends on the ledger for the late-payer part; learning/graduation moved last because they need weeks of queue data.
 
 **Decisions for Nanda:** approve the `agent_actions` migration when step 4 is ready; confirm default tier **B** (propose, never silently settle) for bank auto-match; and decide whether the Expo push credentials get set up now, since step 3 only reaches a phone with them. **UNVERIFIED in the scan:** ops, sales and cashflow pages, mobile `/approvals`, who inserts `workflow_queue` rows, real data behind the forecast's opening balance, RLS on realtime channels.
+
+---
+
+## Session 22 (2026-10-24) — Page audit → fix list, Batches 1–3 shipped
+
+**Source of truth:** `docs/plans/page-audit-fix-list.md` (combined from `page-audit-win-work.md`, `-deliver.md`, `-team-govern.md`, `-grow-setup.md`; code-level reads, live DB state unverified). Rule: one logical change per PR, test that fails before / passes after, CI green before merge. Migrations and payment-flow changes are held for approval.
+
+### Shipped to `main` (CI green)
+- **#1 Contacts money totals** derived from invoices (`2066cc3`).
+- **#2 Batch 1, truthful numbers:** one low-stock rule (reorder_level > 0, active only) on Ops / Inventory / alert; Ops uses the SAST day and live (non-cancelled) bookings; Ops no longer shows a false all-clear on a DB error (`45ffaae`).
+- **#3 Batch 2, board pack + valuation** (`271264e`): inclusive SAST period end (`lib/intelligence/periodMath.ts`, `tests/periodMath.test.ts`); payroll employer cost (gross + UIF employer + SDL, finalised/paid runs) counted in net profit; failed generation sets `board_packs.status='failed'`; monthly cron computes last month in SAST; valuation EBITDA = TTM revenue − expense claims − payroll (replaces the fixed 12% margin); `business_type` mapped onto sector multiples; page renders the five real drivers (/20) and warnings. CI ratchet caught two unpaged `payroll_runs` reads — fixed with `allRows`.
+- **#4 Batch 3, close the loops** (`b6b2350`, no migration): `PATCH /api/disciplinary/[id]` (employee or HR acknowledges once, first timestamp stands) + `GET /api/disciplinary/mine`; `PATCH /api/staff/[id]` offboard/reactivate (`active` flag, unused invites revoked); `PATCH /api/safety/[id]` close-out, IOD reported completes the COIDA W.Cl.2 reminder; `PATCH`/`DELETE /api/licenses/[id]` edit/renew (closes the old reminder) and soft delete. New role-matrix action `ir.own` (MEMBER). UI: "Mark as acknowledged" on IR log, Offboard/Reactivate on staff profile (`components/ui/ActionButton.tsx`).
+
+### Known gaps / not verified
+- **No UI yet:** safety update form, licence edit/renew form, employee IR screen in the Expo app (the three routes have no caller).
+- COIDA reminder completion matches by title + incident date (compliance items carry no incident id): two same-day incidents could both complete.
+- Valuation/board-pack revenue still uses invoice `created_at` and gross `amount` (not payment date, not ex-VAT) — audit items left open.
+- Valuation trend "Now" bar is still a fixed 60px.
+- Production deploy of #3 and #4 **not confirmed** (the Vercel↔GitHub webhook has stopped firing before; see memory). End-to-end flows not run against live data.
+
+### Next
+Batch 4 AI cost safety (Langa history cap + budget estimate + sanitise, autonomy read path fails closed) → Batch 5 documents/tasks/bookings → Batch 6 contacts/consent (**migration**) → Batch 7 billing lifecycle (**payment flow, needs approval**) → Batch 8 community RLS (**prod migration, needs approval**). Also: build the missing Batch 3 UI.
