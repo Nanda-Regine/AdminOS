@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { writeAuditLog, getClientIp } from '@/lib/security/audit'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
@@ -65,6 +66,7 @@ export async function POST(request: Request) {
     .single()
 
   if (error) return dbError(error)
+  await writeAuditLog({ tenantId, actor: user.id, action: 'social.account_connected', resourceType: 'social_account', resourceId: data.id, ipAddress: getClientIp(request) })
   return NextResponse.json(data, { status: 201 })
 }
 
@@ -90,5 +92,6 @@ export async function DELETE(request: Request) {
     .eq('platform', platform)
 
   if (error) return dbError(error)
+  await writeAuditLog({ tenantId, actor: user.id, action: 'social.account_disconnected', resourceType: 'social_account', ipAddress: getClientIp(request) })
   return new NextResponse(null, { status: 204 })
 }

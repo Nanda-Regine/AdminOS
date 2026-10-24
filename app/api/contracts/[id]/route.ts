@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
 import { guard, dbError } from '@/lib/api/guard'
+import { writeAuditLog, getClientIp } from '@/lib/security/audit'
 
 const updateSchema = z.object({
   title:         z.string().min(1).max(500).optional(),
@@ -53,6 +54,23 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     return NextResponse.json({ error: 'Invalid request', detail: e }, { status: 400 })
   }
 
+  // A contract's terms are evidence once anyone has signed: after a signature
+  // only its status may move on (expired / cancelled). Before Session 20 the
+  // content, value and dates of a SIGNED contract could be rewritten here.
+  const { data: current } = await supabaseAdmin
+    .from('contracts').select('status').eq('id', id).eq('tenant_id', tenantId).is('deleted_at', null).maybeSingle()
+  if (!current) return NextResponse.json({ error: 'Contract not found' }, { status: 404 })
+  const { count: signedCount } = await supabaseAdmin
+    .from('contract_signatures').select('id', { count: 'exact', head: true }).eq('contract_id', id).not('signed_at', 'is', null)
+  const termsLocked = current.status === 'signed' || current.status === 'partially_signed' || (signedCount ?? 0) > 0
+  const editsTerms = ['title', 'contractType', 'content', 'value', 'startDate', 'endDate', 'autoRenew'].some((k) => body[k as keyof typeof body] !== undefined)
+  if (termsLocked && editsTerms) {
+    return NextResponse.json({ error: 'This contract has been signed, so its terms can no longer be changed. Create a new contract or an addendum instead.' }, { status: 409 })
+  }
+  if (termsLocked && body.status !== undefined && !['expired', 'cancelled', current.status].includes(body.status)) {
+    return NextResponse.json({ error: 'A signed contract can only be marked expired or cancelled.' }, { status: 409 })
+  }
+
   const updates: Record<string, unknown> = {}
   if (body.title        !== undefined) updates.title         = body.title
   if (body.contractType !== undefined) updates.contract_type = body.contractType
@@ -75,5 +93,12 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     .single()
 
   if (error) return dbError(error)
+  await writeAuditLog({
+    tenantId, actor: user.id, action: 'contract.updated', resourceType: 'contract', resourceId: id,
+    ipAddress: getClientIp(request),
+    metadata: { fields: Object.keys(updates), from_status: current.status, to_status: body.status },
+    // Marking a contract signed by hand (paper signature) is legal evidence.
+    critical: body.status === 'signed',
+  })
   return NextResponse.json(data)
 }

@@ -1,0 +1,242 @@
+[
+ {
+  "vp": "desktop",
+  "name": "dashboard",
+  "status": 200,
+  "landed": "/dashboard",
+  "ms": 26375,
+  "overflow": 0,
+  "errs": [
+   "Loading the script 'https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092' violates the following Content Security "
+  ],
+  "errorText": false
+ },
+ {
+  "vp": "desktop",
+  "name": "invoices",
+  "status": 200,
+  "landed": "/dashboard/invoices",
+  "ms": 11943,
+  "overflow": 0,
+  "errs": [
+   "Loading the script 'https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092' violates the following Content Security "
+  ],
+  "errorText": false
+ },
+ {
+  "vp": "desktop",
+  "name": "money",
+  "status": 200,
+  "landed": "/dashboard/money",
+  "ms": 10979,
+  "overflow": 0,
+  "errs": [
+   "Loading the script 'https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092' violates the following Content Security "
+  ],
+  "errorText": false
+ },
+ {
+  "vp": "desktop",
+  "name": "cashflow",
+  "status": 200,
+  "landed": "/dashboard/cashflow",
+  "ms": 9877,
+  "overflow": 0,
+  "errs": [
+   "Loading the script 'https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092' violates the following Content Security "
+  ],
+  "errorText": false
+ },
+ {
+  "vp": "desktop",
+  "name": "compliance",
+  "status": 200,
+  "landed": "/dashboard/compliance",
+  "ms": 11237,
+  "overflow": 0,
+  "errs": [
+   "Loading the script 'https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092' violates the following Content Security "
+  ],
+  "errorText": false
+ },
+ {
+  "vp": "desktop",
+  "name": "bookings",
+  "status": 200,
+  "landed": "/dashboard/bookings",
+  "ms": 12403,
+  "overflow": 0,
+  "errs": [
+   "Loading the script 'https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092' violates the following Content Security "
+  ],
+  "errorText": false
+ },
+ {
+  "vp": "desktop",
+  "name": "inventory",
+  "status": 200,
+  "landed": "/dashboard/inventory",
+  "ms": 10962,
+  "overflow": 0,
+  "errs": [
+   "Loading the script 'https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092' violates the following Content Security "
+  ],
+  "errorText": false
+ },
+ {
+  "vp": "desktop",
+  "name": "tasks",
+  "status": 200,
+  "landed": "/dashboard/tasks",
+  "ms": 8630,
+  "overflow": 0,
+  "errs": [
+   "Loading the script 'https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092' violates the following Content Security "
+  ],
+  "errorText": false
+ },
+ {
+  "vp": "desktop",
+  "name": "goals",
+  "status": 200,
+  "landed": "/dashboard/getting-started",
+  "ms": 10193,
+  "overflow": 0,
+  "errs": [
+   "Loading the script 'https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092' violates the following Content Security "
+  ],
+  "errorText": false
+ },
+ {
+  "vp": "desktop",
+  "name": "health",
+  "status": 200,
+  "landed": "/dashboard/health",
+  "ms": 9630,
+  "overflow": 0,
+  "errs": [
+   "Loading the script 'https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092' violates the following Content Security "
+  ],
+  "errorText": false
+ },
+ {
+  "vp": "mobile",
+  "name": "dashboard",
+  "status": 200,
+  "landed": "/dashboard",
+  "ms": 10556,
+  "overflow": 0,
+  "errs": [
+   "Loading the script 'https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092' violates the following Content Security "
+  ],
+  "errorText": false
+ },
+ {
+  "vp": "mobile",
+  "name": "invoices",
+  "status": 200,
+  "landed": "/dashboard/invoices",
+  "ms": 9390,
+  "overflow": 0,
+  "errs": [
+   "Loading the script 'https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092' violates the following Content Security "
+  ],
+  "errorText": false
+ },
+ {
+  "vp": "mobile",
+  "name": "money",
+  "status": 200,
+  "landed": "/dashboard/money",
+  "ms": 7711,
+  "overflow": 0,
+  "errs": [
+   "Loading the script 'https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092' violates the following Content Security "
+  ],
+  "errorText": false
+ },
+ {
+  "vp": "mobile",
+  "name": "cashflow",
+  "status": 200,
+  "landed": "/dashboard/cashflow",
+  "ms": 10192,
+  "overflow": 0,
+  "errs": [
+   "Loading the script 'https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092' violates the following Content Security "
+  ],
+  "errorText": false
+ },
+ {
+  "vp": "mobile",
+  "name": "compliance",
+  "status": 200,
+  "landed": "/dashboard/compliance",
+  "ms": 8924,
+  "overflow": 0,
+  "errs": [
+   "Loading the script 'https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092' violates the following Content Security "
+  ],
+  "errorText": false
+ },
+ {
+  "vp": "mobile",
+  "name": "bookings",
+  "status": 200,
+  "landed": "/dashboard/bookings",
+  "ms": 9941,
+  "overflow": 0,
+  "errs": [
+   "Loading the script 'https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092' violates the following Content Security "
+  ],
+  "errorText": false
+ },
+ {
+  "vp": "mobile",
+  "name": "inventory",
+  "status": 200,
+  "landed": "/dashboard/inventory",
+  "ms": 8678,
+  "overflow": 0,
+  "errs": [
+   "Loading the script 'https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092' violates the following Content Security "
+  ],
+  "errorText": false
+ },
+ {
+  "vp": "mobile",
+  "name": "tasks",
+  "status": 200,
+  "landed": "/dashboard/tasks",
+  "ms": 8239,
+  "overflow": 0,
+  "errs": [
+   "Loading the script 'https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092' violates the following Content Security "
+  ],
+  "errorText": false
+ },
+ {
+  "vp": "mobile",
+  "name": "goals",
+  "status": 200,
+  "landed": "/dashboard/getting-started",
+  "ms": 9389,
+  "overflow": 0,
+  "errs": [
+   "Loading the script 'https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092' violates the following Content Security "
+  ],
+  "errorText": false
+ },
+ {
+  "vp": "mobile",
+  "name": "health",
+  "status": 200,
+  "landed": "/dashboard/health",
+  "ms": 9358,
+  "overflow": 0,
+  "errs": [
+   "Loading the script 'https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092' violates the following Content Security "
+  ],
+  "errorText": false
+ }
+]

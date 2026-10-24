@@ -169,7 +169,7 @@ export default async function HealthPage() {
                     })}
                   </p>
                   <p className="text-xs text-[var(--text-dim)] mt-2">
-                    Benchmark: South African SME average is ~55/100. Scores above 70 indicate strong business health.
+                    Scores above 70 indicate strong business health.
                   </p>
                   <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2">
                     {DIMENSION_LABELS.map(({ key, label, color }) => {

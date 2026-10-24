@@ -28,9 +28,13 @@ export const bookingReminderFunction = inngest.createFunction(
       return data
     })
 
-    // Only proceed for confirmed bookings
-    if (booking.status === 'cancelled') {
-      return { booking_id, skipped: true, reason: 'cancelled' }
+    // Only live, future bookings get a reminder (a back-dated entry made for
+    // the record must not text the customer about a visit that's over).
+    if (booking.status !== 'confirmed' && booking.status !== 'pending') {
+      return { booking_id, skipped: true, reason: booking.status }
+    }
+    if (new Date(booking.start_at).getTime() <= Date.now()) {
+      return { booking_id, skipped: true, reason: 'in_the_past' }
     }
 
     // Calculate sleep duration: wake up 24h before start_at
@@ -53,7 +57,7 @@ export const bookingReminderFunction = inngest.createFunction(
       return data
     })
 
-    if (!freshBooking || freshBooking.status === 'cancelled') {
+    if (!freshBooking || !['confirmed', 'pending'].includes(freshBooking.status as string)) {
       return { booking_id, skipped: true, reason: 'cancelled_before_reminder' }
     }
 

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { writeAuditLog, getClientIp } from '@/lib/security/audit'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
@@ -96,5 +97,6 @@ export async function POST(request: Request) {
     .single()
 
   if (error) return dbError(error)
+  await writeAuditLog({ tenantId, actor: user.id, action: 'kb.article_created', resourceType: 'kb_article', resourceId: data.id, ipAddress: getClientIp(request) })
   return NextResponse.json(data, { status: 201 })
 }

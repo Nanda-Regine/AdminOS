@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server'
+import { writeAuditLog, getClientIp } from '@/lib/security/audit'
+import { inngest } from '@/inngest/client'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { checkRateLimit } from '@/lib/security/rateLimit'
 import { z } from 'zod'
@@ -166,6 +168,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
     console.error('[book] booking insert failed', bookingError)
     return NextResponse.json({ error: 'Could not confirm the booking — please try again' }, { status: 500 })
   }
+
+  // Schedule the 24h reminder (it was never fired for bookings created here)
+  // and leave a trace of the public booking.
+  await inngest.send({ name: 'adminos/booking.confirmed', data: { tenant_id: tenantId, booking_id: booking.id } })
+    .catch((e) => console.error('[book] reminder schedule failed', e))
+  await writeAuditLog({ tenantId, actor: 'public_booking', action: 'booking.created_public', resourceType: 'booking', resourceId: booking.id, ipAddress: getClientIp(request) })
 
   return NextResponse.json(
     {

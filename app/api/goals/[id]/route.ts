@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { writeAuditLog, getClientIp } from '@/lib/security/audit'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
@@ -57,5 +58,6 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     checkAchievements({ tenantId, userId: user.id, event: 'goal.completed' }).catch(() => null)
   }
 
+  await writeAuditLog({ tenantId, actor: user.id, action: 'goal.updated', resourceType: 'goal', resourceId: id, ipAddress: getClientIp(request) })
   return NextResponse.json(data)
 }

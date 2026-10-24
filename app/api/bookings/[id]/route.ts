@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { writeAuditLog, getClientIp } from '@/lib/security/audit'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
@@ -42,5 +43,6 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     .single()
 
   if (error) return dbError(error)
+  await writeAuditLog({ tenantId, actor: user.id, action: 'booking.updated', resourceType: 'booking', resourceId: id, ipAddress: getClientIp(request) })
   return NextResponse.json(data)
 }

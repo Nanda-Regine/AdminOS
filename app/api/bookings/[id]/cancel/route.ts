@@ -1,27 +1,22 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import { guard, dbError } from '@/lib/api/guard'
+import { withRoute, unwrap } from '@/lib/api/withRoute'
 
-export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const gate = await guard('bookings.write'); if (gate.denied) return gate.denied
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new NextResponse('Unauthorized', { status: 401 })
-
-  const tenantId = user.app_metadata?.tenant_id as string
-  if (!tenantId) return new NextResponse('No tenant', { status: 400 })
-
-  const { id } = await params
-
-  const { error } = await supabaseAdmin
+// POST /api/bookings/[id]/cancel — the Cancel button (a form post) on Bookings.
+// Session 20: no status check (a completed or already-cancelled booking could
+// be "cancelled" again) and no audit. Only pending/confirmed bookings cancel;
+// anything else just returns to the page unchanged.
+export const POST = withRoute({
+  action: 'bookings.write',
+  audit: 'booking.cancelled',
+  resourceType: 'booking',
+}, async ({ request, ctx, params }) => {
+  unwrap(await supabaseAdmin
     .from('bookings')
     .update({ status: 'cancelled' })
-    .eq('id', id)
-    .eq('tenant_id', tenantId)
-
-  if (error) return dbError(error)
-
-  const origin = new URL(_req.url).origin
-  return NextResponse.redirect(new URL('/dashboard/bookings', origin))
-}
+    .eq('id', params.id)
+    .eq('tenant_id', ctx.tenantId)
+    .is('deleted_at', null)
+    .in('status', ['pending', 'confirmed']))
+  return NextResponse.redirect(new URL('/dashboard/bookings', new URL(request.url).origin), 303)
+})

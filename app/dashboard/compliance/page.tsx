@@ -5,6 +5,7 @@ import { TopBar } from '@/components/dashboard/TopBar'
 import { Card } from '@/components/ui/card'
 import { ComplianceTable, type ComplianceRow } from './ComplianceTable'
 import { checkPermission } from '@/lib/auth/permissions'
+import { effectiveStatus } from '@/lib/compliance/status'
 
 export const metadata = {
   title: 'Compliance Calendar — AdminOS',
@@ -35,11 +36,14 @@ export default async function CompliancePage() {
 
   const { data } = await supabaseAdmin
     .from('compliance_items')
-    .select('id, item_type, title, description, due_date, recurrence, status, penalty_description, completed_at').is('deleted_at', null)
+    .select('id, item_type, title, description, due_date, recurrence, status, penalty_description, completed_at, alert_days_before').is('deleted_at', null)
     .eq('tenant_id', tenantId)
     .order('due_date', { ascending: true, nullsFirst: false })
 
-  const rows = (data ?? []) as ComplianceRow[]
+  // Stored status only refreshes when a row is written; derive it from the date so a
+  // stale row can never read "Upcoming" next to "16 days late".
+  const rows: ComplianceRow[] = ((data ?? []) as (ComplianceRow & { alert_days_before: number | null })[])
+    .map(({ alert_days_before, ...r }) => ({ ...r, status: effectiveStatus(r.status, r.due_date, alert_days_before ?? 30) }))
 
   const overdue   = rows.filter(r => r.status === 'overdue').length
   const dueSoon   = rows.filter(r => r.status === 'due').length
@@ -68,7 +72,7 @@ export default async function CompliancePage() {
           <Card>
             <div className="p-4 md:p-5">
               <div className="text-xs uppercase tracking-wide mb-1" style={{ color: 'var(--text-muted)' }}>
-                Next deadline
+                {next.status === 'overdue' ? 'Overdue — act now' : 'Next deadline'}
               </div>
               <div className="text-base md:text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>
                 {next.title}

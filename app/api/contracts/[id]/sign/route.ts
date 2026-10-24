@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
 import { dbError } from '@/lib/api/guard'
+import { createHash } from 'node:crypto'
+import { writeAuditLog } from '@/lib/security/audit'
 
 // @public — contract signing by per-signer token. The signing model lives in `contract_signatures`
 // (one row per signer, each with its own auto-generated `token`), NOT on the
@@ -81,6 +83,17 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   }
   if (invite.signed_at) return NextResponse.json({ error: 'This contract has already been signed' }, { status: 409 })
 
+  // What exactly is being signed. Hashed into the audit trail with the
+  // signer, IP and time, so the signed terms can be proven later. Terms lock
+  // once signing starts (PATCH /api/contracts/[id]). (Which ECTA standard a
+  // simple e-signature meets is a Workstream F check.)
+  const { data: contract } = await supabaseAdmin
+    .from('contracts').select('id, tenant_id, title, content, status').eq('id', id).is('deleted_at', null).maybeSingle()
+  if (!contract || contract.status === 'cancelled' || contract.status === 'expired') {
+    return NextResponse.json({ error: 'This contract is no longer available for signing' }, { status: 410 })
+  }
+  const contentHash = createHash('sha256').update(JSON.stringify({ title: contract.title, content: contract.content })).digest('hex')
+
   const signedAt = new Date().toISOString()
 
   // Record this signer's signature on their invite row.
@@ -104,12 +117,21 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     .is('signed_at', null)
 
   const fullySigned = !outstanding || outstanding.length === 0
-  if (fullySigned) {
-    await supabaseAdmin
-      .from('contracts')
-      .update({ status: 'signed', signed_at: signedAt })
-      .eq('id', id)
-  }
+  await supabaseAdmin
+    .from('contracts')
+    .update(fullySigned ? { status: 'signed', signed_at: signedAt } : { status: 'partially_signed' })
+    .eq('id', id)
+
+  await writeAuditLog({
+    tenantId: contract.tenant_id,
+    actor: `signer:${invite.id}`,
+    action: 'contract.signed',
+    resourceType: 'contract',
+    resourceId: id,
+    ipAddress: clientIp(request) ?? undefined,
+    metadata: { signer_name: body.signerName, signer_email: invite.signer_email, content_sha256: contentHash, signed_at: signedAt, fully_signed: fullySigned },
+    critical: true,
+  }).catch((e) => console.error('[contract sign] evidence audit failed', e))
 
   return NextResponse.json({ success: true, signed_at: signedAt, fullySigned })
 }

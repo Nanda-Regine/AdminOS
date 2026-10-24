@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { writeAuditLog, getClientIp } from '@/lib/security/audit'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
@@ -125,5 +126,6 @@ export async function PATCH(request: Request) {
     checkAchievements({ tenantId, userId: user.id, event: 'formalization.complete' }).catch(() => null)
   }
 
+  await writeAuditLog({ tenantId, actor: user.id, action: 'formalization.updated', resourceType: 'tenant', resourceId: tenantId, ipAddress: getClientIp(request) })
   return NextResponse.json(data)
 }

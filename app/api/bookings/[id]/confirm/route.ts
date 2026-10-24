@@ -1,36 +1,29 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { inngest } from '@/inngest/client'
-import { guard, dbError } from '@/lib/api/guard'
+import { withRoute, unwrap } from '@/lib/api/withRoute'
 
-export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const gate = await guard('bookings.write'); if (gate.denied) return gate.denied
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new NextResponse('Unauthorized', { status: 401 })
-
-  const tenantId = user.app_metadata?.tenant_id as string
-  if (!tenantId) return new NextResponse('No tenant', { status: 400 })
-
-  const { id } = await params
-
-  const { data, error } = await supabaseAdmin
+// POST /api/bookings/[id]/confirm — the Confirm button (a form post).
+// Session 20: every press re-confirmed and re-fired booking.confirmed, so the
+// customer could get the 24h reminder several times; a cancelled booking could
+// be confirmed back. Only a pending booking confirms, and only then is the
+// reminder scheduled.
+export const POST = withRoute({
+  action: 'bookings.write',
+  audit: 'booking.confirmed',
+  resourceType: 'booking',
+}, async ({ request, ctx, params }) => {
+  const confirmed = unwrap(await supabaseAdmin
     .from('bookings')
     .update({ status: 'confirmed' })
-    .eq('id', id)
-    .eq('tenant_id', tenantId)
-    .select()
-    .single()
-
-  if (error) return dbError(error)
-
-  // Fire event so bookingReminder function can schedule the 24h reminder
-  await inngest.send({
-    name: 'adminos/booking.confirmed',
-    data: { tenant_id: tenantId, booking_id: id },
-  })
-
-  const origin = new URL(_req.url).origin
-  return NextResponse.redirect(new URL('/dashboard/bookings', origin))
-}
+    .eq('id', params.id)
+    .eq('tenant_id', ctx.tenantId)
+    .is('deleted_at', null)
+    .eq('status', 'pending')
+    .select('id')
+    .maybeSingle())
+  if (confirmed) {
+    await inngest.send({ name: 'adminos/booking.confirmed', data: { tenant_id: ctx.tenantId, booking_id: params.id } })
+  }
+  return NextResponse.redirect(new URL('/dashboard/bookings', new URL(request.url).origin), 303)
+})

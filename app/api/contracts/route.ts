@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { writeAuditLog, getClientIp } from '@/lib/security/audit'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
@@ -121,5 +122,6 @@ export async function POST(request: Request) {
 
   fireBusinessEvent('contract.created', tenantId, user.id)
 
+  await writeAuditLog({ tenantId, actor: user.id, action: 'contract.created', resourceType: 'contract', resourceId: contract.id, ipAddress: getClientIp(request) })
   return NextResponse.json({ contract, signatures, warnings: contractWarnings }, { status: 201 })
 }

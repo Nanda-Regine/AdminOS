@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { writeAuditLog, getClientIp } from '@/lib/security/audit'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { checkPermission } from '@/lib/auth/permissions'
@@ -94,6 +95,11 @@ export async function POST(request: Request) {
       .eq('id', tenantId)
   }
 
+  await writeAuditLog({
+    tenantId, actor: user.id, action: isDowngrade ? 'billing.plan_downgraded' : 'billing.plan_upgrade_requested',
+    resourceType: 'tenant', resourceId: tenantId, ipAddress: getClientIp(request),
+    metadata: { from: previousPlan, to: body.newPlan, reason: body.reason ?? 'user_requested' },
+  })
   return NextResponse.json({
     previous_plan: previousPlan,
     new_plan:      body.newPlan,

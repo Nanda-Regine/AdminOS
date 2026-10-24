@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server'
+import { inngest } from '@/inngest/client'
+import { writeAuditLog, getClientIp } from '@/lib/security/audit'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
@@ -104,5 +106,10 @@ export async function POST(request: Request) {
     .single()
 
   if (error) return dbError(error)
+  // Bookings are created confirmed, so this is where the 24h reminder is
+  // scheduled. (Only /confirm fired it, and only for 'pending' bookings —
+  // which nothing creates — so no booking was ever reminded.)
+  await inngest.send({ name: 'adminos/booking.confirmed', data: { tenant_id: tenantId, booking_id: data.id } })
+  await writeAuditLog({ tenantId, actor: user.id, action: 'booking.created', resourceType: 'booking', resourceId: data.id, ipAddress: getClientIp(request) })
   return NextResponse.json(data, { status: 201 })
 }

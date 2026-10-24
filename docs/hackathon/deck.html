@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>AdminOS — FNB App Hackathon pitch</title>
+<style>
+@page { size: 1920px 1080px; margin: 0 }
+* { box-sizing: border-box; margin: 0; padding: 0 }
+:root { --bg:#0a0f1f; --card:#121a33; --line:#25305a; --ink:#f4f6ff; --mute:#9aa6cf; --ind:#6366f1; --em:#34d399; --gold:#e0b84a }
+body { background:#000; font-family:'Segoe UI',Inter,system-ui,sans-serif; color:var(--ink) }
+.slide { width:1920px; height:1080px; position:relative; overflow:hidden; page-break-after:always; break-after:page;
+  background:radial-gradient(1200px 700px at 85% -10%, #1d2a6b55, transparent), radial-gradient(900px 600px at -10% 110%, #0f5a4a40, transparent), var(--bg); padding:90px 110px }
+.kicker { font-size:24px; letter-spacing:.22em; text-transform:uppercase; color:var(--em); font-weight:700; margin-bottom:22px }
+h1 { font-size:112px; line-height:1.02; font-weight:800; letter-spacing:-.03em }
+h2 { font-size:68px; line-height:1.08; font-weight:800; letter-spacing:-.02em; max-width:1500px }
+p, li { font-size:32px; line-height:1.45; color:#d5dbf5 }
+.mute { color:var(--mute) }
+.grad { background:linear-gradient(90deg,#818cf8,#34d399); -webkit-background-clip:text; background-clip:text; color:transparent }
+.foot { position:absolute; left:110px; right:110px; bottom:46px; display:flex; justify-content:space-between; font-size:20px; color:var(--mute) }
+.row { display:flex; gap:60px; align-items:center }
+.col { flex:1 }
+.card { background:var(--card); border:1px solid var(--line); border-radius:26px; padding:36px 40px }
+.card h3 { font-size:34px; margin-bottom:12px }
+.card p { font-size:27px }
+.grid { display:grid; gap:30px }
+.g2 { grid-template-columns:1fr 1fr } .g3 { grid-template-columns:repeat(3,1fr) } .g4 { grid-template-columns:repeat(4,1fr) }
+.shot { border-radius:20px; border:1px solid var(--line); box-shadow:0 30px 80px #000a; display:block }
+.phone { border-radius:44px; border:10px solid #1b2347; box-shadow:0 30px 80px #000a; display:block }
+.num { font-size:92px; font-weight:800; letter-spacing:-.03em }
+.pill { display:inline-block; padding:8px 22px; border-radius:99px; font-size:22px; font-weight:700; border:1px solid }
+.live { color:var(--em); border-color:#34d39966; background:#34d39914 } .next { color:var(--gold); border-color:#e0b84a66; background:#e0b84a14 }
+ul { list-style:none } li { padding-left:44px; position:relative; margin:16px 0 }
+li::before { content:'✓'; position:absolute; left:0; color:var(--em); font-weight:800 }
+.big { font-size:44px; line-height:1.3; color:var(--ink); font-weight:600 }
+table { width:100%; border-collapse:collapse; font-size:28px } td,th { padding:16px 18px; text-align:left; border-bottom:1px solid var(--line) } th { color:var(--mute); font-weight:600; font-size:22px; letter-spacing:.08em; text-transform:uppercase }
+</style></head><body>
+
+<!-- 1 TITLE -->
+<section class="slide" style="display:flex;flex-direction:column;justify-content:center">
+  <div class="kicker">FNB App Hackathon · Youth Entrepreneurship &amp; Small Business Growth</div>
+  <h1>Admin<span class="grad">OS</span></h1>
+  <p class="big" style="margin-top:34px;max-width:1350px">The WhatsApp-native business OS that takes a young South African founder from <span class="grad">“I have an idea”</span> to <span class="grad">“I run a business”</span>.</p>
+  <p class="mute" style="margin-top:60px;font-size:26px">Mirembe Muse (Pty) Ltd · East London, Eastern Cape · Nandawula Regine, founder<br>Live at adminos.co.za · github.com/Nanda-Regine/AdminOS</p>
+</section>
+
+<!-- 2 PROBLEM -->
+<section class="slide">
+  <div class="kicker">The problem</div>
+  <h2>Starting a business is the easy part. <span class="grad">Staying alive</span> is what nobody teaches.</h2>
+  <div class="grid g2" style="margin-top:70px">
+    <div class="card"><h3>💸 Cash is trapped</h3><p>Customers owe money, the founder is too polite (or too busy) to chase it, and rent is due on the 1st.</p></div>
+    <div class="card"><h3>⚠️ Deadlines nobody warned them about</h3><p>SARS, CIPC and COIDA penalties arrive before the founder knows the deadline existed.</p></div>
+    <div class="card"><h3>📓 No records, no funding</h3><p>A WhatsApp chat and a notebook can't show a lender, a funder or a bank that the business is real.</p></div>
+    <div class="card"><h3>📱 Five apps they can't afford</h3><p>Invoicing here, payroll there, chat somewhere else — built for US businesses, not for load-shedding and prepaid data.</p></div>
+  </div>
+  <div class="foot"><span>AdminOS</span><span>02</span></div>
+</section>
+
+<!-- 3 INSIGHT -->
+<section class="slide">
+  <div class="kicker">The idea</div>
+  <h2>One loop. <span class="grad">Get paid → stay compliant → know your numbers → grow.</span></h2>
+  <div class="grid g4" style="margin-top:80px">
+    <div class="card"><div class="num" style="color:var(--em)">1</div><h3>Get paid</h3><p>Invoice in seconds. An AI agent chases the oldest debt first, politely, on WhatsApp.</p></div>
+    <div class="card"><div class="num" style="color:#818cf8">2</div><h3>Stay compliant</h3><p>Every SARS, CIPC and COIDA deadline pre-loaded — with the real penalty for missing it.</p></div>
+    <div class="card"><div class="num" style="color:var(--gold)">3</div><h3>Know the numbers</h3><p>A daily brief, a health score and accountant-ready exports, categorised from day one.</p></div>
+    <div class="card"><div class="num" style="color:#f472b6">4</div><h3>Grow</h3><p>Goals, bookings, stock, staff and payroll — the business scales without the admin scaling with it.</p></div>
+  </div>
+  <p class="mute" style="margin-top:60px;font-size:28px">Every step produces clean data. Clean data is what turns a hustle into something a bank can say yes to.</p>
+  <div class="foot"><span>AdminOS</span><span>03</span></div>
+</section>
+
+<!-- 4 COMMAND CENTER -->
+<section class="slide">
+  <div class="row" style="height:100%">
+    <div style="width:700px">
+      <div class="kicker">The product · live today</div>
+      <h2 style="font-size:54px">Every morning, <span class="grad">one screen</span> instead of five apps.</h2>
+      <ul style="margin-top:36px"><li>What needs a decision <i>right now</i></li><li>Cash owed, overdue and stuck</li><li>Goals, compliance and team at a glance</li><li>Built mobile-first, works on a 390px Android</li></ul>
+    </div>
+    <div class="col" style="display:flex;gap:40px;align-items:center;justify-content:flex-end">
+      <img class="shot" src="screens/dashboard__desktop.png" style="width:900px">
+      <img class="phone" src="screens/dashboard__mobile.png" style="width:270px">
+    </div>
+  </div>
+</section>
+
+<!-- 5 GET PAID -->
+<section class="slide">
+  <div class="row" style="height:100%">
+    <div style="width:780px">
+      <div class="kicker">1 · Get paid</div>
+      <h2 style="font-size:50px">The cash you’ve <span class="grad">already earned</span> — collected.</h2>
+      <p style="margin-top:22px;font-size:28px">Cash Cockpit tells a founder plainly what they’re owed, what’s stuck, and who to chase first.</p>
+      <ul style="margin-top:20px"><li>Branded tax invoices &amp; payment receipts</li><li>Quick Sale for cash and walk-in customers</li><li>5-tier automated debt recovery agent</li><li>Every rand categorised to a chart of accounts</li></ul>
+    </div>
+    <div class="col" style="display:flex;gap:40px;align-items:center;justify-content:flex-end">
+      <img class="shot" src="screens/money__desktop.png" style="width:860px">
+      <img class="phone" src="screens/money__mobile.png" style="width:290px">
+    </div>
+  </div>
+</section>
+
+<!-- 6 COMPLIANCE -->
+<section class="slide">
+  <div class="row" style="height:100%">
+    <div style="width:700px">
+      <div class="kicker">2 · Stay compliant</div>
+      <h2 style="font-size:60px">The fear every founder has — <span class="grad">answered in one click.</span></h2>
+      <ul style="margin-top:36px"><li>19 SARS, CIPC and COIDA obligations, pre-loaded</li><li>Dates built on SARS-verified rules, rolled forward monthly</li><li>The actual penalty for missing each one</li><li>POPIA consent built into every broadcast</li></ul>
+      <p class="mute" style="margin-top:20px;font-size:26px">No other small-business tool knows what an EMP201 is.</p>
+    </div>
+    <div class="col" style="display:flex;justify-content:flex-end"><img class="shot" src="screens/compliance__desktop.png" style="width:1050px"></div>
+  </div>
+</section>
+
+<!-- 7 NUMBERS -->
+<section class="slide">
+  <div class="row" style="height:100%">
+    <div style="width:700px">
+      <div class="kicker">3 · Know your numbers</div>
+      <h2 style="font-size:60px">Books that are <span class="grad">in order from day one.</span></h2>
+      <ul style="margin-top:36px"><li>Business health score and daily AI brief</li><li>Cashflow, expenses and payables in one place</li><li>Accountant-ready exports: income statement, VAT, journal CSV</li><li>Payroll with PAYE, UIF and SDL</li></ul>
+    </div>
+    <div class="col" style="display:flex;gap:30px;justify-content:flex-end;align-items:center">
+      <img class="shot" src="screens/health__desktop.png" style="width:900px">
+      <img class="shot" src="screens/cashflow__desktop.png" style="width:640px">
+    </div>
+  </div>
+</section>
+
+<!-- 8 GROW -->
+<section class="slide">
+  <div class="kicker">4 · Grow</div>
+  <h2 style="font-size:60px">Run the whole business — <span class="grad">not just the books.</span></h2>
+  <div class="grid g3" style="margin-top:50px">
+    <div><img class="shot" src="screens/bookings__desktop.png" style="width:100%"><p style="margin-top:16px;font-size:26px"><b>Bookings &amp; customers</b> — a public booking link and a 24h reminder.</p></div>
+    <div><img class="shot" src="screens/inventory__desktop.png" style="width:100%"><p style="margin-top:16px;font-size:26px"><b>Stock &amp; suppliers</b> — reorder alerts and a B-BBEE supplier scorecard.</p></div>
+    <div><img class="shot" src="screens/tasks__desktop.png" style="width:100%"><p style="margin-top:16px;font-size:26px"><b>Team &amp; tasks</b> — staff, leave, tasks and goals with progress.</p></div>
+  </div>
+  <div class="foot"><span>AdminOS</span><span>08</span></div>
+</section>
+
+<!-- 9 BUILT FOR SA -->
+<section class="slide">
+  <div class="row" style="height:100%">
+    <div style="width:980px">
+      <div class="kicker">Built for how South Africans actually work</div>
+      <h2 style="font-size:60px">Designed for the <span class="grad">mid-range Android</span> on prepaid data.</h2>
+      <div class="grid g2" style="margin-top:40px;gap:24px">
+        <div class="card"><h3>💬 WhatsApp-native</h3><p>Customers, reminders and payslips travel on the channel everyone already uses.</p></div>
+        <div class="card"><h3>🗣️ 4 languages</h3><p>English, isiZulu, isiXhosa and Afrikaans — including the onboarding guide.</p></div>
+        <div class="card"><h3>🔌 Load-shedding ready</h3><p>PWA with offline queue — actions retry when the signal returns.</p></div>
+        <div class="card"><h3>📲 Staff app</h3><p>Expo Android app prepared for Google Play and Huawei AppGallery.</p></div>
+      </div>
+    </div>
+    <div class="col" style="display:flex;gap:30px;justify-content:flex-end"><img class="phone" src="screens/goals__mobile.png" style="width:330px"><img class="phone" src="screens/invoices__mobile.png" style="width:330px"></div>
+  </div>
+</section>
+
+<!-- 10 PROOF -->
+<section class="slide">
+  <div class="kicker">Proof it’s real</div>
+  <h2 style="font-size:62px">Not a prototype. <span class="grad">A product in production.</span></h2>
+  <div class="grid g4" style="margin-top:60px">
+    <div class="card"><div class="num grad">50+</div><p>dashboard screens, live at adminos.co.za</p></div>
+    <div class="card"><div class="num grad">171</div><p>automated tests passing</p></div>
+    <div class="card"><div class="num grad">122/122</div><p>checks passed walking 7 industry personas on production</p></div>
+    <div class="card"><div class="num grad">38</div><p>background automations (reminders, recovery, rollovers)</p></div>
+  </div>
+  <div class="grid g3" style="margin-top:34px">
+    <div class="card"><h3>🔒 Tenant isolation</h3><p>Row-level security on every table; a regression gate checks who can see what, per role.</p></div>
+    <div class="card"><h3>🧑🏾‍💼 A real first user</h3><p>A Johannesburg video-production founder runs her business on it today.</p></div>
+    <div class="card"><h3>⚖️ POPIA by design</h3><p>Consent layer for outbound messaging; no raw database errors ever reach users.</p></div>
+  </div>
+  <div class="foot"><span>AdminOS</span><span>10</span></div>
+</section>
+
+<!-- 11 FNB -->
+<section class="slide">
+  <div class="kicker">Where a bank makes this unstoppable</div>
+  <h2 style="font-size:62px">From “books in order” to <span class="grad">“ready for credit.”</span></h2>
+  <table style="margin-top:50px">
+    <tr><th style="width:520px">Capability</th><th>What it unlocks for a young founder</th><th style="width:190px">Status</th></tr>
+    <tr><td>Invoices, receipts &amp; cash sales</td><td>A clean, categorised record of every rand earned</td><td><span class="pill live">Live</span></td></tr>
+    <tr><td>Compliance calendar &amp; payroll</td><td>Proof the business is registered, tax-aware and trading properly</td><td><span class="pill live">Live</span></td></tr>
+    <tr><td>Bank-statement import</td><td>Upload an FNB, Capitec, ABSA or Tyme CSV; lines categorise themselves and reconcile to invoices</td><td><span class="pill next">Next</span></td></tr>
+    <tr><td>Pay-from-invoice</td><td>Customers pay the invoice from their banking app; it marks itself paid</td><td><span class="pill next">Next</span></td></tr>
+    <tr><td>Credit-readiness profile</td><td>Consented, shareable view of cash flow, compliance and trading history for lenders</td><td><span class="pill next">Next</span></td></tr>
+  </table>
+  <p class="mute" style="margin-top:34px;font-size:26px">The data flywheel: the more a founder runs through AdminOS, the more provable — and bankable — the business becomes.</p>
+  <div class="foot"><span>AdminOS</span><span>11</span></div>
+</section>
+
+<!-- 12 MODEL -->
+<section class="slide">
+  <div class="kicker">Business model</div>
+  <h2 style="font-size:62px">Priced for a founder’s first <span class="grad">R349</span>, not an enterprise budget.</h2>
+  <div class="grid g4" style="margin-top:60px">
+    <div class="card"><h3>Solo</h3><div class="num" style="font-size:64px">R349</div><p class="mute">per month · 1 person</p></div>
+    <div class="card" style="border-color:var(--ind)"><h3>Grow</h3><div class="num" style="font-size:64px">R899</div><p class="mute">up to 5 staff · all 6 AI agents</p></div>
+    <div class="card"><h3>Operate</h3><div class="num" style="font-size:64px">R1,999</div><p class="mute">up to 20 staff · payroll &amp; compliance</p></div>
+    <div class="card"><h3>Scale</h3><div class="num" style="font-size:64px">R3,999</div><p class="mute">up to 100 staff · multi-branch</p></div>
+  </div>
+  <p style="margin-top:44px">14-day free trial · add-ons: AI voice receptionist, WhatsApp broadcasts, client portal, extra languages · billing in ZAR.</p>
+  <p class="mute" style="margin-top:14px;font-size:26px">Distribution: bank, incubator and funder partnerships — one partner brings a cohort of founders onto the platform.</p>
+  <div class="foot"><span>AdminOS</span><span>12</span></div>
+</section>
+
+<!-- 13 CLOSE -->
+<section class="slide" style="display:flex;flex-direction:column;justify-content:center">
+  <div class="kicker">The ask</div>
+  <h2 style="font-size:84px;max-width:1650px">Help us put <span class="grad">a business OS in the pocket</span> of every young South African founder.</h2>
+  <div class="grid g3" style="margin-top:70px">
+    <div class="card"><h3>Try it</h3><p>adminos.co.za</p></div>
+    <div class="card"><h3>Read the code</h3><p>github.com/Nanda-Regine/AdminOS</p></div>
+    <div class="card"><h3>Talk to us</h3><p>Nandawula Regine<br>Mirembe Muse (Pty) Ltd</p></div>
+  </div>
+</section>
+</body></html>
