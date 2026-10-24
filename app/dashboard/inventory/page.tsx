@@ -1,3 +1,4 @@
+import { isLowStock } from '@/lib/inventory/lowStock'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { TopBar } from '@/components/dashboard/TopBar'
@@ -24,7 +25,7 @@ export default async function InventoryPage() {
 
   const { data: rawItems } = await supabaseAdmin
     .from('products')
-    .select('id, tenant_id, name, sku, category, unit, current_stock, reorder_level, cost_price, unit_price, created_at').is('deleted_at', null)
+    .select('id, tenant_id, name, sku, category, unit, current_stock, reorder_level, cost_price, unit_price, active, created_at').is('deleted_at', null)
     .eq('tenant_id', tenantId)
     .order('category')
     .order('name')
@@ -32,7 +33,7 @@ export default async function InventoryPage() {
   const allItems = (rawItems || []) as ProductRow[]
 
   const lowStockItems = allItems.filter(
-    item => Number(item.current_stock) <= Number(item.reorder_level)
+    isLowStock
   )
 
   const totalStockValue = allItems.reduce(
