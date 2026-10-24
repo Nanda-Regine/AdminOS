@@ -7,13 +7,12 @@ import { RefreshButton } from '@/components/ui/RefreshButton'
 import { checkPermission } from '@/lib/auth/permissions'
 
 type Driver = {
-  revenue_growth: number
-  profitability: number
-  cash_flow: number
-  team_quality: number
-  systems: number
-  ip_assets: number
-  market_position: number
+  teachable: number
+  valuable: number
+  repeatable: number
+  scalable: number
+  recurring: number
+  warnings?: string[]
 }
 
 type ValuationSnapshot = {
@@ -25,24 +24,23 @@ type ValuationSnapshot = {
   created_at: string
 }
 
-const DRIVER_LABELS: Record<keyof Driver, string> = {
-  revenue_growth: 'Revenue Growth',
-  profitability: 'Profitability',
-  cash_flow: 'Cash Flow',
-  team_quality: 'Team Quality',
-  systems: 'Systems & Processes',
-  ip_assets: 'IP & Assets',
-  market_position: 'Market Position',
+type DriverKey = 'teachable' | 'valuable' | 'repeatable' | 'scalable' | 'recurring'
+
+// Each driver is scored out of 20 by lib/intelligence/valuation.ts.
+const DRIVER_LABELS: Record<DriverKey, string> = {
+  teachable: 'Documented & teachable (SOPs)',
+  valuable: 'Consistent demand (business health)',
+  repeatable: 'Repeatable delivery (invoice volume)',
+  scalable: 'Scalable (team size)',
+  recurring: 'Recurring revenue (repeat clients)',
 }
 
-const DRIVER_COLORS: Record<keyof Driver, string> = {
-  revenue_growth: 'bg-emerald-500',
-  profitability: 'bg-blue-500',
-  cash_flow: 'bg-cyan-500',
-  team_quality: 'bg-violet-500',
-  systems: 'bg-orange-500',
-  ip_assets: 'bg-pink-500',
-  market_position: 'bg-yellow-500',
+const DRIVER_COLORS: Record<DriverKey, string> = {
+  teachable: 'bg-emerald-500',
+  valuable: 'bg-blue-500',
+  repeatable: 'bg-cyan-500',
+  scalable: 'bg-violet-500',
+  recurring: 'bg-orange-500',
 }
 
 function formatValuation(val: number): string {
@@ -152,12 +150,12 @@ export default async function ValuationPage() {
 
         {/* 7 Value Drivers */}
         <Card>
-          <h3 className="font-semibold text-[var(--text-primary)] mb-5">7 Value Drivers</h3>
+          <h3 className="font-semibold text-[var(--text-primary)] mb-5">5 Value Drivers</h3>
           {drivers ? (
             <div className="space-y-4">
-              {(Object.keys(DRIVER_LABELS) as Array<keyof Driver>).map((key) => {
+              {(Object.keys(DRIVER_LABELS) as DriverKey[]).map((key) => {
                 const score = drivers[key] ?? 0
-                const pct = Math.min(Math.max(score, 0), 100)
+                const pct = Math.round((Math.min(Math.max(score, 0), 20) / 20) * 100)
                 const color = DRIVER_COLORS[key]
                 return (
                   <div key={key}>
@@ -174,6 +172,11 @@ export default async function ValuationPage() {
                   </div>
                 )
               })}
+              {drivers.warnings && drivers.warnings.length > 0 && (
+                <ul className="pt-2 space-y-1.5 text-sm text-amber-400">
+                  {drivers.warnings.map((w) => <li key={w}>⚠ {w}</li>)}
+                </ul>
+              )}
             </div>
           ) : (
             <div className="text-center py-10 text-[var(--text-dim)]">

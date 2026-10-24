@@ -1,6 +1,7 @@
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { sastDate } from '@/lib/time/sast'
 import { allRows } from '@/lib/supabase/fetchAll'
+import { periodBoundsUTC, payrollCostInRange, valuationSector } from '@/lib/intelligence/periodMath'
 
 // Revenue multiples by sector (SA SME context — conservative)
 const REVENUE_MULTIPLES: Record<string, number> = {
@@ -71,6 +72,27 @@ async function getRevenueTTM(tenantId: string): Promise<number> {
   return (data ?? []).reduce((s, inv) => s + Number(inv.amount ?? 0), 0)
 }
 
+/** Real trailing-12-month costs: non-rejected expense claims + employer payroll cost. */
+async function getCostsTTM(tenantId: string): Promise<number> {
+  const today  = sastDate()
+  const yearAgo = sastDate(new Date(Date.now() - 365 * 86400000))
+  const { start, endExclusive } = periodBoundsUTC(yearAgo, today)
+  const [expenses, payroll] = await Promise.all([
+    allRows((lo, hi) => supabaseAdmin
+      .from('expenses').select('amount').is('deleted_at', null)
+      .eq('tenant_id', tenantId).neq('status', 'rejected')
+      .gte('created_at', start).lt('created_at', endExclusive).order('id').range(lo, hi)),
+    allRows((lo, hi) => supabaseAdmin
+      .from('payroll_runs')
+      .select('period_month, period_year, status, total_gross, total_uif_employer, total_sdl')
+      .eq('tenant_id', tenantId).is('deleted_at', null)
+      .in('status', ['finalised', 'paid'])
+      .gte('period_year', +yearAgo.slice(0, 4)).order('id').range(lo, hi)),
+  ])
+  const expenseTotal = (expenses.data ?? []).reduce((s, e) => s + Number(e.amount ?? 0), 0)
+  return expenseTotal + payrollCostInRange(payroll.data ?? [], yearAgo, today)
+}
+
 async function getExitReadiness(tenantId: string): Promise<ExitReadinessResult> {
   const warnings: string[] = []
 
@@ -136,12 +158,13 @@ export async function calculateValuation(tenantId: string): Promise<ValuationRes
     .eq('id', tenantId)
     .single()
 
-  const sector       = tenant?.business_type ?? 'default'
+  const sector       = valuationSector(tenant?.business_type) || 'default'
   const revMult      = REVENUE_MULTIPLES[sector] ?? REVENUE_MULTIPLES.default
   const ebitdaMult   = EBITDA_MULTIPLES[sector]  ?? EBITDA_MULTIPLES.default
 
-  const revenueTTM   = await getRevenueTTM(tenantId)
-  const ebitdaTTM    = revenueTTM * 0.12  // assume 12% EBITDA margin as default; Phase 9 will refine this
+  const [revenueTTM, costsTTM] = await Promise.all([getRevenueTTM(tenantId), getCostsTTM(tenantId)])
+  // Recorded costs only (expense claims + payroll); costs never captured in AdminOS make this optimistic.
+  const ebitdaTTM    = revenueTTM - costsTTM
 
   const revenueValue = revenueTTM * revMult
   const ebitdaValue  = ebitdaTTM  * ebitdaMult

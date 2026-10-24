@@ -5,6 +5,8 @@ import { daysOverdue } from '@/lib/debt/overdue'
 import { checkBudget, recordUsage, getModelForFeature } from '@/lib/ai/costControls'
 import Anthropic from '@anthropic-ai/sdk'
 import { allRows } from '@/lib/supabase/fetchAll'
+import { periodBoundsUTC, payrollCostInRange } from '@/lib/intelligence/periodMath'
+import { sastDate } from '@/lib/time/sast'
 
 const anthropic = new Anthropic()
 
@@ -43,6 +45,7 @@ export const onBoardPackRequested = inngest.createFunction(
       period_label:  string
     }
 
+    try {
     const plan = await step.run('load-tenant-plan', async () => {
       const { data } = await supabaseAdmin.from('tenants').select('plan').eq('id', tenant_id).single()
       return data?.plan ?? 'trial'
@@ -183,6 +186,10 @@ Be specific and data-driven. Mention actual numbers. Keep it under 200 words.`,
     })
 
     return { board_pack_id, status: 'ready' }
+    } catch (err) {
+      await supabaseAdmin.from('board_packs').update({ status: 'failed' }).eq('id', board_pack_id)
+      throw err
+    }
   }
 )
 
@@ -190,10 +197,14 @@ Be specific and data-driven. Mention actual numbers. Keep it under 200 words.`,
 export const boardPackMonthlyCron = inngest.createFunction(
   { id: 'board-pack-monthly', retries: 1, triggers: [{ cron: '0 6 1 * *' }] },
   async ({ step }: any) => {
-    const today      = new Date()
-    const lastMonth  = new Date(today.getFullYear(), today.getMonth() - 1, 1)
-    const monthEnd   = new Date(today.getFullYear(), today.getMonth(), 0)
-    const monthLabel = lastMonth.toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg', month: 'long', year: 'numeric' })
+    // Previous calendar month in SAST (cron fires 06:00 UTC on the 1st).
+    const [ty, tm]   = sastDate().split('-').map(Number)
+    const pad        = (n: number) => String(n).padStart(2, '0')
+    const py         = tm === 1 ? ty - 1 : ty
+    const pm         = tm === 1 ? 12 : tm - 1
+    const periodStart = `${py}-${pad(pm)}-01`
+    const periodEnd   = `${py}-${pad(pm)}-${pad(new Date(Date.UTC(py, pm, 0)).getUTCDate())}`
+    const monthLabel  = new Date(Date.UTC(py, pm - 1, 15)).toLocaleDateString('en-ZA', { timeZone: 'UTC', month: 'long', year: 'numeric' })
 
     // tenants has no created_by column — the owner is recorded inside the
     // settings JSONB blob (settings.owner_user_id) at tenant-creation time,
@@ -215,8 +226,8 @@ export const boardPackMonthlyCron = inngest.createFunction(
             tenant_id:     tenant.id,
             generated_by:  (tenant.settings as { owner_user_id?: string } | null)?.owner_user_id ?? tenant.id,
             period_label:  monthLabel,
-            period_start:  lastMonth.toISOString().split('T')[0],
-            period_end:    monthEnd.toISOString().split('T')[0],
+            period_start:  periodStart,
+            period_end:    periodEnd,
             pack_data:     {},
             status:        'generating',
           })
@@ -232,8 +243,8 @@ export const boardPackMonthlyCron = inngest.createFunction(
           data: {
             tenant_id:     tenant.id,
             board_pack_id: pack.id,
-            period_start:  lastMonth.toISOString().split('T')[0],
-            period_end:    monthEnd.toISOString().split('T')[0],
+            period_start:  periodStart,
+            period_end:    periodEnd,
             period_label:  monthLabel,
           },
         })
@@ -249,20 +260,37 @@ export const boardPackMonthlyCron = inngest.createFunction(
 // Data gathering helpers
 
 async function gatherFinancials(tenantId: string, from: string, to: string) {
-  const [invoiceData, priorData] = await Promise.all([
+  const { start, endExclusive } = periodBoundsUTC(from, to)
+  const spanMs     = new Date(endExclusive).getTime() - new Date(start).getTime()
+  const priorStart = new Date(new Date(start).getTime() - spanMs).toISOString()
+
+  const [invoiceData, priorData, expenseData, payrollData] = await Promise.all([
     allRows((lo, hi) => supabaseAdmin
       .from('invoices')
       .select('amount, status').is('deleted_at', null)
       .eq('tenant_id', tenantId)
-      .gte('created_at', from)
-      .lte('created_at', to).order('id').range(lo, hi)),
+      .gte('created_at', start)
+      .lt('created_at', endExclusive).order('id').range(lo, hi)),
     allRows((lo, hi) => supabaseAdmin
       .from('invoices')
       .select('amount').is('deleted_at', null)
       .eq('tenant_id', tenantId)
       .eq('status', 'paid')
-      .gte('created_at', new Date(new Date(from).getTime() - (new Date(to).getTime() - new Date(from).getTime())).toISOString())
-      .lt('created_at', from).order('id').range(lo, hi)),
+      .gte('created_at', priorStart)
+      .lt('created_at', start).order('id').range(lo, hi)),
+    allRows((lo, hi) => supabaseAdmin
+      .from('expenses')
+      .select('amount').is('deleted_at', null)
+      .eq('tenant_id', tenantId)
+      .neq('status', 'rejected')   // a rejected claim was never a cost
+      .gte('created_at', start)
+      .lt('created_at', endExclusive).order('id').range(lo, hi)),
+    allRows((lo, hi) => supabaseAdmin
+      .from('payroll_runs')
+      .select('period_month, period_year, status, total_gross, total_uif_employer, total_sdl')
+      .eq('tenant_id', tenantId).is('deleted_at', null)
+      .in('status', ['finalised', 'paid'])
+      .gte('period_year', +from.slice(0, 4)).lte('period_year', +to.slice(0, 4)).order('id').range(lo, hi)),
   ])
 
   const revenue  = (invoiceData.data ?? [])
@@ -273,16 +301,9 @@ async function gatherFinancials(tenantId: string, from: string, to: string) {
   const priorRevenue = (priorData.data ?? [])
     .reduce((s, i) => s + Number(i.amount ?? 0), 0)
 
-  // Approximate expenses via payroll + any expense records
-  const { data: expenses } = await allRows((lo, hi) => supabaseAdmin
-    .from('expenses')
-    .select('amount').is('deleted_at', null)
-    .eq('tenant_id', tenantId)
-    .neq('status', 'rejected')   // a rejected claim was never a cost
-    .gte('created_at', from)
-    .lte('created_at', to).order('id').range(lo, hi))
-
-  const totalExpenses = (expenses ?? []).reduce((s, e) => s + Number(e.amount ?? 0), 0)
+  // Costs = expense claims + employer payroll cost for runs in the period
+  const totalExpenses = (expenseData.data ?? []).reduce((s, e) => s + Number(e.amount ?? 0), 0)
+    + payrollCostInRange(payrollData.data ?? [], from, to)
   const netProfit     = revenue - totalExpenses
   const margin        = revenue > 0 ? (netProfit / revenue) * 100 : 0
   const revenueVsPrior = priorRevenue > 0 ? ((revenue - priorRevenue) / priorRevenue) * 100 : null
@@ -298,13 +319,14 @@ async function gatherFinancials(tenantId: string, from: string, to: string) {
 }
 
 async function gatherCustomers(tenantId: string, from: string, to: string) {
+  const { start, endExclusive } = periodBoundsUTC(from, to)
   const { count: newCount } = await supabaseAdmin
     .from('contacts')
     .select('*', { count: 'exact', head: true }).is('deleted_at', null)
     .eq('tenant_id', tenantId)
     .eq('contact_type', 'client')
-    .gte('created_at', from)
-    .lte('created_at', to)
+    .gte('created_at', start)
+    .lt('created_at', endExclusive)
 
   const { count: activeCount } = await supabaseAdmin
     .from('contacts')
@@ -317,8 +339,8 @@ async function gatherCustomers(tenantId: string, from: string, to: string) {
     .select('score')
     .eq('tenant_id', tenantId)
     .not('score', 'is', null)
-    .gte('responded_at', from)
-    .lte('responded_at', to)
+    .gte('responded_at', start)
+    .lt('responded_at', endExclusive)
 
   const npsAvg = npsData?.length
     ? npsData.reduce((s, n) => s + (n.score ?? 0), 0) / npsData.length
@@ -333,6 +355,7 @@ async function gatherCustomers(tenantId: string, from: string, to: string) {
 }
 
 async function gatherInvoices(tenantId: string, from: string, to: string) {
+  const { start, endExclusive } = periodBoundsUTC(from, to)
   const { data } = await allRows((lo, hi) => supabaseAdmin
     .from('invoices')
     .select('amount, amount_paid, status, due_date')
@@ -340,8 +363,8 @@ async function gatherInvoices(tenantId: string, from: string, to: string) {
     .is('deleted_at', null)
     .neq('status', 'draft')
     .neq('status', 'cancelled')
-    .gte('created_at', from)
-    .lte('created_at', to).order('id').range(lo, hi))
+    .gte('created_at', start)
+    .lt('created_at', endExclusive).order('id').range(lo, hi))
 
   const invoices = data ?? []
   // amount is the canonical value column (`total` is vestigial and null on
@@ -357,6 +380,7 @@ async function gatherInvoices(tenantId: string, from: string, to: string) {
 }
 
 async function gatherStaff(tenantId: string, from: string, to: string) {
+  const { start, endExclusive } = periodBoundsUTC(from, to)
   const { count: headcount } = await supabaseAdmin
     .from('staff')
     .select('*', { count: 'exact', head: true }).is('deleted_at', null)
@@ -368,8 +392,8 @@ async function gatherStaff(tenantId: string, from: string, to: string) {
     .select('*', { count: 'exact', head: true }).is('deleted_at', null)
     .eq('tenant_id', tenantId)
     .eq('status', 'approved')
-    .gte('created_at', from)
-    .lte('created_at', to)
+    .gte('created_at', start)
+    .lt('created_at', endExclusive)
 
   // Table is disciplinary_records, not ir_cases, and has no status column —
   // "open" matches the convention already established in
