@@ -33,7 +33,7 @@ export interface ContactInvoiceRow extends MoneyInvoice {
  * on phone alone, so a contact with a blank phone matched every blank-phone invoice in the tenant.
  */
 export async function invoicesForContact(tenantId: string, contact: MoneyContact): Promise<ContactInvoiceRow[]> {
-  const base = () => supabaseAdmin
+  const page = (lo: number, hi: number) => supabaseAdmin
     .from('invoices')
     .select('id, invoice_number, contact_id, contact_phone, amount, amount_paid, status, due_date, created_at')
     .eq('tenant_id', tenantId)
@@ -41,14 +41,15 @@ export async function invoicesForContact(tenantId: string, contact: MoneyContact
     .in('status', [...COUNTED_INVOICE_STATUSES])
     .order('created_at', { ascending: false })
     .order('id')
+    .range(lo, hi)
 
-  const byId = await allRows<ContactInvoiceRow>((lo, hi) => base().eq('contact_id', contact.id).range(lo, hi))
+  const byId = await allRows<ContactInvoiceRow>((lo, hi) => page(lo, hi).eq('contact_id', contact.id))
   if (byId.error) throw new Error(`contact invoices: ${byId.error.message}`)
   let rows = byId.data ?? []
 
   const phone = (contact.phone ?? '').trim()
   if (phone) {
-    const byPhone = await allRows<ContactInvoiceRow>((lo, hi) => base().is('contact_id', null).eq('contact_phone', phone).range(lo, hi))
+    const byPhone = await allRows<ContactInvoiceRow>((lo, hi) => page(lo, hi).is('contact_id', null).eq('contact_phone', phone))
     if (byPhone.error) throw new Error(`contact invoices: ${byPhone.error.message}`)
     rows = [...rows, ...(byPhone.data ?? [])]
   }
