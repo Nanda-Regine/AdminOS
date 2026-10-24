@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { safeNextPath } from '@/lib/auth/safeNext'
 
 export default function LoginPage() {
   const supabase = createClient()
@@ -35,7 +36,7 @@ export default function LoginPage() {
       }
       setLoading(false)
     } else {
-      const redirect = searchParams.get('redirect') || '/dashboard'
+      const redirect = safeNextPath(searchParams.get('redirect'))
       router.push(redirect)
       router.refresh()
     }

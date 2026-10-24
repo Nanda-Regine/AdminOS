@@ -5,11 +5,12 @@ import { buildCachedSystemPrompt } from '@/lib/ai/buildSystemPrompt'
 import { syncStatutoryCalendar } from '@/lib/compliance/sync'
 import { seedDefaultRoles, assignRole } from '@/lib/auth/permissions'
 import { Tenant } from '@/types/database'
+import { safeNextPath } from '@/lib/auth/safeNext'
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
-  const next = searchParams.get('next') ?? '/dashboard'
+  const next = safeNextPath(searchParams.get('next'))
 
   if (!code) {
     return NextResponse.redirect(`${origin}/login?error=oauth_failed`)
