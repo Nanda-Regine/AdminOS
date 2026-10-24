@@ -5,7 +5,7 @@ const extra = (Constants.expoConfig?.extra ?? {}) as { apiUrl?: string; store?: 
 /** Which store this binary was built for (app.config.ts APP_STORE). */
 export const STORE: 'play' | 'huawei' = extra.store === 'huawei' ? 'huawei' : 'play'
 
-export const API_URL = (process.env.EXPO_PUBLIC_API_URL || extra.apiUrl || 'https://adminos.co.za').replace(/\/$/, '')
+export const API_URL = (process.env.EXPO_PUBLIC_API_URL || extra.apiUrl || 'https://www.adminos.co.za').replace(/\/$/, '')
 export const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL ?? ''
 export const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? ''
 export const EAS_PROJECT_ID = extra.eas?.projectId ?? null

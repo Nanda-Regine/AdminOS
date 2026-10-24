@@ -11,7 +11,7 @@ import type { ExpoConfig } from 'expo/config'
  *
  * Public build-time values (set as EAS environment variables, never committed):
  *   EXPO_PUBLIC_SUPABASE_URL, EXPO_PUBLIC_SUPABASE_ANON_KEY  — same public values the web app ships
- *   EXPO_PUBLIC_API_URL                                       — defaults to https://adminos.co.za
+ *   EXPO_PUBLIC_API_URL                                       — defaults to https://www.adminos.co.za (the apex 307-redirects, which can drop the auth header)
  *   EAS_PROJECT_ID                                            — from `eas init`; enables OTA updates
  *
  * The Android package name is permanent once published: za.co.adminos is the
@@ -119,7 +119,7 @@ const config: ExpoConfig = {
 
   extra: {
     store,
-    apiUrl: process.env.EXPO_PUBLIC_API_URL ?? 'https://adminos.co.za',
+    apiUrl: process.env.EXPO_PUBLIC_API_URL ?? 'https://www.adminos.co.za',
     router: { origin: false },
     ...(projectId ? { eas: { projectId } } : {}),
   },
