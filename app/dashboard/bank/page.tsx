@@ -1,7 +1,11 @@
 import { redirect, notFound } from 'next/navigation'
+import { Landmark } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
+import { supabaseAdmin } from '@/lib/supabase/admin'
 import { checkPermission } from '@/lib/auth/permissions'
 import { TopBar } from '@/components/dashboard/TopBar'
+import { Card } from '@/components/ui/card'
+import { EmptyState } from '@/components/ui/EmptyState'
 import { BankClient } from './BankClient'
 
 export const metadata = {
@@ -22,10 +26,31 @@ export default async function BankPage() {
   if (!user) redirect('/login')
   if (!(await checkPermission('view_financials'))) notFound()
 
+  const tenantId = user.app_metadata?.tenant_id as string | undefined
+  if (!tenantId) redirect('/dashboard')
+
+  const { count } = await supabaseAdmin
+    .from('bank_transactions')
+    .select('id', { count: 'exact', head: true })
+    .eq('tenant_id', tenantId)
+    .is('deleted_at', null)
+  const hasLines = (count ?? 0) > 0
+
   return (
     <>
       <TopBar title="Bank & Reconciliation" subtitle="Upload a statement — we categorise it and match payments to invoices" />
-      <BankClient />
+      {!hasLines && (
+        <div className="p-4 md:p-6 pb-0 md:pb-0">
+          <Card>
+            <EmptyState
+              icon={Landmark}
+              title="No bank statement yet"
+              body="Export a CSV from your banking app and upload it below. Payments from customers are matched to your invoices, and spending is sorted into categories for your accountant."
+            />
+          </Card>
+        </div>
+      )}
+      <BankClient hasLines={hasLines} />
     </>
   )
 }

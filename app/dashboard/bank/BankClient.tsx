@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Landmark, Upload, CheckCircle2, EyeOff, Undo2 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -51,7 +52,8 @@ async function api<T>(url: string, init?: RequestInit): Promise<T> {
   return body as T
 }
 
-export function BankClient() {
+export function BankClient({ hasLines }: { hasLines: boolean }) {
+  const router = useRouter()
   const [tab, setTab] = useState<TabKey>('unmatched')
   const [page, setPage] = useState(1)
   const [rows, setRows] = useState<Tx[]>([])
@@ -90,6 +92,7 @@ export function BankClient() {
         setNotice(`Imported ${r.imported} new line${r.imported === 1 ? '' : 's'} (${r.categorised} categorised automatically)${r.duplicates ? `; ${r.duplicates} already imported were skipped` : ''}.`)
         setPreview(null); setFile(null); if (fileRef.current) fileRef.current.value = ''
         setTab('unmatched'); setPage(1); await load()
+        router.refresh() // clears the server-rendered first-use empty state
       }
     } catch (e) { setError(e instanceof Error ? e.message : 'Upload failed.') }
     finally { setUploading(false) }
@@ -221,15 +224,15 @@ export function BankClient() {
       {loading && rows.length === 0 ? (
         <p className="text-sm" style={{ color: 'var(--text-muted)' }} role="status">Loading bank lines…</p>
       ) : rows.length === 0 ? (
-        <Card>
-          <EmptyState
-            icon={Landmark}
-            title={summary?.lines ? 'Nothing here' : 'No bank statement yet'}
-            body={summary?.lines
-              ? (tab === 'unmatched' ? 'Every line has been reviewed. Nice.' : 'No lines in this view.')
-              : 'Upload your first statement above. Payments from customers are matched to invoices, and spending is sorted into categories for your accountant.'}
-          />
-        </Card>
+        hasLines || summary?.lines ? (
+          <Card>
+            <EmptyState
+              icon={Landmark}
+              title="Nothing here"
+              body={tab === 'unmatched' ? 'Every line has been reviewed. Nice.' : 'No lines in this view.'}
+            />
+          </Card>
+        ) : null
       ) : (
         <ul className="space-y-3">
           {rows.map((r) => <TxCard key={r.id} tx={r} busy={busy === r.id} onPatch={patch} />)}
