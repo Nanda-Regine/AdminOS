@@ -1,0 +1,28 @@
+// adminos.co.za on Cloudflare Workers via @opennextjs/cloudflare.
+// Secrets are set with `wrangler secret put` only. Never put them here.
+// Emergency move Oct 24 2026: Vercel Hobby disabled, so this is PRODUCTION from day one.
+// Custom domain is attached at cutover once owner OK (zone adminos.co.za already on Cloudflare).
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "adminos",
+  // Custom worker: OpenNext fetch handler + scheduled() for the hourly publish scheduler.
+  "main": "worker.ts",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "workers_dev": true,
+  "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
+  "observability": { "enabled": true },
+  "placement": { "mode": "smart" },
+  // Was vercel.json: 0 3 * * * /api/health (UTC)
+  "triggers": { "crons": ["0 3 * * *"] },
+  "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "adminos" }],
+  "r2_buckets": [{ "binding": "NEXT_INC_CACHE_R2_BUCKET", "bucket_name": "adminos-inc-cache" }],
+  "durable_objects": {
+    "bindings": [
+      { "name": "NEXT_CACHE_DO_QUEUE", "class_name": "DOQueueHandler" },
+      { "name": "NEXT_TAG_CACHE_DO_SHARDED", "class_name": "DOShardedTagCache" }
+    ]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["DOQueueHandler", "DOShardedTagCache"] }],
+  "images": { "binding": "IMAGES" }
+}

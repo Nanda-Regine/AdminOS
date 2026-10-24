@@ -1,0 +1,77 @@
+# Cloudflare Workers build + deploy (OpenNext) in GitHub, never the laptop. Vercel Hobby disabled Oct 24 2026.
+# PRODUCTION Worker `adminos`; routes on adminos.co.za are added at cutover via the API.
+name: cf-build
+on:
+  push:
+    branches: [feat/cloudflare-workers]
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+      HAS_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
+      AI_GLOBAL_DAILY_TOKEN_CAP: ${{ secrets.AI_GLOBAL_DAILY_TOKEN_CAP }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
+      CLOUDINARY_SECRET: ${{ secrets.CLOUDINARY_SECRET }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GEMINI_MODEL: ${{ secrets.GEMINI_MODEL }}
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      GROQ_MODEL: ${{ secrets.GROQ_MODEL }}
+      HUB_INTERNAL_SECRET: ${{ secrets.HUB_INTERNAL_SECRET }}
+      INNGEST_EVENT_KEY: ${{ secrets.INNGEST_EVENT_KEY }}
+      INNGEST_SIGNING_KEY: ${{ secrets.INNGEST_SIGNING_KEY }}
+      META_APP_SECRET: ${{ secrets.META_APP_SECRET }}
+      META_PHONE_NUMBER_ID: ${{ secrets.META_PHONE_NUMBER_ID }}
+      META_WEBHOOK_SECRET: ${{ secrets.META_WEBHOOK_SECRET }}
+      META_WEBHOOK_VERIFY_TOKEN: ${{ secrets.META_WEBHOOK_VERIFY_TOKEN }}
+      META_WHATSAPP_ACCESS_TOKEN: ${{ secrets.META_WHATSAPP_ACCESS_TOKEN }}
+      N8N_WEBHOOK_SECRET: ${{ secrets.N8N_WEBHOOK_SECRET }}
+      NEXT_PUBLIC_APP_DOWNLOAD_URL: ${{ secrets.NEXT_PUBLIC_APP_DOWNLOAD_URL }}
+      NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL }}
+      NEXT_PUBLIC_APPGALLERY_URL: ${{ secrets.NEXT_PUBLIC_APPGALLERY_URL }}
+      NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME: ${{ secrets.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME }}
+      NEXT_PUBLIC_PLAY_STORE_URL: ${{ secrets.NEXT_PUBLIC_PLAY_STORE_URL }}
+      NEXT_PUBLIC_POSTHOG_HOST: ${{ secrets.NEXT_PUBLIC_POSTHOG_HOST }}
+      NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN: ${{ secrets.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      PAYFAST_HUB_NOTIFY_URL: ${{ secrets.PAYFAST_HUB_NOTIFY_URL }}
+      PAYFAST_MERCHANT_ID: ${{ secrets.PAYFAST_MERCHANT_ID }}
+      PAYFAST_MERCHANT_KEY: ${{ secrets.PAYFAST_MERCHANT_KEY }}
+      PAYFAST_PASSPHRASE: ${{ secrets.PAYFAST_PASSPHRASE }}
+      PAYFAST_SANDBOX: ${{ secrets.PAYFAST_SANDBOX }}
+      PAYSTACK_HUB_URL: ${{ secrets.PAYSTACK_HUB_URL }}
+      POSTHOG_ASSETS_HOST: ${{ secrets.POSTHOG_ASSETS_HOST }}
+      POSTHOG_HOST: ${{ secrets.POSTHOG_HOST }}
+      POSTHOG_TOKEN: ${{ secrets.POSTHOG_TOKEN }}
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+      RESEND_FROM_EMAIL: ${{ secrets.RESEND_FROM_EMAIL }}
+      SOCIAL_SYNC_ENABLED: ${{ secrets.SOCIAL_SYNC_ENABLED }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
+      UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
+      UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
+      USD_ZAR_RATE: ${{ secrets.USD_ZAR_RATE }}
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm install --no-audit --no-fund
+      - run: npx opennextjs-cloudflare build
+      - name: Deploy + upload runtime secrets
+        if: ${{ env.HAS_TOKEN == 'true' }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          npx wrangler r2 bucket create adminos-inc-cache || true
+          npx opennextjs-cloudflare deploy
+          node -e "const o={};for(const k of process.argv.slice(1))if(process.env[k])o[k]=process.env[k];require('fs').writeFileSync('/tmp/s.json',JSON.stringify(o))" AI_GLOBAL_DAILY_TOKEN_CAP ANTHROPIC_API_KEY CLOUDINARY_API_KEY CLOUDINARY_SECRET GEMINI_API_KEY GEMINI_MODEL GROQ_API_KEY GROQ_MODEL HUB_INTERNAL_SECRET INNGEST_EVENT_KEY INNGEST_SIGNING_KEY META_APP_SECRET META_PHONE_NUMBER_ID META_WEBHOOK_SECRET META_WEBHOOK_VERIFY_TOKEN META_WHATSAPP_ACCESS_TOKEN N8N_WEBHOOK_SECRET NEXT_PUBLIC_APP_DOWNLOAD_URL NEXT_PUBLIC_APP_URL NEXT_PUBLIC_APPGALLERY_URL NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME NEXT_PUBLIC_PLAY_STORE_URL NEXT_PUBLIC_POSTHOG_HOST NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN NEXT_PUBLIC_SUPABASE_ANON_KEY NEXT_PUBLIC_SUPABASE_URL PAYFAST_HUB_NOTIFY_URL PAYFAST_MERCHANT_ID PAYFAST_MERCHANT_KEY PAYFAST_PASSPHRASE PAYFAST_SANDBOX PAYSTACK_HUB_URL POSTHOG_ASSETS_HOST POSTHOG_HOST POSTHOG_TOKEN RESEND_API_KEY RESEND_FROM_EMAIL SOCIAL_SYNC_ENABLED SUPABASE_SERVICE_ROLE_KEY TWILIO_AUTH_TOKEN UPSTASH_REDIS_REST_TOKEN UPSTASH_REDIS_REST_URL USD_ZAR_RATE CRON_SECRET 
+          npx wrangler secret bulk /tmp/s.json
+          rm -f /tmp/s.json

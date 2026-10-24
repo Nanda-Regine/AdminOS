@@ -52,3 +52,6 @@ public/dark-and-light-theme-backgrounds/
 # Playwright screen-audit output (screenshots + report, regenerated per run)
 /scripts/audit-out/
 docs/hackathon/previews/
+
+.open-next
+.wrangler
