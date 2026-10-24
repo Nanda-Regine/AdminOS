@@ -31,7 +31,7 @@ export async function recordInvoicePayment(
 ): Promise<RecordedPayment> {
   const before = unwrap(await supabaseAdmin
     .from('invoices')
-    .select('id, status, amount, amount_paid, reference, contact_name, contact_phone')
+    .select('id, status, amount, amount_paid, invoice_number, reference, contact_name, contact_phone')
     .eq('id', invoiceId)
     .eq('tenant_id', tenantId)
     .is('deleted_at', null)
@@ -70,13 +70,13 @@ export async function recordInvoicePayment(
   if (becamePaid) {
     await handleInvoicePaid({
       id: data.id, tenant_id: tenantId, contact_name: data.contact_name, contact_phone: data.contact_phone,
-      amount: data.amount, amount_paid: data.amount_paid, reference: data.reference,
+      amount: data.amount, amount_paid: data.amount_paid, reference: data.invoice_number ?? data.reference,
     }, userId)
   }
 
   return {
     invoiceId,
-    reference: data.reference ?? null,
+    reference: data.invoice_number ?? data.reference ?? null,
     contactName: data.contact_name ?? null,
     status: data.status,
     amountPaid: Number(data.amount_paid),

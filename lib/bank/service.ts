@@ -60,7 +60,7 @@ async function tenantRules(tenantId: string): Promise<TenantRule[]> {
 async function openInvoices(tenantId: string): Promise<(OpenInvoice & { due_date: string | null })[]> {
   const data = unwrap(await supabaseAdmin
     .from('invoices')
-    .select('id, reference, contact_name, amount, amount_paid, due_date, status')
+    .select('id, invoice_number, reference, contact_name, amount, amount_paid, due_date, status')
     .eq('tenant_id', tenantId)
     .is('deleted_at', null)
     .in('status', [...OWED_INVOICE_STATUSES])
@@ -68,7 +68,8 @@ async function openInvoices(tenantId: string): Promise<(OpenInvoice & { due_date
   return data
     .map((i) => ({
       id: i.id as string,
-      reference: (i.reference as string | null) ?? null,
+      // invoice_number is what is printed on the invoice and quoted by customers; `reference` is empty on real rows.
+      reference: (i.invoice_number as string | null) ?? (i.reference as string | null) ?? null,
       contact_name: (i.contact_name as string | null) ?? null,
       amount: Number(i.amount ?? 0),
       amount_paid: Number(i.amount_paid ?? 0),
