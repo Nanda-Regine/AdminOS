@@ -10,7 +10,7 @@ The story of building AdminOS from scratch to production-ready B2B SaaS, phase b
 - **Bank loop built and live:** CSV import (6 SA banks) → preview → dedupe → auto-categorise → match payments to invoices → one-tap settle. Production migration applied; **18/18 end-to-end checks on production** (`scripts/hackathon/bank-e2e.mjs`). The E2E caught that the matcher read the empty `reference` column instead of `invoice_number`.
 - **Security:** open redirects closed, constant-time secret compares, Next 16.1.7 → 16.2.12 (middleware-bypass advisory), mobile API URL fixed (apex redirect could strip the auth header), GTM gated behind cookie consent. 204 tests, CI green.
 - **Readiness verdicts:** web — no blockers, not yet world-class offline / on slow data; Play + AppGallery — not ready (reviewer accounts, push credentials, store accounts, privacy policy); privacy policy does not match the code (drafts in `docs/readiness/privacy-policy-corrections.md`, not applied).
-- **Next:** autonomous in-app cockpit (decision queue + activity feed → event-driven loops → predictive brief). Full detail, gotchas and open decisions: `BUILD_JOURNEY_ADMINOS.md` → Session 21.
+- **Next (Plan v2, from a repo scan):** hardening (reminder cadence guard, monitor bug) → first-load speed → owner push for all alerts → decision queue + activity feed (`agent_actions`, needs a migration approval) → payments ledger → bank auto-match (default tier B) → predictive brief → job-health strip. Evidence and file references: `docs/plans/autonomy-cockpit-scan.md`; full detail, gotchas and open decisions: `BUILD_JOURNEY_ADMINOS.md` → Session 21.
 
 ---
 
