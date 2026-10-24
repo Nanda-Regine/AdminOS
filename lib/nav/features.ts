@@ -86,6 +86,7 @@ export const FEATURES: Feature[] = [
   { href: '/dashboard/money',    label: 'Cash Cockpit',  icon: Wallet,   category: 'Get Paid', requires: 'view_financials' },
   { href: '/dashboard/invoices', label: 'Invoices & AR', icon: Receipt,  category: 'Get Paid', requires: 'manage_invoices' },
   { href: '/dashboard/cashflow', label: 'Cashflow',      icon: TrendingUp, category: 'Get Paid', requires: 'view_financials' },
+  { href: '/dashboard/bank',     label: 'Bank & Reconcile', icon: Landmark, category: 'Get Paid', requires: 'view_financials' },
   { href: '/dashboard/expenses', label: 'Expenses & AP', icon: Wallet,   category: 'Get Paid', requires: 'view_financials' },
   { href: '/dashboard/payroll',  label: 'Payroll',       icon: Banknote, category: 'Get Paid', requires: 'view_payroll' },
   { href: '/dashboard/money/reports', label: 'Accountant Reports', icon: FileText, category: 'Get Paid', requires: 'view_financials' },
