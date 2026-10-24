@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { redirect, notFound } from 'next/navigation'
 import { AlertTriangle, CheckCircle, Clock } from 'lucide-react'
 import { LogIncidentModal } from './LogIncidentModal'
+import { ActionButton } from '@/components/ui/ActionButton'
 import { checkPermission } from '@/lib/auth/permissions'
 import { sastMonthStartUTC } from '@/lib/time/sast'
 
@@ -88,6 +89,15 @@ export default async function IRLogPage() {
               <p className="text-xs text-[var(--text-dim)]">
                 <span className="font-medium">Outcome:</span> {record.outcome}
               </p>
+            )}
+            {!acknowledged && (
+              <div className="mt-2">
+                <ActionButton
+                  endpoint={`/api/disciplinary/${record.id}`}
+                  label="Mark as acknowledged"
+                  confirmText={`Confirm ${staffName} has received and acknowledged this record?`}
+                />
+              </div>
             )}
           </div>
           <p className="text-xs text-[var(--text-dim)] shrink-0 whitespace-nowrap">{recordDate}</p>

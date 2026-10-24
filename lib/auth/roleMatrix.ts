@@ -110,7 +110,8 @@ export const ACTIONS = {
   'leave.approve':        'approve_leave',
   'clock.self':           MEMBER,              // own clock events; HR (staff.write) may act for anyone
   'hr.records':           'manage_staff',      // disciplinary, performance, EE, IR log, safety register
-  'safety.report':        MEMBER,              // OHSA: anyone can report an incident…
+  'ir.own':               MEMBER,              // an employee reads and acknowledges their own IR records
+  'safety.report':        MEMBER,            // OHSA: anyone can report an incident…
   'shifts.read':          MEMBER,              // the roster is the team's to see…
   'shifts.write':         'manage_staff',      // …HR builds it
   'announcements.read':   MEMBER,

@@ -10,6 +10,7 @@ import {
 import { formatZAR } from '@/lib/format'
 import { StaffDocuments } from './StaffDocuments'
 import { StaffAppInvite } from './StaffAppInvite'
+import { ActionButton } from '@/components/ui/ActionButton'
 import { avatarColor } from '@/lib/ui/avatarColor'
 import { checkPermission } from '@/lib/auth/permissions'
 
@@ -33,6 +34,7 @@ type Staff = {
   wellness_scores:         Array<{ score: number; date: string }> | null
   after_hours_flag:        boolean | null
   user_id:                 string | null
+  active:                  boolean | null
   created_at:              string
 }
 
@@ -206,6 +208,20 @@ export default async function StaffDetailPage({
               )}
 
               <StaffAppInvite staffId={staff.id} linked={Boolean(staff.user_id)} hasPhone={Boolean(staff.phone)} />
+
+              <div className="mt-4 pt-4 border-t border-[var(--border)]">
+                <p className="text-xs font-medium mb-2" style={{ color: 'var(--text-muted)' }}>
+                  {staff.active === false ? 'INACTIVE — LEFT THE BUSINESS' : 'EMPLOYMENT STATUS'}
+                </p>
+                <ActionButton
+                  endpoint={`/api/staff/${staff.id}`}
+                  body={{ active: staff.active === false }}
+                  label={staff.active === false ? 'Reactivate' : 'Offboard (deactivate)'}
+                  confirmText={staff.active === false
+                    ? `Reactivate ${staff.full_name}? They will be included in payroll again.`
+                    : `Deactivate ${staff.full_name}? They will be left out of payroll and rosters, and any unused app invite is cancelled. Their records are kept.`}
+                />
+              </div>
             </div>
 
             {/* Leave + wellness */}
