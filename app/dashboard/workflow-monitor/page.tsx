@@ -57,7 +57,7 @@ export default async function WorkflowMonitorPage() {
   const counts = {
     pending: queue.filter((j) => j.status === 'pending').length,
     processing: queue.filter((j) => j.status === 'processing').length,
-    completed: queue.filter((j) => j.status === 'completed').length,
+    completed: queue.filter((j) => j.status === 'complete' || j.status === 'completed').length,
     failed: queue.filter((j) => j.status === 'failed').length,
   }
 

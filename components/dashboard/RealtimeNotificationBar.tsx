@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { X, Bell } from 'lucide-react'
+import { isOpen } from '@/lib/invoices/status'
+import { daysOverdue } from '@/lib/debt/overdue'
 
 interface Notification {
   id: string
@@ -44,11 +46,14 @@ export function RealtimeNotificationBar() {
         schema: 'public',
         table: 'invoices',
       }, (payload) => {
-        const inv = payload.new as { id: string; contact_name?: string; days_overdue?: number; status?: string }
-        if (inv.days_overdue && inv.days_overdue > 0 && inv.status === 'unpaid') {
+        const inv = payload.new as { id: string; contact_name?: string; due_date?: string; status?: string }
+        // days_overdue isn't a reliable column and invoices are created 'sent',
+        // not 'unpaid': derive it from due_date for any open invoice.
+        const days = daysOverdue(inv.due_date)
+        if (days > 0 && isOpen(inv.status)) {
           push({
             id: `inv-${inv.id}`,
-            message: `Invoice overdue: ${inv.contact_name || 'Unknown'} — ${inv.days_overdue} days`,
+            message: `Invoice overdue: ${inv.contact_name || 'Unknown'} — ${days} days`,
             type: 'warning',
           })
         }

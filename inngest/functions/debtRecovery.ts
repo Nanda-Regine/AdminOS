@@ -4,6 +4,7 @@ import { sendWhatsAppMessage } from '@/lib/whatsapp/send'
 import { WHATSAPP_TEMPLATES } from '@/lib/whatsapp/templates'
 import { checkRecoveryMessage } from '@/lib/debt/recoveryGuard'
 import { daysOverdue } from '@/lib/debt/overdue'
+import { reminderTooSoon } from '@/lib/debt/cadence'
 import { isOpen, outstanding } from '@/lib/invoices/status'
 import { writeAuditLog } from '@/lib/security/audit'
 import { notifyTenant } from '@/lib/notifications/notify'
@@ -32,7 +33,7 @@ export const debtRecoveryEngine = inngest.createFunction(
       const [invoiceRes, tenantRes] = await Promise.all([
         supabaseAdmin
           .from('invoices')
-          .select('contact_name, contact_phone, contact_email, amount, amount_paid, status, recovery_status, due_date, reference, recovery_tier')
+          .select('contact_name, contact_phone, contact_email, amount, amount_paid, status, recovery_status, due_date, reference, recovery_tier, last_reminder_sent_at')
           .eq('id', invoice_id)
           .eq('tenant_id', tenant_id)
           .is('deleted_at', null)
@@ -73,6 +74,12 @@ export const debtRecoveryEngine = inngest.createFunction(
     // — misstating a debt in a collections message.
     const owed = outstanding(inv0)
     if (owed <= 0) return { status: 'settled' }
+
+    // Cadence guard: never chase the same invoice again too soon, whether the
+    // sweep or the owner's button triggered it.
+    if (reminderTooSoon(inv0.last_reminder_sent_at, Boolean(manual))) {
+      return { status: 'recently_reminded', last_reminder_sent_at: inv0.last_reminder_sent_at }
+    }
 
     const tier = await step.run('calculate-tier', async () => {
       // Computed from due_date, not a stored column — see lib/debt/overdue.
@@ -170,6 +177,27 @@ export const debtRecoveryEngine = inngest.createFunction(
         return { notified: true }
       })
       return { status: heldByAutonomy ? 'held_by_autonomy' : 'awaiting_owner_review', tier, autonomy, drafted: Boolean(finalDemandDraft) }
+    }
+
+    // No way to send (customer has no number, or WhatsApp isn't connected):
+    // don't spend an AI call writing a message that can't go anywhere. Tell the
+    // owner instead, once, so the reminder isn't silently lost.
+    if (!context.invoice.contact_phone || !context.phoneNumberId) {
+      await step.run('notify-cannot-send', async () => {
+        const inv = context.invoice!
+        await notifyTenant(tenant_id, {
+          type: 'recovery.escalation',
+          title: 'Reminder due, but it can't be sent automatically',
+          body: !inv.contact_phone
+            ? `${inv.contact_name ?? 'A customer'} has no phone number on file, so the reminder for R${owed.toFixed(2)} can't be sent. Add a number or contact them directly.`
+            : `WhatsApp isn't connected yet, so the reminder for ${inv.contact_name ?? 'a customer'} (R${owed.toFixed(2)}) can't be sent automatically.`,
+          actionUrl: '/dashboard/invoices',
+          dedupeKey: `recovery-cannot-send-${invoice_id}`,
+          dedupeHours: 72,
+          whatsapp: false,
+        })
+      })
+      return { status: 'cannot_send', tier }
     }
 
     const message = await step.run('generate-message', async () => {
