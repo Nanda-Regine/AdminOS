@@ -13,6 +13,7 @@ import { isOpen } from '@/lib/invoices/status'
 import { daysOverdue } from '@/lib/debt/overdue'
 import { checkBudget, recordUsage, getModelForFeature } from '@/lib/ai/costControls'
 import { sanitizeForAI } from '@/lib/security/sanitize'
+import { prepareHistory, estimateLangaTokens } from '@/lib/ai/langaHistory'
 
 const anthropic = new Anthropic({
   apiKey:     process.env.ANTHROPIC_API_KEY!,
@@ -168,8 +169,10 @@ export async function chatWithLanga(
 ): Promise<LangaResponse> {
   // Budget check and live-context build are independent — run in parallel.
   const model = getModelForFeature('langa_mentor', plan)
+  const safeMessage = sanitizeForAI(message)
+  const recentHistory = prepareHistory(history)
   const [budget, ctx] = await Promise.all([
-    checkBudget(tenantId, plan, 1500),
+    checkBudget(tenantId, plan, estimateLangaTokens(recentHistory, safeMessage)),
     buildLangaContext(tenantId, userId),
   ])
   if (!budget.allowed) {
@@ -181,11 +184,6 @@ export async function chatWithLanga(
   }
 
   const systemPrompt = buildLangaSystemPrompt(ctx)
-
-  const safeMessage = sanitizeForAI(message)
-
-  // Keep last 20 messages for richer context than regular agents
-  const recentHistory = history.slice(-20)
 
   const t0 = Date.now()
 
@@ -245,8 +243,10 @@ export async function streamLanga(
   // Budget check and context build are independent — run them together so the
   // budget round-trip isn't in series ahead of the (heavier) context build.
   const model = getModelForFeature('langa_mentor', plan)
+  const safeMessage   = sanitizeForAI(message)
+  const recentHistory = prepareHistory(history)
   const [budget, ctx] = await Promise.all([
-    checkBudget(tenantId, plan, 1500),
+    checkBudget(tenantId, plan, estimateLangaTokens(recentHistory, safeMessage)),
     buildLangaContext(tenantId, userId),
   ])
   if (!budget.allowed) {
@@ -258,8 +258,6 @@ export async function streamLanga(
   }
 
   const systemPrompt = buildLangaSystemPrompt(ctx)
-  const safeMessage  = sanitizeForAI(message)
-  const recentHistory = history.slice(-20)
   const t0 = Date.now()
 
   const encoder = new TextEncoder()
@@ -278,13 +276,14 @@ export async function streamLanga(
           ],
         })
 
-        ms.on('text', (delta: string) => {
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: delta })}\n\n`))
-        })
+        // A client that disconnects mid-stream makes enqueue throw, but the
+        // model call still finishes and is billed, so sending must never
+        // skip metering.
+        const send = (chunk: string) => { try { controller.enqueue(encoder.encode(chunk)) } catch { /* client gone */ } }
+
+        ms.on('text', (delta: string) => send(`data: ${JSON.stringify({ text: delta })}\n\n`))
 
         const final = await ms.finalMessage()
-        controller.enqueue(encoder.encode('data: [DONE]\n\n'))
-        controller.close()
 
         void recordUsage({
           tenantId,
@@ -295,10 +294,15 @@ export async function streamLanga(
           tokensOut:  final.usage.output_tokens,
           durationMs: Date.now() - t0,
         })
+
+        send('data: [DONE]\n\n')
+        try { controller.close() } catch { /* already closed */ }
       } catch (e) {
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: 'Stream failed. Please try again.' })}\n\n`))
-        controller.enqueue(encoder.encode('data: [DONE]\n\n'))
-        controller.close()
+        try {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: 'Stream failed. Please try again.' })}\n\n`))
+          controller.enqueue(encoder.encode('data: [DONE]\n\n'))
+          controller.close()
+        } catch { /* client gone */ }
         console.error('[Langa] stream error:', (e as Error)?.message ?? e)
       }
     },
