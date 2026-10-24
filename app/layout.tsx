@@ -4,6 +4,7 @@ import { Analytics } from '@vercel/analytics/react'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import { CookieConsent } from '@/components/CookieConsent'
 import { PostHogAnalytics } from '@/components/providers/PostHogAnalytics'
+import { GoogleTagManager } from '@/components/providers/GoogleTagManager'
 import './globals.css'
 
 const geistSans = Geist({
@@ -155,6 +156,7 @@ export default function RootLayout({
       <body className={`${geistSans.variable} antialiased`}>
         {children}
         <CookieConsent />
+        <GoogleTagManager />
         <PostHogAnalytics apiKey={process.env.POSTHOG_TOKEN} />
         <Analytics />
         <SpeedInsights />
