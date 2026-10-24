@@ -4,6 +4,16 @@ The story of building AdminOS from scratch to production-ready B2B SaaS, phase b
 
 ---
 
+## FNB hackathon pack, bank reconciliation loop, security + readiness audits (Oct 24 2026)
+
+- **Submission:** pitch deck (14 slides, PDF + HTML), 3-minute demo flow with a "don't claim" list, README section, refreshed demo tenant (sample WhatsApp, bookings, seeded FNB-style statement). Live at adminos.co.za; repo is public.
+- **Bank loop built and live:** CSV import (6 SA banks) → preview → dedupe → auto-categorise → match payments to invoices → one-tap settle. Production migration applied; **18/18 end-to-end checks on production** (`scripts/hackathon/bank-e2e.mjs`). The E2E caught that the matcher read the empty `reference` column instead of `invoice_number`.
+- **Security:** open redirects closed, constant-time secret compares, Next 16.1.7 → 16.2.12 (middleware-bypass advisory), mobile API URL fixed (apex redirect could strip the auth header), GTM gated behind cookie consent. 204 tests, CI green.
+- **Readiness verdicts:** web — no blockers, not yet world-class offline / on slow data; Play + AppGallery — not ready (reviewer accounts, push credentials, store accounts, privacy policy); privacy policy does not match the code (drafts in `docs/readiness/privacy-policy-corrections.md`, not applied).
+- **Next:** autonomous in-app cockpit (decision queue + activity feed → event-driven loops → predictive brief). Full detail, gotchas and open decisions: `BUILD_JOURNEY_ADMINOS.md` → Session 21.
+
+---
+
 ## Dev team kit + Cloudflare prep installed (Oct 16 2026)
 
 - Installed the Mirembe dev team kit: 15 agents in `.claude/agents/` (Opus orchestrator + architect, Sonnet engineers/reviewers/verifier, Haiku scout/code-janitor/scribe) and `/build` `/fix` `/audit` `/migrate-cloudflare` commands.
