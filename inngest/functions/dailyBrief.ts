@@ -124,8 +124,7 @@ export const dailyBriefEngine = inngest.createFunction(
       const watchSection = watchouts.length
         ? `
 - The top money risks this week (already calculated — refer to these exactly, do not change the numbers):
-${watchouts.map((w: Watchout, i: number) => `  ${i + 1}. ${w.title}. ${w.detail}`).join('
-')}`
+${watchouts.map((w: Watchout, i: number) => `  ${i + 1}. ${w.title}. ${w.detail}`).join('\n')}`
         : ''
 
       const t0 = Date.now()
