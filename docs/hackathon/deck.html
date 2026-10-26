@@ -26,6 +26,7 @@ p, li { font-size:32px; line-height:1.45; color:#d5dbf5 }
 .num { font-size:92px; font-weight:800; letter-spacing:-.03em }
 .pill { display:inline-block; padding:8px 22px; border-radius:99px; font-size:22px; font-weight:700; border:1px solid }
 .live { color:var(--em); border-color:#34d39966; background:#34d39914 } .next { color:var(--gold); border-color:#e0b84a66; background:#e0b84a14 }
+.tight li { font-size:27px; margin:11px 0; line-height:1.38 }
 ul { list-style:none } li { padding-left:44px; position:relative; margin:16px 0 }
 li::before { content:'✓'; position:absolute; left:0; color:var(--em); font-weight:800 }
 .big { font-size:44px; line-height:1.3; color:var(--ink); font-weight:600 }
@@ -104,12 +105,12 @@ table { width:100%; border-collapse:collapse; font-size:28px } td,th { padding:1
     <div style="width:760px">
       <div class="kicker">1 · Get paid — the bank loop</div>
       <h2 style="font-size:50px">Your bank statement, <span class="grad">closed into the books.</span></h2>
-      <ul style="margin-top:28px">
+      <ul class="tight" style="margin-top:24px">
         <li>Upload a CSV from FNB, Capitec, ABSA, Standard Bank, Nedbank or TymeBank</li>
-        <li>Preview first; lines already imported are skipped</li>
-        <li>Spending sorts itself into categories and learns your vendors</li>
-        <li>Payments are matched to the invoices they paid, by invoice number, payer name and the exact amount owed</li>
-        <li>One tap settles the invoice. Look-alikes and part-payments are flagged, never guessed</li>
+        <li>Preview first; spending sorts itself and learns your vendors</li>
+        <li>Payments are matched to invoices by number, payer name and exact amount. It learns who pays you, even from a personal account</li>
+        <li>One tap settles it, or let AdminOS settle the sure ones. Wrong match? <b>Undo</b></li>
+        <li>Look-alikes and part-payments are flagged, never guessed</li>
       </ul>
     </div>
     <div class="col" style="display:flex;gap:40px;align-items:center;justify-content:flex-end">
@@ -135,14 +136,16 @@ table { width:100%; border-collapse:collapse; font-size:28px } td,th { padding:1
 <!-- 7 NUMBERS -->
 <section class="slide">
   <div class="row" style="height:100%">
-    <div style="width:700px">
+    <div style="width:900px">
       <div class="kicker">3 · Know your numbers</div>
-      <h2 style="font-size:60px">Books that are <span class="grad">in order from day one.</span></h2>
-      <ul style="margin-top:36px"><li>Business health score and daily AI brief</li><li>Cashflow, expenses and payables in one place</li><li>Accountant-ready exports: income statement, VAT, journal CSV</li><li>Payroll with PAYE, UIF and SDL</li></ul>
+      <h2 style="font-size:54px">Books in order <span class="grad">from day one.</span></h2>
+      <ul class="tight" style="margin-top:30px"><li>Business health score and a daily brief</li><li><b>“Watch this week”</b>: the 3 things most likely to cost you money, each one tap from action</li><li>A cash forecast that <b>learns how each customer actually pays</b>, labelled as an estimate</li><li>Accountant-ready exports: income statement, VAT, journal CSV</li><li>Payroll with PAYE, UIF and SDL</li></ul>
     </div>
     <div class="col" style="display:flex;gap:30px;justify-content:flex-end;align-items:center">
-      <img class="shot" src="screens/health__desktop.png" style="width:900px">
-      <img class="shot" src="screens/cashflow__desktop.png" style="width:640px">
+      <div style="display:flex;flex-direction:column;gap:26px;align-items:flex-end">
+        <img class="shot" src="screens/health__desktop.png" style="width:640px">
+        <img class="shot" src="screens/cashflow__desktop.png" style="width:640px">
+      </div>
     </div>
   </div>
 </section>
@@ -182,16 +185,46 @@ table { width:100%; border-collapse:collapse; font-size:28px } td,th { padding:1
   <h2 style="font-size:62px">Not a prototype. <span class="grad">A product in production.</span></h2>
   <div class="grid g4" style="margin-top:60px">
     <div class="card"><div class="num grad">50+</div><p>dashboard screens, live at adminos.co.za</p></div>
-    <div class="card"><div class="num grad">204</div><p>automated tests passing</p></div>
+    <div class="card"><div class="num grad">273</div><p>automated tests passing</p></div>
     <div class="card"><div class="num grad">122/122</div><p>checks passed walking 7 industry personas on production</p></div>
     <div class="card"><div class="num grad">38</div><p>background automations (reminders, recovery, rollovers)</p></div>
   </div>
   <div class="grid g3" style="margin-top:34px">
-    <div class="card"><h3>🔒 Tenant isolation</h3><p>Row-level security on every table; a regression gate checks who can see what, per role.</p></div>
+    <div class="card"><h3>🔒 Tenant isolation</h3><p>Row-level security on every table; money tables reachable by the server only; a regression gate checks who can see what, per role.</p></div>
     <div class="card"><h3>🧑🏾‍💼 A real first user</h3><p>A Johannesburg video-production founder runs her business on it today.</p></div>
     <div class="card"><h3>⚖️ POPIA by design</h3><p>Consent layer for outbound messaging; no raw database errors ever reach users.</p></div>
   </div>
   <div class="foot"><span>AdminOS</span><span>11</span></div>
+</section>
+
+
+<!-- 11a TRUST -->
+<section class="slide">
+  <div class="kicker">Trust · security &amp; POPIA</div>
+  <h2 style="font-size:58px">Your customers’ data stays <span class="grad">yours — and apart.</span></h2>
+  <div class="grid g2" style="margin-top:44px;gap:34px">
+    <div class="card">
+      <h3>🔒 One business can never see another</h3>
+      <ul class="tight" style="margin-top:6px">
+        <li>Row-level security on every table; the public database key can read nothing sensitive (exposure closed and checked, Oct 2026)</li>
+        <li>Bank lines, payments and payroll are reachable by our server only, never from a browser</li>
+        <li>Every request is role-checked before any data is read; staff see only their own day</li>
+        <li>A regression check walks 7 industry personas on production: 122 of 122 checks passed</li>
+        <li>Signed webhooks, safe redirects, security patches applied; no raw database errors reach users</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>⚖️ POPIA, built in</h3>
+      <ul class="tight" style="margin-top:6px">
+        <li>Information Officer registered with the Information Regulator</li>
+        <li>Consent checked before any outbound marketing message; customers can opt out</li>
+        <li>Soft-delete and an audit trail on every change; accounts can be deleted and purged</li>
+        <li>Personal data minimised: AI helpers get no direct database access</li>
+        <li>Privacy policy being updated to list every operator and cross-border transfer (s72) <span class="pill next" style="padding:3px 14px;font-size:18px">In progress</span></li>
+      </ul>
+    </div>
+  </div>
+  <div class="foot"><span>AdminOS</span><span>12</span></div>
 </section>
 
 <!-- 11 FNB -->
@@ -207,7 +240,7 @@ table { width:100%; border-collapse:collapse; font-size:28px } td,th { padding:1
     <tr><td>Credit-readiness profile</td><td>Consented, shareable view of cash flow, compliance and trading history for lenders</td><td><span class="pill next">Next</span></td></tr>
   </table>
   <p class="mute" style="margin-top:34px;font-size:26px">The data flywheel: the more a founder runs through AdminOS, the more provable — and bankable — the business becomes.</p>
-  <div class="foot"><span>AdminOS</span><span>12</span></div>
+  <div class="foot"><span>AdminOS</span><span>13</span></div>
 </section>
 
 <!-- 12 MODEL -->
@@ -222,7 +255,35 @@ table { width:100%; border-collapse:collapse; font-size:28px } td,th { padding:1
   </div>
   <p style="margin-top:44px">14-day free trial · add-ons: AI voice receptionist, WhatsApp broadcasts, client portal, extra languages · billing in ZAR.</p>
   <p class="mute" style="margin-top:14px;font-size:26px">Distribution: bank, incubator and funder partnerships — one partner brings a cohort of founders onto the platform.</p>
-  <div class="foot"><span>AdminOS</span><span>13</span></div>
+  <div class="foot"><span>AdminOS</span><span>14</span></div>
+</section>
+
+
+<!-- 12a VALIDATION -->
+<section class="slide">
+  <div class="kicker">Market validation</div>
+  <h2 style="font-size:58px">Early signal is strong. <span class="grad">Here is how we prove it.</span></h2>
+  <div class="grid g2" style="margin-top:44px;gap:34px">
+    <div class="card">
+      <h3>What we have heard so far</h3>
+      <ul class="tight" style="margin-top:6px">
+        <li><b>FNB hackathon panel, 2 of 2:</b> “can use” and “can buy”. One would pay the full price, one half price</li>
+        <li>“Your strong point is the pricing… unique and specific to South Africa.”</li>
+        <li>A Johannesburg founder runs her business on AdminOS today</li>
+        <li>Fair challenge from the panel: similar tools exist. Ours is built and priced for South Africa from day one: ZAR, SARS, POPIA, WhatsApp, four languages</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>What we test next <span class="pill next" style="padding:3px 14px;font-size:18px">Planned</span></h3>
+      <ul class="tight" style="margin-top:6px">
+        <li>A short “what would you pay?” survey to every beta founder, per tier</li>
+        <li>Three pilot cohorts with incubators and funders, tracking trial → paid</li>
+        <li>Half-price signal: test a lighter Solo tier and an annual discount against the R349 plan</li>
+        <li>Measure what matters: days from invoice to cash, owner hours saved, 90-day retention</li>
+      </ul>
+    </div>
+  </div>
+  <div class="foot"><span>AdminOS</span><span>15</span></div>
 </section>
 
 <!-- 13 CLOSE -->
