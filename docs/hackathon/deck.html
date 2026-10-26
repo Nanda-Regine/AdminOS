@@ -13,6 +13,7 @@ h2 { font-size:68px; line-height:1.08; font-weight:800; letter-spacing:-.02em; m
 p, li { font-size:32px; line-height:1.45; color:#d5dbf5 }
 .mute { color:var(--mute) }
 .grad { background:linear-gradient(90deg,#818cf8,#34d399); -webkit-background-clip:text; background-clip:text; color:transparent }
+.slide:not(:has(.foot))::after { content:'AdminOS · github.com/Nanda-Regine/AdminOS'; position:absolute; left:110px; bottom:46px; font-size:20px; color:var(--mute) }
 .foot { position:absolute; left:110px; right:110px; bottom:46px; display:flex; justify-content:space-between; font-size:20px; color:var(--mute) }
 .row { display:flex; gap:60px; align-items:center }
 .col { flex:1 }
@@ -26,6 +27,7 @@ p, li { font-size:32px; line-height:1.45; color:#d5dbf5 }
 .num { font-size:92px; font-weight:800; letter-spacing:-.03em }
 .pill { display:inline-block; padding:8px 22px; border-radius:99px; font-size:22px; font-weight:700; border:1px solid }
 .live { color:var(--em); border-color:#34d39966; background:#34d39914 } .next { color:var(--gold); border-color:#e0b84a66; background:#e0b84a14 }
+.tight li { font-size:27px; margin:11px 0; line-height:1.38 }
 ul { list-style:none } li { padding-left:44px; position:relative; margin:16px 0 }
 li::before { content:'✓'; position:absolute; left:0; color:var(--em); font-weight:800 }
 .big { font-size:44px; line-height:1.3; color:var(--ink); font-weight:600 }
@@ -36,7 +38,7 @@ table { width:100%; border-collapse:collapse; font-size:28px } td,th { padding:1
 <section class="slide" style="display:flex;flex-direction:column;justify-content:center">
   <div class="kicker">FNB App Hackathon · Youth Entrepreneurship &amp; Small Business Growth</div>
   <h1>Admin<span class="grad">OS</span></h1>
-  <p class="big" style="margin-top:34px;max-width:1350px">The WhatsApp-native business OS that takes a young South African founder from <span class="grad">“I have an idea”</span> to <span class="grad">“I run a business”</span>.</p>
+  <p class="big" style="margin-top:34px;max-width:1350px">The business OS, app-native today with WhatsApp next, that takes a young South African founder from <span class="grad">“I have an idea”</span> to <span class="grad">“I run a business”</span>.</p>
   <p class="mute" style="margin-top:60px;font-size:26px">Mirembe Muse (Pty) Ltd · East London, Eastern Cape · Nandawula Regine, founder<br>Live at adminos.co.za · github.com/Nanda-Regine/AdminOS</p>
 </section>
 
@@ -50,7 +52,7 @@ table { width:100%; border-collapse:collapse; font-size:28px } td,th { padding:1
     <div class="card"><h3>📓 No records, no funding</h3><p>A WhatsApp chat and a notebook can't show a lender, a funder or a bank that the business is real.</p></div>
     <div class="card"><h3>📱 Five apps they can't afford</h3><p>Invoicing here, payroll there, chat somewhere else — built for US businesses, not for load-shedding and prepaid data.</p></div>
   </div>
-  <div class="foot"><span>AdminOS</span><span>02</span></div>
+  <div class="foot"><span>AdminOS · github.com/Nanda-Regine/AdminOS</span><span>02</span></div>
 </section>
 
 <!-- 3 INSIGHT -->
@@ -58,13 +60,64 @@ table { width:100%; border-collapse:collapse; font-size:28px } td,th { padding:1
   <div class="kicker">The idea</div>
   <h2>One loop. <span class="grad">Get paid → stay compliant → know your numbers → grow.</span></h2>
   <div class="grid g4" style="margin-top:80px">
-    <div class="card"><div class="num" style="color:var(--em)">1</div><h3>Get paid</h3><p>Invoice in seconds. An AI agent chases the oldest debt first, politely, on WhatsApp.</p></div>
+    <div class="card"><div class="num" style="color:var(--em)">1</div><h3>Get paid</h3><p>Invoice in seconds. An AI agent prepares polite reminders, oldest debt first, and keeps the firm ones for your approval.</p></div>
     <div class="card"><div class="num" style="color:#818cf8">2</div><h3>Stay compliant</h3><p>Every SARS, CIPC and COIDA deadline pre-loaded — with the real penalty for missing it.</p></div>
     <div class="card"><div class="num" style="color:var(--gold)">3</div><h3>Know the numbers</h3><p>A daily brief, a health score and accountant-ready exports, categorised from day one.</p></div>
     <div class="card"><div class="num" style="color:#f472b6">4</div><h3>Grow</h3><p>Goals, bookings, stock, staff and payroll — the business scales without the admin scaling with it.</p></div>
   </div>
   <p class="mute" style="margin-top:60px;font-size:28px">Every step produces clean data. Clean data is what turns a hustle into something a bank can say yes to.</p>
-  <div class="foot"><span>AdminOS</span><span>03</span></div>
+  <div class="foot"><span>AdminOS · github.com/Nanda-Regine/AdminOS</span><span>03</span></div>
+</section>
+
+
+<!-- 3b SOLUTION OVERVIEW -->
+<section class="slide">
+  <div class="kicker">The solution</div>
+  <h2 style="font-size:62px;max-width:1700px">One workspace for the <span class="grad">whole founder journey.</span></h2>
+  <p class="mute" style="margin-top:18px;font-size:28px">The owner on the web app. The team on the Android staff app. The accountant gets clean exports. One clean data spine underneath.</p>
+  <div class="grid g4" style="margin-top:44px">
+    <div class="card" style="border-top:5px solid var(--em)"><h3 style="color:var(--em)">1 · Get paid</h3>
+      <ul class="tight"><li>Invoices &amp; receipts</li><li>Quick Sale for cash</li><li>Debt recovery</li><li>Bank statement reconcile</li></ul></div>
+    <div class="card" style="border-top:5px solid #818cf8"><h3 style="color:#a5b4fc">2 · Stay compliant</h3>
+      <ul class="tight"><li>SARS · CIPC · COIDA calendar</li><li>Payroll: PAYE, UIF, SDL</li><li>POPIA consent &amp; opt-out</li><li>Licences &amp; deadlines</li></ul></div>
+    <div class="card" style="border-top:5px solid var(--gold)"><h3 style="color:var(--gold)">3 · Know the numbers</h3>
+      <ul class="tight"><li>Health score &amp; daily brief</li><li>90-day cash forecast</li><li>Expenses &amp; payables</li><li>Accountant exports</li></ul></div>
+    <div class="card" style="border-top:5px solid #f472b6"><h3 style="color:#f9a8d4">4 · Grow</h3>
+      <ul class="tight"><li>Bookings &amp; customers</li><li>Stock &amp; suppliers</li><li>Staff, leave &amp; tasks</li><li>Goals &amp; progress</li></ul></div>
+  </div>
+  <div class="card" style="margin-top:34px;display:flex;gap:40px;align-items:center">
+    <div style="flex:1"><h3 style="font-size:30px">AI drafts, the owner decides</h3><p style="font-size:25px">Gentle actions can run on their own. Anything firm or money-moving waits for one tap from the owner.</p></div>
+    <div style="flex:1"><h3 style="font-size:30px">Role-aware</h3><p style="font-size:25px">Owner, manager and staff each see only what their job needs.</p></div>
+    <div style="flex:1"><h3 style="font-size:30px">Built for SA</h3><p style="font-size:25px">Rands, SARS, POPIA and four languages. Tested across 7 industry personas.</p></div>
+  </div>
+</section>
+
+<!-- 3c USER JOURNEY -->
+<section class="slide">
+  <div class="kicker">User journey · a week with Thabo</div>
+  <h2 style="font-size:58px;max-width:1750px">A week with Thabo, <span class="grad">hardware trader in East London.</span></h2>
+  <p class="mute" style="margin-top:14px;font-size:24px">Illustrative story built from our demo business, “Mzansi Test Traders”. All figures are sample data.</p>
+  <div class="grid g3" style="margin-top:34px;gap:26px">
+    <div class="card" style="position:relative;padding:30px 34px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><span class="pill live" style="color:#34d399;border-color:#34d39966;background:#34d39914">Mon 07:30</span><span class="mute" style="font-size:20px">Command Center</span></div>
+      <h3 style="font-size:31px;margin-bottom:8px">He sees what matters</h3><p style="font-size:25px;line-height:1.38">“R 14 134 is stuck in collections” and 11 decisions are waiting. One screen, not five apps.</p></div>
+    <div class="card" style="position:relative;padding:30px 34px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><span class="pill live" style="color:#34d399;border-color:#34d39966;background:#34d39914">Mon 08:00</span><span class="mute" style="font-size:20px">Cash Cockpit</span></div>
+      <h3 style="font-size:31px;margin-bottom:8px">He knows who to chase</h3><p style="font-size:25px;line-height:1.38">The oldest debt comes first. Gentle follow-ups are drafted; firm ones wait for his approval.</p></div>
+    <div class="card" style="position:relative;padding:30px 34px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><span class="pill live" style="color:#34d399;border-color:#34d39966;background:#34d39914">Tue</span><span class="mute" style="font-size:20px">Invoices</span></div>
+      <h3 style="font-size:31px;margin-bottom:8px">A walk-in pays cash</h3><p style="font-size:25px;line-height:1.38">Quick Sale. A receipt in seconds, and the sale is in the books.</p></div>
+    <div class="card" style="position:relative;padding:30px 34px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><span class="pill live" style="color:#818cf8;border-color:#818cf866;background:#818cf814">Wed</span><span class="mute" style="font-size:20px">Bank &amp; Reconcile</span></div>
+      <h3 style="font-size:31px;margin-bottom:8px">He closes his bank loop</h3><p style="font-size:25px;line-height:1.38">Uploads his FNB statement. Lines categorise themselves, a payment matches its invoice, one tap settles it.</p></div>
+    <div class="card" style="position:relative;padding:30px 34px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><span class="pill live" style="color:#818cf8;border-color:#818cf866;background:#818cf814">Thu</span><span class="mute" style="font-size:20px">Compliance · Payroll</span></div>
+      <h3 style="font-size:31px;margin-bottom:8px">He beats the deadline</h3><p style="font-size:25px;line-height:1.38">EMP201 is due on the 7th. He sees the date and the penalty, then runs payroll with PAYE, UIF and SDL.</p></div>
+    <div class="card" style="position:relative;padding:30px 34px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><span class="pill live" style="color:#e0b84a;border-color:#e0b84a66;background:#e0b84a14">Fri</span><span class="mute" style="font-size:20px">Reports</span></div>
+      <h3 style="font-size:31px;margin-bottom:8px">His accountant is happy</h3><p style="font-size:25px;line-height:1.38">The daily brief and health score are green. Income statement, VAT and journal export in a click.</p></div>
+  </div>
+  <p class="big" style="margin-top:30px;font-size:34px">From a notebook to <span class="grad">a clean, categorised record a lender can read.</span></p>
 </section>
 
 <!-- 4 COMMAND CENTER -->
@@ -89,7 +142,7 @@ table { width:100%; border-collapse:collapse; font-size:28px } td,th { padding:1
       <div class="kicker">1 · Get paid</div>
       <h2 style="font-size:50px">The cash you’ve <span class="grad">already earned</span> — collected.</h2>
       <p style="margin-top:22px;font-size:28px">Cash Cockpit tells a founder plainly what they’re owed, what’s stuck, and who to chase first.</p>
-      <ul style="margin-top:20px"><li>Branded tax invoices &amp; payment receipts</li><li>Quick Sale for cash and walk-in customers</li><li>5-tier automated debt recovery agent</li><li>Every rand categorised to a chart of accounts</li></ul>
+      <ul style="margin-top:20px"><li>Branded tax invoices &amp; payment receipts</li><li>Quick Sale for cash and walk-in customers</li><li>6-stage debt recovery: gentle reminders first, firm notices wait for your approval</li><li>Every rand categorised to a chart of accounts</li></ul>
     </div>
     <div class="col" style="display:flex;gap:40px;align-items:center;justify-content:flex-end">
       <img class="shot" src="screens/money__desktop.png" style="width:860px">
@@ -104,12 +157,12 @@ table { width:100%; border-collapse:collapse; font-size:28px } td,th { padding:1
     <div style="width:760px">
       <div class="kicker">1 · Get paid — the bank loop</div>
       <h2 style="font-size:50px">Your bank statement, <span class="grad">closed into the books.</span></h2>
-      <ul style="margin-top:28px">
+      <ul class="tight" style="margin-top:24px">
         <li>Upload a CSV from FNB, Capitec, ABSA, Standard Bank, Nedbank or TymeBank</li>
-        <li>Preview first; lines already imported are skipped</li>
-        <li>Spending sorts itself into categories and learns your vendors</li>
-        <li>Payments are matched to the invoices they paid, by invoice number, payer name and the exact amount owed</li>
-        <li>One tap settles the invoice. Look-alikes and part-payments are flagged, never guessed</li>
+        <li>Preview first; spending sorts itself and learns your vendors</li>
+        <li>Payments are matched to invoices by number, payer name and exact amount</li>
+        <li>One tap settles the invoice</li>
+        <li>Look-alikes and part-payments are flagged, never guessed</li>
       </ul>
     </div>
     <div class="col" style="display:flex;gap:40px;align-items:center;justify-content:flex-end">
@@ -125,8 +178,8 @@ table { width:100%; border-collapse:collapse; font-size:28px } td,th { padding:1
     <div style="width:700px">
       <div class="kicker">2 · Stay compliant</div>
       <h2 style="font-size:60px">The fear every founder has — <span class="grad">answered in one click.</span></h2>
-      <ul style="margin-top:36px"><li>19 SARS, CIPC and COIDA obligations, pre-loaded</li><li>Dates built on SARS-verified rules, rolled forward monthly</li><li>The actual penalty for missing each one</li><li>POPIA consent built into every broadcast</li></ul>
-      <p class="mute" style="margin-top:20px;font-size:26px">No other small-business tool knows what an EMP201 is.</p>
+      <ul style="margin-top:36px"><li>EMP201, EMP501, IRP6, ITR14, COIDA and CIPC deadlines, pre-loaded</li><li>Dates built on SARS-verified rules, rolled forward monthly</li><li>The actual penalty for missing each one</li><li>POPIA consent built into every broadcast</li></ul>
+      <p class="mute" style="margin-top:20px;font-size:26px">Built around South African employer and tax deadlines from day one.</p>
     </div>
     <div class="col" style="display:flex;justify-content:flex-end"><img class="shot" src="screens/compliance__desktop.png" style="width:1050px"></div>
   </div>
@@ -135,14 +188,16 @@ table { width:100%; border-collapse:collapse; font-size:28px } td,th { padding:1
 <!-- 7 NUMBERS -->
 <section class="slide">
   <div class="row" style="height:100%">
-    <div style="width:700px">
+    <div style="width:900px">
       <div class="kicker">3 · Know your numbers</div>
-      <h2 style="font-size:60px">Books that are <span class="grad">in order from day one.</span></h2>
-      <ul style="margin-top:36px"><li>Business health score and daily AI brief</li><li>Cashflow, expenses and payables in one place</li><li>Accountant-ready exports: income statement, VAT, journal CSV</li><li>Payroll with PAYE, UIF and SDL</li></ul>
+      <h2 style="font-size:54px">Books in order <span class="grad">from day one.</span></h2>
+      <ul class="tight" style="margin-top:30px"><li>Business health score and a daily brief</li><li>A 90-day cash forecast, labelled as an estimate</li><li>Accountant-ready exports: income statement, VAT, journal CSV</li><li>Payroll with PAYE, UIF and SDL</li></ul>
     </div>
     <div class="col" style="display:flex;gap:30px;justify-content:flex-end;align-items:center">
-      <img class="shot" src="screens/health__desktop.png" style="width:900px">
-      <img class="shot" src="screens/cashflow__desktop.png" style="width:640px">
+      <div style="display:flex;flex-direction:column;gap:26px;align-items:flex-end">
+        <img class="shot" src="screens/health__desktop.png" style="width:640px">
+        <img class="shot" src="screens/cashflow__desktop.png" style="width:640px">
+      </div>
     </div>
   </div>
 </section>
@@ -152,11 +207,11 @@ table { width:100%; border-collapse:collapse; font-size:28px } td,th { padding:1
   <div class="kicker">4 · Grow</div>
   <h2 style="font-size:60px">Run the whole business — <span class="grad">not just the books.</span></h2>
   <div class="grid g3" style="margin-top:50px">
-    <div><img class="shot" src="screens/bookings__desktop.png" style="width:100%"><p style="margin-top:16px;font-size:26px"><b>Bookings &amp; customers</b> — a public booking link and a 24h reminder.</p></div>
+    <div><img class="shot" src="screens/bookings__desktop.png" style="width:100%"><p style="margin-top:16px;font-size:26px"><b>Bookings &amp; customers</b> — a booking diary with confirmations; a 24-hour reminder is built in for when WhatsApp is connected.</p></div>
     <div><img class="shot" src="screens/inventory__desktop.png" style="width:100%"><p style="margin-top:16px;font-size:26px"><b>Stock &amp; suppliers</b> — reorder alerts and a B-BBEE supplier scorecard.</p></div>
     <div><img class="shot" src="screens/tasks__desktop.png" style="width:100%"><p style="margin-top:16px;font-size:26px"><b>Team &amp; tasks</b> — staff, leave, tasks and goals with progress.</p></div>
   </div>
-  <div class="foot"><span>AdminOS</span><span>09</span></div>
+  <div class="foot"><span>AdminOS · github.com/Nanda-Regine/AdminOS</span><span>11</span></div>
 </section>
 
 <!-- 9 BUILT FOR SA -->
@@ -166,13 +221,49 @@ table { width:100%; border-collapse:collapse; font-size:28px } td,th { padding:1
       <div class="kicker">Built for how South Africans actually work</div>
       <h2 style="font-size:60px">Designed for the <span class="grad">mid-range Android</span> on prepaid data.</h2>
       <div class="grid g2" style="margin-top:40px;gap:24px">
-        <div class="card"><h3>💬 WhatsApp-native</h3><p>Customers, reminders and payslips travel on the channel everyone already uses.</p></div>
+        <div class="card"><h3>📱 App-native today</h3><p>Everything runs in the app on a mid-range Android. WhatsApp, the channel everyone already uses, is our next step.</p></div>
         <div class="card"><h3>🗣️ 4 languages</h3><p>English, isiZulu, isiXhosa and Afrikaans — including the onboarding guide.</p></div>
-        <div class="card"><h3>🔌 Load-shedding ready</h3><p>PWA with offline queue — actions retry when the signal returns.</p></div>
-        <div class="card"><h3>📲 Staff app</h3><p>Expo Android app prepared for Google Play and Huawei AppGallery.</p></div>
+        <div class="card"><h3>🔌 Built for load-shedding</h3><p>The staff app queues clock-ins offline and retries when the signal returns.</p></div>
+        <div class="card"><h3>📲 Staff app</h3><p>Expo Android app being prepared for Google Play and Huawei AppGallery.</p></div>
       </div>
     </div>
     <div class="col" style="display:flex;gap:30px;justify-content:flex-end"><img class="phone" src="screens/goals__mobile.png" style="width:330px"><img class="phone" src="screens/invoices__mobile.png" style="width:330px"></div>
+  </div>
+</section>
+
+
+<!-- 10a TECHNICAL ARCHITECTURE -->
+<section class="slide">
+  <div class="kicker">Technical architecture</div>
+  <h2 style="font-size:56px;max-width:1750px">Server-side by design. <span class="grad">The browser never holds the keys.</span></h2>
+  <div style="margin-top:34px;display:grid;gap:18px">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px">
+      <div style="background:var(--card);border:1.5px solid #6366f188;border-radius:20px;padding:20px 26px;"><div style="font-size:27px;font-weight:700;color:var(--ink)">Web app (PWA)</div><div style="font-size:21px;color:var(--mute);margin-top:4px;line-height:1.35">Next.js 16 · React 19 · Tailwind 4 · mobile-first</div></div>
+      <div style="background:var(--card);border:1.5px solid #6366f188;border-radius:20px;padding:20px 26px;"><div style="font-size:27px;font-weight:700;color:var(--ink)">Android staff app</div><div style="font-size:21px;color:var(--mute);margin-top:4px;line-height:1.35">Expo / React Native · clock-in queues offline</div></div>
+      <div style="background:var(--card);border:1.5px solid #e0b84a88;border-radius:20px;padding:20px 26px;opacity:.9"><div style="font-size:27px;font-weight:700;color:var(--ink)">WhatsApp</div><div style="font-size:21px;color:var(--mute);margin-top:4px;line-height:1.35">Meta Cloud API · built, connecting next</div></div>
+    </div>
+    <div style="text-align:center;color:var(--mute);font-size:24px">▼ &nbsp; HTTPS &nbsp; ▼</div>
+    <div style="background:var(--card);border:1.5px solid #34d39988;border-radius:20px;padding:20px 26px;text-align:center"><div style="font-size:27px;font-weight:700;color:var(--ink)">Cloudflare Workers · Next.js App Router API</div><div style="font-size:21px;color:var(--mute);margin-top:4px;line-height:1.35">Every route: signed-in user → tenant lookup → role/permission check → Zod-validated input → server-only data access. Rate-limited; webhooks signature-verified.</div></div>
+    <div style="text-align:center;color:var(--mute);font-size:24px">▼ &nbsp; server-side only &nbsp; ▼</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:18px">
+      <div style="background:var(--card);border:1.5px solid #25305a;border-radius:20px;padding:20px 26px;"><div style="font-size:27px;font-weight:700;color:var(--ink)">Supabase</div><div style="font-size:21px;color:var(--mute);margin-top:4px;line-height:1.35">Postgres + Auth. Row-level security on all 110 tables; bank tables server-only</div></div>
+      <div style="background:var(--card);border:1.5px solid #25305a;border-radius:20px;padding:20px 26px;"><div style="font-size:27px;font-weight:700;color:var(--ink)">Inngest</div><div style="font-size:21px;color:var(--mute);margin-top:4px;line-height:1.35">40+ background jobs: reminders, recovery, roll-forwards, daily brief</div></div>
+      <div style="background:var(--card);border:1.5px solid #25305a;border-radius:20px;padding:20px 26px;"><div style="font-size:27px;font-weight:700;color:var(--ink)">Anthropic Claude</div><div style="font-size:21px;color:var(--mute);margin-top:4px;line-height:1.35">Haiku for light tasks, Sonnet for reasoning. Per-tenant budget caps</div></div>
+      <div style="background:var(--card);border:1.5px solid #25305a;border-radius:20px;padding:20px 26px;"><div style="font-size:27px;font-weight:700;color:var(--ink)">Upstash Redis</div><div style="font-size:21px;color:var(--mute);margin-top:4px;line-height:1.35">Rate limits and usage counters</div></div>
+    </div>
+    <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-top:6px"><span class="mute" style="font-size:22px">Also wired in:</span><span class="pill" style="color:var(--mute);border-color:#25305a;background:#ffffff08;font-size:21px;padding:6px 18px">Paystack billing (ZAR)</span><span class="pill" style="color:var(--mute);border-color:#25305a;background:#ffffff08;font-size:21px;padding:6px 18px">PostHog analytics (after consent)</span><span class="pill" style="color:var(--mute);border-color:#25305a;background:#ffffff08;font-size:21px;padding:6px 18px">Sentry errors</span><span class="pill" style="color:var(--mute);border-color:#25305a;background:#ffffff08;font-size:21px;padding:6px 18px">CI: type-check + tests on every push</span></div>
+  <p class="mute" style="margin-top:26px;font-size:25px;line-height:1.45">Background jobs and AI calls run on the server only. The browser never receives the database service key, the AI key or any other secret, and bank, payment and payroll data are read by the server after the role check.</p></div>
+</section>
+
+<!-- 10b RESPONSIBLE AI -->
+<section class="slide">
+  <div class="kicker">Responsible AI</div>
+  <h2 style="font-size:62px;max-width:1700px">AI drafts. <span class="grad">The founder decides.</span></h2>
+  <div class="grid g2" style="margin-top:44px;gap:30px">
+    <div class="card"><div class="num grad" style="font-size:64px">A · B · C</div><h3 style="margin-top:6px">Three levels of trust</h3><p>For each decision the owner picks: A acts and reports, B drafts for one-tap approval, C only alerts. Eight decisions are covered today.</p></div>
+    <div class="card"><div class="num grad" style="font-size:64px">1–3</div><h3 style="margin-top:6px">Only courteous reminders can send themselves</h3><p>Debt follow-ups run in six stages. Stages 4–6 are drafted for the owner and never auto-sent. A content guard blocks threats and legal language.</p></div>
+    <div class="card"><div class="num grad" style="font-size:64px">Zero</div><h3 style="margin-top:6px">Direct database access for AI</h3><p>The model gets only the text it needs. Inputs are sanitised against prompt injection, and every call is metered.</p></div>
+    <div class="card"><div class="num grad" style="font-size:64px">Capped</div><h3 style="margin-top:6px">A budget the owner can trust</h3><p>Per-business AI cost caps are enforced on the server, so a runaway prompt cannot become a surprise bill.</p></div>
   </div>
 </section>
 
@@ -182,16 +273,45 @@ table { width:100%; border-collapse:collapse; font-size:28px } td,th { padding:1
   <h2 style="font-size:62px">Not a prototype. <span class="grad">A product in production.</span></h2>
   <div class="grid g4" style="margin-top:60px">
     <div class="card"><div class="num grad">50+</div><p>dashboard screens, live at adminos.co.za</p></div>
-    <div class="card"><div class="num grad">204</div><p>automated tests passing</p></div>
-    <div class="card"><div class="num grad">122/122</div><p>checks passed walking 7 industry personas on production</p></div>
-    <div class="card"><div class="num grad">38</div><p>background automations (reminders, recovery, rollovers)</p></div>
+    <div class="card"><div class="num grad">238</div><p>automated tests passing</p></div>
+    <div class="card"><div class="num grad">122/122</div><p>checks passed walking 7 industry personas on production (last full run, 6 Oct)</p></div>
+    <div class="card"><div class="num grad">40+</div><p>background automations (reminders, recovery, rollovers)</p></div>
   </div>
   <div class="grid g3" style="margin-top:34px">
-    <div class="card"><h3>🔒 Tenant isolation</h3><p>Row-level security on every table; a regression gate checks who can see what, per role.</p></div>
-    <div class="card"><h3>🧑🏾‍💼 A real first user</h3><p>A Johannesburg video-production founder runs her business on it today.</p></div>
+    <div class="card"><h3>🔒 Tenant isolation</h3><p>Row-level security on every table; bank lines reachable by the server only; a regression gate checks who can see what, per role.</p></div>
+    <div class="card"><h3>🧑🏾‍💼 A first beta user</h3><p>A Johannesburg video-production founder has been trialling it since August.</p></div>
     <div class="card"><h3>⚖️ POPIA by design</h3><p>Consent layer for outbound messaging; no raw database errors ever reach users.</p></div>
   </div>
-  <div class="foot"><span>AdminOS</span><span>11</span></div>
+  <div class="foot"><span>AdminOS · github.com/Nanda-Regine/AdminOS</span><span>15</span></div>
+</section>
+
+
+<!-- 11a TRUST -->
+<section class="slide">
+  <div class="kicker">Trust · security &amp; POPIA</div>
+  <h2 style="font-size:58px">Your customers’ data stays <span class="grad">yours — and apart.</span></h2>
+  <div class="grid g2" style="margin-top:44px;gap:34px">
+    <div class="card">
+      <h3>🔒 One business can never see another</h3>
+      <ul class="tight" style="margin-top:6px">
+        <li>Row-level security on every table; with the public database key, no business's data can be read (checked 26 Oct 2026)</li>
+        <li>Bank lines are reachable by our server only, never from a browser; payroll and invoices only by that business's own signed-in users</li>
+        <li>Every request is role-checked before any data is read; staff see only their own day</li>
+        <li>A regression check walks 7 industry personas on production: 122 of 122 checks passed</li>
+        <li>Signed webhooks, safe redirects, security patches applied; no raw database errors reach users</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>⚖️ POPIA, built in</h3>
+      <ul class="tight" style="margin-top:6px">
+        <li>Consent checked before any outbound marketing message; customers can opt out</li>
+        <li>Soft-delete and an audit trail on key changes; accounts can be deleted and purged</li>
+        <li>Personal data minimised: AI helpers get no direct database access</li>
+        <li>Privacy policy being updated to list every operator and cross-border transfer (s72) <span class="pill next" style="padding:3px 14px;font-size:18px">In progress</span></li>
+      </ul>
+    </div>
+  </div>
+  <div class="foot"><span>AdminOS · github.com/Nanda-Regine/AdminOS</span><span>16</span></div>
 </section>
 
 <!-- 11 FNB -->
@@ -207,7 +327,7 @@ table { width:100%; border-collapse:collapse; font-size:28px } td,th { padding:1
     <tr><td>Credit-readiness profile</td><td>Consented, shareable view of cash flow, compliance and trading history for lenders</td><td><span class="pill next">Next</span></td></tr>
   </table>
   <p class="mute" style="margin-top:34px;font-size:26px">The data flywheel: the more a founder runs through AdminOS, the more provable — and bankable — the business becomes.</p>
-  <div class="foot"><span>AdminOS</span><span>12</span></div>
+  <div class="foot"><span>AdminOS · github.com/Nanda-Regine/AdminOS</span><span>17</span></div>
 </section>
 
 <!-- 12 MODEL -->
@@ -216,13 +336,41 @@ table { width:100%; border-collapse:collapse; font-size:28px } td,th { padding:1
   <h2 style="font-size:62px">Priced for a founder’s first <span class="grad">R349</span>, not an enterprise budget.</h2>
   <div class="grid g4" style="margin-top:60px">
     <div class="card"><h3>Solo</h3><div class="num" style="font-size:64px">R349</div><p class="mute">per month · 1 person</p></div>
-    <div class="card" style="border-color:var(--ind)"><h3>Grow</h3><div class="num" style="font-size:64px">R899</div><p class="mute">up to 5 staff · all 6 AI agents</p></div>
+    <div class="card" style="border-color:var(--ind)"><h3>Grow</h3><div class="num" style="font-size:64px">R899</div><p class="mute">up to 5 staff · AI agents included</p></div>
     <div class="card"><h3>Operate</h3><div class="num" style="font-size:64px">R1,999</div><p class="mute">up to 20 staff · payroll &amp; compliance</p></div>
     <div class="card"><h3>Scale</h3><div class="num" style="font-size:64px">R3,999</div><p class="mute">up to 100 staff · multi-branch</p></div>
   </div>
-  <p style="margin-top:44px">14-day free trial · add-ons: AI voice receptionist, WhatsApp broadcasts, client portal, extra languages · billing in ZAR.</p>
+  <p style="margin-top:44px">14-day free trial · add-ons: AI voice receptionist, broadcasts (once WhatsApp is connected), client portal, extra languages · billing in ZAR.</p>
   <p class="mute" style="margin-top:14px;font-size:26px">Distribution: bank, incubator and funder partnerships — one partner brings a cohort of founders onto the platform.</p>
-  <div class="foot"><span>AdminOS</span><span>13</span></div>
+  <div class="foot"><span>AdminOS · github.com/Nanda-Regine/AdminOS</span><span>18</span></div>
+</section>
+
+
+<!-- 12a VALIDATION -->
+<section class="slide">
+  <div class="kicker">Market validation</div>
+  <h2 style="font-size:58px">Early signal is strong. <span class="grad">Here is how we prove it.</span></h2>
+  <div class="grid g2" style="margin-top:44px;gap:34px">
+    <div class="card">
+      <h3>What we have heard so far</h3>
+      <ul class="tight" style="margin-top:6px">
+        <li><b>FNB hackathon panel, 2 of 2:</b> “can use” and “can buy”. One would pay the full price, one half price</li>
+        <li>“Your strong point is the pricing… unique and specific to South Africa.”</li>
+        <li>Our first beta founder, in Johannesburg, has been trialling AdminOS since August</li>
+        <li>Fair challenge from the panel: similar tools exist. Ours is built and priced for South Africa from day one: ZAR, SARS, POPIA, four languages, WhatsApp next</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>What we test next <span class="pill next" style="padding:3px 14px;font-size:18px">Planned</span></h3>
+      <ul class="tight" style="margin-top:6px">
+        <li>A short “what would you pay?” survey to every beta founder, per tier</li>
+        <li>Three pilot cohorts with incubators and funders, tracking trial → paid</li>
+        <li>Half-price signal: test a lighter Solo tier and an annual discount against the R349 plan</li>
+        <li>Measure what matters: days from invoice to cash, owner hours saved, 90-day retention</li>
+      </ul>
+    </div>
+  </div>
+  <div class="foot"><span>AdminOS · github.com/Nanda-Regine/AdminOS</span><span>19</span></div>
 </section>
 
 <!-- 13 CLOSE -->
@@ -234,5 +382,7 @@ table { width:100%; border-collapse:collapse; font-size:28px } td,th { padding:1
     <div class="card"><h3>Read the code</h3><p>github.com/Nanda-Regine/AdminOS</p></div>
     <div class="card"><h3>Talk to us</h3><p>Nandawula Regine<br>Mirembe Muse (Pty) Ltd</p></div>
   </div>
+  <div class="card" style="margin-top:34px;border-color:var(--ind)"><h3>Judges: try the live demo</h3><p>adminos.co.za/login &nbsp;·&nbsp; <b>founder@adminos-demo.co.za</b> &nbsp;·&nbsp; password <b>7jQd-vfex-78Rg</b><br><span class="mute" style="font-size:22px">Sample business &ldquo;Mzansi Test Traders&rdquo; (owner view). Sample data only.</span></p></div>
+  <div class="foot"><span>AdminOS · github.com/Nanda-Regine/AdminOS</span><span>20</span></div>
 </section>
 </body></html>
