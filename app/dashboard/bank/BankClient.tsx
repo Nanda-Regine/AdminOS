@@ -203,7 +203,8 @@ export function BankClient({ hasLines }: { hasLines: boolean }) {
         </Card>
       )}
 
-      <div className="flex flex-wrap items-center gap-2" role="tablist" aria-label="Bank lines">
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="contents" role="tablist" aria-label="Bank lines">
         {TABS.map((t) => (
           <button
             key={t.key} role="tab" aria-selected={tab === t.key}
@@ -214,6 +215,7 @@ export function BankClient({ hasLines }: { hasLines: boolean }) {
               : { color: 'var(--text-secondary)', borderColor: 'var(--border)' }}
           >{t.label}</button>
         ))}
+        </div>
         {tab === 'unmatched' && highPairs.length > 0 && (
           <Button size="sm" className="w-full sm:w-auto sm:ml-auto" onClick={confirmAllHigh} loading={busy === 'bulk'}>
             <CheckCircle2 className="w-4 h-4" aria-hidden /> Confirm {highPairs.length} sure match{highPairs.length === 1 ? '' : 'es'}

@@ -36,6 +36,15 @@ export function formatZARCompact(amount: number | null | undefined): string {
   return formatZAR(n)
 }
 
+const monthShort = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+/** `2026-06-17` -> `17 Jun 2026`. Calendar dates only (no timezone shift); anything else is returned unchanged. */
+export function formatDateShort(ymd: string | null | undefined): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(ymd ?? '')
+  if (!m) return ymd ?? ''
+  return `${Number(m[3])} ${monthShort[Number(m[2]) - 1]} ${m[1]}`
+}
+
 /** Plain grouped integer, no currency: `12 500`. */
 export function formatNumber(n: number | null | undefined): string {
   return Number(n ?? 0).toLocaleString('en-ZA', { maximumFractionDigits: 0 })

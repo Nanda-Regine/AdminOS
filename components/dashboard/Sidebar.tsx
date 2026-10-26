@@ -21,6 +21,23 @@ export function Sidebar({ businessType, permissions }: {
   const pathname = usePathname()
   const router = useRouter()
   const [open, setOpen] = useState(false)
+  // Below md the drawer is off-canvas when closed: take it out of the tab order
+  // and the accessibility tree (inert) so keyboard / screen-reader users don't
+  // walk through links they cannot see.
+  const [isDesktop, setIsDesktop] = useState(true)
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 768px)')
+    const sync = () => setIsDesktop(mq.matches)
+    sync()
+    mq.addEventListener('change', sync)
+    return () => mq.removeEventListener('change', sync)
+  }, [])
+  useEffect(() => {
+    if (!open) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false) }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [open])
 
   // Close the mobile drawer whenever the route changes.
   useEffect(() => { setOpen(false) }, [pathname])
@@ -35,8 +52,8 @@ export function Sidebar({ businessType, permissions }: {
   return (
     <>
       {/* Mobile hamburger — only < md; floats over the TopBar's cleared left padding */}
-      <button type="button" onClick={() => setOpen(true)} aria-label="Open menu"
-        className="md:hidden fixed top-2.5 left-3 z-40 w-10 h-10 rounded-lg flex items-center justify-center"
+      <button type="button" onClick={() => setOpen(true)} aria-label="Open menu" aria-expanded={open}
+        className="md:hidden fixed top-2 left-3 z-40 w-11 h-11 rounded-lg flex items-center justify-center"
         style={{ background: 'var(--surface-1)', border: '1px solid var(--border)', color: 'var(--text-secondary)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}>
         <Menu className="w-5 h-5" />
       </button>
@@ -47,7 +64,7 @@ export function Sidebar({ businessType, permissions }: {
           className="md:hidden fixed inset-0 z-40" style={{ background: 'rgba(3,6,18,0.6)' }} />
       )}
 
-    <aside className={`w-60 flex flex-col h-screen fixed left-0 top-0 border-r transition-transform duration-300 ease-out ${open ? 'translate-x-0 z-50' : '-translate-x-full z-30'} md:translate-x-0 md:z-30`}
+    <aside inert={!isDesktop && !open} className={`w-60 flex flex-col h-screen fixed left-0 top-0 border-r transition-transform duration-300 ease-out ${open ? 'translate-x-0 z-50' : '-translate-x-full z-30'} md:translate-x-0 md:z-30`}
       style={{
         backgroundColor: 'var(--navy)',
         backgroundImage: 'var(--nav-scrim), var(--nav-image)',
@@ -58,7 +75,7 @@ export function Sidebar({ businessType, permissions }: {
 
       {/* Close (mobile only) */}
       <button type="button" onClick={() => setOpen(false)} aria-label="Close menu"
-        className="md:hidden absolute top-3 right-3 w-8 h-8 rounded-lg flex items-center justify-center"
+        className="md:hidden absolute top-2 right-2 w-11 h-11 rounded-lg flex items-center justify-center"
         style={{ color: 'var(--text-muted)' }}>
         <X className="w-4 h-4" />
       </button>
@@ -95,7 +112,7 @@ export function Sidebar({ businessType, permissions }: {
                   <Link
                     key={item.href}
                     href={item.href}
-                    className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all"
+                    className="flex items-center gap-3 px-3 py-2 max-md:min-h-11 pointer-coarse:min-h-11 rounded-lg text-sm transition-all"
                     style={isActive ? {
                       background: 'var(--indigo-muted)',
                       color: 'var(--indigo-light)',

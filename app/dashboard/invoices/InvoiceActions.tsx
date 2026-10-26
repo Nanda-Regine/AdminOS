@@ -65,7 +65,7 @@ export function InvoiceActions({ id, status, amount, amountPaid, label }: {
     setMode(m)
   }
 
-  const btn = 'text-xs hover:underline whitespace-nowrap'
+  const btn = 'inline-flex items-center text-xs hover:underline whitespace-nowrap max-md:min-h-11 pointer-coarse:min-h-11'
   const amt = Number(payAmount)
 
   return (

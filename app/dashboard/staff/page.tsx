@@ -92,7 +92,7 @@ export default async function StaffPage({ searchParams }: { searchParams: Promis
                         title="Approve this leave request?"
                         description="This approves the leave and updates the staff member's leave balance."
                         confirmLabel="Approve leave"
-                        className="text-xs bg-emerald-600 text-white px-3 py-1.5 rounded-lg hover:bg-emerald-700"
+                        className="text-xs bg-emerald-700 text-white px-3 py-1.5 rounded-lg hover:bg-emerald-800"
                       />
                     </form>
                     <form action={`/api/leave/${req.id}/decline`} method="POST">

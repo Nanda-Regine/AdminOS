@@ -100,7 +100,7 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Pro
           </Card>
           <Card>
             <p className="text-sm text-[var(--text-muted)]">Overdue invoices</p>
-            <p className="text-2xl font-bold text-red-600 mt-1">{overdueCount}</p>
+            <p className="text-2xl font-bold text-[var(--danger)] mt-1">{overdueCount}</p>
           </Card>
           <Card>
             <p className="text-sm text-[var(--text-muted)]">Total invoices</p>

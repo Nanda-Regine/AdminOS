@@ -158,8 +158,8 @@ export default function RootLayout({
         <CookieConsent />
         <GoogleTagManager />
         <PostHogAnalytics apiKey={process.env.POSTHOG_TOKEN} />
-        <Analytics />
-        <SpeedInsights />
+        {process.env.VERCEL && <Analytics />}
+        {process.env.VERCEL && <SpeedInsights />}
         <script dangerouslySetInnerHTML={{ __html: `if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js')}` }} />
               <script src="/mm-feedback.js" data-app="adminos" data-hide-on="/dashboard/onboarding,/demo" defer></script>
               <script src="https://js.sentry-cdn.com/e6fa52ca2fd75d19fee0898327795fbf.min.js" crossOrigin="anonymous"></script>
