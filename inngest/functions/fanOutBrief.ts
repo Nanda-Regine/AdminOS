@@ -1,10 +1,11 @@
 import { inngest } from '@/inngest/client'
+import { heartbeat } from '@/lib/jobs/heartbeat'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { fetchAll } from '@/lib/supabase/fetchAll'
 
 export const fanOutBriefCron = inngest.createFunction(
   { id: 'fan-out-brief-cron', retries: 0, triggers: [{ cron: '0 3 * * 1-5' }] },
-  async ({ step }: any) => {
+  heartbeat('fan-out-brief-cron', async ({ step }: any) => {
     const tenants = await step.run('fetch-tenants', async () => {
       return fetchAll<{ id: string }>((from, to) =>
         supabaseAdmin.from('tenants').select('id').eq('active', true).order('id').range(from, to))
@@ -36,5 +37,5 @@ export const fanOutBriefCron = inngest.createFunction(
     })
 
     return { fanned: tenants.length }
-  }
+  })
 )

@@ -9,6 +9,10 @@ import Anthropic from '@anthropic-ai/sdk'
 import { recentWellnessAvg } from '@/lib/people/wellness'
 import { sastDate, sastDayStartUTC } from '@/lib/time/sast'
 import { allRows } from '@/lib/supabase/fetchAll'
+import { generateCashflowForecast, saveCashflowForecast } from '@/lib/intelligence/cashflowForecast'
+import { loadBehaviour } from '@/lib/invoices/behaviourLoader'
+import { contactKey } from '@/lib/invoices/paymentBehaviour'
+import { buildWatchouts, type Watchout } from '@/lib/brief/watchouts'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
 
@@ -62,6 +66,39 @@ export const dailyBriefEngine = inngest.createFunction(
       }
     })
 
+    // The numbers: computed from a fresh forecast and the open invoices, never by the AI.
+    // Free (no model call), so it still shows when today's AI budget is spent.
+    const watchouts = await step.run('compute-watchouts', async (): Promise<Watchout[]> => {
+      try {
+        const [forecast, behaviour, open] = await Promise.all([
+          generateCashflowForecast(tenant_id),
+          loadBehaviour(tenant_id),
+          allRows((lo, hi) => supabaseAdmin.from('invoices').select('id, contact_id, contact_name, amount, amount_paid, due_date')
+            .eq('tenant_id', tenant_id).in('status', [...OPEN_INVOICE_STATUSES]).is('deleted_at', null).order('id').range(lo, hi)),
+        ])
+        // Keep the saved forecast the dashboard and board pack read fresh too.
+        await saveCashflowForecast(forecast).catch((e: unknown) => console.error('[brief] forecast save failed', tenant_id, e))
+        return buildWatchouts({
+          today: sastDate(),
+          forecast: {
+            lowestPoint: forecast.lowestPoint,
+            lowestPointDate: forecast.lowestPointDate,
+            outflows: forecast.projectedOutflows,
+          },
+          openInvoices: (open.data ?? []).map((i) => ({
+            id: i.id as string,
+            contact: (i.contact_name as string | null) || 'A customer',
+            outstanding: outstanding(i),
+            dueDate: i.due_date ? String(i.due_date).slice(0, 10) : null,
+            habit: behaviour.byKey.get(contactKey(i.contact_id as string | null, i.contact_name as string | null) ?? '') ?? null,
+          })),
+        })
+      } catch (err) {
+        console.error('[brief] watch-outs failed', tenant_id, err instanceof Error ? err.message : err)
+        return []
+      }
+    })
+
     const brief = await step.run('generate-brief', async () => {
       // Use Haiku for Solo/Grow, Sonnet for Operate+ (per MASTER_ROADMAP cost plan)
       const model = getModelForFeature('daily_brief', intelligence.plan)
@@ -84,6 +121,12 @@ export const dailyBriefEngine = inngest.createFunction(
         return null
       }
 
+      const watchSection = watchouts.length
+        ? `
+- The top money risks this week (already calculated — refer to these exactly, do not change the numbers):
+${watchouts.map((w: Watchout, i: number) => `  ${i + 1}. ${w.title}. ${w.detail}`).join('\n')}`
+        : ''
+
       const t0 = Date.now()
 
       const response = await anthropic.messages.create({
@@ -103,7 +146,7 @@ export const dailyBriefEngine = inngest.createFunction(
 - Overdue invoices: ${intelligence.overdueInvoices} (R${intelligence.totalDebt.toLocaleString()} outstanding)
 - Staff: ${intelligence.staffCount} active, wellness avg: ${intelligence.wellnessAvg ? `${intelligence.wellnessAvg}/5` : "no check-ins yet"}
 - Active goals: ${intelligence.activeGoals.map((g: { title: string; progress_pct?: number }) => `${g.title} (${Math.round(g.progress_pct ?? 0)}%)`).join(', ') || 'none'}
-- Automations run today: ${intelligence.automationsToday}${complianceSection}${healthSection}
+- Automations run today: ${intelligence.automationsToday}${complianceSection}${healthSection}${watchSection}
 
 Today is ${new Date().toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}. Max ${maxTokens === 900 ? 450 : 300} words.`,
         }],
@@ -126,6 +169,8 @@ Today is ${new Date().toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesbu
 
     await step.run('store-brief', async () => {
       if (!brief) {
+        // The watch-outs need no AI — keep showing them even though the narrative was deferred.
+        if (watchouts.length) await setDailyBrief(tenant_id, '', watchouts)
         await writeAuditLog({
           tenantId: tenant_id,
           actor: 'insight',
@@ -135,7 +180,7 @@ Today is ${new Date().toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesbu
         return
       }
       // Surface it (Command Center reads this) + keep the audit trail.
-      await setDailyBrief(tenant_id, brief)
+      await setDailyBrief(tenant_id, brief, watchouts)
       await writeAuditLog({
         tenantId: tenant_id,
         actor: 'insight',

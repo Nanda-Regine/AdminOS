@@ -1,4 +1,5 @@
 import { inngest } from '@/inngest/client'
+import { heartbeat } from '@/lib/jobs/heartbeat'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { fetchAll } from '@/lib/supabase/fetchAll'
 import { notifyTenant } from '@/lib/notifications/notify'
@@ -15,7 +16,7 @@ const STALE_AFTER_HOURS = 48
 export const approvalReminderCron = inngest.createFunction(
   { id: 'approval-reminder-cron', retries: 0, triggers: [{ cron: 'TZ=Africa/Johannesburg 0 8 * * *' }] },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async ({ step }: any) => {
+  heartbeat('approval-reminder-cron', async ({ step }: any) => {
     const tenants = await step.run('fetch-tenants', async () => {
       return fetchAll<{ id: string }>((from, to) =>
         supabaseAdmin.from('tenants').select('id').eq('active', true).order('id').range(from, to))
@@ -29,7 +30,7 @@ export const approvalReminderCron = inngest.createFunction(
       )
     })
     return { fanned: tenants.length }
-  },
+  }),
 )
 
 export const approvalReminderEngine = inngest.createFunction(

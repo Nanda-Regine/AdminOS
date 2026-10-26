@@ -7,6 +7,9 @@ import { TopBar } from '@/components/dashboard/TopBar'
 import { Card } from '@/components/ui/card'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { BankClient } from './BankClient'
+import { getTenantAutonomy } from '@/lib/autonomy/config'
+import { resolveTier } from '@/lib/autonomy/tiers'
+import { graduationOffer } from '@/lib/autonomy/graduation'
 
 export const metadata = {
   title: 'Bank & Reconciliation — AdminOS',
@@ -37,6 +40,19 @@ export default async function BankPage() {
     .limit(1)
   const hasLines = (first?.length ?? 0) > 0
 
+  // Offer (never impose) automatic settling once the owner has confirmed plenty of
+  // matches in the last 60 days and undone none.
+  const since = new Date(Date.now() - 60 * 86_400_000).toISOString()
+  const [tiers, confirmedRes, undoneRes] = await Promise.all([
+    getTenantAutonomy(tenantId),
+    supabaseAdmin.from('bank_transactions').select('id', { count: 'exact', head: true })
+      .eq('tenant_id', tenantId).is('deleted_at', null).eq('match_status', 'matched').gte('matched_at', since).limit(1),
+    supabaseAdmin.from('audit_log').select('id', { count: 'exact', head: true })
+      .eq('tenant_id', tenantId).eq('action', 'bank.match_undone').gte('created_at', since).limit(1),
+  ])
+  const confirmed = confirmedRes.count ?? 0
+  const offerAutoSettle = graduationOffer({ tier: resolveTier(tiers, 'money', 'bank_auto_match'), confirmed, undone: undoneRes.count ?? 0 })
+
   return (
     <>
       <TopBar title="Bank & Reconciliation" subtitle="Upload a statement — we categorise it and match payments to invoices" />
@@ -51,7 +67,7 @@ export default async function BankPage() {
           </Card>
         </div>
       )}
-      <BankClient hasLines={hasLines} />
+      <BankClient hasLines={hasLines} autoSettleOffer={offerAutoSettle ? { confirmed } : null} />
     </>
   )
 }

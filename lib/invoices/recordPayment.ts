@@ -2,6 +2,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { handleInvoicePaid } from '@/lib/invoices/onPaid'
 import { paymentState } from '@/lib/invoices/status'
 import { unwrap, conflict, badRequest } from '@/lib/api/withRoute'
+import { logPayment } from '@/lib/invoices/ledger'
 
 const PAYABLE = ['sent', 'unpaid', 'partial', 'overdue', 'in_collections']
 
@@ -28,6 +29,7 @@ export async function recordInvoicePayment(
   invoiceId: string,
   amount: number,
   method: 'eft' | 'cash' | 'card' | 'mobile_money' | 'other' = 'eft',
+  opts: { source?: 'manual' | 'bank'; bankTransactionId?: string; paidOn?: string } = {},
 ): Promise<RecordedPayment> {
   const before = unwrap(await supabaseAdmin
     .from('invoices')
@@ -65,6 +67,11 @@ export async function recordInvoicePayment(
     .select()
     .maybeSingle())
   if (!data) throw conflict('This invoice was just changed by someone else — refresh and try again.')
+
+  await logPayment({
+    tenantId, invoiceId, amount, method, userId,
+    source: opts.source ?? 'manual', bankTransactionId: opts.bankTransactionId, paidOn: opts.paidOn,
+  })
 
   const becamePaid = before.status !== 'paid' && data.status === 'paid'
   if (becamePaid) {

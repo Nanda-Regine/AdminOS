@@ -1,4 +1,5 @@
 import { inngest } from '@/inngest/client'
+import { heartbeat } from '@/lib/jobs/heartbeat'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 
 /**
@@ -11,7 +12,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
  */
 export const trialExpiryCron = inngest.createFunction(
   { id: 'trial-expiry-cron', retries: 0, triggers: [{ cron: '0 3 * * *' }] },
-  async ({ step }: any) => {
+  heartbeat('trial-expiry-cron', async ({ step }: any) => {
     const expired = await step.run('expire-lapsed-trials', async () => {
       const { data, error } = await supabaseAdmin
         .from('subscriptions')
@@ -24,5 +25,5 @@ export const trialExpiryCron = inngest.createFunction(
     })
 
     return { expired }
-  }
+  })
 )

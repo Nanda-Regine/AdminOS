@@ -1,4 +1,5 @@
 import { inngest } from '@/inngest/client'
+import { heartbeat } from '@/lib/jobs/heartbeat'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { fetchAll } from '@/lib/supabase/fetchAll'
 import { buildGovernanceIntel } from '@/lib/governance/signal'
@@ -17,7 +18,7 @@ const CHECKPOINT_DAYS = new Set([14, 7, 3, 1, 0])
 export const deadlineAlertCron = inngest.createFunction(
   { id: 'deadline-alert-cron', retries: 0, triggers: [{ cron: 'TZ=Africa/Johannesburg 0 7 * * *' }] },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async ({ step }: any) => {
+  heartbeat('deadline-alert-cron', async ({ step }: any) => {
     const tenants = await step.run('fetch-tenants', async () => {
       return fetchAll<{ id: string }>((from, to) =>
         supabaseAdmin.from('tenants').select('id').eq('active', true).order('id').range(from, to))
@@ -31,7 +32,7 @@ export const deadlineAlertCron = inngest.createFunction(
       )
     })
     return { fanned: tenants.length }
-  },
+  }),
 )
 
 export const deadlineAlertEngine = inngest.createFunction(

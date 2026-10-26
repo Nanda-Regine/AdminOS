@@ -1,4 +1,5 @@
 import { inngest } from '@/inngest/client'
+import { heartbeat } from '@/lib/jobs/heartbeat'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { fetchAll } from '@/lib/supabase/fetchAll'
 import { notifyTenant } from '@/lib/notifications/notify'
@@ -15,7 +16,7 @@ import { saToday } from '@/lib/people/workingDays'
 // One step per tenant so one failure never skips the rest.
 export const payrollReminderCron = inngest.createFunction(
   { id: 'payroll-reminder-cron', triggers: [{ cron: '0 8 20 * *' }] },
-  async ({ step }: any) => {
+  heartbeat('payroll-reminder-cron', async ({ step }: any) => {
     const [y, m] = saToday().split('-').map(Number)
     const monthName = new Date(Date.UTC(y, m - 1, 1)).toLocaleString('en-ZA', { month: 'long', timeZone: 'UTC' })
 
@@ -58,5 +59,5 @@ export const payrollReminderCron = inngest.createFunction(
     }
 
     return { reminded }
-  }
+  })
 )

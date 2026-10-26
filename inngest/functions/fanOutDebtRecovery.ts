@@ -1,4 +1,5 @@
 import { inngest } from '@/inngest/client'
+import { heartbeat } from '@/lib/jobs/heartbeat'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { daysOverdue, todayDateString } from '@/lib/debt/overdue'
 import { fetchAll } from '@/lib/supabase/fetchAll'
@@ -9,7 +10,7 @@ const SEND_CHUNK = 500
 export const fanOutDebtRecoveryCron = inngest.createFunction(
   { id: 'fan-out-debt-recovery-cron', retries: 0, triggers: [{ cron: '0 8 * * *' }] },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async ({ step }: any) => {
+  heartbeat('fan-out-debt-recovery-cron', async ({ step }: any) => {
     const invoices = await step.run('fetch-overdue-invoices', async () => {
       // Filter on due_date, not days_overdue: that column is only recomputed by
       // a trigger on write, so it goes stale. Past-due == due_date before today.
@@ -65,5 +66,5 @@ export const fanOutDebtRecoveryCron = inngest.createFunction(
     }
 
     return { fanned: invoices.length }
-  }
+  })
 )

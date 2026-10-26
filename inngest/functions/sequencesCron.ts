@@ -1,4 +1,5 @@
 import { inngest } from '@/inngest/client'
+import { heartbeat } from '@/lib/jobs/heartbeat'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { sendWhatsAppMessage } from '@/lib/whatsapp/send'
 import { phoneMayBeMarketed } from '@/lib/reach/audience'
@@ -13,7 +14,7 @@ import { withOptOutFooter, personalise } from '@/lib/reach/consent'
 
 export const sequencesCronFunction = inngest.createFunction(
   { id: 'sequences-cron', retries: 0, triggers: [{ cron: '0 * * * *' }] },
-  async ({ step }: any) => {
+  heartbeat('sequences-cron', async ({ step }: any) => {
     const enrollments = await step.run('fetch-due-enrollments', async () => {
       const { data } = await supabaseAdmin
         .from('sequence_enrollments')
@@ -113,5 +114,5 @@ export const sequencesCronFunction = inngest.createFunction(
     }
 
     return { processed, failed }
-  }
+  })
 )

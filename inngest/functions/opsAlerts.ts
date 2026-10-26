@@ -1,7 +1,9 @@
 import { inngest } from '@/inngest/client'
+import { heartbeat } from '@/lib/jobs/heartbeat'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { fetchAll } from '@/lib/supabase/fetchAll'
 import { buildOpsIntel } from '@/lib/ops/signal'
+import { draftReorder } from '@/lib/ops/reorderDraft'
 import { notifyTenant } from '@/lib/notifications/notify'
 import { getTenantAutonomy } from '@/lib/autonomy/config'
 import { resolveTier, tierAllowsWhatsapp } from '@/lib/autonomy/tiers'
@@ -17,7 +19,7 @@ import { sastDate } from '@/lib/time/sast'
 export const lowStockAlertCron = inngest.createFunction(
   { id: 'low-stock-alert-cron', retries: 0, triggers: [{ cron: 'TZ=Africa/Johannesburg 30 6 * * *' }] },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async ({ step }: any) => {
+  heartbeat('low-stock-alert-cron', async ({ step }: any) => {
     const tenants = await step.run('fetch-tenants', async () => {
       return fetchAll<{ id: string }>((from, to) =>
         supabaseAdmin.from('tenants').select('id').eq('active', true).order('id').range(from, to))
@@ -31,7 +33,7 @@ export const lowStockAlertCron = inngest.createFunction(
       )
     })
     return { fanned: tenants.length }
-  },
+  }),
 )
 
 export const lowStockAlertEngine = inngest.createFunction(
@@ -50,10 +52,16 @@ export const lowStockAlertEngine = inngest.createFunction(
       const tier = resolveTier(await getTenantAutonomy(tenant_id), 'ops', 'low_stock_reorder_alert')
       const top = lowStockItems.slice(0, 5).map((i: { name: string; onHand: number; reorderAt: number }) => `${i.name} (${i.onHand}/${i.reorderAt})`).join(', ')
       const today = sastDate()
+      // A ready-to-send supplier order, not just "time to reorder": the owner copies it, adjusts it and sends it.
+      const { data: t } = await supabaseAdmin.from('tenants').select('name').eq('id', tenant_id).maybeSingle()
+      const draft = await draftReorder(tenant_id, (t?.name as string | undefined) ?? 'our business')
       await notifyTenant(tenant_id, {
         type: 'ops.low_stock',
         title: `${lowStockItems.length} product${lowStockItems.length === 1 ? '' : 's'} at or below reorder level`,
-        body: `Time to reorder: ${top}${lowStockItems.length > 5 ? ` and ${lowStockItems.length - 5} more` : ''}.`,
+        body: `Time to reorder: ${top}${lowStockItems.length > 5 ? ` and ${lowStockItems.length - 5} more` : ''}.${draft.text ? `
+
+Draft order to send your supplier (check the quantities first):
+${draft.text}` : ''}`,
         actionUrl: '/dashboard/inventory',
         dedupeKey: `low-stock-${tenant_id}-${today}`,
         dedupeHours: 20,

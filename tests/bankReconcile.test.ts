@@ -71,3 +71,28 @@ test('cent arithmetic does not drift (0.1 + 0.2 style)', () => {
   const [s] = suggestMatches([line('t1', 'Jane Doe INV-9-0001', 100.3)], [inv('x', 'INV-9-0001', 'Jane Doe', 100.3)])
   assert.equal(s.confidence, 'high')
 })
+
+test('a payer learned from an earlier hand-match is suggested next time — medium, never high', async () => {
+  const { suggestMatches: sm } = await import('../lib/bank/reconcile.ts')
+  const invoices = [inv('j1', 'INV-20261001-2001', 'Jabu Trading', 3200)]
+  const credits = [line('t1', 'FNB App Payment From J MOKOENA', 3200)]
+  assert.equal(sm(credits, invoices).length, 0) // amount alone is not enough to suggest anything
+  const [s] = sm(credits, invoices, [{ key: 'payment from j mokoena', contactName: 'Jabu Trading' }])
+  assert.equal(s.invoiceId, 'j1')
+  assert.equal(s.confidence, 'medium')
+  assert.ok(s.reasons.includes('Payer name known from an earlier match'))
+})
+
+test('a learned payer for a DIFFERENT customer does not boost this invoice', async () => {
+  const { suggestMatches: sm } = await import('../lib/bank/reconcile.ts')
+  const invoices = [inv('j1', 'INV-20261001-2001', 'Jabu Trading', 3200)]
+  const credits = [line('t1', 'FNB App Payment From J MOKOENA', 3200)]
+  assert.equal(sm(credits, invoices, [{ key: 'payment from j mokoena', contactName: 'Someone Else Pty' }]).length, 0)
+})
+
+test('nothing to learn when the customer name is already in the bank description', async () => {
+  const { payerNameInDescription } = await import('../lib/bank/reconcile.ts')
+  assert.equal(payerNameInDescription('Payment Received N SITHOLE', 'Nomvula Sithole'), true)
+  assert.equal(payerNameInDescription('FNB App Payment From J MOKOENA', 'Jabu Trading'), false)
+  assert.equal(payerNameInDescription('anything', null), false)
+})

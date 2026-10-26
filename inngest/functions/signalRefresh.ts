@@ -1,4 +1,5 @@
 import { inngest } from '@/inngest/client'
+import { heartbeat } from '@/lib/jobs/heartbeat'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { fetchAll } from '@/lib/supabase/fetchAll'
 import { refreshMoneySignal } from '@/lib/money/signal'
@@ -16,7 +17,7 @@ import { refreshGovernanceSignal } from '@/lib/governance/signal'
 export const signalRefreshCron = inngest.createFunction(
   { id: 'signal-refresh-cron', retries: 0, triggers: [{ cron: 'TZ=Africa/Johannesburg 0 * * * *' }] },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async ({ step }: any) => {
+  heartbeat('signal-refresh-cron', async ({ step }: any) => {
     const tenants = await step.run('fetch-tenants', async () => {
       return fetchAll<{ id: string }>((from, to) =>
         supabaseAdmin.from('tenants').select('id').eq('active', true).order('id').range(from, to))
@@ -30,7 +31,7 @@ export const signalRefreshCron = inngest.createFunction(
       )
     })
     return { fanned: tenants.length }
-  },
+  }),
 )
 
 export const signalRefreshEngine = inngest.createFunction(

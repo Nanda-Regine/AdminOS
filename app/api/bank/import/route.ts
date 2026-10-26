@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { withRoute, badRequest } from '@/lib/api/withRoute'
-import { MAX_STATEMENT_BYTES, commitStatement, previewStatement } from '@/lib/bank/service'
+import { MAX_STATEMENT_BYTES, commitStatement, previewStatement, settleAfterImport } from '@/lib/bank/service'
 
 const query = z.object({ mode: z.enum(['preview', 'commit']).default('preview') })
 
@@ -38,5 +38,9 @@ export const POST = withRoute({
     resourceId: result.importId,
     metadata: { imported: result.imported, duplicates: result.duplicates, skipped: result.skipped },
   })
-  return result
+  const settled = await settleAfterImport(ctx.tenantId, ctx.userId)
+  if (settled.applied > 0) {
+    await audit({ action: 'bank.auto_matched', resourceType: 'bank_statement_import', resourceId: result.importId, metadata: { applied: settled.applied } })
+  }
+  return { ...result, settled }
 })

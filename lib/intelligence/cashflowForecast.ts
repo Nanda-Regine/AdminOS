@@ -2,6 +2,9 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { OPEN_INVOICE_STATUSES, outstanding } from '@/lib/invoices/status'
 import { emp201DueDate } from '@/lib/people/workingDays'
 import { allRows } from '@/lib/supabase/fetchAll'
+import { sastDate } from '@/lib/time/sast'
+import { loadBehaviour } from '@/lib/invoices/behaviourLoader'
+import { contactKey, expectedCollection, pickBehaviour } from '@/lib/invoices/paymentBehaviour'
 
 export interface WeeklyForecast {
   weekStart:  string   // ISO date
@@ -32,16 +35,8 @@ export interface ForecastItem {
   category:    string
   probability: number   // 0–1
   source:      'invoice' | 'recurring' | 'payroll' | 'tax' | 'manual' | 'estimate'
-}
-
-// Payment probability by invoice age (days outstanding)
-function paymentProbability(daysOverdue: number): number {
-  if (daysOverdue <= 0)  return 0.85
-  if (daysOverdue <= 7)  return 0.80
-  if (daysOverdue <= 14) return 0.70
-  if (daysOverdue <= 30) return 0.55
-  if (daysOverdue <= 60) return 0.35
-  return 0.15
+  /** Invoices only: what the date and odds are based on. 'default' = the fixed curve (not enough history yet). */
+  basis?:      'default' | 'business' | 'customer'
 }
 
 function addDays(date: Date, days: number): Date {
@@ -61,11 +56,11 @@ export async function generateCashflowForecast(
   const today       = new Date()
   const horizonEnd  = addDays(today, horizonDays)
 
-  const [invoicesResult, expensesResult, payrollResult, tenantResult] = await Promise.all([
+  const [invoicesResult, expensesResult, payrollResult, tenantResult, behaviour] = await Promise.all([
     // Outstanding invoices
     allRows((lo, hi) => supabaseAdmin
       .from('invoices')
-      .select('id, amount, amount_paid, due_date, status, created_at')
+      .select('id, contact_id, contact_name, amount, amount_paid, due_date, status, created_at')
       .eq('tenant_id', tenantId)
       .in('status', [...OPEN_INVOICE_STATUSES])
       .is('deleted_at', null)
@@ -95,6 +90,9 @@ export async function generateCashflowForecast(
       .select('id, settings')
       .eq('id', tenantId)
       .single(),
+
+    // How each customer has actually paid so far (empty until there is history)
+    loadBehaviour(tenantId),
   ])
 
   const inflows:  ForecastItem[] = []
@@ -102,27 +100,25 @@ export async function generateCashflowForecast(
 
   // ── Inflows from outstanding invoices ────────────────────────────────────────
   const invoices = invoicesResult.data ?? []
-  const nowTs    = today.getTime()
+  const todaySast = sastDate(today)
 
   for (const inv of invoices) {
     const owed = outstanding(inv)
     if (!inv.due_date || owed <= 0) continue
-    const dueDate   = new Date(inv.due_date)
-    const daysOver  = Math.round((nowTs - dueDate.getTime()) / 86400000)
-    const prob      = paymentProbability(daysOver)
-    // Overdue: expect collection 3–14 days out. This was min(14, 30 − daysOver),
-    // which goes negative past 16 days overdue and dated the inflow in the past.
-    const collectOn = daysOver > 0
-      ? toISO(addDays(today, Math.max(3, Math.min(14, 30 - daysOver))))
-      : inv.due_date
+    // Date and odds come from this customer's own payment history when there is
+    // enough of it (lib/invoices/paymentBehaviour.ts), else the fixed curve.
+    // Overdue invoices are never dated in the past.
+    const picked = pickBehaviour(behaviour, contactKey(inv.contact_id, inv.contact_name))
+    const c = expectedCollection({ dueDate: String(inv.due_date).slice(0, 10) }, todaySast, picked)
 
     inflows.push({
-      date:        collectOn,
+      date:        c.date,
       amount:      owed,
       label:       `Invoice payment`,
       category:    'invoice',
-      probability: prob,
+      probability: c.probability,
       source:      'invoice',
+      basis:       c.basis,
     })
   }
 

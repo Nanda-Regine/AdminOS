@@ -2,6 +2,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
 import { fireBusinessEvent } from '@/lib/academy/knowledgeGraph'
 import { handleInvoicePaid } from '@/lib/invoices/onPaid'
+import { logPayment } from '@/lib/invoices/ledger'
 import { isValidKey, DEFAULT_INCOME_KEY } from '@/lib/finance/chartOfAccounts'
 import { INVOICE_STATUSES, OPEN_INVOICE_STATUSES } from '@/lib/invoices/status'
 import { todayDateString } from '@/lib/debt/overdue'
@@ -238,6 +239,7 @@ export const POST = withRoute({
     fireBusinessEvent('invoice.created', tenantId, userId)
 
     if (isCashSale) {
+      await logPayment({ tenantId, invoiceId: data.id, userId, amount: total, source: 'cash_sale', method: body.paymentMethod ?? null })
       await handleInvoicePaid({
         id: data.id, tenant_id: tenantId, contact_name: data.contact_name, contact_phone: data.contact_phone,
         amount: data.amount, amount_paid: data.amount_paid, reference: data.reference,
