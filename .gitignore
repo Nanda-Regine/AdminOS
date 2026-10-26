@@ -55,3 +55,7 @@ docs/hackathon/previews/
 
 .open-next
 .wrangler
+
+# demo judge login (local copy only)
+scripts/hackathon/.judge-login.json
+docs/hackathon/PRESENTER_SCRIPTS.*

@@ -10,7 +10,9 @@
 [![Vercel](https://img.shields.io/badge/Vercel-000000?style=for-the-badge&logo=vercel)](https://vercel.com)
 [![POPIA](https://img.shields.io/badge/POPIA_Compliant-🇿🇦-059669?style=for-the-badge)](#popia-compliance)
 
-> *"One AI system that runs your business. WhatsApp. Invoicing. Staff. Clients."*
+> *"One AI system that runs your business. Invoicing. Compliance. Staff. Clients."*
+
+> **Status (26 Oct 2026):** AdminOS is **app-native today**. The WhatsApp channel is built but **not yet connected**: Meta Tech Provider onboarding and message-template approval are in progress, so no customer messages are sent over WhatsApp yet.
 
 ---
 
@@ -36,7 +38,7 @@ AdminOS takes a young South African founder from "I have an idea" to "I run a bu
   <img src="docs/hackathon/screens/dashboard__mobile.png" alt="Command Center on a 390px phone" width="22%">
 </p>
 
-**Verification:** `npm test` (204 passing) · CI runs `tsc --noEmit`, tests and a quality ratchet · `scripts/persona-walk.mjs` walks 7 industry personas on production (122/122) · `scripts/hackathon/walk.mjs` drives the demo tenant with Playwright at desktop and phone width and reports console errors, failed loads and horizontal overflow.
+**Verification:** `npm test` (238 passing) · CI runs `tsc --noEmit`, tests and a quality ratchet · `scripts/persona-walk.mjs` walks 7 industry personas on production (122/122) · `scripts/hackathon/walk.mjs` drives the demo tenant with Playwright at desktop and phone width and reports console errors, failed loads and horizontal overflow.
 
 ---
 
@@ -46,19 +48,19 @@ South African SMEs pay for 6–8 separate tools and still rely on WhatsApp group
 
 ## The Solution
 
-AdminOS replaces your entire toolstack with one AI-native platform. **Six specialised agents** handle your WhatsApp inbox, debt recovery, staff wellness, document intelligence, daily business analytics, and outbound email — automatically, 24/7, in your customers' language — plus **Langa**, an AI business mentor you can ask anything.
+AdminOS replaces your entire toolstack with one AI-native platform. **Specialised AI agents** handle your inbox (over WhatsApp once it is connected), debt recovery, staff wellness, document intelligence, daily business analytics, and outbound email — automatically, 24/7, in your customers' language — plus **Langa**, an AI business mentor you can ask anything.
 
-One WhatsApp-first platform replacing the **6–8 separate tools** most SA SMEs juggle to run their business.
+One platform, WhatsApp-first by design and app-native today, replacing the **6–8 separate tools** most SA SMEs juggle to run their business.
 
 ---
 
-## The 6 AI Agents + Langa
+## The AI Agents + Langa
 
 | Agent | Role | Model | What it does |
 |-------|------|-------|-------------|
-| 📥 **Alex** | Inbox Agent | Sonnet | Handles WhatsApp client conversations, FAQs, bookings, escalations |
-| 💰 **Chase** | Debt Recovery Agent | Haiku | **5-tier** automated debt recovery — reminder → follow-up → firm → demand → final, each escalation professionally worded |
-| 🌿 **Care** | Wellness Agent | Sonnet | Daily staff check-ins via WhatsApp, burnout signal detection |
+| 📥 **Alex** | Inbox Agent | Sonnet | Handles client conversations, FAQs, bookings, escalations (WhatsApp channel pending connection) |
+| 💰 **Chase** | Debt Recovery Agent | Haiku | **6-stage** debt recovery. The first three stages (courteous reminders) can send automatically; stages 4–6 are drafted for the owner to approve, never auto-sent |
+| 🌿 **Care** | Wellness Agent | Sonnet | Daily staff check-ins, burnout signal detection (planned: no user-facing surface yet) |
 | 📄 **Doc** | Document Intelligence | Haiku | Classifies, summarises, and extracts data from PDF/Word/Excel uploads |
 | 📊 **Insight** | Analytics Agent | Haiku | Daily AI business brief with revenue trends, cash flow, debt aging |
 | ✉️ **Pen** | Email Studio | Sonnet | Drafts professional outbound emails in the tenant's brand voice |
@@ -70,8 +72,8 @@ One WhatsApp-first platform replacing the **6–8 separate tools** most SA SMEs 
 
 ### Core Platform
 - **Multi-tenant SaaS** — strict per-tenant data isolation with Supabase RLS
-- **WhatsApp-native** — real business tool, not an SMS workaround
-- **PWA** — offline-capable for load-shedding resilience, installable on Android/iOS
+- **WhatsApp-first by design** — connecting each business’s own number is in progress (Meta Tech Provider)
+- **PWA** — installable on Android/iOS. The web app does not work offline yet; the Android staff app queues clock-ins offline
 - **14-day free trial** — no credit card required
 
 ### AI Capabilities
@@ -92,10 +94,10 @@ One WhatsApp-first platform replacing the **6–8 separate tools** most SA SMEs 
 - **Security headers** — HSTS, CSP, X-Frame-Options, Referrer-Policy on all responses
 - **Rate limiting** — per-tenant sliding windows via Upstash Redis (5 limiter types)
 - **Webhook verification** — HMAC signature validation on Meta WhatsApp (`x-hub-signature-256`) and Paystack payment webhooks
-- **2FA enforcement** — Enterprise tier admin dashboard
+- **2FA** — not yet available (planned)
 
 ### Integrations
-- 📱 **WhatsApp** via Meta Business API (Cloud API) — **40+ approved message templates**
+- 📱 **WhatsApp** via Meta Business API (Cloud API) — **40+ message templates drafted** (`lib/whatsapp/templates.ts`); Meta approval pending
 - 💳 **Payments** via **Paystack** (ZAR recurring subscriptions, billed through the Mirembe hub)
 - 📧 **Email** via Resend
 - 📊 **Accounting** via Xero API
