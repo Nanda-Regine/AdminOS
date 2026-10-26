@@ -1,11 +1,12 @@
 import { inngest } from '@/inngest/client'
+import { heartbeat } from '@/lib/jobs/heartbeat'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { notifyTenant } from '@/lib/notifications/notify'
 import { writeAuditLog } from '@/lib/security/audit'
 
 export const escalateConversationsCron = inngest.createFunction(
   { id: 'escalate-conversations-cron', retries: 1, concurrency: { limit: 5 }, triggers: [{ cron: '*/15 * * * *' }] },
-  async ({ step }: { step: any }) => {
+  heartbeat('escalate-conversations-cron', async ({ step }: { step: any }) => {
     const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString()
 
     const staleConvs = await step.run('fetch-stale-conversations', async () => {
@@ -67,5 +68,5 @@ export const escalateConversationsCron = inngest.createFunction(
     }
 
     return { escalated, total: staleConvs.length }
-  }
+  })
 )

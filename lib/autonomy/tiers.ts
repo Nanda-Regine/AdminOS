@@ -22,6 +22,7 @@ export const DECISION_DEFAULTS: Record<string, Tier> = {
   'money/invoice_reminder':      'A', // gentle reminders auto-send (current behaviour)
   'money/final_demand':          'C', // Debt Collectors Act — never auto
   'money/payment_receipt':       'A',
+  'money/bank_auto_match':       'B', // sure bank matches: owner confirms in one tap (A = settle now, with undo)
   'ops/low_stock_reorder_alert': 'A', // an alert, not an order — safe
   'ops/booking_reminder':        'A',
   'sales/going_cold_nudge':      'B', // draft, owner sends
@@ -34,6 +35,7 @@ export const DECISION_CATALOGUE: { domain: string; decision_type: string; label:
   { domain: 'money', decision_type: 'invoice_reminder', label: 'Invoice reminders', description: 'Send courteous reminders on overdue invoices (tiers 1–3).' },
   { domain: 'money', decision_type: 'final_demand', label: 'Final demands', description: 'Harder collection language. Legally you must send these yourself.' },
   { domain: 'money', decision_type: 'payment_receipt', label: 'Payment receipts', description: 'Thank a customer automatically when they pay.' },
+  { domain: 'money', decision_type: 'bank_auto_match', label: 'Bank statement matching', description: 'When you import a statement, settle payments that clearly match an invoice. Off = you confirm each one; each can be undone.' },
   { domain: 'ops', decision_type: 'low_stock_reorder_alert', label: 'Low-stock alerts', description: 'Flag products at/below reorder level.' },
   { domain: 'ops', decision_type: 'booking_reminder', label: 'Booking reminders', description: 'Remind customers of upcoming bookings to cut no-shows.' },
   { domain: 'sales', decision_type: 'going_cold_nudge', label: 'Re-engage cold leads', description: 'Reach out to contacts who have gone quiet.' },

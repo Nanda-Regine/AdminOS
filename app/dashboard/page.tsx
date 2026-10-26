@@ -11,6 +11,8 @@ import { financeMode } from '@/lib/signals/bus'
 import { getDailyBrief } from '@/lib/signals/brief'
 import { getSetupState } from '@/lib/tenant/setup-state'
 import { BriefCard } from './BriefCard'
+import { JobHealthStrip } from './JobHealthStrip'
+import { getJobHealth } from '@/lib/jobs/status'
 import { MyDay } from './MyDay'
 import { getContext } from '@/lib/auth/context'
 import { sastDate, sastHour, sastMonthStartUTC, sastDateLabel, greetingFor } from '@/lib/time/sast'
@@ -53,7 +55,7 @@ export default async function CommandCenter() {
   const days1Ago = new Date(Date.now() - 24 * 3600000).toISOString()
 
   // Independent of the cockpit queries below: start now, await at the end.
-  const briefAndSetup = Promise.all([getDailyBrief(tenantId), getSetupState(tenantId)])
+  const briefAndSetup = Promise.all([getDailyBrief(tenantId), getSetupState(tenantId), getJobHealth()])
 
   const [
     invRes, expRes, prodRes, staffRes, leaveRes, contractRes, bookingRes,
@@ -122,7 +124,8 @@ export default async function CommandCenter() {
   // pages, not here: publishing on every dashboard view cost 5 Redis writes and
   // 5 upserts per load and nothing reads them. Only `mode` is needed here.
   const mode = financeMode({ netPosition, runwayMonths, arStuck })
-  const [brief, setup] = await briefAndSetup
+  const [brief, setup, jobHealth] = await briefAndSetup
+  const troubledJobs = jobHealth.filter((j) => j.state === 'late' || j.state === 'failing')
   // ── NEEDS YOU NOW (the decision queue — OODA "act") ───────────────────────
   // Each item only for someone who can act on it (a manager has no inbox,
   // payroll or settings access by default — those links were dead ends).
@@ -255,7 +258,8 @@ export default async function CommandCenter() {
                 <ShieldCheck className="w-3.5 h-3.5" /> Cash-protect mode — hold discretionary spend until collections recover.
               </p>
             )}
-            {brief && <BriefCard text={brief.text} generatedAt={brief.generatedAt} />}
+            <JobHealthStrip jobs={troubledJobs} />
+            {brief && <BriefCard text={brief.text} generatedAt={brief.generatedAt} watchouts={brief.watchouts} />}
           </div>
         </div>
 

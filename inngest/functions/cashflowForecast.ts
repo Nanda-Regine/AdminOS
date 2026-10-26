@@ -1,4 +1,5 @@
 import { inngest } from '@/inngest/client'
+import { heartbeat } from '@/lib/jobs/heartbeat'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { fetchAll } from '@/lib/supabase/fetchAll'
 import { generateCashflowForecast, saveCashflowForecast } from '@/lib/intelligence/cashflowForecast'
@@ -15,7 +16,7 @@ import { generateCashflowForecast, saveCashflowForecast } from '@/lib/intelligen
 // pointed the cron at it instead of keeping two forecasting models.
 export const cashflowForecastFunction = inngest.createFunction(
   { id: 'cashflow-forecast-weekly', retries: 2, triggers: [{ cron: '0 6 * * 1' }] },
-  async ({ step }: any) => {
+  heartbeat('cashflow-forecast-weekly', async ({ step }: any) => {
     const tenants = await step.run('get-active-tenants', async () => {
       return fetchAll<{ id: string }>((from, to) =>
         supabaseAdmin.from('tenants').select('id').eq('active', true).order('id').range(from, to))
@@ -49,5 +50,5 @@ export const cashflowForecastFunction = inngest.createFunction(
     }
 
     return { total: tenants.length, processed, failed, errors }
-  }
+  })
 )

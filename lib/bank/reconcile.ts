@@ -52,9 +52,25 @@ function nameTokens(name: string | null): string[] {
   return (name ?? '').toLowerCase().split(/[^a-z']+/).filter((t) => t.length >= 3 && !NAME_STOP.has(t))
 }
 
+/** "Payments that look like this are from that customer" — learned when the owner matched one by hand. */
+export interface PayerAlias {
+  /** vendorKey() of the bank description. */
+  key: string
+  contactName: string
+}
+
+const sameName = (a: string | null, b: string | null) => alnum(a ?? '') !== '' && alnum(a ?? '') === alnum(b ?? '')
+
+/** True when the customer's name already shows up in the bank description (so there is nothing to learn). */
+export function payerNameInDescription(description: string, contactName: string | null): boolean {
+  const hay = alnum(description)
+  const tokens = nameTokens(contactName)
+  return tokens.length > 0 && tokens.some((t) => hay.includes(alnum(t)))
+}
+
 interface Scored { invoice: OpenInvoice; score: number; reasons: string[]; partial: boolean }
 
-function scoreOne(line: CreditLine, inv: OpenInvoice): Scored | null {
+function scoreOne(line: CreditLine, inv: OpenInvoice, knownPayers: readonly string[]): Scored | null {
   const owed = cents(inv.amount) - cents(inv.amount_paid)
   if (owed <= 0) return null
   const got = cents(line.amount)
@@ -79,6 +95,11 @@ function scoreOne(line: CreditLine, inv: OpenInvoice): Scored | null {
     const hit = tokens.filter((t) => hay.includes(alnum(t))).length
     if (hit > 0) { score += Math.round(35 * (hit / tokens.length)); reasons.push('Payer name in reference') }
   }
+  // The owner matched this payer to this customer before, though the bank shows a different name.
+  if (!reasons.includes('Payer name in reference') && knownPayers.some((n) => sameName(n, inv.contact_name))) {
+    score += 35
+    reasons.push('Payer name known from an earlier match')
+  }
 
   // A part-payment with nothing but "some money came in" is noise, not a suggestion.
   if (got < owed && !reasons.some((r) => r.includes('number') || r.includes('name'))) return null
@@ -86,11 +107,13 @@ function scoreOne(line: CreditLine, inv: OpenInvoice): Scored | null {
   return { invoice: inv, score, reasons, partial: got < owed }
 }
 
-export function suggestMatches(credits: readonly CreditLine[], invoices: readonly OpenInvoice[]): Suggestion[] {
+export function suggestMatches(credits: readonly CreditLine[], invoices: readonly OpenInvoice[], aliases: readonly PayerAlias[] = []): Suggestion[] {
   const candidates: (Scored & { line: CreditLine; ambiguous: boolean })[] = []
   for (const line of credits) {
     if (line.amount <= 0) continue
-    const scored = invoices.map((inv) => scoreOne(line, inv)).filter((s): s is Scored => s !== null)
+    const hay = alnum(line.description)
+    const knownPayers = aliases.filter((a) => a.key.length >= 4 && hay.includes(alnum(a.key))).map((a) => a.contactName)
+    const scored = invoices.map((inv) => scoreOne(line, inv, knownPayers)).filter((s): s is Scored => s !== null)
     if (!scored.length) continue
     scored.sort((a, b) => b.score - a.score)
     const ambiguous = scored.length > 1 && scored[0].score === scored[1].score

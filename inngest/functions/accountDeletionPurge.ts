@@ -1,4 +1,5 @@
 import { inngest } from '@/inngest/client'
+import { heartbeat } from '@/lib/jobs/heartbeat'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { purgeDeletedAccount } from '@/lib/account/deletion'
 
@@ -10,7 +11,7 @@ import { purgeDeletedAccount } from '@/lib/account/deletion'
  */
 export const accountDeletionPurgeCron = inngest.createFunction(
   { id: 'account-deletion-purge', retries: 2, triggers: [{ cron: '30 2 * * *' }] },
-  async ({ step }: any) => {
+  heartbeat('account-deletion-purge', async ({ step }: any) => {
     const due = await step.run('find-due', async () => {
       const { data, error } = await supabaseAdmin
         .from('account_deletion_requests')
@@ -27,5 +28,5 @@ export const accountDeletionPurgeCron = inngest.createFunction(
       await step.run(`purge-${r.id}`, () => purgeDeletedAccount(r.id, r.user_id))
     }
     return { purged: due.length }
-  }
+  })
 )

@@ -2,6 +2,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
 import { fireBusinessEvent } from '@/lib/academy/knowledgeGraph'
 import { handleInvoicePaid } from '@/lib/invoices/onPaid'
+import { logPayment } from '@/lib/invoices/ledger'
 import { paymentState } from '@/lib/invoices/status'
 import { softDelete } from '@/lib/db/softDelete'
 import { withRoute, unwrap, notFound, conflict, badRequest } from '@/lib/api/withRoute'
@@ -121,6 +122,14 @@ export const PATCH = withRoute({
     .select()
     .maybeSingle())
   if (!data) throw conflict('This invoice was just changed by someone else — refresh and try again.')
+
+  // Ledger: the change in amount_paid, whichever route made it (payment, correction, or mark-paid).
+  const paidDelta = Number(data.amount_paid ?? 0) - paidBefore
+  await logPayment({
+    tenantId, invoiceId: id, userId, amount: paidDelta,
+    source: body.payment ? 'manual' : body.amountPaid !== undefined ? 'correction' : 'status_paid',
+    method: body.payment?.method ?? null,
+  })
 
   await audit({
     action: auditAction,

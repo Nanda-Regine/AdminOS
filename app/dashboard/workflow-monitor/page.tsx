@@ -5,6 +5,7 @@ import { redirect, notFound } from 'next/navigation'
 import { CheckCircle2, Clock, XCircle, Zap, RefreshCw } from 'lucide-react'
 import Link from 'next/link'
 import { checkPermission } from '@/lib/auth/permissions'
+import { getJobHealth } from '@/lib/jobs/status'
 
 export const dynamic = 'force-dynamic'
 
@@ -26,7 +27,7 @@ export default async function WorkflowMonitorPage() {
 
   const tenantId = user.app_metadata?.tenant_id as string
 
-  const [queueResult, auditResult, convResult] = await Promise.all([
+  const [queueResult, auditResult, convResult, jobs] = await Promise.all([
     supabaseAdmin
       .from('workflow_queue')
       .select('*')
@@ -48,6 +49,7 @@ export default async function WorkflowMonitorPage() {
       .eq('sentiment', 'negative')
       .order('updated_at', { ascending: false })
       .limit(10),
+    getJobHealth(),
   ])
 
   const queue = queueResult.data || []
@@ -66,6 +68,33 @@ export default async function WorkflowMonitorPage() {
       <TopBar title="Workflow Monitor" subtitle="Real-time automation pipeline status" />
 
       <div className="p-4 md:p-6 space-y-6">
+
+        {/* Scheduled jobs: a job that stops running looks like a quiet day, so each one reports in */}
+        {jobs.length > 0 && (
+          <div className="bg-[var(--surface-1)] rounded-2xl border border-[var(--border)] overflow-hidden">
+            <div className="px-5 py-4 border-b border-[var(--border)]">
+              <h3 className="font-semibold text-[var(--text-primary)] text-sm">Scheduled automations</h3>
+              <p className="text-xs text-[var(--text-dim)] mt-0.5">Each one reports in when it finishes. &ldquo;Late&rdquo; means it has gone quiet for longer than it should.</p>
+            </div>
+            <ul className="divide-y divide-[var(--border)]">
+              {jobs.map((j) => {
+                const tone = j.state === 'ok' ? 'text-emerald-500 bg-emerald-50' : j.state === 'waiting' ? 'text-gray-500 bg-gray-100' : 'text-red-500 bg-red-50'
+                const label = j.state === 'ok' ? 'On time' : j.state === 'late' ? 'Late' : j.state === 'failing' ? 'Last run failed' : 'Waiting for first run'
+                return (
+                  <li key={j.id} className="flex items-center gap-3 px-5 py-3 min-h-[44px]">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-[var(--text-secondary)] truncate">{j.label}</p>
+                      <p className="text-xs text-[var(--text-dim)]">
+                        {j.lastOkAt ? `Last finished ${new Date(j.lastOkAt).toLocaleString('en-ZA', { timeZone: 'Africa/Johannesburg', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}` : 'Not yet seen'}
+                      </p>
+                    </div>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${tone}`}>{label}</span>
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
+        )}
 
         {/* Stats row */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

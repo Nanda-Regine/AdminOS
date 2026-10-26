@@ -12,6 +12,8 @@ import { isOwed } from '@/lib/invoices/status'
 import { daysOverdue } from '@/lib/debt/overdue'
 import { publishSignal, financeMode, type MoneySignal } from '@/lib/signals/bus'
 import { allRows } from '@/lib/supabase/fetchAll'
+import { loadBehaviour } from '@/lib/invoices/behaviourLoader'
+import { contactKey, describeHabit } from '@/lib/invoices/paymentBehaviour'
 
 export interface AgingBucket {
   key: 'current' | 'd1_30' | 'd31_60' | 'd61_90' | 'd90_plus'
@@ -25,6 +27,8 @@ export interface OverdueInvoice {
   contact: string
   outstanding: number
   daysOverdue: number
+  /** This customer's own payment pattern, when they have enough paid invoices. An estimate. */
+  habit?: string
 }
 
 export interface MoneyIntel {
@@ -58,16 +62,17 @@ export async function buildMoneyIntel(tenantId: string): Promise<MoneyIntel> {
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
   const days30Ago = new Date(Date.now() - 30 * 86400000).toISOString()
 
-  const [invRes, expRes] = await Promise.all([
+  const [invRes, expRes, behaviour] = await Promise.all([
     allRows((lo, hi) => supabaseAdmin
       .from('invoices')
-      .select('id, contact_name, amount, amount_paid, due_date, status, created_at, recovery_status')
+      .select('id, contact_id, contact_name, amount, amount_paid, due_date, status, created_at, recovery_status')
       .eq('tenant_id', tenantId)
       .is('deleted_at', null).order('id').range(lo, hi)),
     allRows((lo, hi) => supabaseAdmin
       .from('expenses')
       .select('amount, status, paid_at, created_at').is('deleted_at', null)
       .eq('tenant_id', tenantId).order('id').range(lo, hi)),
+    loadBehaviour(tenantId),
   ])
 
   const invoices = invRes.data ?? []
@@ -96,7 +101,8 @@ export async function buildMoneyIntel(tenantId: string): Promise<MoneyIntel> {
     arTotal += out
     if (days > 0) {
       arOverdue += out
-      overdue.push({ id: inv.id, contact: inv.contact_name || '(unknown)', outstanding: out, daysOverdue: days })
+      const own = behaviour.byKey.get(contactKey(inv.contact_id, inv.contact_name) ?? '')
+      overdue.push({ id: inv.id, contact: inv.contact_name || '(unknown)', outstanding: out, daysOverdue: days, habit: own ? describeHabit(own) : undefined })
     }
     if (days > 60) arStuck += out
   }

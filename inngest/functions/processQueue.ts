@@ -1,4 +1,5 @@
 import { inngest } from '@/inngest/client'
+import { heartbeat } from '@/lib/jobs/heartbeat'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 
 const EVENT_MAP: Record<string, string> = {
@@ -12,7 +13,7 @@ const EVENT_MAP: Record<string, string> = {
 
 export const processQueueCron = inngest.createFunction(
   { id: 'process-queue-cron', retries: 0, triggers: [{ cron: '*/5 * * * *' }] },
-  async ({ step }: { step: any }) => {
+  heartbeat('process-queue-cron', async ({ step }: { step: any }) => {
     const jobs = await step.run('fetch-pending-jobs', async () => {
       const { data } = await supabaseAdmin
         .from('workflow_queue')
@@ -67,5 +68,5 @@ export const processQueueCron = inngest.createFunction(
     })
 
     return results
-  }
+  })
 )

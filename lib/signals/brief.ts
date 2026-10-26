@@ -6,6 +6,7 @@
  */
 
 import { Redis } from '@upstash/redis'
+import type { Watchout } from '@/lib/brief/watchouts'
 
 const redis = new Redis({
   url: process.env.UPSTASH_REDIS_REST_URL!,
@@ -13,16 +14,19 @@ const redis = new Redis({
 })
 
 export interface DailyBrief {
+  /** Langa's narrative. Empty when the AI budget deferred it — the watch-outs below are still shown. */
   text: string
   generatedAt: string
+  /** The top money risks this week, computed from the forecast and invoices (lib/brief/watchouts.ts), each with its own link. */
+  watchouts?: Watchout[]
 }
 
 const key = (tenantId: string) => `adminos:brief:${tenantId}`
 const TTL = 60 * 60 * 30 // 30h — survives a missed morning run
 
-export async function setDailyBrief(tenantId: string, text: string): Promise<void> {
+export async function setDailyBrief(tenantId: string, text: string, watchouts: Watchout[] = []): Promise<void> {
   try {
-    await redis.set(key(tenantId), { text, generatedAt: new Date().toISOString() } satisfies DailyBrief, { ex: TTL })
+    await redis.set(key(tenantId), { text, generatedAt: new Date().toISOString(), watchouts } satisfies DailyBrief, { ex: TTL })
   } catch {
     /* best-effort cache */
   }

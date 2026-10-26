@@ -52,7 +52,8 @@ async function api<T>(url: string, init?: RequestInit): Promise<T> {
   return body as T
 }
 
-export function BankClient({ hasLines }: { hasLines: boolean }) {
+export function BankClient({ hasLines, autoSettleOffer = null }: { hasLines: boolean; autoSettleOffer?: { confirmed: number } | null }) {
+  const [offerOpen, setOfferOpen] = useState(autoSettleOffer !== null)
   const router = useRouter()
   const [tab, setTab] = useState<TabKey>('unmatched')
   const [page, setPage] = useState(1)
@@ -88,8 +89,8 @@ export function BankClient({ hasLines }: { hasLines: boolean }) {
       if (mode === 'preview') {
         setPreview(await api<Preview>('/api/bank/import?mode=preview', { method: 'POST', body: form }))
       } else {
-        const r = await api<{ imported: number; duplicates: number; categorised: number }>('/api/bank/import?mode=commit', { method: 'POST', body: form })
-        setNotice(`Imported ${r.imported} new line${r.imported === 1 ? '' : 's'} (${r.categorised} categorised automatically)${r.duplicates ? `; ${r.duplicates} already imported were skipped` : ''}.`)
+        const r = await api<{ imported: number; duplicates: number; categorised: number; settled?: { applied: number } }>('/api/bank/import?mode=commit', { method: 'POST', body: form })
+        setNotice(`Imported ${r.imported} new line${r.imported === 1 ? '' : 's'} (${r.categorised} categorised automatically)${r.duplicates ? `; ${r.duplicates} already imported were skipped` : ''}${r.settled?.applied ? `. ${r.settled.applied} payment${r.settled.applied === 1 ? '' : 's'} matched to invoices automatically — see the Matched tab` : ''}.`)
         setPreview(null); setFile(null); if (fileRef.current) fileRef.current.value = ''
         setTab('unmatched'); setPage(1); await load()
         router.refresh() // clears the server-rendered first-use empty state
@@ -127,6 +128,27 @@ export function BankClient({ hasLines }: { hasLines: boolean }) {
 
   return (
     <div className="p-4 md:p-6 space-y-4 md:space-y-6">
+      {offerOpen && autoSettleOffer && (
+        <Card>
+          <div className="p-4 md:p-5 flex flex-col sm:flex-row sm:items-center gap-3">
+            <p className="text-sm flex-1" style={{ color: 'var(--text-secondary)' }}>
+              You&apos;ve confirmed {autoSettleOffer.confirmed} bank payments recently and none needed undoing. Want AdminOS to settle the ones it&apos;s sure about as soon as you import a statement? You can undo any of them, and switch this off in Settings.
+            </p>
+            <div className="flex gap-2">
+              <Button size="sm" loading={busy === 'offer'} onClick={async () => {
+                setBusy('offer'); setError(null)
+                try {
+                  await api('/api/autonomy', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ domain: 'money', decision_type: 'bank_auto_match', tier: 'A' }) })
+                  setOfferOpen(false); setNotice('Done — sure matches will now be settled automatically when you import a statement.')
+                } catch (e) { setError(e instanceof Error ? e.message : 'Could not change that setting.') }
+                finally { setBusy(null) }
+              }}>Yes, settle them</Button>
+              <Button variant="ghost" size="sm" onClick={() => setOfferOpen(false)}>Not now</Button>
+            </div>
+          </div>
+        </Card>
+      )}
+
       {summary && summary.lines > 0 && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
           <Stat label="Money in" value={formatZAR(summary.moneyIn)} tone="var(--chip-green-fg)" />
@@ -332,6 +354,11 @@ function TxCard({ tx, busy, onPatch }: { tx: Tx; busy: boolean; onPatch: (id: st
           {tx.match_status === 'ignored' && (
             <Button variant="ghost" size="sm" disabled={busy} onClick={() => onPatch(tx.id, { ignore: false })}>
               <Undo2 className="w-4 h-4" aria-hidden /> Bring back
+            </Button>
+          )}
+          {tx.match_status === 'matched' && (
+            <Button variant="ghost" size="sm" disabled={busy} onClick={() => onPatch(tx.id, { unmatch: true }, 'Match undone — the payment was taken off the invoice.')}>
+              <Undo2 className="w-4 h-4" aria-hidden /> Undo match
             </Button>
           )}
           {tx.match_status === 'matched' && tx.category && <div className="text-xs" style={{ color: 'var(--text-muted)' }}>{labelFor(tx.category)}</div>}

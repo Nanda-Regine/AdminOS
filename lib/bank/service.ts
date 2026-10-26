@@ -1,12 +1,17 @@
 import { createHash } from 'node:crypto'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { unwrap, conflict, badRequest } from '@/lib/api/withRoute'
-import { OWED_INVOICE_STATUSES, outstanding } from '@/lib/invoices/status'
+import { OWED_INVOICE_STATUSES, outstanding, paymentState } from '@/lib/invoices/status'
+import { logPayment, findBankPayment } from '@/lib/invoices/ledger'
 import { recordInvoicePayment, type RecordedPayment } from '@/lib/invoices/recordPayment'
 import { parseBankStatement, type ParsedBankRow } from '@/lib/bank/parseStatement'
 import { suggestCategory, vendorKey, type TenantRule, type BankDirection } from '@/lib/bank/categorise'
-import { suggestMatches, type OpenInvoice, type Suggestion } from '@/lib/bank/reconcile'
+import { suggestMatches, payerNameInDescription, type OpenInvoice, type PayerAlias, type Suggestion } from '@/lib/bank/reconcile'
 import { isValidKey } from '@/lib/finance/chartOfAccounts'
+import { getTenantAutonomy } from '@/lib/autonomy/config'
+import { resolveTier, type Tier } from '@/lib/autonomy/tiers'
+import { notifyTenant } from '@/lib/notifications/notify'
+import { sastDate } from '@/lib/time/sast'
 
 export const MAX_STATEMENT_BYTES = 2 * 1024 * 1024
 export const MAX_STATEMENT_ROWS = 5000
@@ -55,6 +60,40 @@ async function tenantRules(tenantId: string): Promise<TenantRule[]> {
     .is('deleted_at', null)
     .limit(2000)) ?? []
   return data as TenantRule[]
+}
+
+/** Payers the owner has taught us ("this account is that customer"). Empty if unreadable — suggestions just lose the boost. */
+async function tenantAliases(tenantId: string): Promise<PayerAlias[]> {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('bank_payer_aliases')
+      .select('match_text, contact_name')
+      .eq('tenant_id', tenantId)
+      .is('deleted_at', null)
+      .limit(2000)
+    if (error) throw error
+    return (data ?? []).map((r) => ({ key: r.match_text as string, contactName: r.contact_name as string }))
+  } catch {
+    return []
+  }
+}
+
+/** After a hand-match where the bank showed a different name, remember the payer so the next payment is suggested. */
+async function learnPayer(tenantId: string, userId: string, txId: string, description: string, contactName: string | null) {
+  try {
+    const key = vendorKey(description)
+    if (!contactName || key.length < 4 || payerNameInDescription(description, contactName)) return
+    const existing = unwrap(await supabaseAdmin
+      .from('bank_payer_aliases').select('id')
+      .eq('tenant_id', tenantId).eq('match_text', key).is('deleted_at', null).maybeSingle())
+    if (existing) {
+      unwrap(await supabaseAdmin.from('bank_payer_aliases').update({ contact_name: contactName, bank_transaction_id: txId }).eq('id', existing.id).eq('tenant_id', tenantId))
+    } else {
+      unwrap(await supabaseAdmin.from('bank_payer_aliases').insert({ tenant_id: tenantId, match_text: key, contact_name: contactName.slice(0, 200), bank_transaction_id: txId, created_by: userId }))
+    }
+  } catch (err) {
+    console.error('[bank] could not remember payer', tenantId, err instanceof Error ? err.message : err)
+  }
 }
 
 async function openInvoices(tenantId: string): Promise<(OpenInvoice & { due_date: string | null })[]> {
@@ -115,16 +154,17 @@ export function parseOrThrow(text: string) {
 export async function previewStatement(tenantId: string, text: string): Promise<StatementPreview> {
   const parsed = parseOrThrow(text)
   const keyed = withFingerprints(tenantId, parsed.rows)
-  const [dupes, rules, invoices] = await Promise.all([
+  const [dupes, rules, invoices, aliases] = await Promise.all([
     existingHashes(tenantId, keyed.map((k) => k.hash)),
     tenantRules(tenantId),
     openInvoices(tenantId),
+    tenantAliases(tenantId),
   ])
 
   const credits = keyed
     .map((k, index) => ({ id: String(index), description: k.row.description, amount: k.row.amount, dup: dupes.has(k.hash) }))
     .filter((c) => c.amount > 0 && !c.dup)
-  const matches = new Map(suggestMatches(credits, invoices).map((s) => [Number(s.transactionId), s]))
+  const matches = new Map(suggestMatches(credits, invoices, aliases).map((s) => [Number(s.transactionId), s]))
   const invById = new Map(invoices.map((i) => [i.id, i]))
 
   const rows: PreviewRow[] = keyed.map((k, index) => {
@@ -246,10 +286,10 @@ export async function listTransactions(tenantId: string, opts: { status?: string
   const credits = rows.filter((r) => r.match_status === 'unmatched' && Number(r.amount) > 0)
   let suggestions = new Map<string, BankTxView['suggestion']>()
   if (credits.length) {
-    const invoices = await openInvoices(tenantId)
+    const [invoices, aliases] = await Promise.all([openInvoices(tenantId), tenantAliases(tenantId)])
     const byId = new Map(invoices.map((i) => [i.id, i]))
     suggestions = new Map(
-      suggestMatches(credits.map((c) => ({ id: c.id, description: c.description, amount: Number(c.amount) })), invoices).map((s) => {
+      suggestMatches(credits.map((c) => ({ id: c.id, description: c.description, amount: Number(c.amount) })), invoices, aliases).map((s) => {
         const inv = byId.get(s.invoiceId)!
         return [s.transactionId, { ...s, reference: inv.reference, contactName: inv.contact_name, outstanding: outstanding(inv) }]
       }),
@@ -284,7 +324,7 @@ export async function bankSummary(tenantId: string) {
 async function loadTx(tenantId: string, id: string) {
   return unwrap(await supabaseAdmin
     .from('bank_transactions')
-    .select('id, description, amount, match_status, category')
+    .select('id, description, amount, match_status, category, occurred_on')
     .eq('id', id)
     .eq('tenant_id', tenantId)
     .is('deleted_at', null)
@@ -362,7 +402,9 @@ export async function confirmMatch(tenantId: string, userId: string, id: string,
   if (!claimed) throw conflict('Someone else just matched this line — refresh and check.')
 
   try {
-    return await recordInvoicePayment(tenantId, userId, invoiceId, amount, 'eft')
+    const paid = await recordInvoicePayment(tenantId, userId, invoiceId, amount, 'eft', { source: 'bank', bankTransactionId: id, paidOn: tx.occurred_on as string })
+    await learnPayer(tenantId, userId, id, tx.description as string, paid.contactName)
+    return paid
   } catch (err) {
     await supabaseAdmin
       .from('bank_transactions')
@@ -371,6 +413,62 @@ export async function confirmMatch(tenantId: string, userId: string, id: string,
       .eq('tenant_id', tenantId)
     throw err
   }
+}
+
+/**
+ * Undo a confirmed match: the bank line goes back to unmatched and the money is
+ * taken off the invoice again (a negative ledger row pointing at the original —
+ * the history is kept). Guarded on amount_paid like every other payment write.
+ * What it cannot take back: the owner alert and the customer's thank-you message
+ * that went out when the invoice first became paid.
+ */
+export async function undoMatch(tenantId: string, userId: string, id: string) {
+  const tx = await loadTx(tenantId, id)
+  if (tx.match_status !== 'matched') throw conflict('This line is not matched to an invoice.')
+  const full = unwrap(await supabaseAdmin
+    .from('bank_transactions').select('matched_invoice_id').eq('id', id).eq('tenant_id', tenantId).maybeSingle(), { required: true })
+  const invoiceId = full.matched_invoice_id as string | null
+  if (!invoiceId) throw conflict('This line has no invoice to undo.')
+
+  // Matches made before the ledger existed have no ledger row: the bank line's own amount is what was applied.
+  const original = await findBankPayment(tenantId, id)
+  const amount = original ? original.amount : Number(tx.amount)
+
+  const inv = unwrap(await supabaseAdmin
+    .from('invoices')
+    .select('id, status, amount, amount_paid')
+    .eq('id', invoiceId).eq('tenant_id', tenantId).is('deleted_at', null).maybeSingle(), { required: true, what: 'Invoice not found' })
+  if (inv.status === 'cancelled') throw conflict('That invoice has been cancelled, so the payment can’t be undone from here.')
+
+  const paidBefore = Number(inv.amount_paid ?? 0)
+  const newPaid = Math.round((paidBefore - amount) * 100) / 100
+  if (newPaid < -0.005) throw conflict('The invoice has less paid on it than this line — it was changed since. Check the invoice.')
+  const state = paymentState(Number(inv.amount ?? 0), Math.max(0, newPaid))
+  const nextStatus = inv.status === 'in_collections' ? 'in_collections' : (state.status ?? 'unpaid')
+
+  const updated = unwrap(await supabaseAdmin
+    .from('invoices')
+    .update({
+      amount_paid: state.amount_paid,
+      amount_due: state.amount_due,
+      status: nextStatus,
+      ...(state.status === 'paid' ? {} : { paid_at: null }),
+    })
+    .eq('id', invoiceId).eq('tenant_id', tenantId).eq('amount_paid', paidBefore)
+    .select('id, status, amount_paid')
+    .maybeSingle())
+  if (!updated) throw conflict('This invoice was just changed by someone else — refresh and try again.')
+
+  await logPayment({ tenantId, invoiceId, userId, amount: -amount, source: 'reversal', reversesId: original?.id ?? null, bankTransactionId: null })
+  unwrap(await supabaseAdmin
+    .from('bank_transactions')
+    .update({ match_status: 'unmatched', matched_invoice_id: null, matched_at: null, matched_by: null })
+    .eq('id', id).eq('tenant_id', tenantId))
+  // A match the owner took back must not keep teaching.
+  await supabaseAdmin.from('bank_payer_aliases').update({ deleted_at: new Date().toISOString() })
+    .eq('tenant_id', tenantId).eq('bank_transaction_id', id).is('deleted_at', null)
+
+  return { id, invoiceId, status: updated.status as string, amountPaid: Number(updated.amount_paid) }
 }
 
 /** Bulk-confirm: only pairs the matcher itself rates 'high' right now are accepted — the client can't force others. */
@@ -394,4 +492,68 @@ export async function confirmHighConfidence(tenantId: string, userId: string, pa
     }
   }
   return results
+}
+
+// ── closed loop: statement in → sure matches settled ───────────────────────
+async function highConfidencePairs(tenantId: string) {
+  const rows = unwrap(await supabaseAdmin
+    .from('bank_transactions')
+    .select('id, description, amount')
+    .eq('tenant_id', tenantId)
+    .is('deleted_at', null)
+    .eq('match_status', 'unmatched')
+    .gt('amount', 0)
+    .order('occurred_on', { ascending: false })
+    .limit(500)) ?? []
+  const credits = rows.map((r) => ({ id: r.id as string, description: r.description as string, amount: Number(r.amount) }))
+  if (!credits.length) return []
+  return suggestMatches(credits, await openInvoices(tenantId))
+    .filter((s) => s.confidence === 'high')
+    .map((s) => ({ transactionId: s.transactionId, invoiceId: s.invoiceId }))
+}
+
+export interface SettleResult { tier: Tier; applied: number; ready: number }
+
+/**
+ * After a statement is imported, act on the matches the matcher is sure of
+ * (money/bank_auto_match): A settles them now (each one can be undone from the
+ * Bank page), B tells the owner they are ready to confirm in one tap, C does
+ * nothing extra. Default B — AdminOS proposes, it doesn't silently settle
+ * invoices until the owner turns A on. Never throws: the import already
+ * succeeded and must report that.
+ */
+export async function settleAfterImport(tenantId: string, userId: string): Promise<SettleResult> {
+  let tier: Tier = 'C'
+  try {
+    tier = resolveTier(await getTenantAutonomy(tenantId), 'money', 'bank_auto_match')
+    if (tier === 'C') return { tier, applied: 0, ready: 0 }
+    const pairs = (await highConfidencePairs(tenantId)).slice(0, 100)
+    if (!pairs.length) return { tier, applied: 0, ready: 0 }
+
+    if (tier === 'B') {
+      await notifyTenant(tenantId, {
+        type: 'bank.matches_ready',
+        title: `${pairs.length} bank payment${pairs.length === 1 ? '' : 's'} ready to confirm`,
+        body: 'These lines clearly match open invoices. Confirm them in one tap on the Bank page.',
+        actionUrl: '/dashboard/bank',
+        dedupeKey: `bank-ready-${tenantId}-${sastDate()}`,
+      })
+      return { tier, applied: 0, ready: pairs.length }
+    }
+
+    const results = await confirmHighConfidence(tenantId, userId, pairs)
+    const applied = results.filter((r) => r.ok).length
+    if (applied > 0) {
+      await notifyTenant(tenantId, {
+        type: 'bank.auto_matched',
+        title: `${applied} bank payment${applied === 1 ? '' : 's'} matched to invoices`,
+        body: 'Settled automatically from your statement. Open Bank → Matched to review; any of them can be undone.',
+        actionUrl: '/dashboard/bank',
+      })
+    }
+    return { tier, applied, ready: 0 }
+  } catch (err) {
+    console.error('[bank] settleAfterImport failed', tenantId, err instanceof Error ? err.message : err)
+    return { tier, applied: 0, ready: 0 }
+  }
 }

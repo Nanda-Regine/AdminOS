@@ -160,6 +160,7 @@ export default async function CashCockpit() {
                       <div className="flex-1 min-w-0">
                         <p className="text-sm truncate" style={{ color: 'var(--text-secondary)' }}>{o.contact}</p>
                         <p className="text-xs" style={{ color: '#F87171' }}>{o.daysOverdue} days overdue</p>
+                        {o.habit && <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{o.habit}</p>}
                       </div>
                       <span className="text-sm font-semibold tabular-nums group-hover:underline" style={{ color: 'var(--text-primary)' }}>{formatZAR(o.outstanding)}</span>
                     </Link>

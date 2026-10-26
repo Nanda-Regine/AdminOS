@@ -34,3 +34,10 @@ test('quiet hours handle overnight wrap', () => {
   assert.equal(isWithinQuietHours(20 * 60, daytime), false)
   assert.equal(isWithinQuietHours(12 * 60, null), false)
 })
+
+test('bank statement matching proposes by default and is a governed decision', async () => {
+  const { DECISION_CATALOGUE } = await import('../lib/autonomy/tiers.ts')
+  assert.equal(resolveTier([], 'money', 'bank_auto_match'), 'B') // propose, never silently settle
+  assert.ok(DECISION_CATALOGUE.some((d) => d.domain === 'money' && d.decision_type === 'bank_auto_match'))
+  assert.equal(resolveTier([{ domain: 'money', decision_type: 'bank_auto_match', tier: 'A' }], 'money', 'bank_auto_match'), 'A')
+})
