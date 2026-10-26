@@ -232,6 +232,7 @@ export default function InboxPage() {
           <div className="p-3 border-b border-[var(--border)]">
             <input
               className="w-full px-3 py-2 text-sm bg-[var(--surface-2)] border border-[var(--border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-[var(--text-primary)] placeholder:text-[var(--text-muted)]"
+              aria-label="Search conversations"
               placeholder="Search conversations..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -347,7 +348,7 @@ export default function InboxPage() {
                       ? 'bg-[var(--surface-1)] border border-[var(--border)] text-[var(--text-secondary)]'
                       : msg.role === 'system'
                       ? 'bg-yellow-50 border border-yellow-200 text-yellow-800 text-xs italic'
-                      : 'bg-emerald-600 text-white'
+                      : 'bg-emerald-700 text-white'
                   }`}>
                     {msg.content}
                     {msg.from_cache && <span className="ml-1 text-xs opacity-60" title="From FAQ cache">⚡</span>}

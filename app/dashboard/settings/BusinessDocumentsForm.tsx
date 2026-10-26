@@ -61,12 +61,12 @@ export function BusinessDocumentsForm({ initial }: { initial: BusinessDocumentsI
     <div className="space-y-3">
       <div>
         <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>Business Address</label>
-        <input className={input} style={inputStyle} value={address} onChange={e => setAddress(e.target.value)}
+        <input aria-label="Business Address" className={input} style={inputStyle} value={address} onChange={e => setAddress(e.target.value)}
           placeholder="12 Main Road, East London, 5201" />
       </div>
       <div>
         <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>VAT Number</label>
-        <input className={input} style={inputStyle} value={vatNumber} onChange={e => setVatNumber(e.target.value)}
+        <input aria-label="VAT Number" className={input} style={inputStyle} value={vatNumber} onChange={e => setVatNumber(e.target.value)}
           placeholder="Leave blank if not VAT-registered" />
         <p className="text-xs mt-1" style={{ color: 'var(--text-dim)' }}>
           Only set this if you&apos;re actually VAT-registered — it controls whether invoices say &quot;TAX INVOICE&quot; and show a VAT breakdown.
@@ -75,19 +75,19 @@ export function BusinessDocumentsForm({ initial }: { initial: BusinessDocumentsI
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div>
           <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>Bank Name</label>
-          <input className={input} style={inputStyle} value={bankName} onChange={e => setBankName(e.target.value)} placeholder="FNB" />
+          <input aria-label="Bank Name" className={input} style={inputStyle} value={bankName} onChange={e => setBankName(e.target.value)} placeholder="FNB" />
         </div>
         <div>
           <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>Account Holder</label>
-          <input className={input} style={inputStyle} value={bankAccountHolder} onChange={e => setBankAccountHolder(e.target.value)} placeholder="Business name" />
+          <input aria-label="Account Holder" className={input} style={inputStyle} value={bankAccountHolder} onChange={e => setBankAccountHolder(e.target.value)} placeholder="Business name" />
         </div>
         <div>
           <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>Account Number</label>
-          <input className={input} style={inputStyle} value={bankAccountNumber} onChange={e => setBankAccountNumber(e.target.value)} />
+          <input aria-label="Account Number" className={input} style={inputStyle} value={bankAccountNumber} onChange={e => setBankAccountNumber(e.target.value)} />
         </div>
         <div>
           <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>Branch Code</label>
-          <input className={input} style={inputStyle} value={bankBranchCode} onChange={e => setBankBranchCode(e.target.value)} />
+          <input aria-label="Branch Code" className={input} style={inputStyle} value={bankBranchCode} onChange={e => setBankBranchCode(e.target.value)} />
         </div>
       </div>
       <p className="text-xs" style={{ color: 'var(--text-dim)' }}>

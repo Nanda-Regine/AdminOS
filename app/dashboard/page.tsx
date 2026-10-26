@@ -127,14 +127,14 @@ export default async function CommandCenter() {
   // Each item only for someone who can act on it (a manager has no inbox,
   // payroll or settings access by default — those links were dead ends).
   const decisions = [
-    { n: pendingExpenses,    label: 'expense claim',       href: '/dashboard/expenses',   icon: Wallet,        tone: 'amber' as const,  ok: may('view_financials') },
-    { n: pendingLeave,       label: 'leave request',       href: '/dashboard/team',       icon: Users,         tone: 'indigo' as const, ok: may('approve_leave') },
-    { n: recoveryReview,     label: 'recovery escalation', href: '/dashboard/invoices',   icon: AlertTriangle, tone: 'red' as const,    ok: may('manage_invoices') },
-    { n: contractsAwaiting,  label: 'contract to send',    href: '/dashboard/contracts',  icon: PenLine,       tone: 'indigo' as const, ok: may('view_financials') },
-    { n: lowStock.length,    label: 'item to reorder',     href: '/dashboard/inventory',  icon: Package,       tone: 'amber' as const,  ok: may('manage_inventory') },
-    { n: pendingBookings,    label: 'booking to confirm',  href: '/dashboard/bookings',   icon: CalendarClock, tone: 'indigo' as const, ok: may('manage_contacts') },
-    { n: needAttention,      label: 'customer waiting',    href: '/dashboard/inbox',      icon: MessageSquare, tone: 'red' as const,    ok: may('view_communications') },
-    { n: overdueTasks,       label: 'overdue task',        href: '/dashboard/tasks',      icon: ClipboardList, tone: 'red' as const,    ok: true },
+    { n: pendingExpenses,    label: 'expense claim', plural: 'expense claims',       href: '/dashboard/expenses',   icon: Wallet,        tone: 'amber' as const,  ok: may('view_financials') },
+    { n: pendingLeave,       label: 'leave request', plural: 'leave requests',       href: '/dashboard/team',       icon: Users,         tone: 'indigo' as const, ok: may('approve_leave') },
+    { n: recoveryReview,     label: 'recovery escalation', plural: 'recovery escalations', href: '/dashboard/invoices',   icon: AlertTriangle, tone: 'red' as const,    ok: may('manage_invoices') },
+    { n: contractsAwaiting,  label: 'contract to send', plural: 'contracts to send',    href: '/dashboard/contracts',  icon: PenLine,       tone: 'indigo' as const, ok: may('view_financials') },
+    { n: lowStock.length,    label: 'item to reorder', plural: 'items to reorder',     href: '/dashboard/inventory',  icon: Package,       tone: 'amber' as const,  ok: may('manage_inventory') },
+    { n: pendingBookings,    label: 'booking to confirm', plural: 'bookings to confirm',  href: '/dashboard/bookings',   icon: CalendarClock, tone: 'indigo' as const, ok: may('manage_contacts') },
+    { n: needAttention,      label: 'customer waiting', plural: 'customers waiting',    href: '/dashboard/inbox',      icon: MessageSquare, tone: 'red' as const,    ok: may('view_communications') },
+    { n: overdueTasks,       label: 'overdue task', plural: 'overdue tasks',        href: '/dashboard/tasks',      icon: ClipboardList, tone: 'red' as const,    ok: true },
   ].filter(d => d.ok && d.n > 0).sort((a, b) => ({ red: 0, amber: 1, indigo: 2 }[a.tone] - { red: 0, amber: 1, indigo: 2 }[b.tone]))
   const decisionCount = decisions.reduce((s, d) => s + d.n, 0)
 
@@ -290,7 +290,7 @@ export default async function CommandCenter() {
                           <d.icon className="w-4 h-4" style={{ color: t.fg }} />
                         </div>
                         <p className="flex-1 text-sm" style={{ color: 'var(--text-secondary)' }}>
-                          <strong style={{ color: 'var(--text-primary)' }}>{d.n}</strong> {d.label}{d.n > 1 ? 's' : ''}
+                          <strong style={{ color: 'var(--text-primary)' }}>{d.n}</strong> {d.n > 1 ? d.plural : d.label}
                         </p>
                         <ArrowRight className="w-3.5 h-3.5" style={{ color: 'var(--text-dim)' }} />
                       </Link>

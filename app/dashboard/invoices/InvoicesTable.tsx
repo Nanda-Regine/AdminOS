@@ -4,7 +4,7 @@ import { FileText } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { DataTable, type Column, type FilterDef } from '@/components/ui/DataTable'
 import { EmptyState } from '@/components/ui/EmptyState'
-import { formatZAR } from '@/lib/format'
+import { formatZAR, formatDateShort } from '@/lib/format'
 import { daysOverdue } from '@/lib/debt/overdue'
 import { isOpen, outstanding } from '@/lib/invoices/status'
 import type { ListResult } from '@/lib/api/list'
@@ -116,7 +116,7 @@ export function InvoicesTable({ rows, server }: { rows: InvoiceRow[]; server: Om
         const late = lateDays(i)
         return (
           <div>
-            <p style={{ color: 'var(--text-muted)' }}>{i.due_date || '—'}</p>
+            <p style={{ color: 'var(--text-muted)' }}>{i.due_date ? formatDateShort(i.due_date) : '—'}</p>
             {late > 0 && <p className="text-xs font-medium" style={{ color: '#F87171' }}>{late} days late</p>}
           </div>
         )
@@ -147,12 +147,12 @@ export function InvoicesTable({ rows, server }: { rows: InvoiceRow[]; server: Om
             amountPaid={Number(i.amount_paid || 0)} label={label(i)} />
           <div className="flex items-center gap-3 whitespace-nowrap">
             <a href={`/api/invoices/${i.id}/document`} target="_blank" rel="noopener noreferrer"
-              className="hover:underline" style={{ color: 'var(--indigo)' }}>
+              className="inline-flex items-center hover:underline max-md:min-h-11 pointer-coarse:min-h-11" style={{ color: 'var(--indigo-light)' }}>
               Invoice
             </a>
             {Number(i.amount_paid) > 0 && (
               <a href={`/api/invoices/${i.id}/receipt`} target="_blank" rel="noopener noreferrer"
-                className="hover:underline" style={{ color: '#22C55E' }}>
+                className="inline-flex items-center hover:underline max-md:min-h-11 pointer-coarse:min-h-11" style={{ color: '#22C55E' }}>
                 Receipt
               </a>
             )}

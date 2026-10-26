@@ -73,7 +73,7 @@ export function RecoveryReviewQueue() {
               </div>
               <div className="flex gap-2 ml-auto">
                 <button disabled={busy === inv.id} onClick={() => act(inv.id, 'mark_handled')}
-                  className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50">
+                  className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-emerald-700 text-white hover:bg-emerald-800 disabled:opacity-50">
                   I&rsquo;ve contacted them
                 </button>
                 <button disabled={busy === inv.id} onClick={() => act(inv.id, 'pause')}

@@ -198,7 +198,7 @@ export default async function TasksPage() {
             <span className="font-semibold text-red-700">
               {urgentOpen.length} urgent task{urgentOpen.length !== 1 ? 's' : ''}
             </span>
-            <span className="text-red-400">need immediate attention</span>
+            <span className="text-red-700">need immediate attention</span>
           </div>
         )}
         {overdueOpen.length > 0 && (
@@ -207,7 +207,7 @@ export default async function TasksPage() {
             <span className="font-semibold text-orange-700">
               {overdueOpen.length} overdue task{overdueOpen.length !== 1 ? 's' : ''}
             </span>
-            <span className="text-orange-400">past their due date</span>
+            <span className="text-orange-700">past their due date</span>
           </div>
         )}
 

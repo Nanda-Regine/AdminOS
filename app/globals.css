@@ -7,7 +7,7 @@
   --navy-800:      #111936;
   --navy-700:      #1a2347;
   --navy-600:      #243060;
-  --indigo:        #6366F1;
+  --indigo:        #5A5DEC;
   --indigo-light:  #818CF8;
   --indigo-muted:  rgba(99, 102, 241, 0.15);
   --gold:          #C9A84C;
@@ -367,6 +367,11 @@ body {
   background: var(--success);
   animation: pulse-dot 1.8s ease-in-out infinite;
   display: inline-block;
+}
+
+/* Touch devices: every form control meets the 44px minimum target. */
+@media (pointer: coarse) {
+  input:not([type=checkbox]):not([type=radio]):not([type=file]):not([type=hidden]), select { min-height: 44px; }
 }
 
 /* ── Input / form base ──────────────────────────────────────────────────── */

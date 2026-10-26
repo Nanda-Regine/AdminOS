@@ -302,7 +302,7 @@ export function DataTable<T>({
               }}
               placeholder={searchPlaceholder}
               aria-label="Search table"
-              className="pl-8 pr-3 py-1.5 rounded-lg text-sm outline-none focus:ring-2 focus:ring-[var(--indigo)] w-full sm:w-[220px]"
+              className="pl-8! pr-3 py-1.5 rounded-lg text-sm outline-none focus:ring-2 focus:ring-[var(--indigo)] w-full sm:w-[220px]"
               style={{
                 background: 'var(--surface-2)',
                 border: '1px solid var(--border)',
@@ -349,7 +349,7 @@ export function DataTable<T>({
           <button
             onClick={exportCsv}
             disabled={sorted.length === 0}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 max-md:min-h-11 pointer-coarse:min-h-11 rounded-lg text-sm font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             style={{
               background: 'var(--surface-2)',
               border: '1px solid var(--border)',
@@ -366,8 +366,8 @@ export function DataTable<T>({
 
       {/* Table */}
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
+        <table className="w-full text-sm max-md:block">
+          <thead className="max-md:hidden">
             <tr style={{ borderBottom: '1px solid var(--border)', background: 'rgba(255,255,255,0.02)' }}>
               {columns.map(col => {
                 const isSorted = sort?.key === col.key
@@ -401,12 +401,12 @@ export function DataTable<T>({
               })}
             </tr>
           </thead>
-          <tbody>
+          <tbody className="max-md:block">
             {pageRows.map(row => (
               <tr
                 key={getRowKey(row)}
                 style={{ borderBottom: '1px solid var(--border)' }}
-                className={`transition-colors hover:bg-[rgba(99,102,241,0.05)] ${clickable ? 'cursor-pointer' : ''}`}
+                className={`transition-colors hover:bg-[rgba(99,102,241,0.05)] max-md:grid max-md:grid-cols-2 max-md:gap-x-3 max-md:px-2 max-md:py-3 ${clickable ? 'cursor-pointer' : ''}`}
                 onClick={clickable ? () => handleRowActivate(row) : undefined}
                 tabIndex={clickable ? 0 : undefined}
                 onKeyDown={
@@ -417,15 +417,20 @@ export function DataTable<T>({
                     : undefined
                 }
               >
-                {columns.map(col => {
+                {columns.map((col, ci) => {
                   const align = col.align ?? (col.numeric ? 'right' : 'left')
                   return (
                     <td
                       key={col.key}
-                      className={`px-5 py-3.5 ${
+                      className={`max-md:block max-md:px-3 max-md:py-1.5 max-md:text-left max-md:first:col-span-2 max-md:last:col-span-2 px-5 py-3.5 ${
                         align === 'right' ? 'text-right' : align === 'center' ? 'text-center' : 'text-left'
                       } ${col.numeric ? 'tabular-nums' : ''} ${col.className ?? ''}`}
                     >
+                      {ci > 0 && (
+                        <span className="hidden max-md:block text-[10px] uppercase tracking-wide mb-0.5" style={{ color: 'var(--text-dim)' }}>
+                          {col.header}
+                        </span>
+                      )}
                       {col.render ? col.render(row) : (rawValue(row, col) ?? <span style={{ color: 'var(--text-dim)' }}>—</span>)}
                     </td>
                   )
@@ -483,7 +488,7 @@ export function DataTable<T>({
               <button
                 onClick={() => goToPage(Math.max(0, safePage - 1))}
                 disabled={safePage === 0}
-                className="inline-flex items-center justify-center w-7 h-7 rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[var(--surface-hover)]"
+                className="inline-flex items-center justify-center w-7 h-7 pointer-coarse:w-11 pointer-coarse:h-11 rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[var(--surface-hover)]"
                 aria-label="Previous page"
               >
                 <ChevronLeft className="w-4 h-4" />
@@ -494,7 +499,7 @@ export function DataTable<T>({
               <button
                 onClick={() => goToPage(Math.min(pageCount - 1, safePage + 1))}
                 disabled={safePage >= pageCount - 1}
-                className="inline-flex items-center justify-center w-7 h-7 rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[var(--surface-hover)]"
+                className="inline-flex items-center justify-center w-7 h-7 pointer-coarse:w-11 pointer-coarse:h-11 rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[var(--surface-hover)]"
                 aria-label="Next page"
               >
                 <ChevronRight className="w-4 h-4" />

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useId, useRef } from 'react'
 
 interface ModalProps {
   open: boolean
@@ -12,6 +12,7 @@ interface ModalProps {
 
 export function Modal({ open, onClose, title, children, size = 'md' }: ModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null)
+  const titleId = useId()
 
   useEffect(() => {
     const dialog = dialogRef.current
@@ -33,6 +34,7 @@ export function Modal({ open, onClose, title, children, size = 'md' }: ModalProp
   return (
     <dialog
       ref={dialogRef}
+      aria-labelledby={titleId}
       className={`${sizeClass} w-full rounded-2xl border shadow-2xl p-0 m-auto max-h-[90vh] overflow-y-auto`}
       style={{
         backgroundColor: 'var(--navy-800)',
@@ -47,10 +49,11 @@ export function Modal({ open, onClose, title, children, size = 'md' }: ModalProp
         className="flex items-center justify-between gap-3 px-4 sm:px-5 py-3 border-b sticky top-0 z-10"
         style={{ background: 'var(--navy-800)', borderColor: 'var(--border)' }}
       >
-        <h2 className="text-base font-semibold truncate min-w-0" style={{ color: 'var(--text-primary)' }}>{title}</h2>
+        <h2 id={titleId} className="text-base font-semibold truncate min-w-0" style={{ color: 'var(--text-primary)' }}>{title}</h2>
         <button
           type="button"
           onClick={onClose}
+          aria-label="Close"
           className="rounded-lg p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center transition-colors hover:bg-white/10 shrink-0"
           style={{ color: 'var(--text-muted)' }}
         >
@@ -64,15 +67,26 @@ export function Modal({ open, onClose, title, children, size = 'md' }: ModalProp
   )
 }
 
-export function FormField({ label, children, hint }: {
+export function FormField({ label, children, hint, group }: {
   label: string; children: React.ReactNode; hint?: string
+  /** Set when the children are several buttons (a toggle group), not one input. */
+  group?: boolean
 }) {
+  const labelCls = 'block text-xs font-semibold uppercase tracking-wide'
+  const labelSty = { color: 'var(--text-muted)' }
   return (
     <div className="space-y-1.5">
-      <label className="block text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
-        {label}
-      </label>
-      {children}
+      {group ? (
+        <div role="group" aria-label={label} className="space-y-1.5">
+          <span className={labelCls} style={labelSty}>{label}</span>
+          {children}
+        </div>
+      ) : (
+        <label className="block space-y-1.5">
+          <span className={labelCls} style={labelSty}>{label}</span>
+          {children}
+        </label>
+      )}
       {hint && <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{hint}</p>}
     </div>
   )

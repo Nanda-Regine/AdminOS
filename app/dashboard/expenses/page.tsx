@@ -202,7 +202,7 @@ export default async function ExpensesPage() {
                             title="Approve this expense claim?"
                             description="This approves the claim for reimbursement and is recorded in the audit trail."
                             confirmLabel="Approve claim"
-                            className="text-xs bg-emerald-600 text-white px-3 py-1.5 rounded-lg hover:bg-emerald-700 font-medium"
+                            className="text-xs bg-emerald-700 text-white px-3 py-1.5 rounded-lg hover:bg-emerald-800 font-medium"
                           />
                         </form>
                         <form action={`/api/expenses/${claim.id}/approve`} method="POST">

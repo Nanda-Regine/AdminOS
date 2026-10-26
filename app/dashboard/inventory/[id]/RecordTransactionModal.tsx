@@ -90,7 +90,7 @@ export function RecordTransactionModal({
           </FormField>
 
           {form.transactionType === 'adjust' && (
-            <FormField label="Direction *">
+            <FormField label="Direction *" group>
               <div className="flex gap-2">
                 {(['decrease', 'increase'] as const).map(dir => (
                   <button

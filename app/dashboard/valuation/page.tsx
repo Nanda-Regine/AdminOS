@@ -136,7 +136,7 @@ export default async function ValuationPage() {
                 {latest && (
                   <div className="flex flex-col items-center gap-1">
                     <div
-                      className="w-10 rounded-t bg-emerald-600 cursor-default"
+                      className="w-10 rounded-t bg-emerald-700 cursor-default"
                       style={{ height: '60px' }}
                       title={`Latest: ${formatValuation(latest.valuation_estimate)}`}
                     />

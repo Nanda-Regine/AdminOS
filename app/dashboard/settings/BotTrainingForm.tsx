@@ -41,17 +41,17 @@ export function BotTrainingForm({ initial }: { initial: { policies: string; faqs
     <div className="space-y-3">
       <div>
         <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>Business Policies</label>
-        <textarea className={ta} style={taStyle} rows={3} value={policies} onChange={e => setPolicies(e.target.value)}
+        <textarea aria-label="Business Policies" className={ta} style={taStyle} rows={3} value={policies} onChange={e => setPolicies(e.target.value)}
           placeholder="Your policies, procedures, and rules — the bot follows these." />
       </div>
       <div>
         <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>FAQs</label>
-        <textarea className={ta} style={taStyle} rows={4} value={faqs} onChange={e => setFaqs(e.target.value)}
+        <textarea aria-label="FAQs" className={ta} style={taStyle} rows={4} value={faqs} onChange={e => setFaqs(e.target.value)}
           placeholder={'Q: What are your hours?\nA: Mon–Fri 8am–5pm'} />
       </div>
       <div>
         <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>Tone</label>
-        <select className="w-full text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        <select aria-label="Tone" className="w-full text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           style={taStyle} value={tone} onChange={e => setTone(e.target.value)}>
           <option value="formal">Formal &amp; Professional</option>
           <option value="warm">Warm &amp; Friendly</option>
